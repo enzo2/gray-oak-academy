@@ -1,1 +1,5 @@
 /* Application styles */
+
+/* Import Shoelace CSS for light and dark themes */
+@import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css') screen and (prefers-color-scheme: light);
+@import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/dark.css') screen and (prefers-color-scheme: dark);

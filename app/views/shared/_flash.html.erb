@@ -1,0 +1,5 @@
+<% flash.each do |type, message| %>
+<div class="border rounded border-gray dark:border-white <%= type %>">
+    <span class="px-5 py-2"><%= message %></span>
+</div>
+<% end %>

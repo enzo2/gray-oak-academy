@@ -1,7 +1,16 @@
 @tailwind base;
+
+@layer base {  /*where you can re-add styles to base elements that tailwind removed */
+
+  /* dont add h1, h2 etc, use 'prose' instead */
+
+}
+
 @tailwind components;
 @tailwind utilities;
-
+@tailwind typography;
+@tailwind forms;
+@tailwind container-queries;
 /*
 
 @layer components {

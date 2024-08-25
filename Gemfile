@@ -1,5 +1,7 @@
 source "https://rubygems.org"
 
+gem "dotenv-rails", groups: [ :development, :test ]
+
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 7.2.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
@@ -14,8 +16,25 @@ gem "importmap-rails"
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
+
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
+# gem 'shoelace-rails'
+
+
+# Vector Search
+gem "pgvector"
+gem "neighbor"
+
+# llms
+gem "openai"
+gem "anthropic"
+# gem 'llama_index'
+
+## Authentication
+gem "devise"
+
+
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 # Use Redis adapter to run Action Cable in production
