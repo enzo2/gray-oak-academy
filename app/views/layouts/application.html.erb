@@ -36,7 +36,7 @@
         <div class="flex items-center space-x-5 [&_a:hover]:underline" id="nav-right-items">
           <% if user_signed_in? %>
             <%= link_to "Dashboard", root_path, class: "" %>
-            <%= link_to "Log out", destroy_user_session_path, method: :delete, class: "" %>
+            <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
           <% else %>
             <%= link_to "Log in", new_user_session_path, class: "" %>
           <% end %>

@@ -1,0 +1,229 @@
+App summary:
+Next generation AI tutor for students, with teacher-designed lesson plans executed by multimodal LLM. 
+RAG-based with student progress tracking and adaptive teaching.
+Generative UI using Turbo. 2-column layout, allowing the LLM to create visualizations, interactive elements, view media, work alongside the student, etc.
+Likewise, the student can use the frame as a chalkboard to demonstrate understanding in visual ways beyond plain chat. 
+Desktop-only to ensure appropriate interactivity and resource utilization. 
+The goal is to match or exceed the tutoring ability of a talented and broadly knowledgeable 1-on-1 human tutor.
+
+dev environment: ruby devcontainer
+Intended app environment: containerized, run locally or in a secure environment, not internet accessible
+
+frameworks/tooling:
+- ruby on rails 7.2 (plan upgrade to 8)
+- security: hosted locally only, up to user to make accessible to internet
+- docker containerized + devcontainer
+- tailwindcss + shoelace components
+- interactivity - hotwire: turbo, stimulus
+- DB: postgres
+- Authentication: devise (upon Rails 8, could remove Devise and switch to the built-in generator and BYO)
+- Authorization: User role: student / admin
+- LLM servers - OpenAI, Anthropic; ollama (local) - translate openau api format to anthropic so can switch as needed
+- LlamaIndex
+- RAG: postgres + pgvector + neighbor gem
+    https://github.com/ankane/neighbor - ruby gem to use pgvector with rails
+    https://www.crunchydata.com/blog/ruby-on-rails-neighbor-gem-for-ai-embeddings
+    https://medium.com/@rubyroidlabs/how-to-build-an-ai-chatbot-with-ruby-on-rails-and-chatgpt-9a48f292c37c
+
+Features:
+- Separate Teacher and Student interfaces/dashboards
+- LLM co-design of lesson plans for teachers in bulk
+- Student-progress-aware LLM tutor
+- Multimodal tutoring: 
+    - speech-to-text, text-to-speech
+    - student can respond with either text/voice, or chalkboard sketching (rasterize and send as image to LLM)
+    - large multipurpose chalkboard frame usable for handwriting, image viewing, generative UI components, iframe for websites, etc.
+    - generative UI/mini-apps: GPT to stream components, send with turbo, render either in-chat or on chalkboard frame
+    - automated lesson summary student progress reports
+
+DB models/tables/etc
+--------------------------------------------------------
+User
+  enum :role { admin: 0 , student: 1 }
+
+  #self-join for teachers and students
+  has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
+  belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
+          # table will have t.references :teacher, foreign_key: {to_table: :users}
+
+  has_many :enrollments, foreign_key: "student_id", inverse_of: :student
+  has_many :courses, through: :enrollments, inverse_of: :students
+  has_many :taught_courses, class_name: "Course", foreign_key: "teacher_id", inverse_of: :teacher
+  has_many :lessons, through: :courses
+  has_many :lesson_plans, foreign_key: "teacher_id", inverse_of: :teacher
+  has_many :completed_lesson_reports, foreign_key: "student_id", inverse_of: :student
+  has_many :completed_course_reports, through: :enrollments
+  has_many :progress_reports, foreign_key: "student_id", inverse_of: :student
+  has_many :course_progress_reports, through :enrollments, source: :progress_reports
+  has_one_attached :photo
+
+#relationship model 
+Enrollment  
+  belongs_to :student, class_name: "User", inverse_of: :enrollments
+  belongs_to :course
+  has_one :completed_course_report, inverse_of: :enrollment
+  has_many :progress_reports, inverse_of: :enrollment
+  field :created_at
+  field :updated_at
+  boolean :completed
+
+Course 
+  has_many :lessons
+  has_many :enrollments
+  has_many :students, through: :enrollments, inverse_of: :courses
+  belongs_to :teacher, class_name: "User", inverse_of: :taught_courses
+  has_many :completed_course_reports, through: :enrollments
+  field :summary
+  field :grade_level
+  field :created_at
+  field :updated_at
+
+Lesson
+  belongs_to :course
+  has_one :teacher, through: :course
+  has_one :lesson_plan
+  has_many :completed_lesson_reports
+  has_many :students, through: :completed_lesson_reports
+  field :goals
+  field :created_at
+  field :updated_at
+
+LessonPlan
+  belongs_to :lesson
+  belongs_to :teacher, class_name: "User", inverse_of: :lesson_plans
+  has_one :course, through: :lesson
+  has_and_belongs_to_many :resources
+  field :content
+  field :activities
+  field :status
+  field :created_at
+  field :updated_at
+
+CompletedLessonReport
+  belongs_to :student, class_name: "User"
+  belongs_to :teacher, class_name: "User", optional: true
+  belongs_to :lesson
+  enum :author_type {0: ai_generated, 1: teacher_written}
+  field :report
+  field :created_at
+  boolean :lesson_completed
+
+CompletedCourseReport
+  belongs_to :enrollment
+  has_one :student, through: :enrollment
+  has_one :teacher, class_name: "User", through: :enrollment
+  belongs_to :course
+  field :report
+  enum :author_type {0: ai_generated, 1: teacher_written}
+  field :created_at
+
+ProgressReport  #other reports or feedback
+  belongs_to :student, class_name: "User", inverse_of: :progress_reports
+  belongs_to :teacher, class_name: "User", optional: true, inverse_of: :progress_reports
+  belongs_to :enrollment, optional: true, inverse_of: :progress_reports
+  enum :author_type (0: ai_generated, 1: teacher_written)
+  field :author
+  field :report
+  field :created_at
+
+Resource
+  has_and_belongs_to_many :lesson_plans
+  has_one_attached :file
+  field :category
+  field :description
+  field :uri
+  enum  utilized: {planned: 0, utilized: 1}
+  field :created_at
+  field :updated_at
+  
+Prompt
+  field :prompt
+  field :created_at
+  field :updated_at
+
+Tool
+  field :description
+  field :created_at
+  field :updated_at
+
+
+- Prompts: system prompts for LLMs
+- Tools: tools for LLM use to manipulate the student view or generate components
+
+
+
+views
+- system prompt editor - save system prompts in DB, admin can edit. prompts for lesson generation and tutor-bot
+- course manager - list of lessons. include printable view. 
+- resource archive: view prior used resources and planned resources
+- lesson view (administrator) -  use LLM to generate a lesson plan in advance, then admin can edit it
+- school view - lessons by subject
+- lesson view - full screen optimized (16:9) -  description, tutor-bot chat. 
+  > use lesson plan to conduct lesson. 
+  > use streaming components to generate lesson tools on the fly within the chat. include iframe for web browsing. 
+  > tutor-bot must have tool access to direct the iframe to relevant web pages from the lesson plans, eg. videos. 
+  > use RAG to contemplate the student's previous strengths and weaknesses to tailor the lessons. 
+- dashboard/progress view: show progress bars 
+
+
+internal tools available to LLMs (give one-shot example in system prompts):
+- update lesson view iframe url
+- query student assessment history
+- query lesson summary history
+- save lesson summary, save student assessment
+
+
+prompting principles
+- prompt should include anti-screen-time: ensure lessons often include "escape from the computer" moments, suggesting real-world experiments, books, activities, learning outside, resource finding, etc., create hard stops in the lessons to help break up screen time 
+- generally avoid testing/quizzing except in single questions as part of a lesson discussion. upon completion of each lesson, generate a summary of student's strengths and weaknesses demonstrated. add to DB. this collection must be embedded for RAG. 
+- whenever a resource is used (web page, referenced literature, activity done, etc), add it to the DB archive of utilized resources. 
+- Remember: the optimal solution for LLM recall may be full-text keyword search, vector search, a relational database, a graph database, or a mixture. 
+
+
+Remember: the optimal solution for LLM recall may be full-text keyword search, vector search, a relational database, a graph database, or a mixture. 
+
+
+=====================================================================================
+homeschool plan:
+No grade level - paced as you go
+Firm schedule with tutored and self directed parts
+PRINTED curriculum binder so clancey can follow
+Curricula instead of years (c1, c2)
+Learning principles: 
+- value experience over memorization 
+- reading is #1
+- social resources, cooperative learning & collaboration 
+- computational resources, extend the brain, increase bandwidth 
+- first principles approach 
+- problem-first not tool-first
+- conundrums 
+- practicals - build, make, code
+- music
+- maintain well stocked area for self directed learning 
+- use real items/demos 
+
+Indicators of advancement 
+- English -  enjoyment is main indicator, self-motivation, communicative ability, syntactic construction & invention
+- Math - Asking questions, reaching next step logically, 
+- Science: asking questions, going deeper, understanding physical principles, inventing experiments 
+- "Social studies" : resource utilization, understanding people, social/Emotional IQ, placing self in context, 
+
+
+
+
+
+useful stuff
+------------
+just need to generate the app either in windows or WSL with rails new, then can run it with devcontainer
+if gen in linux, may have line ending issues
+
+.\rails-new.exe --ruby-version=3.3.4 --rails-version=7.2.1 gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer
+rails new gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer
+
+rails db:create
+rails generate model Lesson title:string description:text curriculum:references
+rails generate model LessonPlan content:jsonb lesson:references
+rails generate model Resource name:string url:string type:string
+rails generate model Prompt name:string content:text prompt_type:string
+rails generate model CompletedLessonSummary content:text lesson:references
+rails db:migrate
