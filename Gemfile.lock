@@ -116,12 +116,12 @@ GEM
     drb (2.2.1)
     erubi (1.13.0)
     event_stream_parser (1.0.0)
-    faraday (2.10.1)
-      faraday-net_http (>= 2.0, < 3.2)
+    faraday (2.11.0)
+      faraday-net_http (>= 2.0, < 3.4)
       logger
     faraday-multipart (1.0.4)
       multipart-post (~> 2)
-    faraday-net_http (3.1.1)
+    faraday-net_http (3.3.0)
       net-http
     globalid (1.2.1)
       activesupport (>= 6.1)
@@ -155,11 +155,11 @@ GEM
     minitest (5.25.1)
     msgpack (1.7.2)
     multipart-post (2.4.1)
-    neighbor (0.4.0)
+    neighbor (0.4.2)
       activerecord (>= 6.1)
     net-http (0.4.1)
       uri
-    net-imap (0.4.14)
+    net-imap (0.4.15)
       date
       net-protocol
     net-pop (0.1.2)
@@ -281,7 +281,7 @@ GEM
     ruby-progressbar (1.13.0)
     rubyzip (2.3.2)
     securerandom (0.3.1)
-    selenium-webdriver (4.23.0)
+    selenium-webdriver (4.24.0)
       base64 (~> 0.2)
       logger (~> 1.4)
       rexml (~> 3.2, >= 3.2.5)
@@ -312,7 +312,7 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.5.0)
-    uri (0.13.0)
+    uri (0.13.1)
     useragent (0.16.10)
     warden (1.2.9)
       rack (>= 2.0.9)

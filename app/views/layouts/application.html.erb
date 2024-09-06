@@ -21,10 +21,10 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white min-h-screen">
-    <header class="border-b border-gray-400">
-      <nav class="flex px-5 py-5 justify-between items-center">
-        <div class="flex flex-row space-x-5" id="nav-left-items">
+  <body class="bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white min-h-screen">
+    <header class="h-16 border-b border-gray-400">
+      <nav class="flex justify-between items-center h-full">
+        <div class="flex flex-row space-x-5 pl-5" id="nav-left-items">
           <div class="" id="app_logotype">
             <%= link_to root_path, class: "text-xl font-bold" do %>
               <%= ENV["APP_NAME"] %>
@@ -33,16 +33,15 @@
           <%= render "shared/flash" %>
         </div>
 
-        <div class="flex items-center space-x-5" id="nav-right-items">
+        <div class="flex items-center space-x-5 [&_a:hover]:underline" id="nav-right-items">
           <% if user_signed_in? %>
             <%= link_to "Dashboard", root_path, class: "" %>
-            <%= button_to "Log out", destroy_user_session_path, method: :delete, class: "" %>
+            <%= link_to "Log out", destroy_user_session_path, method: :delete, class: "" %>
           <% else %>
             <%= link_to "Log in", new_user_session_path, class: "" %>
           <% end %>
-          <div class="" id="dark_mode_switch">
+          <div class="text-2xl pr-5" id="dark_mode_switch">
             <sl-icon-button name="moon-stars" class="dark-mode-toggle" onclick="toggleDarkMode();"></sl-icon-button>
-          </div>
           </div>
         </div>
       </nav>

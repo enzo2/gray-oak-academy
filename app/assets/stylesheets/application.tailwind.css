@@ -11,12 +11,28 @@
 @tailwind typography;
 @tailwind forms;
 @tailwind container-queries;
-/*
 
+/* re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
 @layer components {
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+  }
+
+  .form-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white;
+  }
+
+  .form-checkbox {
+    @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded;
+  }
+
   .btn-primary {
-    @apply py-2 px-4 bg-blue-200;
+    @apply w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none transition duration-150 ease-in-out;
+  }
+
+  .link-primary {
+    @apply block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800;
   }
 }
 
-*/
+
