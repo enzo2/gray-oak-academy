@@ -40,10 +40,13 @@
     <% end %>
 
     <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Cancel my account</h3>
-
     <div class="mb-4">
-      <p class="mb-2 text-gray-600 dark:text-gray-400">Unhappy?</p>
+    <% if current_user.role_admin? %>
+      <p class="mb-2 text-gray-600 dark:text-gray-400">This is permanent!</p>
       <%= button_to "Cancel my account", registration_path(resource_name), data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, method: :delete, class: "w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none transition duration-150 ease-in-out" %>
+    <% else %>
+      <p class="mb-2 text-gray-600 dark:text-gray-400">You must ask a teacher to delete your account.</p>
+    <% end %>
     </div>
 
     <%= link_to "Back", :back, class: "link-primary" %>

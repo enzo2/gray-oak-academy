@@ -37,10 +37,6 @@ Features:
     - automated lesson summary student progress reports
 
 
--------------------------------------------------
-DB models/tables/etc - added
---------------------------------------------------------
-
 
 #######################################################
 views
@@ -74,32 +70,6 @@ Remember: the optimal solution for LLM recall may be full-text keyword search, v
 
 
 =====================================================================================
-homeschool plan:
-No grade level - paced as you go
-Firm schedule with tutored and self directed parts
-PRINTED curriculum binder so clancey can follow
-Curricula instead of years (c1, c2)
-Learning principles: 
-- value experience over memorization 
-- reading is #1
-- social resources, cooperative learning & collaboration 
-- computational resources, extend the brain, increase bandwidth 
-- first principles approach 
-- problem-first not tool-first
-- conundrums 
-- practicals - build, make, code
-- music
-- maintain well stocked area for self directed learning 
-- use real items/demos 
-
-Indicators of advancement 
-- English -  enjoyment is main indicator, self-motivation, communicative ability, syntactic construction & invention
-- Math - Asking questions, reaching next step logically, 
-- Science: asking questions, going deeper, understanding physical principles, inventing experiments 
-- "Social studies" : resource utilization, understanding people, social/Emotional IQ, placing self in context, 
-
-
-
 
 
 useful stuff
@@ -109,11 +79,3 @@ if gen in linux, may have line ending issues
 
 .\rails-new.exe --ruby-version=3.3.4 --rails-version=7.2.1 gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer
 rails new gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer
-
-rails db:create
-rails generate model Lesson title:string description:text curriculum:references
-rails generate model LessonPlan content:jsonb lesson:references
-rails generate model Resource name:string url:string type:string
-rails generate model Prompt name:string content:text prompt_type:string
-rails generate model CompletedLessonSummary content:text lesson:references
-rails db:migrate
