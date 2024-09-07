@@ -1,4 +1,4 @@
-App summary:
+App summary:       
 Next generation AI tutor for students, with teacher-designed lesson plans executed by multimodal LLM. 
 RAG-based with student progress tracking and adaptive teaching.
 Generative UI using Turbo. 2-column layout, allowing the LLM to create visualizations, interactive elements, view media, work alongside the student, etc.
@@ -13,7 +13,7 @@ frameworks/tooling:
 - ruby on rails 7.2 (plan upgrade to 8)
 - security: hosted locally only, up to user to make accessible to internet
 - docker containerized + devcontainer
-- tailwindcss + shoelace components
+- tailwindcss + shoelace components                                                  
 - interactivity - hotwire: turbo, stimulus
 - DB: postgres
 - Authentication: devise (upon Rails 8, could remove Devise and switch to the built-in generator and BYO)
@@ -39,7 +39,7 @@ Features:
 DB models/tables/etc
 --------------------------------------------------------
 User
-  enum :role { admin: 0 , student: 1 }
+  enum role: { admin: 0 , student: 1 }
 
   #self-join for teachers and students
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
@@ -51,20 +51,16 @@ User
   has_many :taught_courses, class_name: "Course", foreign_key: "teacher_id", inverse_of: :teacher
   has_many :lessons, through: :courses
   has_many :lesson_plans, foreign_key: "teacher_id", inverse_of: :teacher
-  has_many :completed_lesson_reports, foreign_key: "student_id", inverse_of: :student
-  has_many :completed_course_reports, through: :enrollments
-  has_many :progress_reports, foreign_key: "student_id", inverse_of: :student
-  has_many :course_progress_reports, through :enrollments, source: :progress_reports
+  has_many :lesson_progresses, foreign_key: "student_id", inverse_of: :student
+  has_many :student_reports, foreign_key: "student_id", inverse_of: :student
+  has_many :authored_reports, class_name: "StudentReport", foreign_key: "teacher_id", inverse_of: :teacher
   has_one_attached :photo
 
 #relationship model 
 Enrollment  
   belongs_to :student, class_name: "User", inverse_of: :enrollments
   belongs_to :course
-  has_one :completed_course_report, inverse_of: :enrollment
-  has_many :progress_reports, inverse_of: :enrollment
-  field :created_at
-  field :updated_at
+  has_many :student_reports, as: :reportable
   boolean :completed
 
 Course 
@@ -72,21 +68,37 @@ Course
   has_many :enrollments
   has_many :students, through: :enrollments, inverse_of: :courses
   belongs_to :teacher, class_name: "User", inverse_of: :taught_courses
-  has_many :completed_course_reports, through: :enrollments
+  has_many :student_reports, as: :reportable
+
+  field :title
   field :summary
+  field :outline, :jsonb
   field :grade_level
   field :created_at
   field :updated_at
+
+  def completed_by?(student)
+    enrollment.exists?(student: student, completed: true)
+  end
 
 Lesson
   belongs_to :course
   has_one :teacher, through: :course
   has_one :lesson_plan
-  has_many :completed_lesson_reports
-  has_many :students, through: :completed_lesson_reports
+  has_many :student_reports, as: :reportable
+  has_many :students, through: :course, inverse_of: :lessons
+  has_many :lesson_progresses
+
+  field :title
+  field :approx_duration
   field :goals
+  field :content, :jsonb
   field :created_at
-  field :updated_at
+  field :updated_at  
+
+  def completed_by?(student)
+    student_reports.exists?(student: student, status: :completed)
+  end
 
 LessonPlan
   belongs_to :lesson
@@ -96,35 +108,25 @@ LessonPlan
   field :content
   field :activities
   field :status
-  field :created_at
-  field :updated_at
 
-CompletedLessonReport
+LessonProgress
   belongs_to :student, class_name: "User"
-  belongs_to :teacher, class_name: "User", optional: true
   belongs_to :lesson
-  enum :author_type {0: ai_generated, 1: teacher_written}
-  field :report
-  field :created_at
-  boolean :lesson_completed
+  field :chat_history, :jsonb
+  field :progress_data, :jsonb #Store any type of progress data
 
-CompletedCourseReport
-  belongs_to :enrollment
-  has_one :student, through: :enrollment
-  has_one :teacher, class_name: "User", through: :enrollment
-  belongs_to :course
-  field :report
-  enum :author_type {0: ai_generated, 1: teacher_written}
-  field :created_at
+StudentReport
+  belongs_to :reportable, polymorphic: true
+  belongs_to :student, class_name: "User", inverse_of: :student_reports
+  belongs_to :teacher, class_name: "User", optional: true, inverse_of: :authored_reports
+  belongs_to :lesson, optional: true, inverse_of: :student_reports
+  belongs_to :enrollment, optional: true, inverse_of: :student_reports
+  belongs_to :course, optional: true, inverse_of: :student_reports
 
-ProgressReport  #other reports or feedback
-  belongs_to :student, class_name: "User", inverse_of: :progress_reports
-  belongs_to :teacher, class_name: "User", optional: true, inverse_of: :progress_reports
-  belongs_to :enrollment, optional: true, inverse_of: :progress_reports
-  enum :author_type (0: ai_generated, 1: teacher_written)
-  field :author
-  field :report
-  field :created_at
+  enum :author_type {ai_generated: 0, teacher_written: 1 }
+  enum :status { in_progress: 0, completed: 1 }  #i.e. lesson, course enrollment
+  field :progress_data, :jsonb #Store any type of progress data
+  field :report, :text
 
 Resource
   has_and_belongs_to_many :lesson_plans
@@ -132,23 +134,30 @@ Resource
   field :category
   field :description
   field :uri
-  enum  utilized: {planned: 0, utilized: 1}
-  field :created_at
-  field :updated_at
-  
+  enum utilized: {planned: 0, utilized: 1}
+
+
 Prompt
   field :prompt
-  field :created_at
-  field :updated_at
 
 Tool
   field :description
-  field :created_at
-  field :updated_at
+
 
 
 - Prompts: system prompts for LLMs
 - Tools: tools for LLM use to manipulate the student view or generate components
+
+
+create_table :student_reports do |t|
+  t.references :student, foreign_key: { to_table: :users }
+  t.references :teacher, foreign_key: { to_table: :users }
+  t.references :reportable, polymorphic: true
+  t.integer :author_type
+  t.text :report
+  t.datetime :created_at
+  t.timestamps
+end
 
 
 
