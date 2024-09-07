@@ -36,131 +36,13 @@ Features:
     - generative UI/mini-apps: GPT to stream components, send with turbo, render either in-chat or on chalkboard frame
     - automated lesson summary student progress reports
 
-DB models/tables/etc
+
+-------------------------------------------------
+DB models/tables/etc - added
 --------------------------------------------------------
-User
-  enum role: { admin: 0 , student: 1 }
-
-  #self-join for teachers and students
-  has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
-  belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
-          # table will have t.references :teacher, foreign_key: {to_table: :users}
-
-  has_many :enrollments, foreign_key: "student_id", inverse_of: :student
-  has_many :courses, through: :enrollments, inverse_of: :students
-  has_many :taught_courses, class_name: "Course", foreign_key: "teacher_id", inverse_of: :teacher
-  has_many :lessons, through: :courses
-  has_many :lesson_plans, foreign_key: "teacher_id", inverse_of: :teacher
-  has_many :lesson_progresses, foreign_key: "student_id", inverse_of: :student
-  has_many :student_reports, foreign_key: "student_id", inverse_of: :student
-  has_many :authored_reports, class_name: "StudentReport", foreign_key: "teacher_id", inverse_of: :teacher
-  has_one_attached :photo
-
-#relationship model 
-Enrollment  
-  belongs_to :student, class_name: "User", inverse_of: :enrollments
-  belongs_to :course
-  has_many :student_reports, as: :reportable
-  boolean :completed
-
-Course 
-  has_many :lessons
-  has_many :enrollments
-  has_many :students, through: :enrollments, inverse_of: :courses
-  belongs_to :teacher, class_name: "User", inverse_of: :taught_courses
-  has_many :student_reports, as: :reportable
-
-  field :title
-  field :summary
-  field :outline, :jsonb
-  field :grade_level
-  field :created_at
-  field :updated_at
-
-  def completed_by?(student)
-    enrollment.exists?(student: student, completed: true)
-  end
-
-Lesson
-  belongs_to :course
-  has_one :teacher, through: :course
-  has_one :lesson_plan
-  has_many :student_reports, as: :reportable
-  has_many :students, through: :course, inverse_of: :lessons
-  has_many :lesson_progresses
-
-  field :title
-  field :approx_duration
-  field :goals
-  field :content, :jsonb
-  field :created_at
-  field :updated_at  
-
-  def completed_by?(student)
-    student_reports.exists?(student: student, status: :completed)
-  end
-
-LessonPlan
-  belongs_to :lesson
-  belongs_to :teacher, class_name: "User", inverse_of: :lesson_plans
-  has_one :course, through: :lesson
-  has_and_belongs_to_many :resources
-  field :content
-  field :activities
-  field :status
-
-LessonProgress
-  belongs_to :student, class_name: "User"
-  belongs_to :lesson
-  field :chat_history, :jsonb
-  field :progress_data, :jsonb #Store any type of progress data
-
-StudentReport
-  belongs_to :reportable, polymorphic: true
-  belongs_to :student, class_name: "User", inverse_of: :student_reports
-  belongs_to :teacher, class_name: "User", optional: true, inverse_of: :authored_reports
-  belongs_to :lesson, optional: true, inverse_of: :student_reports
-  belongs_to :enrollment, optional: true, inverse_of: :student_reports
-  belongs_to :course, optional: true, inverse_of: :student_reports
-
-  enum :author_type {ai_generated: 0, teacher_written: 1 }
-  enum :status { in_progress: 0, completed: 1 }  #i.e. lesson, course enrollment
-  field :progress_data, :jsonb #Store any type of progress data
-  field :report, :text
-
-Resource
-  has_and_belongs_to_many :lesson_plans
-  has_one_attached :file
-  field :category
-  field :description
-  field :uri
-  enum utilized: {planned: 0, utilized: 1}
 
 
-Prompt
-  field :prompt
-
-Tool
-  field :description
-
-
-
-- Prompts: system prompts for LLMs
-- Tools: tools for LLM use to manipulate the student view or generate components
-
-
-create_table :student_reports do |t|
-  t.references :student, foreign_key: { to_table: :users }
-  t.references :teacher, foreign_key: { to_table: :users }
-  t.references :reportable, polymorphic: true
-  t.integer :author_type
-  t.text :report
-  t.datetime :created_at
-  t.timestamps
-end
-
-
-
+#######################################################
 views
 - system prompt editor - save system prompts in DB, admin can edit. prompts for lesson generation and tutor-bot
 - course manager - list of lessons. include printable view. 
@@ -174,13 +56,12 @@ views
   > use RAG to contemplate the student's previous strengths and weaknesses to tailor the lessons. 
 - dashboard/progress view: show progress bars 
 
-
 internal tools available to LLMs (give one-shot example in system prompts):
+- Tools model: stores tools for LLM use to manipulate the student view or generate components
 - update lesson view iframe url
 - query student assessment history
 - query lesson summary history
 - save lesson summary, save student assessment
-
 
 prompting principles
 - prompt should include anti-screen-time: ensure lessons often include "escape from the computer" moments, suggesting real-world experiments, books, activities, learning outside, resource finding, etc., create hard stops in the lessons to help break up screen time 

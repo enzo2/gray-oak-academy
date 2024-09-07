@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  title: MyString
+  summary: MyText
+  outline: 
+  grade_level: MyString
+  teacher: one
+
+two:
+  title: MyString
+  summary: MyText
+  outline: 
+  grade_level: MyString
+  teacher: two

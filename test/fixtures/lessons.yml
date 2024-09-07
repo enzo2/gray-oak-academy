@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  title: MyString
+  approx_duration: 1
+  goals: MyText
+  content: 
+  course: one
+
+two:
+  title: MyString
+  approx_duration: 1
+  goals: MyText
+  content: 
+  course: two

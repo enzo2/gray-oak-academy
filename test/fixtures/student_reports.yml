@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  reportable: one
+  reportable_type: Reportable
+  student: one
+  teacher: one
+  lesson: one
+  enrollment: one
+  course: one
+  author_type: MyString
+  status: MyString
+  progress_data: 
+  report: MyText
+
+two:
+  reportable: two
+  reportable_type: Reportable
+  student: two
+  teacher: two
+  lesson: two
+  enrollment: two
+  course: two
+  author_type: MyString
+  status: MyString
+  progress_data: 
+  report: MyText

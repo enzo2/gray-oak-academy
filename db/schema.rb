@@ -10,13 +10,119 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_08_24_172515) do
+ActiveRecord::Schema[7.2].define(version: 2024_09_07_171700) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
+  create_enum "lesson_plan_status", ["draft", "published", "archived"]
+  create_enum "report_author_type", ["ai_generated", "teacher_written"]
+  create_enum "student_report_status", ["in_progress", "completed"]
   create_enum "user_role", ["student", "admin"]
+
+  create_table "courses", force: :cascade do |t|
+    t.string "title"
+    t.text "summary"
+    t.jsonb "outline"
+    t.string "grade_level"
+    t.bigint "teacher_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["teacher_id"], name: "index_courses_on_teacher_id"
+  end
+
+  create_table "enrollments", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "course_id", null: false
+    t.boolean "completed"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id"], name: "index_enrollments_on_course_id"
+    t.index ["student_id"], name: "index_enrollments_on_student_id"
+  end
+
+  create_table "lesson_plans", force: :cascade do |t|
+    t.jsonb "content"
+    t.enum "status", default: "draft", null: false, enum_type: "lesson_plan_status"
+    t.bigint "lesson_id", null: false
+    t.bigint "teacher_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id"
+    t.index ["teacher_id"], name: "index_lesson_plans_on_teacher_id"
+  end
+
+  create_table "lesson_plans_resources", id: false, force: :cascade do |t|
+    t.bigint "lesson_plan_id", null: false
+    t.bigint "resource_id", null: false
+  end
+
+  create_table "lesson_progresses", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "lesson_id", null: false
+    t.jsonb "chat_history"
+    t.jsonb "progress_data"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lesson_id"], name: "index_lesson_progresses_on_lesson_id"
+    t.index ["student_id"], name: "index_lesson_progresses_on_student_id"
+  end
+
+  create_table "lessons", force: :cascade do |t|
+    t.string "title"
+    t.text "goals"
+    t.integer "approx_duration_min"
+    t.bigint "course_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id"], name: "index_lessons_on_course_id"
+  end
+
+  create_table "prompts", force: :cascade do |t|
+    t.string "title"
+    t.text "prompt"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "resources", force: :cascade do |t|
+    t.string "category"
+    t.text "description"
+    t.string "uri"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "student_reports", force: :cascade do |t|
+    t.string "reportable_type", null: false
+    t.bigint "reportable_id", null: false
+    t.bigint "student_id", null: false
+    t.bigint "teacher_id", null: false
+    t.bigint "lesson_id", null: false
+    t.bigint "enrollment_id", null: false
+    t.bigint "course_id", null: false
+    t.enum "author_type", null: false, enum_type: "report_author_type"
+    t.enum "status", null: false, enum_type: "student_report_status"
+    t.jsonb "progress_data"
+    t.text "report"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id"], name: "index_student_reports_on_course_id"
+    t.index ["enrollment_id"], name: "index_student_reports_on_enrollment_id"
+    t.index ["lesson_id"], name: "index_student_reports_on_lesson_id"
+    t.index ["reportable_type", "reportable_id"], name: "index_student_reports_on_reportable"
+    t.index ["student_id"], name: "index_student_reports_on_student_id"
+    t.index ["teacher_id"], name: "index_student_reports_on_teacher_id"
+  end
+
+  create_table "tools", force: :cascade do |t|
+    t.string "name"
+    t.text "description"
+    t.jsonb "specifications"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -32,7 +138,24 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_24_172515) do
     t.string "last_sign_in_ip"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "teacher_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["teacher_id"], name: "index_users_on_teacher_id"
   end
+
+  add_foreign_key "courses", "users", column: "teacher_id"
+  add_foreign_key "enrollments", "courses"
+  add_foreign_key "enrollments", "users", column: "student_id"
+  add_foreign_key "lesson_plans", "lessons"
+  add_foreign_key "lesson_plans", "users", column: "teacher_id"
+  add_foreign_key "lesson_progresses", "lessons"
+  add_foreign_key "lesson_progresses", "users", column: "student_id"
+  add_foreign_key "lessons", "courses"
+  add_foreign_key "student_reports", "courses"
+  add_foreign_key "student_reports", "enrollments"
+  add_foreign_key "student_reports", "lessons"
+  add_foreign_key "student_reports", "users", column: "student_id"
+  add_foreign_key "student_reports", "users", column: "teacher_id"
+  add_foreign_key "users", "users", column: "teacher_id"
 end
