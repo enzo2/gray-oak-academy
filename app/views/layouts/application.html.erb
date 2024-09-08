@@ -22,20 +22,20 @@
   </head>
 
   <body class="bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white min-h-screen">
-    <header class="h-16 border-b border-gray-400">
-      <nav class="flex justify-between items-center h-full">
+    <header class="">
+      <nav class="flex justify-between items-center border-b border-gray-400">
         <div class="flex flex-row space-x-5 pl-5" id="nav-left-items">
           <div class="" id="app_logotype">
             <%= link_to root_path, class: "text-xl font-bold" do %>
               <%= ENV["APP_NAME"] %>
             <% end %>
           </div>
-          <%= render "shared/flash" %>
         </div>
 
         <div class="flex items-center space-x-5 [&_a:hover]:underline" id="nav-right-items">
           <% if user_signed_in? %>
             <%= link_to "Dashboard", root_path, class: "" %>
+            <%= link_to "Edit profile", edit_user_registration_path, class: "" %>
             <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
           <% else %>
             <%= link_to "Log in", new_user_session_path, class: "" %>
@@ -45,6 +45,10 @@
           </div>
         </div>
       </nav>
+      <div id="flash_bar" class="bg-yellow-500/20">
+        <%= render "shared/flash" %>
+      </div>
+
     </header>
 
     <%= yield %>
