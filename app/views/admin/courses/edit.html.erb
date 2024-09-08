@@ -1,0 +1,31 @@
+<%= turbo_frame_tag "course-form" do %>
+  <div class="p-6 mb-4">
+    <h2 class="text-2xl font-bold mb-4">Edit Course</h2>
+    <%= form_with(model: [:admin, @course], local: true) do |f| %>
+      <div class="mb-4">
+        <%= f.label :title, class: "form-label" %>
+        <%= f.text_field :title, class: "form-input" %>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :summary, class: "form-label" %>
+        <%= f.text_area :summary, class: "form-input" %>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :grade_level, class: "form-label" %>
+        <%= f.text_field :grade_level, class: "form-input" %>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :outline, class: "form-label" %>
+        <%= f.text_area :outline, class: "form-input" %>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <%= f.submit "Update Course", class: "btn-primary" %>
+        <%= link_to "Cancel", admin_courses_path, class: "btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

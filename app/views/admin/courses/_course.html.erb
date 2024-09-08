@@ -1,0 +1,10 @@
+<tr id="<%= dom_id(course) %>" class="border-b">
+  <td class="py-4 px-6"><%= course.title %></td>
+  <td class="py-4 px-6"><%= course.summary %></td>
+  <td class="py-4 px-6 text-center"><%= course.grade_level %></td>
+  <td class="py-4 px-6 text-right">
+    <%= link_to "Edit", edit_admin_course_path(course), class: "inline-block mr-2", data: { turbo_frame: "course-form" } %>
+    <%= button_to "Delete", admin_course_path(course), method: :delete, class: "inline-block mr-2", data: { turbo_confirm: "Are you sure you want to delete this course?" } %>
+    <%= link_to "View Lessons", admin_course_lessons_path(course), class: "inline-block", data: { turbo_frame: "dashboard-content" } %>
+  </td>
+</tr>

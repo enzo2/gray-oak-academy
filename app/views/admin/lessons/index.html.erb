@@ -1,0 +1,35 @@
+<%= turbo_frame_tag "dashboard-content" do %>
+  <div class="mb-4">
+    <h2 class="text-2xl font-bold mb-5">Lessons for <%= @course.title %></h2>
+    <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary", data: { turbo_frame: "lesson-form" } %>
+  </div>
+
+  <%= turbo_frame_tag "lesson-form" %>
+
+  <table class="w-full border-collapse" id="lessons-list">
+    <thead>
+      <tr class="border-b">
+        <th class="py-2 px-6 text-left">Title</th>
+        <th class="py-2 px-6 text-left">Goals</th>
+        <th class="py-2 px-6 text-center">Duration (min)</th>
+        <th class="py-2 px-6 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if @course.lessons.any? %>
+        <% @course.lessons.each do |lessons| %>
+          <%= render partial: "lesson", locals: { lesson: lesson } %>
+        <% end %>
+      <% else %>
+        <tr>
+          <td colspan="4" class="py-4 px-6 text-center">No lessons available.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <%= turbo_frame_tag "lesson-plan" %>
+
+<% end %>
+
+

@@ -1,0 +1,15 @@
+<%= turbo_frame_tag "dashboard-content" do %>
+  <h2 class="text-2xl font-bold mb-5">Courses</h2>
+
+  <div class="mb-4">
+    <%= turbo_frame_tag "course-form" do %>
+      <%= link_to "New Course", new_admin_course_path, class: "btn-primary", data: { turbo_frame: "course-form" } %>
+    <% end %>
+  </div>
+
+
+  <%= turbo_frame_tag "courses-list" do %>
+    <%= render "courses_list", courses: @courses %>
+  <% end %>
+
+<% end %>

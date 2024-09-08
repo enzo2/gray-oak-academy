@@ -1,3 +1,24 @@
-<div>
-  <h1 class="font-bold text-4xl">Admin#dashboard</h1>
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 border-r border-gray-400 p-4">
+    <h2 class="font-bold text-xl mb-4">Teacher Dashboard</h2>
+    <nav>
+      <ul>
+        <li class="mb-2">
+          <%= link_to "Course Manager", admin_courses_path, class: "hover:text-gray-300", data: { turbo_frame: "dashboard-content" } %>
+        </li>
+        <!-- Add more sidebar items here -->
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 p-4">
+    <%= turbo_frame_tag "dashboard-content" do %>
+      <h2 class="font-bold text-2xl mb-4">Welcome to the Teacher Dashboard</h2>
+      <p class="mb-4">Select a section.</p>
+    <% end %>
+  </main>
 </div>
+
+
