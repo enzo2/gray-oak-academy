@@ -37,6 +37,16 @@ Features:
     - automated lesson summary student progress reports
 
 
+Turbo notes:
+- Turbo Drive intercepts all link clicks and form submissions, making the app SPA by default. 
+- Turbo Frames do not contribute support to the usage of Turbo Stream. 
+If your application utilizes <turbo-frame> elements for the sake of a <turbo-stream> element, change the <turbo-frame> into another built-in element.
+- By default, navigation within a frame will target just that frame. This is true for both following links and submitting forms. 
+But navigation can drive the entire page instead of the enclosing frame by setting the target to _top. 
+Or it can drive another named frame by setting the target to the ID of that frame.
+- Invalid form submissions have to return a 422 status code for Turbo Drive to replace the <body> of the page and display the form errors. 
+The alias for the 422 status code in Rails is :unprocessable_entity.
+
 
 #######################################################
 views

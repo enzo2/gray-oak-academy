@@ -16,7 +16,7 @@ module Admin
       @lesson = @course.lessons.build(lesson_params)
 
       if @lesson.save
-        redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully created."
+        # redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully created."
       else
         render :new, status: :unprocessable_entity
       end
@@ -27,7 +27,7 @@ module Admin
 
     def update
       if @lesson.update(lesson_params)
-        redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully updated."
+        # redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully updated."
       else
         render :edit, status: :unprocessable_entity
       end
@@ -35,7 +35,7 @@ module Admin
 
     def destroy
       @lesson.destroy
-      redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully deleted."
+      # redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully deleted."
     end
 
     private

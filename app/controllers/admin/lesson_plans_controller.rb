@@ -11,7 +11,7 @@ module Admin
       @lesson_plan = @lesson.lesson_plan || @lesson.build_lesson_plan(teacher: current_user)
 
       if @lesson_plan.update(lesson_plan_params)
-        redirect_to admin_course_lessons_path(@lesson.course), notice: "Lesson plan was successfully updated."
+        # redirect_to admin_course_lessons_path(@lesson.course), notice: "Lesson plan was successfully updated."
       else
         render :edit, status: :unprocessable_entity
       end

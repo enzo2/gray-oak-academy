@@ -16,28 +16,40 @@ module Admin
       @course.teacher = current_user
 
       if @course.save
-        @courses = Course.all
-        render turbo_stream:
-          turbo_stream.replace("dashboard-content", template: "admin/courses/index", locals: { courses: @courses })
+        respond_to do |format|
+          format.turbo_stream
+        end
       else
-        render :new, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { render :create, status: :unprocessable_entity }
+        end
       end
     end
 
     def edit
+      set_course
+      respond_to do |format|
+        format.turbo_stream
+      end
     end
 
     def update
       if @course.update(course_params)
-        redirect_to admin_courses_path, notice: "Course was successfully updated."
+        respond_to do |format|
+          format.turbo_stream
+        end
       else
-        render :edit, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { render :update, status: :unprocessable_entity }
+        end
       end
     end
 
     def destroy
       @course.destroy
-      redirect_to admin_courses_path, notice: "Course was successfully deleted."
+      respond_to do |format|
+        format.turbo_stream  # todo - add view.
+      end
     end
 
     private

@@ -1,0 +1,7 @@
+<% if @course.errors.any? %>
+  <%= turbo_stream.replace("course-form", partial: "form", locals: { course: @course }) %>
+<% else %>
+  <%= turbo_stream.replace(@course) do %>
+    <%= render @course %>
+  <% end %> 
+<% end %> 

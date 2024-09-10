@@ -2,14 +2,31 @@
   <h2 class="text-2xl font-bold mb-5">Courses</h2>
 
   <div class="mb-4">
-    <%= turbo_frame_tag "course-form" do %>
-      <%= link_to "New Course", new_admin_course_path, class: "btn-primary", data: { turbo_frame: "course-form" } %>
+    <%= turbo_frame_tag Course.new do %>
+      <%= link_to "New Course", new_admin_course_path, class: "btn-primary" %>
     <% end %>
   </div>
 
-
-  <%= turbo_frame_tag "courses-list" do %>
-    <%= render "courses_list", courses: @courses %>
-  <% end %>
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="border-b border-gray-800 dark:border-gray-200">
+        <th class="py-2 px-3 text-left">Title</th>
+        <th class="py-2 px-3 text-left">Summary</th>
+        <th class="py-2 px-3 text-center">Grade Level</th>
+        <th class="py-2 px-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="courses-table-body">
+        <% if @courses.any? %>
+          <% @courses.each do |course| %>
+              <%= render course %>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="4" class="py-4 px-6 text-center">No courses added.</td>
+          </tr>
+        <% end %>
+    </tbody>
+  </table>
 
 <% end %>

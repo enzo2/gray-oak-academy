@@ -1,0 +1,8 @@
+<% if @course.errors.any? %>
+  <%= turbo_stream.replace("course-form", partial: "form", locals: { course: @course }) %>
+<% else %>
+  <%= turbo_stream.prepend("courses-table-body", partial: "admin/courses/course", locals: { course: @course }) %>
+  <%= turbo_stream.update(Course.new) do %>
+    <%= link_to "New Course", new_admin_course_path, class: "btn-primary" %>
+  <% end %>
+<% end %>
