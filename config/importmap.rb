@@ -13,6 +13,7 @@ pin "@shoelace-style/shoelace/icon", to: "https://cdn.jsdelivr.net/npm/@shoelace
 pin "@shoelace-style/shoelace/icon-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/icon-button/icon-button.js"
 pin "@shoelace-style/shoelace/button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/button/button.js"
 pin "@shoelace-style/shoelace/input", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/input/input.js"
+pin "@shoelace-style/shoelace/dropdown", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/dropdown/dropdown.js"
 pin "@shoelace-style/shoelace/checkbox", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/checkbox/checkbox.js"
 pin "@shoelace-style/shoelace/dialog", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/dialog/dialog.js"
 pin "@shoelace-style/shoelace/textarea", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/textarea/textarea.js"
