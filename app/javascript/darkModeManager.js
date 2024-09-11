@@ -29,5 +29,4 @@ function initializeDarkMode() {
   }
 }
 
-
 document.addEventListener('DOMContentLoaded', initializeDarkMode);

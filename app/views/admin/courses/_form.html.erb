@@ -25,11 +25,18 @@
     <%= f.text_field :grade_level, class: "form-input" %>
   </div>
 
-  <!--update to support dynamic key:value entry-->
-  <div class="mb-4">
-    <%= f.label :outline, class: "form-label" %>
-    <%= f.text_area :outline, class: "form-input" %>
-  </div>
+<div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
+  <%= f.label :outline, "Course Outline", class: "form-label" %>
+  <% outline_data = @course.outline.presence || { "" => "" } %>
+  <% outline_data.each do |key, value| %>
+    <div class="flex mb-2 space-x-2">
+      <%= text_field_tag "course[outline_keys][]", key, placeholder: "Key", class: "form-input w-1/4" %>
+      <%= text_field_tag "course[outline_values][]", value, placeholder: "Value", class: "form-input w-3/4" %>
+      <sl-icon-button name="x-circle" class="remove-field p-2" data-action="click->outline#removeField"></sl-icon-button>
+    </div>
+  <% end %>
+  <sl-icon-button name="plus-circle" label="Add outline section" class="my-2" data-action="click->outline#addField">Add Outline Field</sl-icon-button>
+</div>
 
   <div class="flex flex-row space-x-5">
     <%= f.submit "Submit", class: "btn-primary" %>

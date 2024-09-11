@@ -59,7 +59,17 @@ module Admin
     end
 
     def course_params
-      params.require(:course).permit(:title, :summary, :outline, :grade_level)
+      # Extract `outline_keys` and `outline_values` from params, default empty arrays if not present
+      outline_keys = params[:course].delete(:outline_keys) || []
+      outline_values = params[:course].delete(:outline_values) || []
+
+      # Zip the keys and values into a hash and store it as `outline`
+      outline = outline_keys.zip(outline_values).to_h
+
+      # Permit other course attributes and include the manifest `outline` hash
+      params.require(:course).permit(:title, :summary, :grade_level).tap do |whitelisted|
+        whitelisted[:outline] = outline
+      end
     end
   end
 end
