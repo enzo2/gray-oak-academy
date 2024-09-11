@@ -48,7 +48,7 @@ module Admin
     def destroy
       @course.destroy
       respond_to do |format|
-        format.turbo_stream  # todo - add view.
+        format.turbo_stream
       end
     end
 

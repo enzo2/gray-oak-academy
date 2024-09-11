@@ -5,14 +5,17 @@ class Course < ApplicationRecord
   has_many :enrollments
   has_many :student_reports, as: :reportable
 
+  validates :title, presence: true, length: { minimum: 3, maximum: 100 }
+  validates :summary, presence: true, length: { minimum: 10, maximum: 2000 }
+  validates :outline, presence: true
   validates :grade_level,
             presence: true,
             format: {
-              with: /\A([A-Za-z]|[1-9]\d*)\z/,
-              message: "must be a single letter or a positive integer"
+              with: /\A([A-Z]|[1-9]\d*)\z/,
+              message: "must be a single uppercase letter or a positive integer."
             }
 
   def completed_by?(student)
-    enrollment.exists?(student: student, completed: true)
+    enrollments.exists?(student: student, completed: true)
   end
 end
