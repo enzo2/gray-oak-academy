@@ -1,24 +1,25 @@
 <%= turbo_frame_tag "dashboard-content" do %>
+  <h2 class="text-2xl font-bold mb-5">Lessons for <%= @course.title %></h2>
+
   <div class="mb-4">
-    <h2 class="text-2xl font-bold mb-5">Lessons for <%= @course.title %></h2>
-    <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary", data: { turbo_frame: "lesson-form" } %>
+    <%= turbo_frame_tag Lesson.new do %>
+      <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary" %>
+    <% end %>
   </div>
 
-  <%= turbo_frame_tag "lesson-form" %>
-
-  <table class="w-full border-collapse" id="lessons-list">
+  <table class="w-full border-collapse">
     <thead>
-      <tr class="border-b">
-        <th class="py-2 px-6 text-left">Title</th>
-        <th class="py-2 px-6 text-left">Goals</th>
-        <th class="py-2 px-6 text-center">Duration (min)</th>
-        <th class="py-2 px-6 text-right">Actions</th>
+      <tr class="border-b border-gray-800 dark:border-gray-200">
+        <th class="py-2 px-3 text-left">Title</th>
+        <th class="py-2 px-3 text-left">Goals</th>
+        <th class="py-2 px-3 text-center">Duration (min)</th>
+        <th class="py-2 px-3 text-right">Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="lessons-table-body">
       <% if @course.lessons.any? %>
-        <% @course.lessons.each do |lessons| %>
-          <%= render partial: "lesson", locals: { lesson: lesson } %>
+        <% @course.lessons.each do |lesson| %>
+          <%= render lesson %>
         <% end %>
       <% else %>
         <tr>
@@ -28,8 +29,4 @@
     </tbody>
   </table>
 
-  <%= turbo_frame_tag "lesson-plan" %>
-
 <% end %>
-
-
