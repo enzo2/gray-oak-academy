@@ -14,8 +14,8 @@ export default class extends Controller {
     const field = document.createElement("div");
     field.classList.add("flex", "mb-2", "space-x-2");
     field.innerHTML = `
-      <input type="text" name="course[outline_keys][]" placeholder="Topic" class="form-input w-1/4" />
-      <input type="text" name="course[outline_values][]" placeholder="Details" class="form-input w-3/4" />
+      <input type="text" name="course[outline_keys][]" placeholder="Topic" class="form-input w-1/4" required />
+      <input type="text" name="course[outline_values][]" placeholder="Details" class="form-input w-3/4" required />
       <sl-icon-button name="x-circle" class="remove-field p-2" data-action="click->outline#removeField"></sl-icon-button>
     `;
     event.target.parentElement.insertBefore(field, event.target);
