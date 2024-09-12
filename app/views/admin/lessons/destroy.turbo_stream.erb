@@ -1,0 +1,9 @@
+<%= turbo_stream.remove(@lesson) %>
+
+<% if @course.lessons.empty? %>
+  <%= turbo_stream.append "lessons-table-body" do %>
+    <tr id="no_lessons">
+      <td colspan="4" class="py-4 px-6 text-center">No lessons added.</td>
+    </tr>
+  <% end %>
+<% end %>

@@ -1,21 +1,32 @@
-<%= form_with(model: [:admin, @course, @lesson], local: true) do |f| %>
+<%= form_with(model: [:admin, @course, @lesson], id: "lesson-form") do |f| %>
+  <% if @lesson.errors.any? %>
+    <div class="mb-4 text-red-950 dark:text-red-300">
+      <%= pluralize(@lesson.errors.count, "error") %> prevented this lesson from being saved.
+      <ul>
+        <% @lesson.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <div class="mb-4">
     <%= f.label :title, class: "form-label" %>
-    <%= f.text_field :title, class: "form-input" %>
+    <%= f.text_field :title, class: "form-input", required: true %>
   </div>
 
   <div class="mb-4">
     <%= f.label :goals, class: "form-label" %>
-    <%= f.text_area :goals, class: "form-input" %>
+    <%= f.text_area :goals, class: "form-input", required: true %>
   </div>
 
   <div class="mb-4">
     <%= f.label :approx_duration_min, "Approximate Duration (minutes)", class: "form-label" %>
-    <%= f.number_field :approx_duration_min, class: "form-input" %>
+    <%= f.number_field :approx_duration_min, class: "form-input", required: true %>
   </div>
 
   <div class="flex flex-row space-x-5">
-    <%= f.submit "Create Lesson", class: "btn-primary" %>
+    <%= f.submit "Submit", class: "btn-primary" %>
     <%= link_to "Cancel", admin_course_lessons_path(@course), class: "btn-primary" %>
   </div>
 <% end %>

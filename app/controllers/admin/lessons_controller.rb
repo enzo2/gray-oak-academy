@@ -16,26 +16,39 @@ module Admin
       @lesson = @course.lessons.build(lesson_params)
 
       if @lesson.save
-        # redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully created."
+        respond_to do |format|
+          format.turbo_stream
+        end
       else
-        render :new, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { render :create, status: :unprocessable_entity }
+        end
       end
     end
 
     def edit
+      respond_to do |format|
+        format.turbo_stream
+      end
     end
 
     def update
       if @lesson.update(lesson_params)
-        # redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully updated."
+        respond_to do |format|
+          format.turbo_stream
+        end
       else
-        render :edit, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { render :update, status: :unprocessable_entity }
+        end
       end
     end
 
     def destroy
       @lesson.destroy
-      # redirect_to admin_course_lessons_path(@course), notice: "Lesson was successfully deleted."
+      respond_to do |format|
+        format.turbo_stream
+      end
     end
 
     private

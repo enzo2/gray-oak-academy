@@ -1,5 +1,5 @@
 <%= turbo_frame_tag "dashboard-content" do %>
-  <h2 class="text-2xl font-bold mb-5">Lessons for <%= @course.title %></h2>
+  <h2 class="text-2xl font-bold mb-5">Lessons for: <%= @course.title %></h2>
 
   <div class="mb-4">
     <%= turbo_frame_tag Lesson.new do %>
@@ -17,16 +17,15 @@
       </tr>
     </thead>
     <tbody id="lessons-table-body">
-      <% if @course.lessons.any? %>
-        <% @course.lessons.each do |lesson| %>
+      <% if @lessons.any? %>
+        <% @lessons.each do |lesson| %>
           <%= render lesson %>
         <% end %>
       <% else %>
-        <tr>
-          <td colspan="4" class="py-4 px-6 text-center">No lessons available.</td>
+        <tr id="no_lessons">
+          <td colspan="4" class="py-4 px-6 text-center">No lessons added.</td>
         </tr>
       <% end %>
     </tbody>
   </table>
-
 <% end %>

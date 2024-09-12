@@ -27,7 +27,6 @@ module Admin
     end
 
     def edit
-      set_course
       respond_to do |format|
         format.turbo_stream
       end

@@ -1,0 +1,11 @@
+<% if @lesson.errors.any? %>
+  <%# Re-render form to show errors %>
+  <%= turbo_stream.replace("lesson-form", partial: "form", locals: { lesson: @lesson }) %>
+<% else %>
+  <%= turbo_stream.prepend("lessons-table-body", partial: "admin/lessons/lesson", locals: { lesson: @lesson }) %>
+  <%= turbo_stream.update(Lesson.new) do %>
+    <%# Restore the New Lesson button %>
+    <%= link_to "New Lesson", new_admin_course_lesson_path, class: "btn-primary" %>
+  <% end %>
+  <%= turbo_stream.remove("no_lessons") %>
+<% end %>
