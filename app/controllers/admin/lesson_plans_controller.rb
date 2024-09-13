@@ -43,8 +43,12 @@ module Admin
       # Zip the keys and values into a hash and store it as `content`
       content = content_keys.zip(content_values).to_h
 
-      # Permit lesson_plan attributes and include the content hash
-      params.require(:lesson_plan).permit(:status).merge(content: content)
+      # Permit lesson_plan attributes, include the content hash, and handle nested resources
+      params.require(:lesson_plan).permit(
+        :status,
+        resource_ids: [],
+        resources_attributes: [ :id, :category, :description, :uri, :_destroy ]
+      ).merge(content: content)
     end
   end
 end
