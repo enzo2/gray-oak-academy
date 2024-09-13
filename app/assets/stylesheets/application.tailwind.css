@@ -1,19 +1,21 @@
 @tailwind base;
+@tailwind components;
+@tailwind utilities;
+/*@tailwind typography;
+@tailwind forms;
+@tailwind container-queries;*/
 
 @layer base {  /*where you can re-add styles to base elements that tailwind removed */
 
   /* dont add h1, h2 etc, use 'prose' instead */
+  input[type="radio"] {
+    @apply bg-transparent border-2
+  }
 
 }
 
-@tailwind components;
-@tailwind utilities;
-@tailwind typography;
-@tailwind forms;
-@tailwind container-queries;
 
-/* re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
-@layer components {
+@layer components { /* re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
   .form-label {
     @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
   }

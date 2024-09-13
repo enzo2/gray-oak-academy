@@ -1,0 +1,7 @@
+<% if @lesson_plan.errors.any? %>
+  <%= turbo_stream.replace("lesson-plan-form", partial: "form", locals: { lesson: @lesson, lesson_plan: @lesson_plan }) %>
+<% else %>
+  <%= turbo_stream.replace(@lesson) do %>
+    <%= render @lesson, lesson: @lesson %>
+  <% end %> 
+<% end %>

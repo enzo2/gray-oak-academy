@@ -12,7 +12,7 @@ Rails.application.routes.draw do
   namespace :admin do
     resources :courses do
       resources :lessons do
-        resource :lesson_plan
+        resource :lesson_plan, only: [ :edit, :update ]
       end
     end
   end

@@ -17,6 +17,7 @@
 
   <div class="mb-4">
     <%= f.label :summary, class: "form-label" %>
+    <p class="block text-sm mb-2"><i>Briefly describe the course goals.</i></p>
     <%= f.text_area :summary, class: "form-input", required: true %>
   </div>
 
@@ -25,18 +26,29 @@
     <%= f.text_field :grade_level, class: "form-input", required: true %>
   </div>
 
-<div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
-  <%= f.label :outline, "Course Outline", class: "form-label" %>
-  <% outline_data = @course.outline.presence || { "" => "" } %>
-  <% outline_data.each do |key, value| %>
-    <div class="flex mb-2 space-x-2">
-      <%= text_field_tag "course[outline_keys][]", key, placeholder: "Topic", class: "form-input w-1/4", required: true %>
-      <%= text_field_tag "course[outline_values][]", value, placeholder: "Details", class: "form-input w-3/4", required: true %>
-      <sl-icon-button name="x-circle" class="remove-field p-2" data-action="click->outline#removeField"></sl-icon-button>
-    </div>
-  <% end %>
-  <sl-icon-button name="plus-circle" label="Add outline section" class="my-2" data-action="click->outline#addField">Add Outline Field</sl-icon-button>
-</div>
+  <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
+    <%= f.label :outline, "Course Outline", class: "form-label" %>
+    <p class="block text-sm mb-2"><i>The outline will be used to generate the list of lessons. Include any desired content.</i></p>
+    <% outline_data = @course.outline.presence || { "" => "" } %>
+    <% outline_data.each do |key, value| %>
+      <div class="flex items-center mb-2 space-x-2">
+        <%= text_field_tag "course[outline_keys][]", key, placeholder: "Topic", class: "form-input w-1/4", required: true %>
+        <%= text_field_tag "course[outline_values][]", value, placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      </div>
+    <% end %>
+    <sl-button class="mb-2" data-action="click->outline#addField">
+      <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+      Add outline item
+    </sl-button>
+    <template>
+      <div class="flex items-center mb-2 space-x-2">
+        <%= text_field_tag "course[outline_keys][]", "", placeholder: "Topic", class: "form-input w-1/4", required: true %>
+        <%= text_field_tag "course[outline_values][]", "", placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      </div>
+    </template>
+  </div>
 
   <div class="flex flex-row space-x-5">
     <%= f.submit "Submit", class: "btn-primary" %>

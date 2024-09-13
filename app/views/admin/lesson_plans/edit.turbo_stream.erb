@@ -1,0 +1,6 @@
+<%= turbo_stream.update(@lesson) do %>
+  <td colspan="5" class="py-4 px-6">
+      <h2 class="text-2xl mb-4">Edit Lesson Plan: <b><%= @lesson.title %></b></h2>
+      <%= render "admin/lesson_plans/form", course: @course, lesson: @lesson, lesson_plan: @lesson_plan %>
+  </td>
+<% end %>

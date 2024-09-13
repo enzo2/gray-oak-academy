@@ -1,0 +1,51 @@
+<%= form_with(model: [:admin, @lesson.course, @lesson, @lesson_plan], url: admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), method: :patch, id: "lesson-plan-form") do |f| %>
+  <% if @lesson_plan.errors.any? %>
+    <div class="mb-4 text-red-950 dark:text-red-300">
+      <%= pluralize(@lesson_plan.errors.count, "error") %> prevented this lesson plan from being saved.
+      <ul>
+        <% @lesson_plan.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
+    <%= f.label :content, class: "form-label" %>
+    <p class="block text-sm mb-2"><i>
+      The content will be used by the AI tutor to conduct the lesson. (Be sure to update the lesson goals as well.)<br>
+      As examples, you could specify specific information, exercises, or evaluation criteria for the lesson.<br>
+      Resources should be specified separately and linked to the plan.</i></p>
+    <% content_data = @lesson_plan.content.presence || { "" => "" } %>
+    <% content_data.each do |key, value| %>
+      <div class="flex items-center mb-2 space-x-2">
+        <%= text_field_tag "lesson_plan[content_keys][]", key, placeholder: "Content type", class: "form-input w-1/4", required: true %>
+        <%= text_field_tag "lesson_plan[content_values][]", value, placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      </div>
+    <% end %>
+    <sl-button class="mb-2" data-action="click->outline#addField">
+      <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+      Add content section
+    </sl-button>
+    <template>
+      <div class="flex items-center mb-2 space-x-2">
+        <%= text_field_tag "lesson_plan[content_keys][]", "", placeholder: "Content type", class: "form-input w-1/4", required: true %>
+        <%= text_field_tag "lesson_plan[content_values][]", "", placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      </div>
+    </template>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :status, class: "form-label" %>
+    <div class="[&_label]:mr-4 [&_input]:mr-2">
+      <%= f.collection_radio_buttons :status, LessonPlan.statuses.keys, :to_s, :titleize %>
+    </div>
+  </div>
+
+  <div class="flex flex-row space-x-5">
+    <%= f.submit "Submit", class: "btn-primary" %>
+    <%= link_to "Cancel", admin_course_lessons_path(@lesson.course), class: "btn-primary" %>
+  </div>
+<% end %>

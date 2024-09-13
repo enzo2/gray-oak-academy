@@ -6,6 +6,8 @@ class Lesson < ApplicationRecord
   has_many :students, through: :course, inverse_of: :lessons
   has_many :lesson_progresses
 
+  # accepts_nested_attributes_for :lesson_plan
+
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :goals, presence: true, length: { minimum: 10, maximum: 1000 }
   validates :approx_duration_min, presence: true, numericality: { greater_than: 0, only_integer: true }
