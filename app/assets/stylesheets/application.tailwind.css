@@ -1,9 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/*@tailwind typography;
-@tailwind forms;
-@tailwind container-queries;*/
 
 @layer base {  /*where you can re-add styles to base elements that tailwind removed */
   /* dont add h1, h2 etc, use 'prose' instead */
@@ -12,6 +9,9 @@
     @apply bg-transparent border-2 focus:ring-offset-0 focus:ring-0;
   }
 
+  input[type="file"] {
+    @apply file:font-sans text-xs file:border-0 file:p-2;
+  }
 }
 
 

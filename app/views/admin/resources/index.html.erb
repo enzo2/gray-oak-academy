@@ -1,0 +1,29 @@
+<%= turbo_frame_tag "dashboard-content" do %>
+
+  <h1 class="text-2xl font-bold mb-4">Resources</h1>
+
+  <div class="mb-4">
+    <%= link_to 'New Resource', new_admin_resource_path, class: 'btn-primary', data: { turbo_frame: "dashboard-content" } %>
+  </div>
+
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="border-b border-gray-800 dark:border-gray-200">
+        <th class="px-2 py-3 text-left">Category</th>
+        <th class="px-2 py-3 text-center">Description</th>
+        <th class="px-2 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="resources-table-body">
+      <% if @resources.any? %>
+        <% @resources.each do |resource| %>
+          <%= render resource %>
+        <% end %>
+      <% else %>
+        <tr id="no_resources">
+          <td colspan="5" class="py-4 px-6 text-center">No resources added.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

@@ -1,0 +1,50 @@
+<%= form_with(model: [:admin, resource], data: { turbo_frame: "dashboard-content" }) do |form| %>
+  <% if resource.errors.any? %>
+    <div class="mb-4 text-red-950 dark:text-red-300" role="alert">
+      <h2 class="font-bold mb-2"><%= pluralize(resource.errors.count, "error") %> prohibited this resource from being saved:</h2>
+      <ul class="list-disc list-inside">
+        <% resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%= form.label :category, class: "form-label" %>
+    <%= form.text_field :category, class: "form-input", required: true %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :description, class: "form-label" %>
+    <%= form.text_area :description, rows: 4, class: "form-input", required: true %>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :uri, "URI", class: "form-label" %>
+    <%= form.url_field :uri, class: "form-input" %>
+  </div>
+
+  <div class="mb-4">
+    <% if resource.file.attached? %>
+      <%= form.label :file, "Current File", class: "form-label" %>
+      <%= link_to resource.file.filename, rails_blob_path(resource.file, disposition: "attachment") %>
+      <%= link_to delete_file_admin_resource_path(resource), 
+                  class: "inline-block", 
+                  data: { 
+                    turbo_method: :delete,
+                    turbo_confirm: "Are you sure you want to delete this file?"
+                  } do %>
+        <sl-icon name="trash"></sl-icon>
+      <% end %>
+    <% else %>
+      <%= form.label :file, class: "form-label" %>
+      <%= form.file_field :file, class: "form-input" %>
+    <% end %>
+  </div>
+
+  <div class="flex items-center justify-between">
+    <%= form.submit class: "btn-primary" %>
+    <%= link_to 'Back', admin_resources_path, class: "btn-primary", data: { turbo_frame: "dashboard-content" } %>
+  </div>
+<% end %>

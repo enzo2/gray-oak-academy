@@ -2,12 +2,13 @@ module Admin
   class LessonsController < ApplicationController
     before_action :require_admin
     before_action :set_course
-    before_action :set_lesson, only: [ :edit, :update, :destroy ]
+    before_action :set_lesson, only: [ :show, :edit, :update, :destroy ]
 
     def index
       @lessons = @course.lessons
     end
-
+    def show
+    end
     def new
       @lesson = @course.lessons.build
     end

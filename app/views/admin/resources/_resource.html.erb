@@ -1,0 +1,9 @@
+<tr id="<%= dom_id(resource) %>" class="border-b border-gray-600 dark:border-gray-400 [&_td]:px-2 [&_td]:py-3">
+  <td class=" text-left"><%= resource.category %></td>
+  <td class="text-center"><%= truncate(resource.description, length: 150) %></td>
+  <td class="text-right [&_a:hover]:underline *:inline-block">
+    <%= link_to 'View', admin_resource_path(resource), class: 'mr-2', data: { turbo_frame: "dashboard-content" } %>
+    <%= link_to 'Edit', edit_admin_resource_path(resource), class: 'mr-2', data: { turbo_frame: "dashboard-content" } %>
+    <%= button_to 'Delete', admin_resource_path(resource), method: :delete, data: { turbo_confirm: 'Are you sure?', turbo_frame: "dashboard-content" }, class: 'hover:underline' %>
+  </td>
+</tr>
