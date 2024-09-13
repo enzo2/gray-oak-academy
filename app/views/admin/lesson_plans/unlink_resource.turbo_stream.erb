@@ -1,0 +1,2 @@
+<%= turbo_stream.remove(dom_id(@resource)) %>
+<%= turbo_stream.append("available-resources", partial: "admin/resources/available_resource", locals: { resource: @resource, lesson_plan: @lesson_plan }) %>

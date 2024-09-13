@@ -45,6 +45,32 @@
     </div>
   </div>
 
+  <div class="mb-4" data-controller="resource-manager">
+    <h3 class="text-lg font-semibold mb-2">Linked Resources</h3>
+    <div id="linked-resources" class="mb-4">
+      <% @lesson_plan.resources.each do |resource| %>
+        <%= render partial: 'admin/resources/linked_resource', locals: { resource: resource, lesson_plan: @lesson_plan } %>
+      <% end %>
+    </div>
+
+    <h3 class="text-lg font-semibold mb-2">Available Resources</h3>
+    <div class="mb-2">
+      <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "form-input", data: { action: "input->resource-manager#filterResources" } %>
+    </div>
+    <div id="available-resources" class="max-h-60 overflow-y-auto border border-gray-300 rounded p-2">
+      <% Resource.where.not(id: @lesson_plan.resource_ids).each do |resource| %>
+        <div id="available-resource-<%= resource.id %>" data-resource-manager-target="availableResource">
+          <%= render partial: 'admin/resources/available_resource', locals: { resource: resource, lesson_plan: @lesson_plan } %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mb-4 mt-6 p-4 border border-gray-300 rounded">
+    <h3 class="text-lg font-semibold mb-2">Add New Resource</h3>
+    <%= render partial: 'admin/lesson_plans/new_resource_form', locals: { lesson_plan: @lesson_plan } %>
+  </div>
+
   <div class="flex flex-row space-x-5">
     <%= f.submit "Submit", class: "btn-primary" %>
     <%= link_to "Cancel", admin_course_lessons_path(@lesson.course), class: "btn-primary" %>

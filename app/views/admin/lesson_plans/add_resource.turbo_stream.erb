@@ -1,0 +1,9 @@
+<%= turbo_stream.append "linked-resources" do %>
+  <%= render partial: 'admin/resources/linked_resource', locals: { resource: @resource, lesson_plan: @lesson_plan } %>
+<% end %>
+
+<%= turbo_stream.replace "new_resource" do %>
+  <%= render partial: 'admin/lesson_plans/new_resource_form', locals: { lesson_plan: @lesson_plan } %>
+<% end %>
+
+<%= turbo_stream.remove "available-resource-#{@resource.id}" if @resource.persisted? %>

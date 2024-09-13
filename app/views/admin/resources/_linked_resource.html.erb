@@ -1,0 +1,8 @@
+<div id="<%= dom_id(resource) %>" class="flex items-center justify-between p-2 mb-2 bg-gray-100 dark:bg-gray-700 rounded">
+  <span><%= resource.category %> - <%= resource.description %></span>
+  <%= link_to unlink_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
+              data: { turbo_method: :delete },
+              class: "text-red-600 hover:text-red-800" do %>
+    <sl-icon name="file-earmark-minus"></sl-icon>
+  <% end %>
+</div>

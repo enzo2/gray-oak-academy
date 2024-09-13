@@ -12,7 +12,11 @@ Rails.application.routes.draw do
   namespace :admin do
     resources :courses do
       resources :lessons do
-        resource :lesson_plan, only: [ :edit, :update ]
+        resource :lesson_plan, only: [ :edit, :update ] do
+          post "link_resource/:resource_id", to: "lesson_plans#link_resource", as: :link_resource
+          delete "unlink_resource/:resource_id", to: "lesson_plans#unlink_resource", as: :unlink_resource
+          post "add_resource", to: "lesson_plans#add_resource", as: :add_resource
+        end
       end
     end
 
@@ -20,7 +24,6 @@ Rails.application.routes.draw do
       delete "delete_file", on: :member
     end
   end
-
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
