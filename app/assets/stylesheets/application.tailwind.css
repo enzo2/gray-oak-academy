@@ -6,10 +6,10 @@
 @tailwind container-queries;*/
 
 @layer base {  /*where you can re-add styles to base elements that tailwind removed */
-
   /* dont add h1, h2 etc, use 'prose' instead */
+
   input[type="radio"] {
-    @apply bg-transparent border-2
+    @apply bg-transparent border-2 focus:ring-offset-0 focus:ring-0;
   }
 
 }

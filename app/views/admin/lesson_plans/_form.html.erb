@@ -24,7 +24,7 @@
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
       </div>
     <% end %>
-    <sl-button class="mb-2" data-action="click->outline#addField">
+    <sl-button class="mb-2" data-action="click->outline#addField" outline>
       <sl-icon slot="prefix" name="plus-circle"></sl-icon>
       Add content section
     </sl-button>
@@ -39,6 +39,7 @@
 
   <div class="mb-4">
     <%= f.label :status, class: "form-label" %>
+    <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published.</i></p>
     <div class="[&_label]:mr-4 [&_input]:mr-2">
       <%= f.collection_radio_buttons :status, LessonPlan.statuses.keys, :to_s, :titleize %>
     </div>
