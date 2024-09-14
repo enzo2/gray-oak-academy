@@ -15,7 +15,6 @@ Rails.application.routes.draw do
         resource :lesson_plan, only: [ :edit, :update ] do
           post "link_resource/:resource_id", to: "lesson_plans#link_resource", as: :link_resource
           delete "unlink_resource/:resource_id", to: "lesson_plans#unlink_resource", as: :unlink_resource
-          post "add_resource", to: "lesson_plans#add_resource", as: :add_resource
         end
       end
     end

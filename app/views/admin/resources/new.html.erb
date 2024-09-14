@@ -1,4 +1,5 @@
 <%= turbo_frame_tag "dashboard-content" do %>
   <h1 class="text-2xl font-bold mb-4">New Resource</h1>
   <%= render 'form', resource: @resource %>
+  <%= link_to 'Back', admin_resources_path, class: "btn-primary mt-4", data: { turbo_frame: "dashboard-content" } %>
 <% end %>

@@ -68,7 +68,10 @@
 
   <div class="mb-4 mt-6 p-4 border border-gray-300 rounded">
     <h3 class="text-lg font-semibold mb-2">Add New Resource</h3>
-    <%= render partial: 'admin/lesson_plans/new_resource_form', locals: { lesson_plan: @lesson_plan } %>
+    <%= turbo_frame_tag "new_resource" do %>
+      <%= render 'admin/resources/form', resource: Resource.new %>
+      <%#need to pass @lesson_plan?%>
+    <% end %>
   </div>
 
   <div class="flex flex-row space-x-5">

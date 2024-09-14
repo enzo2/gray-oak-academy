@@ -2,7 +2,7 @@ module Admin
   class LessonPlansController < ApplicationController
     before_action :require_admin
     before_action :set_lesson
-    before_action :set_lesson_plan, only: [ :edit, :update, :link_resource, :unlink_resource, :add_resource ]
+    before_action :set_lesson_plan, only: [ :edit, :update, :link_resource, :unlink_resource ]
 
     def generate
       # Auto-generate lesson plan content using LLM
@@ -28,10 +28,7 @@ module Admin
     end
 
     def link_resource
-      @resource = Resource.find_or_create_by(id: params[:resource_id]) do |resource|
-        resource.attributes = resource_params
-      end
-
+      @resource = Resource.find(params[:resource_id])
       @lesson_plan.resources << @resource unless @lesson_plan.resources.include?(@resource)
 
       respond_to do |format|
@@ -45,21 +42,6 @@ module Admin
 
       respond_to do |format|
         format.turbo_stream
-      end
-    end
-
-    def add_resource
-      @resource = Resource.new(resource_params)
-
-      if @resource.save
-        @lesson_plan.resources << @resource
-        respond_to do |format|
-          format.turbo_stream
-        end
-      else
-        respond_to do |format|
-          format.turbo_stream { render :add_resource_error, status: :unprocessable_entity }
-        end
       end
     end
 
@@ -83,14 +65,8 @@ module Admin
 
       # Permit lesson_plan attributes, include the content hash, and handle nested resources
       params.require(:lesson_plan).permit(
-        :status# ,
-        # resource_ids: [],
-        # resources_attributes: [ :id, :category, :description, :uri, :_destroy ]
+        :status
       ).merge(content: content)
-    end
-
-    def resource_params
-      params.require(:resource).permit(:category, :description, :uri)
     end
   end
 end

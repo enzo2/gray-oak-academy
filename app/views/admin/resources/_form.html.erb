@@ -1,4 +1,4 @@
-<%= form_with(model: [:admin, resource], data: { turbo_frame: "dashboard-content" }) do |form| %>
+<%= form_with(model: [:admin, resource], url: admin_resources_path(lesson_plan_id: @lesson_plan&.id)) do |form| %>
   <% if resource.errors.any? %>
     <div class="mb-4 text-red-950 dark:text-red-300" role="alert">
       <h2 class="font-bold mb-2"><%= pluralize(resource.errors.count, "error") %> prohibited this resource from being saved:</h2>
@@ -43,8 +43,9 @@
     <% end %>
   </div>
 
+
+
   <div class="flex items-center justify-between">
     <%= form.submit class: "btn-primary" %>
-    <%= link_to 'Back', admin_resources_path, class: "btn-primary", data: { turbo_frame: "dashboard-content" } %>
   </div>
 <% end %>
