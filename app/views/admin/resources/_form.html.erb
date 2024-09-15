@@ -1,4 +1,4 @@
-<%= form_with(model: [:admin, resource], url: admin_resources_path(lesson_plan_id: @lesson_plan&.id)) do |form| %>
+<%= form_with(model: [:admin, resource], id: "resource-form") do |form| %>
   <% if resource.errors.any? %>
     <div class="mb-4 text-red-950 dark:text-red-300" role="alert">
       <h2 class="font-bold mb-2"><%= pluralize(resource.errors.count, "error") %> prohibited this resource from being saved:</h2>
@@ -8,6 +8,11 @@
         <% end %>
       </ul>
     </div>
+  <% end %>
+
+  <%# If lesson_plan is present, include it so the resource can be linked %>
+  <% if local_assigns[:lesson_plan] %>
+    <%= form.hidden_field :lesson_plan_id, value: lesson_plan.id %>
   <% end %>
 
   <div class="mb-4">
@@ -21,12 +26,12 @@
   </div>
 
   <div class="mb-4">
-    <%= form.label :uri, "URI", class: "form-label" %>
+    <%= form.label :uri, "URI (optional)", class: "form-label" %>
     <%= form.url_field :uri, class: "form-input" %>
   </div>
 
   <div class="mb-4">
-    <% if resource.file.attached? %>
+    <% if resource.file.attached? && resource.file.persisted? %>
       <%= form.label :file, "Current File", class: "form-label" %>
       <%= link_to resource.file.filename, rails_blob_path(resource.file, disposition: "attachment") %>
       <%= link_to delete_file_admin_resource_path(resource), 
@@ -38,14 +43,12 @@
         <sl-icon name="trash"></sl-icon>
       <% end %>
     <% else %>
-      <%= form.label :file, class: "form-label" %>
+      <%= form.label :file, "File (optional)", class: "form-label" %>
       <%= form.file_field :file, class: "form-input" %>
     <% end %>
   </div>
 
-
-
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-between mb-4">
     <%= form.submit class: "btn-primary" %>
   </div>
 <% end %>

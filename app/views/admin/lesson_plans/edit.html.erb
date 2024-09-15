@@ -1,0 +1,14 @@
+<%= turbo_frame_tag "dashboard-content" do %>
+  <%= link_to "Back to Lessons", admin_course_lessons_path(@lesson.course), class: "block mb-4 hover:underline" %>
+
+  <h2 class="text-2xl mb-4">Edit Lesson Plan: <b><%= @lesson.title %></b></h2>
+  
+  <%= render "admin/lesson_plans/form", course: @course, lesson: @lesson, lesson_plan: @lesson_plan %>
+  <div class="mb-4" id="lesson-plan-form-result"></div>
+  
+  <% if @lesson_plan.persisted? %>
+      <hr class="my-4">
+      <%= render "admin/lesson_plans/manage_resources", lesson: @lesson, lesson_plan: @lesson_plan %>
+  <% end %>
+    
+<% end %>

@@ -1,10 +1,10 @@
 class Lesson < ApplicationRecord
   belongs_to :course
   has_one :teacher, through: :course
-  has_one :lesson_plan
+  has_one :lesson_plan, dependent: :destroy
   has_many :student_reports, as: :reportable
   has_many :students, through: :course, inverse_of: :lessons
-  has_many :lesson_progresses
+  has_many :lesson_progresses, dependent: :destroy
 
   # accepts_nested_attributes_for :lesson_plan
 

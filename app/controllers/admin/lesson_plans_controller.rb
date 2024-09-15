@@ -2,7 +2,7 @@ module Admin
   class LessonPlansController < ApplicationController
     before_action :require_admin
     before_action :set_lesson
-    before_action :set_lesson_plan, only: [ :edit, :update, :link_resource, :unlink_resource ]
+    before_action :set_lesson_plan, only: [ :edit, :update, :link_resource, :unlink_resource, :new_resource ]
 
     def generate
       # Auto-generate lesson plan content using LLM
@@ -10,12 +10,10 @@ module Admin
 
     def edit
       # Render the edit form for the lesson plan
-      respond_to do |format|
-        format.turbo_stream
-      end
     end
 
     def update
+      @lesson_plan_was_new = @lesson_plan.new_record?
       if @lesson_plan.update(lesson_plan_params)
         respond_to do |format|
           format.turbo_stream
@@ -30,6 +28,7 @@ module Admin
     def link_resource
       @resource = Resource.find(params[:resource_id])
       @lesson_plan.resources << @resource unless @lesson_plan.resources.include?(@resource)
+      @lesson_plan.save!
 
       respond_to do |format|
         format.turbo_stream
@@ -40,6 +39,13 @@ module Admin
       @resource = Resource.find(params[:resource_id])
       @lesson_plan.resources.delete(@resource)
 
+      respond_to do |format|
+        format.turbo_stream
+      end
+    end
+
+    def new_resource
+      # Renders the form to create a new resource for the lesson plan
       respond_to do |format|
         format.turbo_stream
       end

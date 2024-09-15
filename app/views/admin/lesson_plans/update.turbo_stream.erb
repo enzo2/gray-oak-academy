@@ -1,7 +1,16 @@
 <% if @lesson_plan.errors.any? %>
   <%= turbo_stream.replace("lesson-plan-form", partial: "form", locals: { lesson: @lesson, lesson_plan: @lesson_plan }) %>
 <% else %>
-  <%= turbo_stream.replace(@lesson) do %>
-    <%= render @lesson, lesson: @lesson %>
-  <% end %> 
+  <%= turbo_stream.append "lesson-plan-form-result" do %>
+    <p class="dark:text-green-300 text-green-700">Updated successfully.</p>
+  <% end %>
+
+  <%= turbo_stream.remove "lesson-plan-errors" %>
+
+  <% if @lesson_plan_was_new %>
+    <%= turbo_stream.append("dashboard-content", "<hr class='my-4'>") %>
+    <%= turbo_stream.append("dashboard-content", 
+        partial: "admin/lesson_plans/manage_resources",
+        locals: { lesson: @lesson, lesson_plan: @lesson_plan }) %>
+  <% end %>
 <% end %>

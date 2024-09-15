@@ -1,0 +1,32 @@
+<h2 class="text-xl mb-4">Manage Resources</h2>
+<p class="block text-sm mb-2"><i>Resources will be available for the tutor to use.<br>
+                                 To ensure that a resource is used, link it and then mention it in Content above.</i></p>
+
+<div class="mb-4" data-controller="resource-filter">
+  <h3 class="text-lg font-semibold mb-2">Linked Resources</h3>
+  <div id="linked-resources" class="mb-4">
+    <% if lesson_plan.resources.any? %>
+      <% lesson_plan.resources.each do |resource| %>
+        <%= render partial: 'admin/resources/linked_resource', locals: { resource: resource, lesson_plan: lesson_plan } %>
+      <% end %>
+    <% else %>
+      <p id="no-linked-resources-msg"><i>No resources linked to this lesson plan.</i></p>
+    <% end %>
+  </div>
+
+  <h3 class="text-lg font-semibold mb-2">Available Resources</h3>        
+  <div class="mb-2">
+    <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "form-input", data: { action: "input->resource-filter#filterResources" } %>
+  </div>
+  <div id="available-resources" class="max-h-60 overflow-y-auto border border-gray-500 rounded p-2 mb-4">
+    <% Resource.where.not(id: lesson_plan.resource_ids).each do |resource| %>
+      <div id="available-resource-<%= resource.id %>" data-resource-filter-target="availableResource">
+        <%= render partial: 'admin/resources/available_resource', locals: { resource: resource, lesson_plan: lesson_plan } %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="" id="new_resource">
+  <%= render partial: 'admin/lesson_plans/new_resource_button', locals: { lesson: lesson } %>
+</div>

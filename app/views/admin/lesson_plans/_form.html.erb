@@ -1,6 +1,6 @@
 <%= form_with(model: [:admin, @lesson.course, @lesson, @lesson_plan], url: admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), method: :patch, id: "lesson-plan-form") do |f| %>
   <% if @lesson_plan.errors.any? %>
-    <div class="mb-4 text-red-950 dark:text-red-300">
+    <div class="mb-4 text-red-800 dark:text-red-300" id="lesson-plan-errors">
       <%= pluralize(@lesson_plan.errors.count, "error") %> prevented this lesson plan from being saved.
       <ul>
         <% @lesson_plan.errors.full_messages.each do |message| %>
@@ -13,9 +13,9 @@
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :content, class: "form-label" %>
     <p class="block text-sm mb-2"><i>
-      The content will be used by the AI tutor to conduct the lesson. (Be sure to update the lesson goals as well.)<br>
-      As examples, you could specify specific information, exercises, or evaluation criteria for the lesson.<br>
-      Resources should be specified separately and linked to the plan.</i></p>
+      The content will be used by the AI tutor to conduct the lesson.<br>
+      As examples, you could specify information, resources, exercises, teaching styles, or evaluation criteria for the lesson.<br>
+      Resources must be added and linked to the lesson plan (you can do so once the plan is saved to draft status).</i></p>
     <% content_data = @lesson_plan.content.presence || { "" => "" } %>
     <% content_data.each do |key, value| %>
       <div class="flex items-center mb-2 space-x-2">
@@ -45,37 +45,11 @@
     </div>
   </div>
 
-  <div class="mb-4" data-controller="resource-manager">
-    <h3 class="text-lg font-semibold mb-2">Linked Resources</h3>
-    <div id="linked-resources" class="mb-4">
-      <% @lesson_plan.resources.each do |resource| %>
-        <%= render partial: 'admin/resources/linked_resource', locals: { resource: resource, lesson_plan: @lesson_plan } %>
-      <% end %>
-    </div>
-
-    <h3 class="text-lg font-semibold mb-2">Available Resources</h3>
-    <div class="mb-2">
-      <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "form-input", data: { action: "input->resource-manager#filterResources" } %>
-    </div>
-    <div id="available-resources" class="max-h-60 overflow-y-auto border border-gray-300 rounded p-2">
-      <% Resource.where.not(id: @lesson_plan.resource_ids).each do |resource| %>
-        <div id="available-resource-<%= resource.id %>" data-resource-manager-target="availableResource">
-          <%= render partial: 'admin/resources/available_resource', locals: { resource: resource, lesson_plan: @lesson_plan } %>
-        </div>
-      <% end %>
-    </div>
-  </div>
-
-  <div class="mb-4 mt-6 p-4 border border-gray-300 rounded">
-    <h3 class="text-lg font-semibold mb-2">Add New Resource</h3>
-    <%= turbo_frame_tag "new_resource" do %>
-      <%= render 'admin/resources/form', resource: Resource.new %>
-      <%#need to pass @lesson_plan?%>
-    <% end %>
-  </div>
-
-  <div class="flex flex-row space-x-5">
+  <div class="flex flex-row space-x-5 mb-4">
     <%= f.submit "Submit", class: "btn-primary" %>
     <%= link_to "Cancel", admin_course_lessons_path(@lesson.course), class: "btn-primary" %>
   </div>
+
 <% end %>
+
+

@@ -1,2 +1,3 @@
 <%= turbo_stream.remove("available-#{dom_id(@resource)}") %>
+<%= turbo_stream.remove("no-linked-resources-msg") %>
 <%= turbo_stream.append("linked-resources", partial: "admin/resources/linked_resource", locals: { resource: @resource, lesson_plan: @lesson_plan }) %>

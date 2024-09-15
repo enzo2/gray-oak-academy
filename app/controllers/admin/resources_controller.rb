@@ -1,6 +1,5 @@
 class Admin::ResourcesController < AdminController
   before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file ]
-  before_action :set_lesson_plan, only: [ :create ]
 
   def index
     @resources = Resource.all
@@ -14,21 +13,24 @@ class Admin::ResourcesController < AdminController
   end
 
   def create
+    # May submit the form from Resources dashboard, or Lesson Plan dashboard
+    @lesson_plan = LessonPlan.find(params[:resource].delete(:lesson_plan_id)) if params[:resource][:lesson_plan_id].present?
+    # Remove the lesson_plan_id so it will not be present next upon calling resource_params
+
     @resource = Resource.new(resource_params)
+
     if @resource.save
       if @lesson_plan
-        @lesson_plan.resources << @resource
+        @lesson_plan.resources << @resource # Add resource to lesson plan
         respond_to do |format|
           format.turbo_stream
-          # format.html { redirect_to admin_resources_path }
         end
       else
-        redirect_to admin_resources_path, notice: "Resource was successfully created."
+        redirect_to admin_resources_path
       end
     else
       respond_to do |format|
-        # format.turbo_stream { render :create, status: :unprocessable_entity }
-        format.html { render :new, status: :unprocessable_entity }
+        format.turbo_stream { render :create, status: :unprocessable_entity }
       end
     end
   end
@@ -38,7 +40,7 @@ class Admin::ResourcesController < AdminController
 
   def update
     if @resource.update(resource_params)
-      redirect_to admin_resources_path, notice: "Resource was successfully updated."
+      redirect_to admin_resources_path
     else
       render :edit, status: :unprocessable_entity
     end
@@ -46,22 +48,18 @@ class Admin::ResourcesController < AdminController
 
   def destroy
     @resource.destroy
-    redirect_to admin_resources_path, notice: "Resource was successfully destroyed."
+    redirect_to admin_resources_path
   end
 
   def delete_file
     @resource.file.purge
-    redirect_to admin_resource_path(@resource), notice: "File was successfully deleted."
+    redirect_to admin_resource_path(@resource)
   end
 
   private
 
   def set_resource
     @resource = Resource.find(params[:id])
-  end
-
-  def set_lesson_plan
-    @lesson_plan = LessonPlan.find(params[:lesson_plan_id]) if params[:lesson_plan_id]
   end
 
   def resource_params

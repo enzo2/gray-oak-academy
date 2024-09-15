@@ -1,12 +1,21 @@
+<%# Handles submission from either the Resources dashboard, or Lesson Plan edit form. %>
+
 <% if @resource.persisted? %>
   <% if @lesson_plan %>
     <%# Request is coming from the lesson plan edit form. %>
+    <%= turbo_stream.remove("no-linked-resources-msg") %>
     <%= turbo_stream.append "linked-resources", partial: "admin/resources/linked_resource", locals: { resource: @resource, lesson_plan: @lesson_plan } %>
-    <%= turbo_stream.remove "available-resource-#{@resource.id}" %>
+    <%= turbo_stream.remove "resource-form" %>
+    <%# Re-add the New Resource button %>
+    <%= turbo_stream.update "new_resource", partial: "admin/lesson_plans/new_resource_button", locals: { lesson: @lesson_plan.lesson } %>
   <% else %>
-    <%# Not yet implemented. New Resource uses new.html.erb. %>
-    <%#= turbo_stream.prepend "resources-table", partial: "admin/resources/resource", locals: { resource: @resource } %>
+    <%# Not needed, controller redirects to the index. %>  
   <% end %>
 <% else %>
-  <%= turbo_stream.update "new_resource_form", partial: "admin/resources/form", locals: { resource: @resource } %>
+  <%# Re-render the form to display errors. %>
+  <% if @lesson_plan %>
+    <%= turbo_stream.replace "resource-form", partial: "admin/resources/form", locals: { resource: @resource, lesson_plan: @lesson_plan } %>
+  <% else %>
+    <%= turbo_stream.replace "resource-form", partial: "admin/resources/form", locals: { resource: @resource } %>
+  <% end %>
 <% end %>

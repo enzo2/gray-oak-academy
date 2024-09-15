@@ -1,0 +1,8 @@
+<%= turbo_stream.append('new_resource') do %>
+  <div class="border border-gray-500 rounded p-2 pl-4">
+    <h3 class="text-lg font-semibold mb-2">Add & Link Resource</h3>
+    <%= render partial: 'admin/resources/form', locals: { resource: Resource.new, lesson_plan: @lesson_plan } %>
+  </div>
+<% end %>
+
+<%= turbo_stream.remove('new_resource_button') %>

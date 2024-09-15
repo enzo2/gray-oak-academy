@@ -8,7 +8,7 @@ module.exports = {
     './app/views/**/*.{erb,haml,html,slim}'
   ],
 
-  darkMode: 'selector',
+  darkMode: 'selector', 
 
   theme: {
     extend: {
@@ -20,7 +20,9 @@ module.exports = {
       spacing:{
         '1/2screen':'50vh',
         '2/3screen':'66vh',
-        '3/4screen':'75vh'
+        '3/4screen':'75vh',
+        '5/6screen':'83vh',
+        'screen':'100vh'
       }
 
     },
@@ -29,31 +31,7 @@ module.exports = {
       sans: ['Inter var', ...defaultTheme.fontFamily.sans],
       //sans: ['"Merriweather Sans"', ...defaultTheme.fontFamily.sans], 
       //serif: ['"Playfair Display"', ...defaultTheme.fontFamily.serif] 
-    }, 
-
-    minHeight:{
-      '0': '0',
-      '1/4': '25%',
-      '1/2': '50%',
-      '3/4': '75%',
-      '5/6': '83%',
-      'full': '100%',
-      '1/2screen':'50vh',
-      '3/4screen': '75vh',
-      'screen': '100vh',
-      '500':'500px'
-    },
-
-    maxHeight: {
-      '0': '0',
-      '1/4': '25%',
-      '1/2': '50%',
-      '3/4': '75%',
-      '5/6': '83%',
-      'full': '100%',
-      '5/6screen': '83vh',
-      'screen': '100vh'
-    },
+    }
 
   },
 
