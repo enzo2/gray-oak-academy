@@ -16,30 +16,30 @@ gem "importmap-rails"
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
-
+## Authentication
+gem "devise"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
-# gem 'shoelace-rails'
 
 # Vector Search
 gem "pgvector"
 gem "neighbor"
 
 # llms
-gem "openai"
-gem "anthropic"
-# gem 'llama_index'
+# gem "openai"
+# gem "anthropic"
+#
+# gem 'llama_index' ?? avoid abstractions
 
-## Authentication
-gem "devise"
 
-# JSON Schema validation
-gem "json_schemer"
+
+
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
-# Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+
+# JSON Schema validation
+gem "json_schemer"
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -48,7 +48,7 @@ gem "jbuilder"
 # gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
+# gem "tzinfo-data", platforms: %i[ windows jruby ]
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false

@@ -2,7 +2,7 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Create a sample admin user if it doesn't exist
+# Use the 1st admin user as the teacher
 admin_user = User.role_admin.first
 
 # Create a sample tool
