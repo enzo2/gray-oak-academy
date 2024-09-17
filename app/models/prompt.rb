@@ -1,5 +1,5 @@
 class Prompt < ApplicationRecord
-  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id"
+  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :prompts
 
   enum :category, {
     other: "other",
@@ -54,7 +54,6 @@ class Prompt < ApplicationRecord
   def self.category_options
     categories.map { |category, _value| [  category, FRIENDLY_CATEGORIES[category.to_sym] ] }
   end
-
 
   # If you need to check if a friendly name is valid
   def self.valid_friendly_category?(friendly_name)

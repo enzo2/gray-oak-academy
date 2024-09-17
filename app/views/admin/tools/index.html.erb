@@ -1,0 +1,30 @@
+<%= turbo_frame_tag "dashboard-content" do %>
+  <h2 class="text-2xl font-bold mb-5">Tools</h2>
+
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="border-b border-gray-800 dark:border-gray-200">
+        <th class="py-2 px-3 text-left">Name</th>
+        <th class="py-2 px-3 text-left">Description</th>
+        <th class="py-2 px-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tools-table-body">
+      <% if @tools.any? %>
+        <% @tools.each do |tool| %>
+          <tr class="border-b border-gray-300 dark:border-gray-700">
+            <td class="py-2 px-3"><%= tool.name %></td>
+            <td class="py-2 px-3"><%= tool.description %></td>
+            <td class="py-2 px-3 text-right">
+              <%= link_to "View", admin_tool_path(tool), class: "text-blue-600 hover:text-blue-800", data: { turbo_frame: "dashboard-content" } %>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr id="no_tools">
+          <td colspan="3" class="py-4 px-6 text-center">No tools available.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

@@ -24,6 +24,8 @@ Rails.application.routes.draw do
     resources :resources do
       delete "delete_file", on: :member
     end
+
+    resources :tools, only: [ :index, :show ]
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

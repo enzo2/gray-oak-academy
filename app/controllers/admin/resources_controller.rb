@@ -18,6 +18,7 @@ class Admin::ResourcesController < AdminController
     # Remove the lesson_plan_id so it will not be present next upon calling resource_params
 
     @resource = Resource.new(resource_params)
+    @resource.teacher = current_user
 
     if @resource.save
       if @lesson_plan

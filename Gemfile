@@ -21,7 +21,6 @@ gem "stimulus-rails"
 gem "tailwindcss-rails"
 # gem 'shoelace-rails'
 
-
 # Vector Search
 gem "pgvector"
 gem "neighbor"
@@ -34,6 +33,8 @@ gem "anthropic"
 ## Authentication
 gem "devise"
 
+# JSON Schema validation
+gem "json_schemer"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
