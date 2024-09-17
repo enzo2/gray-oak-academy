@@ -1,7 +1,8 @@
 App summary:       
 Next generation AI tutor for students, with teacher-designed lesson plans executed by multimodal LLM. 
 RAG-based with student progress tracking and adaptive teaching.
-Generative UI using Turbo. 2-column layout, allowing the LLM to create visualizations, interactive elements, view media, work alongside the student, etc.
+Generative UI using Turbo. 2-column layout, allowing the LLM to create visualizations, interactive elements, view media, 
+work alongside the student, etc.
 Likewise, the student can use the frame as a chalkboard to demonstrate understanding in visual ways beyond plain chat. 
 Desktop-only to ensure appropriate interactivity and resource utilization. 
 The goal is to match or exceed the tutoring ability of a talented and broadly knowledgeable 1-on-1 human tutor.
@@ -18,7 +19,7 @@ frameworks/tooling:
 - DB: postgres
 - Authentication: devise (upon Rails 8, could remove Devise and switch to the built-in generator and BYO)
 - Authorization: User role: student / admin
-- LLM servers - OpenAI, Anthropic; ollama (local) - translate openau api format to anthropic so can switch as needed
+- LLM servers - OpenAI, Anthropic, OpenRouter; ollama (local) - need an internal API which will then translate to the external APIs (openai-compatible, anthropic-compatible)
 - LlamaIndex
 - RAG: postgres + pgvector + neighbor gem
     https://github.com/ankane/neighbor - ruby gem to use pgvector with rails
@@ -37,6 +38,7 @@ Features:
     - automated lesson summary student progress reports
 
 
+########################################################
 Turbo notes:
 - Turbo Drive intercepts all link clicks and form submissions, making the app SPA by default. 
 - Turbo Frames do not contribute support to the usage of Turbo Stream. 
@@ -50,7 +52,6 @@ The alias for the 422 status code in Rails is :unprocessable_entity.
 
 #######################################################
 views
-- system prompt editor - save system prompts in DB, admin can edit. prompts for lesson generation and tutor-bot
 - course manager - list of lessons. include printable view. 
 - resource archive: view prior used resources and planned resources
 - lesson view (administrator) -  use LLM to generate a lesson plan in advance, then admin can edit it

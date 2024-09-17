@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   get "admin/dashboard", as: :admin_root
 
   namespace :admin do
+    resources :prompts
     resources :courses do
       resources :lessons do
         resource :lesson_plan, only: [ :edit, :update ] do

@@ -28,6 +28,10 @@
     @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded;
   }
 
+  .form-select {
+    @apply block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800 grayscale focus:outline-none rounded-md;
+  }
+
   .btn-primary {
     @apply bg-blue-500 hover:bg-blue-600 text-base text-white py-2 px-4 rounded focus:outline-none transition duration-150 ease-in-out;
   }

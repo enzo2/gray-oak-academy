@@ -1,0 +1,2 @@
+<%# rendered when save fails %>
+<%= turbo_stream.replace("prompts-form", partial: "admin/prompts/form", locals: { prompt: @prompt }) %>

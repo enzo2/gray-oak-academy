@@ -4,6 +4,7 @@ class CreateTools < ActiveRecord::Migration[7.2]
       t.string :name
       t.text :description
       t.jsonb :specifications
+      t.references :teacher, null: false, foreign_key: { to_table: :users }
 
       t.timestamps
     end

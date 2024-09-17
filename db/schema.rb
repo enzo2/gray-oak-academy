@@ -17,6 +17,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
+  create_enum "prompt_category", ["other", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "teacher_assistant", "teaching_principles", "base_system_prompt"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
   create_enum "student_report_status", ["in_progress", "completed"]
   create_enum "user_role", ["student", "admin"]
@@ -109,17 +110,22 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
 
   create_table "prompts", force: :cascade do |t|
     t.string "title"
+    t.enum "category", default: "other", null: false, enum_type: "prompt_category"
     t.text "prompt"
+    t.bigint "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["teacher_id"], name: "index_prompts_on_teacher_id"
   end
 
   create_table "resources", force: :cascade do |t|
     t.string "category"
     t.text "description"
     t.string "uri"
+    t.bigint "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["teacher_id"], name: "index_resources_on_teacher_id"
   end
 
   create_table "student_reports", force: :cascade do |t|
@@ -148,8 +154,10 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
     t.string "name"
     t.text "description"
     t.jsonb "specifications"
+    t.bigint "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["teacher_id"], name: "index_tools_on_teacher_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -182,10 +190,13 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
   add_foreign_key "lesson_progresses", "lessons"
   add_foreign_key "lesson_progresses", "users", column: "student_id"
   add_foreign_key "lessons", "courses"
+  add_foreign_key "prompts", "users", column: "teacher_id"
+  add_foreign_key "resources", "users", column: "teacher_id"
   add_foreign_key "student_reports", "courses"
   add_foreign_key "student_reports", "enrollments"
   add_foreign_key "student_reports", "lessons"
   add_foreign_key "student_reports", "users", column: "student_id"
   add_foreign_key "student_reports", "users", column: "teacher_id"
+  add_foreign_key "tools", "users", column: "teacher_id"
   add_foreign_key "users", "users", column: "teacher_id"
 end
