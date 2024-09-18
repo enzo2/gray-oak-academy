@@ -7,14 +7,13 @@ class Course < ApplicationRecord
 
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :summary, presence: true, length: { minimum: 10, maximum: 2000 }
-  validates :outline, presence: true
-  validate :validate_outline_format
   validates :grade_level,
             presence: true,
             format: {
               with: /\A([A-Z]|[1-9]\d*)\z/,
               message: "must be a single uppercase letter or a positive integer."
             }
+    validate :validate_outline_format
 
   def completed_by?(student)
     enrollments.exists?(student: student, completed: true)
@@ -23,9 +22,7 @@ class Course < ApplicationRecord
   private
 
   def validate_outline_format
-    if outline.blank?
-      errors.add(:outline, "must be present.")
-    else
+    if outline.present?
       outline.each do |key, value|
         if key.blank? || value.blank?
           errors.add(:outline, "entries must have both a topic and details.")

@@ -26,15 +26,6 @@ export default class extends Controller {
 
   removeField(event) {
     event.preventDefault();
-
-    // Check the number of field divs in the container
-    if (this.fieldContainerTarget.querySelectorAll('div').length > 1) {
-      // Remove the field targeted by the remove button
-      event.target.parentElement.remove();
-    } else {
-      // Clear the inputs if it's the only one left
-      const inputs = event.target.closest('div').querySelectorAll('input');
-      inputs.forEach(input => input.value = '');
-    }
+    event.target.parentElement.remove();
   }
 }

@@ -32,4 +32,15 @@ Tool.find_or_create_by!(name: 'Iframe Update Tool') do |tool|
   }
 end
 
+Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
+  p.title = "Default Lesson Plan Generator"
+  p.teacher = admin_user
+  p.prompt = <<~PROMPT
+    I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".#{' '}
+    Please generate a detailed course outline in JSON format where each key is a topic and each value is a brief description of that topic.#{' '}
+    Don't nest beyond the key:value pairs.#{' '}
+    Ensure the outline is comprehensive and suitable for the grade level.
+  PROMPT
+end
+
 puts "Seed data has been created successfully!"

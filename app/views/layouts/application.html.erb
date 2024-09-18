@@ -18,7 +18,9 @@
     <link rel="apple-touch-icon" href="/icon.png">
     <%= stylesheet_link_tag "tailwind", "inter-font", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= action_cable_meta_tag  %>
     <%= javascript_importmap_tags %>
+    
   </head>
 
   <body class="bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white min-h-screen">

@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   namespace :admin do
     resources :prompts
     resources :courses do
+      post "generate_outline", on: :member
       resources :lessons do
         resource :lesson_plan, only: [ :edit, :update ] do
           post "link_resource/:resource_id", to: "lesson_plans#link_resource", as: :link_resource

@@ -1,7 +1,7 @@
 module Admin
   class CoursesController < ApplicationController
     before_action :require_admin
-    before_action :set_course, only: [ :edit, :update, :destroy ]
+    before_action :set_course, only: [ :edit, :update, :destroy, :generate_outline ]
 
     def index
       @courses = Course.all
@@ -48,6 +48,16 @@ module Admin
       @course.destroy
       respond_to do |format|
         format.turbo_stream
+      end
+    end
+
+    # POST /admin/courses/:id/generate_outline
+    def generate_outline
+      # Enqueue the background job
+      GenerateCourseOutlineJob.perform_later(@course)
+
+      respond_to do |format|
+        format.turbo_stream # renders a spinner
       end
     end
 

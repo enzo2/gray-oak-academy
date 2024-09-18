@@ -1,6 +1,8 @@
 <%= turbo_frame_tag "dashboard-content" do %>
   <h2 class="text-2xl font-bold mb-5">Courses</h2>
 
+  <%= turbo_stream_from "courses" %>
+
   <div class="mb-4">
     <%= turbo_frame_tag Course.new do %>
       <%= link_to "New Course", new_admin_course_path, class: "btn-primary" %>
@@ -13,6 +15,7 @@
         <th class="py-2 px-3 text-left">Title</th>
         <th class="py-2 px-3 text-left">Summary</th>
         <th class="py-2 px-3 text-center">Grade Level</th>
+        <th class="py-2 px-3 text-center">Outlined?</th>
         <th class="py-2 px-3 text-right">Actions</th>
       </tr>
     </thead>
