@@ -4,7 +4,9 @@ pin "darkModeManager"
 pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
+pin "@rails/actioncable", to: "actioncable.esm.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
+pin_all_from "app/javascript/channels", under: "channels"
 
 pin "@shoelace-style/shoelace/dist/utilities/base-path", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/utilities/base-path.js"
 pin "@shoelace-style/shoelace/icon", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/icon/icon.js"
@@ -15,3 +17,6 @@ pin "@shoelace-style/shoelace/dropdown", to: "https://cdn.jsdelivr.net/npm/@shoe
 pin "@shoelace-style/shoelace/checkbox", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/checkbox/checkbox.js"
 pin "@shoelace-style/shoelace/dialog", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/dialog/dialog.js"
 pin "@shoelace-style/shoelace/textarea", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/textarea/textarea.js"
+pin "@shoelace-style/shoelace/spinner", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/spinner/spinner.js"
+
+
