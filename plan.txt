@@ -17,9 +17,10 @@ frameworks/tooling:
 - tailwindcss + shoelace components                                                  
 - interactivity - hotwire: turbo, stimulus
 - DB: postgres
+- active job: solid queue (production only)
 - Authentication: devise (upon Rails 8, could remove Devise and switch to the built-in generator and BYO)
 - Authorization: User role: student / admin
-- LLM servers - OpenAI, Anthropic, OpenRouter; ollama (local) - need an internal API which will then translate to the external APIs (openai-compatible, anthropic-compatible)
+- LLM servers -  need to be both openai-compatible, anthropic-compatible. can use OpenRouter for this
 - LlamaIndex
 - RAG: postgres + pgvector + neighbor gem
     https://github.com/ankane/neighbor - ruby gem to use pgvector with rails

@@ -29,6 +29,9 @@ port ENV.fetch("PORT", 3000)
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
+# solid queue
+plugin :solid_queue
+
 # live rebuild
 plugin :tailwindcss if ENV.fetch("RAILS_ENV", "development") == "development"
 

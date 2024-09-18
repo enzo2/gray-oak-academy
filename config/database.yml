@@ -84,7 +84,12 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  <<: *default
-  database: gray_oak_academy_production
-  username: gray_oak_academy
-  password: <%= ENV["GRAY_OAK_ACADEMY_DATABASE_PASSWORD"] %>
+  primary: &primary_production
+    <<: *default
+    database: gray_oak_academy_production
+    username: gray_oak_academy
+    password: <%= ENV["GRAY_OAK_ACADEMY_DATABASE_PASSWORD"] %>
+  queue: 
+    <<: *primary_production
+    database: app_production_queue
+    migrations_paths: db/queue_migrate

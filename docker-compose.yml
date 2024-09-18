@@ -21,8 +21,6 @@ services:
       POSTGRES_DB: gray_oak_academy_production
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    networks:
-      - app-network
 
   #plan to remove with Rails 8
   redis:
