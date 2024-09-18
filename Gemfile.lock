@@ -120,6 +120,8 @@ GEM
       multipart-post (~> 2)
     faraday-net_http (3.3.0)
       net-http
+    faraday-retry (2.2.1)
+      faraday (~> 2.0)
     fugit (1.11.1)
       et-orbi (~> 1, >= 1.2.11)
       raabro (~> 1.4)
@@ -297,6 +299,15 @@ GEM
       rubyzip (>= 1.2.2, < 3.0)
       websocket (~> 1.0)
     simpleidn (0.2.3)
+    solid_cable (3.0.0)
+      actioncable (>= 7.2)
+      activejob (>= 7.2)
+      activerecord (>= 7.2)
+      railties (>= 7.2)
+    solid_cache (1.0.6)
+      activejob (>= 7.2)
+      activerecord (>= 7.2)
+      railties (>= 7.2)
     solid_queue (0.9.0)
       activejob (>= 7.1)
       activerecord (>= 7.1)
@@ -361,6 +372,7 @@ DEPENDENCIES
   debug
   devise
   dotenv-rails
+  faraday-retry
   importmap-rails
   jbuilder
   json_schemer
@@ -373,7 +385,9 @@ DEPENDENCIES
   rails (~> 7.2.1)
   rubocop-rails-omakase
   selenium-webdriver
-  solid_queue (~> 0.9.0)
+  solid_cable
+  solid_cache
+  solid_queue
   stimulus-rails
   tailwindcss-rails
   turbo-rails

@@ -30,7 +30,7 @@ port ENV.fetch("PORT", 3000)
 plugin :tmp_restart
 
 # solid queue
-plugin :solid_queue
+#plugin :solid_queue
 
 # live rebuild
 plugin :tailwindcss if ENV.fetch("RAILS_ENV", "development") == "development"
