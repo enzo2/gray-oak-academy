@@ -68,14 +68,14 @@ module Admin
     end
 
     def course_params
-      # Extract `outline_keys` and `outline_values` from params, default empty arrays if not present
-      outline_keys = params[:course].delete(:outline_keys) || []
-      outline_values = params[:course].delete(:outline_values) || []
+      # Extract the keys and values for outline
+      outline_topics = params[:course].delete(:outline_topics) || []
+      outline_details = params[:course].delete(:outline_details) || []
 
-      # Zip the keys and values into a hash and store it as `outline`
-      outline = outline_keys.zip(outline_values).to_h
+      # Zip the topics and details into an array of arrays [ [topic1, details1], [topic2, details2], ...
+      # And then map it to an array of hashes [ { topic1 => details1 }, { topic2 => details2 }, ... ]
+      outline = outline_topics.zip(outline_details).map { |topic, details| { topic => details } }
 
-      # Permit other course attributes and include the manifest `outline` hash
       params.require(:course).permit(:title, :summary, :grade_level).tap do |whitelisted|
         whitelisted[:outline] = outline
       end

@@ -1,19 +1,26 @@
 class GenerateCourseOutlineJob < ApplicationJob
   queue_as :default
 
+  OUTLINE_SCHEMA = {
+    type: "object",
+    propertyNames: { type: "string" },
+    additionalProperties: { type: "string" },
+    minProperties: 1
+  }
+
   def perform(course)
     # Fetch the prompt template
     prompt_template = Prompt.category_generate_lessons.first
     unless prompt_template.present?
-      broadcast_error(course, 'Prompt not found.')
+      broadcast_error(course, "Prompt not found.")
       return
     end
 
     # Customize the prompt
     customized_prompt = customize_prompt(prompt_template.prompt, course)
 
-    #require 'faraday'
-    require 'faraday/retry'
+    # require 'faraday'
+    require "faraday/retry"
     retry_options = {
       max: 2,
       interval: 0.05,
@@ -67,20 +74,29 @@ class GenerateCourseOutlineJob < ApplicationJob
         raise "Failed to parse JSON from LLM response: #{e.message}"
       end
 
+      # Validate the parsed outline against the schema
+      schemer = JSONSchemer.schema(OUTLINE_SCHEMA)
+      unless schemer.valid?(parsed_outline)
+        errors = schemer.validate(parsed_outline).to_a
+        raise "Invalid outline structure: #{errors.map { |e| e['error'] }.join(', ')}"
+      end
+
+      # Transform the parsed outline into an array to maintain order in the DB
+      formatted_outline = format_outline(parsed_outline)
+
       # Update the course with the generated outline
-      course.update!(outline: parsed_outline)
+      course.update!(outline: formatted_outline)
 
       # Broadcast the updated course outline
       broadcast_success(course)
 
     rescue JSON::ParserError => e
       Rails.logger.error "JSON Parsing Error: #{e.message}"
-      broadcast_error(course, 'Invalid JSON format from LLM response.')
+      broadcast_error(course, "Invalid JSON format from LLM response.")
     rescue StandardError => e
       Rails.logger.error "LLM Error: #{e.message}"
-      broadcast_error(course, 'Failed to generate course outline.')
+      broadcast_error(course, "Failed to generate course outline.")
     end
-
   end
 
   private
@@ -90,6 +106,10 @@ class GenerateCourseOutlineJob < ApplicationJob
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)
       .gsub("{grade_level}", course.grade_level)
+  end
+
+  def format_outline(parsed_outline)
+    parsed_outline.map { |topic, details| { topic => details } }
   end
 
   def broadcast_success(course)

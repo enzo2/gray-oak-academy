@@ -23,8 +23,8 @@ class Course < ApplicationRecord
 
   def validate_outline_format
     if outline.present?
-      outline.each do |key, value|
-        if key.blank? || value.blank?
+      outline.each do |item|
+        if item.keys.first.blank? || item.values.first.blank?
           errors.add(:outline, "entries must have both a topic and details.")
         end
       end

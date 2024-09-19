@@ -33,11 +33,11 @@
         <br>You can also leave it blank for now and have the LLM generate it for you.
       </i>
     </p>
-    <% if @course.outline.present? %>
-      <% @course.outline.each do |key, value| %>
+    <% if @course.outline.any? %>
+      <% @course.outline.each do |item| %>
         <div class="flex items-center mb-2 space-x-2">
-          <%= text_field_tag "course[outline_keys][]", key, placeholder: "Topic", class: "form-input w-1/4" %>
-          <%= text_field_tag "course[outline_values][]", value, placeholder: "Details", class: "form-input w-3/4" %>
+          <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "form-input w-1/4" %>
+          <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "form-input w-3/4" %>
           <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
         </div>
       <% end %>
@@ -48,8 +48,8 @@
     </sl-button>
     <template>
       <div class="flex items-center mb-2 space-x-2">
-        <%= text_field_tag "course[outline_keys][]", "", placeholder: "Topic", class: "form-input w-1/4", required: true %>
-        <%= text_field_tag "course[outline_values][]", "", placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "form-input w-1/4", required: true %>
+        <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "form-input w-3/4", required: true %>
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
       </div>
     </template>
