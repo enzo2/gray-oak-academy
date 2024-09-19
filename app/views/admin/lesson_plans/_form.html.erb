@@ -16,11 +16,11 @@
       The content will be used by the AI tutor to conduct the lesson.<br>
       As examples, you could specify information, resources, exercises, teaching styles, or evaluation criteria for the lesson.<br>
       Resources must be added and linked to the lesson plan (you can do so once the plan is saved to draft status).</i></p>
-    <% content_data = @lesson_plan.content.presence || { "" => "" } %>
-    <% content_data.each do |key, value| %>
+    <% content_data = @lesson_plan.content.presence || [{ "" => "" }] %>
+    <% content_data.each do |item| %>
       <div class="flex items-center mb-2 space-x-2">
-        <%= text_field_tag "lesson_plan[content_keys][]", key, placeholder: "Content type", class: "form-input w-1/4", required: true %>
-        <%= text_field_tag "lesson_plan[content_values][]", value, placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Content type", class: "form-input w-1/4", required: true %>
+        <%= text_field_tag "lesson_plan[content_values][]", item.values.first, placeholder: "Details", class: "form-input w-3/4", required: true %>
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
       </div>
     <% end %>

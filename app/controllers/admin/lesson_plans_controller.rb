@@ -66,10 +66,10 @@ module Admin
       content_keys = params[:lesson_plan].delete(:content_keys) || []
       content_values = params[:lesson_plan].delete(:content_values) || []
 
-      # Zip the keys and values into a hash and store it as `content`
-      content = content_keys.zip(content_values).to_h
+      # Zip the keys and values into a hash and store it as array of hashes
+      content = content_keys.zip(content_values).map { |type, details| { type => details } }
 
-      # Permit lesson_plan attributes, include the content hash, and handle nested resources
+      # Permit lesson_plan attributes, include the content
       params.require(:lesson_plan).permit(
         :status
       ).merge(content: content)

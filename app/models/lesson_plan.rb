@@ -4,7 +4,6 @@ class LessonPlan < ApplicationRecord
   has_one :course, through: :lesson
   has_and_belongs_to_many :resources
 
-  # accepts_nested_attributes_for :resources, allow_destroy: true, reject_if: :all_blank
 
   enum :status, { draft: "draft", published: "published", archived: "archived" }, prefix: true
 
@@ -13,11 +12,11 @@ class LessonPlan < ApplicationRecord
   private
 
   def validate_content_format
-    if content.blank?
-      errors.add(:content, "must be present.")
+    if content.empty?
+      errors.add(:content, "must be added.")
     else
-      content.each do |key, value|
-        if key.blank? || value.blank?
+      content.each do |item|
+        if item.keys.first.blank? || item.values.first.blank?
           errors.add(:content, "entries must have both a type and details.")
         end
       end
