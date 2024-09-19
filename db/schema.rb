@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
+ActiveRecord::Schema[7.2].define(version: 2024_09_19_132812) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -128,6 +128,14 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
     t.index ["teacher_id"], name: "index_resources_on_teacher_id"
   end
 
+  create_table "settings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.jsonb "settings", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_settings_on_user_id", unique: true
+  end
+
   create_table "student_reports", force: :cascade do |t|
     t.string "reportable_type", null: false
     t.bigint "reportable_id", null: false
@@ -192,6 +200,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_144231) do
   add_foreign_key "lessons", "courses"
   add_foreign_key "prompts", "users", column: "teacher_id"
   add_foreign_key "resources", "users", column: "teacher_id"
+  add_foreign_key "settings", "users"
   add_foreign_key "student_reports", "courses"
   add_foreign_key "student_reports", "enrollments"
   add_foreign_key "student_reports", "lessons"
