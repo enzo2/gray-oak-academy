@@ -1,6 +1,7 @@
 class CreatePrompts < ActiveRecord::Migration[7.2]
   def change
     create_enum :prompt_category, [ "other", # default category
+                                    "generate_course_outline",
                                     "generate_lessons",
                                     "generate_lesson_plan",
                                     "suggest_resources",
@@ -20,7 +21,7 @@ class CreatePrompts < ActiveRecord::Migration[7.2]
       t.string :title
       t.enum :category, enum_type: :prompt_category, default: "other", null: false
       t.text :prompt
-      t.references :teacher, null: false, foreign_key: { to_table: :users }
+      t.references :teacher, null: true, foreign_key: { to_table: :users }
 
       t.timestamps
     end

@@ -2,13 +2,11 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Use the 1st admin user as the teacher
-admin_user = User.role_admin.first
 
 # Create a sample tool
 Tool.find_or_create_by!(name: 'Iframe Update Tool') do |tool|
   tool.description = 'A tool to update the iframe URL in the student view'
-  tool.teacher = admin_user
+  # tool.teacher = admin_user
   tool.specifications = {
     name: "iframe_update",
     description: "Updates the URL of the iframe in the student view",
@@ -32,12 +30,17 @@ Tool.find_or_create_by!(name: 'Iframe Update Tool') do |tool|
   }
 end
 
-Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
-  p.title = "Default Lesson Plan Generator"
-  p.teacher = admin_user
+Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
+  p.title = "Default Course Outline Generator"
   p.prompt = <<~PROMPT
     I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".#{' '}
-    Please generate a detailed course outline in JSON format where each key is a topic and each value is a brief description of that topic.#{' '}
+    Please generate a detailed course outline in JSON format where each key is a topic (string) and each value is a brief description of that topic (string).#{' '}
+    For example,#{' '}
+    {#{' '}
+      "Introduction to the Course": "Overview of course objectives and expectations",#{' '}
+      "Chapter 1: Fundamentals": "Basic concepts and terminology",#{' '}
+      ...#{' '}
+    }#{' '}
     Don't nest beyond the key:value pairs.#{' '}
     Ensure the outline is comprehensive and suitable for the grade level.
   PROMPT

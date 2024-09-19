@@ -1,8 +1,9 @@
 class Prompt < ApplicationRecord
-  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :prompts
+  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :prompts, optional: true
 
   enum :category, {
     other: "other",
+    generate_course_outline: "generate_course_outline",
     generate_lessons: "generate_lessons",
     generate_lesson_plan: "generate_lesson_plan",
     suggest_resources: "suggest_resources",
@@ -20,6 +21,7 @@ class Prompt < ApplicationRecord
 
   FRIENDLY_CATEGORIES = {
     other: "Other",
+    generate_course_outline: "Generate Course Outline",
     generate_lessons: "Generate Lessons",
     generate_lesson_plan: "Generate Lesson Plan",
     suggest_resources: "Suggest Resources",
