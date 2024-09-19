@@ -10,7 +10,7 @@ class GenerateCourseOutlineJob < ApplicationJob
 
   def perform(course)
     # Fetch the prompt template
-    prompt_template = Prompt.category_generate_lessons.first
+    prompt_template = Prompt.category_generate_course_outline.first
     unless prompt_template.present?
       broadcast_error(course, "Prompt not found.")
       return
