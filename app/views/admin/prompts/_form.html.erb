@@ -17,7 +17,9 @@
 
   <div class="mb-4">
     <%= form.label :category, class: "form-label mb-2" %>
-    <%= form.collection_select :category, Prompt.category_options, :first, :last, { include_blank: "Select a category", selected: nil }, { class: "form-select" } %>
+    <%= form.collection_select :category, Prompt.category_options, :first, :last,
+        { include_blank: "Select a category", selected: prompt.new_record? ? nil : prompt.category },
+        { class: "form-select" } %>
   </div>
 
   <div class="mb-4">
