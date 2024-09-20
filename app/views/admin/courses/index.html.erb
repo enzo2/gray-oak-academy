@@ -1,8 +1,6 @@
 <%= turbo_frame_tag "dashboard-content" do %>
   <h2 class="text-2xl font-bold mb-5">Courses</h2>
 
-  <%= turbo_stream_from "courses" %>
-
   <div class="mb-4">
     <%= turbo_frame_tag Course.new do %>
       <%= link_to "New Course", new_admin_course_path, class: "btn-primary" %>
@@ -21,9 +19,7 @@
     </thead>
     <tbody id="courses-table-body">
         <% if @courses.any? %>
-          <% @courses.each do |course| %>
-              <%= render course %>
-          <% end %>
+          <%= render @courses %>
         <% else %>
           <tr id="no_courses">
             <td colspan="4" class="py-4 px-6 text-center">No courses added.</td>

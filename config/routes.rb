@@ -14,6 +14,7 @@ Rails.application.routes.draw do
     resources :courses do
       post "generate_outline", on: :member
       resources :lessons do
+        post "generate_lessons", on: :collection
         resource :lesson_plan, only: [ :edit, :update ] do
           post "link_resource/:resource_id", to: "lesson_plans#link_resource", as: :link_resource
           delete "unlink_resource/:resource_id", to: "lesson_plans#unlink_resource", as: :unlink_resource

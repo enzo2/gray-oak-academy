@@ -63,11 +63,14 @@ class GenerateCourseOutlineJob < ApplicationJob
       end
 
       # Extract valid JSON from the response
-      json_content = outline_content.match(/\{.*\}/m)&.[](0)
+      json_content = outline_content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
       unless json_content
         raise "No valid JSON found in the LLM response."
       end
 
+      # Rails.logger.info "LLM Response: #{json_content}"
+
+      # Parse the JSON
       begin
         parsed_outline = JSON.parse(json_content)
       rescue JSON::ParserError => e
@@ -115,11 +118,11 @@ class GenerateCourseOutlineJob < ApplicationJob
   def broadcast_success(course)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
     # Broadcast the updated course row via Turbo Streams
-    Turbo::StreamsChannel.broadcast_replace_to("courses", target: course, partial: "admin/courses/course", locals: { course: course })
+    Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard", target: course, partial: "admin/courses/course", locals: { course: course })
   end
 
   def broadcast_error(course, message)
     # Broadcast an error message via Turbo Streams
-    Turbo::StreamsChannel.broadcast_replace_to("courses", target: "flash_bar", partial: "shared/flash", locals: { type: "error", message: message })
+    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard", target: "flash_bar", partial: "shared/flash", locals: { type: "error", message: message })
   end
 end

@@ -1,0 +1,9 @@
+<% if course.lessons.any? %>
+  <% course.lessons.each do |lesson| %>
+    <%= render "admin/lessons/lesson", lesson: lesson %>
+  <% end %>
+<% else %>
+  <tr id="no_lessons">
+    <td colspan="5" class="py-4 px-6 text-center">No lessons added.</td>
+  </tr>
+<% end %>
