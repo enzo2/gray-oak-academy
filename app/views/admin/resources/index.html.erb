@@ -16,7 +16,7 @@
     </thead>
     <tbody id="resources-table-body">
       <% if @resources.any? %>
-        <% render @resources %>
+        <%= render @resources %>
       <% else %>
         <tr id="no_resources">
           <td colspan="5" class="py-4 px-6 text-center">No resources added.</td>

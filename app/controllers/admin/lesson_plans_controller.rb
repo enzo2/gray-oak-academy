@@ -2,7 +2,7 @@ module Admin
   class LessonPlansController < ApplicationController
     before_action :require_admin
     before_action :set_lesson
-    before_action :set_lesson_plan, only: [ :edit, :update, :link_resource, :unlink_resource, :new_resource ]
+    before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :new_resource ]
 
     def generate
       # Auto-generate lesson plan content using LLM
@@ -23,6 +23,11 @@ module Admin
           format.turbo_stream { render :update, status: :unprocessable_entity }
         end
       end
+    end
+
+    def destroy
+      @lesson_plan.destroy
+      redirect_to admin_course_lessons_path(@lesson.course), status: :see_other
     end
 
     def link_resource

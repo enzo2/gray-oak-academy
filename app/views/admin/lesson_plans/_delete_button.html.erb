@@ -1,0 +1,6 @@
+<%= button_to "Delete Lesson Plan", admin_course_lesson_lesson_plan_path(lesson.course, lesson), 
+  method: :delete,
+  class: "hover:underline text-red-800", 
+  form: { data: { 
+    turbo_confirm: "Are you sure you want to delete this lesson plan?"
+  } } %>

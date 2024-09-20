@@ -10,11 +10,21 @@
     </div>
   <% end %>
 
+  <% if @lesson_plan.content.blank? %>
+    <%= turbo_frame_tag "generate-lesson-plan-button" do %>
+      <div class="mb-4">
+        <i>You can use the LLM to generate lesson plan content. However, you should at least review and enhance it with your own resources.</i>
+        <%#= button_to "Generate Lesson Plan", class: "btn-primary", data: { turbo-confirm: "This will call the LLM to generate lesson plan content.", turbo_stream: true } %>
+      </div>
+    <% end %>
+
+  <% end %>
+
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :content, class: "form-label" %>
     <p class="block text-sm mb-2"><i>
       The content will be used by the AI tutor to conduct the lesson.<br>
-      As examples, you could specify information, resources, exercises, teaching styles, or evaluation criteria for the lesson.<br>
+      As examples, you could specify information, resources, exercises, teaching methods, or evaluation criteria for the lesson.<br>
       Resources must be added and linked to the lesson plan (you can do so once the plan is saved to draft status).</i></p>
     <% content_data = @lesson_plan.content.presence || [{ "" => "" }] %>
     <% content_data.each do |item| %>

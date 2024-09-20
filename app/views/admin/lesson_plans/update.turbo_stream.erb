@@ -8,6 +8,9 @@
   <%= turbo_stream.remove "lesson-plan-errors" %>
 
   <% if @lesson_plan_was_new %>
+    <%= turbo_stream.append("dashboard-content", 
+        partial: "admin/lesson_plans/delete_button",
+        locals: { lesson: @lesson } ) %>
     <%= turbo_stream.append("dashboard-content", "<hr class='my-4'>") %>
     <%= turbo_stream.append("dashboard-content", 
         partial: "admin/lesson_plans/manage_resources",
