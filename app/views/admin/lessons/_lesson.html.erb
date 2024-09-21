@@ -1,4 +1,22 @@
 <tr id="<%= dom_id(lesson) %>" class="border-b border-gray-600 dark:border-gray-400">
+  <td class="">
+    <div class="flex flex-col items-center">
+      <% unless lesson.first? %>
+        <%= button_to move_higher_admin_course_lesson_path(lesson.course, lesson), 
+          method: :patch, class: "", 
+          data: { turbo_stream: true } do %>
+          <sl-icon name="arrow-up" class=""></sl-icon-button>
+        <% end %>
+      <% end %>
+      <span class="my-1"><%= lesson.position %></span>
+      <% unless lesson.last? %>
+        <%= button_to move_lower_admin_course_lesson_path(lesson.course, lesson), method: :patch, class: "", 
+          data: { turbo_stream: true } do %>
+          <sl-icon name="arrow-down" class=""></sl-icon-button>
+        <% end %>
+      <% end %>
+    </div>
+  </td>
   <td class="py-2 px-3"><%= lesson.title %></td>
   <td class="py-2 px-3"><%= truncate(lesson.goals, length: 500) %></td>
   <td class="py-2 px-3 text-center"><%= lesson.approx_duration_min %></td>

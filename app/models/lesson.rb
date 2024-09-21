@@ -1,5 +1,6 @@
 class Lesson < ApplicationRecord
   belongs_to :course
+  acts_as_list scope: :course
   has_one :teacher, through: :course
   has_one :lesson_plan, dependent: :destroy
   has_many :student_reports, as: :reportable

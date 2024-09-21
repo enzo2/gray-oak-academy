@@ -2,13 +2,15 @@ module Admin
   class LessonsController < ApplicationController
     before_action :require_admin
     before_action :set_course
-    before_action :set_lesson, only: [ :show, :edit, :update, :destroy ]
+    before_action :set_lesson, only: [ :show, :edit, :update, :destroy, :move_higher, :move_lower ]
 
     def index
       @lessons = @course.lessons
     end
+
     def show
     end
+
     def new
       @lesson = @course.lessons.build
     end
@@ -56,6 +58,20 @@ module Admin
       GenerateCourseLessonsJob.perform_later(@course)
       respond_to do |format|
         format.turbo_stream # renders a spinner
+      end
+    end
+
+    def move_higher
+      @lesson.move_higher
+      respond_to do |format|
+        format.turbo_stream
+      end
+    end
+
+    def move_lower
+      @lesson.move_lower
+      respond_to do |format|
+        format.turbo_stream
       end
     end
 

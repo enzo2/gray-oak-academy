@@ -37,7 +37,7 @@ gem "open_router"
 #
 # gem 'llama_index' ?? avoid abstractions
 
-
+gem "acts_as_list"
 
 
 
