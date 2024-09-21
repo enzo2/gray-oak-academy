@@ -10,7 +10,8 @@
       <% end %>
       <span class="my-1"><%= lesson.position %></span>
       <% unless lesson.last? %>
-        <%= button_to move_lower_admin_course_lesson_path(lesson.course, lesson), method: :patch, class: "", 
+        <%= button_to move_lower_admin_course_lesson_path(lesson.course, lesson),
+          method: :patch, class: "", 
           data: { turbo_stream: true } do %>
           <sl-icon name="arrow-down" class=""></sl-icon-button>
         <% end %>
