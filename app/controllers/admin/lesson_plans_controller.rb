@@ -67,17 +67,18 @@ module Admin
     end
 
     def lesson_plan_params
-      # Extract `content_keys` and `content_values` from params, default empty arrays if not present
+      # Extract `content_keys` and `content_values` from params, default to empty arrays if not present
       content_keys = params[:lesson_plan].delete(:content_keys) || []
       content_values = params[:lesson_plan].delete(:content_values) || []
 
-      # Zip the keys and values into a hash and store it as array of hashes
+      # Zip the keys and values into an array of hashes
+      # The order is preserved as it comes from the form
       content = content_keys.zip(content_values).map { |type, details| { type => details } }
 
       # Permit lesson_plan attributes, include the content
-      params.require(:lesson_plan).permit(
-        :status
-      ).merge(content: content)
+      params.require(:lesson_plan).permit(:status).tap do |whitelisted|
+        whitelisted[:content] = content
+      end
     end
   end
 end

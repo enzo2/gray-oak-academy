@@ -28,4 +28,20 @@ export default class extends Controller {
     event.preventDefault();
     event.target.parentElement.remove();
   }
+
+  moveUp(event) {
+    event.preventDefault();
+    const field = event.target.closest('.flex');
+    if (field.previousElementSibling && field.previousElementSibling !== this.fieldContainerTarget.querySelector('template')) {
+      this.fieldContainerTarget.insertBefore(field, field.previousElementSibling);
+    }
+  }
+
+  moveDown(event) {
+    event.preventDefault();
+    const field = event.target.closest('.flex');
+    if (field.nextElementSibling) {
+      this.fieldContainerTarget.insertBefore(field.nextElementSibling, field);
+    }
+  }
 }

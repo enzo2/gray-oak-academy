@@ -17,7 +17,6 @@
         <%#= button_to "Generate Lesson Plan", class: "btn-primary", data: { turbo-confirm: "This will call the LLM to generate lesson plan content.", turbo_stream: true } %>
       </div>
     <% end %>
-
   <% end %>
 
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
@@ -31,6 +30,8 @@
       <div class="flex items-center mb-2 space-x-2">
         <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Content type", class: "form-input w-1/4", required: true %>
         <%= text_field_tag "lesson_plan[content_values][]", item.values.first, placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
+        <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
       </div>
     <% end %>
@@ -42,6 +43,8 @@
       <div class="flex items-center mb-2 space-x-2">
         <%= text_field_tag "lesson_plan[content_keys][]", "", placeholder: "Content type", class: "form-input w-1/4", required: true %>
         <%= text_field_tag "lesson_plan[content_values][]", "", placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
+        <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
       </div>
     </template>
@@ -59,7 +62,4 @@
     <%= f.submit "Submit", class: "btn-primary" %>
     <%= link_to "Cancel", admin_course_lessons_path(@lesson.course), class: "btn-primary" %>
   </div>
-
 <% end %>
-
-
