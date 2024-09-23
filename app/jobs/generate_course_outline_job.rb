@@ -2,22 +2,28 @@ class GenerateCourseOutlineJob < ApplicationJob
   queue_as :default
 
   OUTLINE_SCHEMA = {
-    type: "object",
-    propertyNames: { type: "string" },
-    additionalProperties: { type: "string" },
-    minProperties: 1
+    "type": "array",
+    "items": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "patternProperties": {
+        "^.*$": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1
+    },
+    "minItems": 1
   }
 
-  def perform(course)
-    # Fetch the prompt template
-    prompt_template = Prompt.category_generate_course_outline.first
-    unless prompt_template.present?
-      broadcast_error(course, "Prompt not found.")
-      return
-    end
+  SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
+  TASK_PROMPT = Prompt.category_generate_course_outline.first.prompt
 
-    # Customize the prompt
-    customized_prompt = customize_prompt(prompt_template.prompt, course)
+  def perform(course)
+    customized_prompt = TASK_PROMPT
+      .gsub("{title}", course.title)
+      .gsub("{summary}", course.summary)
+      .gsub("{grade_level}", course.grade_level)
 
     # require 'faraday'
     require "faraday/retry"
@@ -38,7 +44,7 @@ class GenerateCourseOutlineJob < ApplicationJob
 
     # Prepare messages for the LLM
     messages = [
-      { role: "system", content: "You are an expert curriculum designer for all forms of education from Kindergarden through PhD level." },
+      { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: customized_prompt }
     ]
 
@@ -56,7 +62,7 @@ class GenerateCourseOutlineJob < ApplicationJob
         }
       )
 
-      # Extract and parse the outline
+      # Extract the response
       outline_content = response.dig("choices", 0, "message", "content")
       unless outline_content.present?
         raise "Empty response from LLM."
@@ -84,11 +90,8 @@ class GenerateCourseOutlineJob < ApplicationJob
         raise "Invalid outline structure: #{errors.map { |e| e['error'] }.join(', ')}"
       end
 
-      # Transform the parsed outline into an array to maintain order in the DB
-      formatted_outline = format_outline(parsed_outline)
-
-      # Update the course with the generated outline
-      course.update!(outline: formatted_outline)
+      # Update the course with the generated outline. (Stored as array in JSONB column.)
+      course.update!(outline: parsed_outline)
 
       # Broadcast the updated course outline
       broadcast_success(course)
@@ -104,17 +107,6 @@ class GenerateCourseOutlineJob < ApplicationJob
 
   private
 
-  def customize_prompt(template, course)
-    template
-      .gsub("{title}", course.title)
-      .gsub("{summary}", course.summary)
-      .gsub("{grade_level}", course.grade_level)
-  end
-
-  def format_outline(parsed_outline)
-    parsed_outline.map { |topic, details| { topic => details } }
-  end
-
   def broadcast_success(course)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
     # Broadcast the updated course row via Turbo Streams
@@ -123,6 +115,10 @@ class GenerateCourseOutlineJob < ApplicationJob
 
   def broadcast_error(course, message)
     # Broadcast an error message via Turbo Streams
-    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard", target: "flash_bar", partial: "shared/flash", locals: { type: "error", message: message })
+    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { type: "error", message: message } }
+    )
   end
 end

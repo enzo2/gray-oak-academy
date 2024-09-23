@@ -1,22 +1,22 @@
-<%= form_with(model: [:admin, @lesson.course, @lesson, @lesson_plan], url: admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), method: :patch, id: "lesson-plan-form") do |f| %>
-  <% if @lesson_plan.errors.any? %>
+<%= form_with(model: [:admin, lesson.course, lesson, lesson_plan], url: admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :patch, id: "lesson-plan-form") do |f| %>
+  <% if lesson_plan.errors.any? %>
     <div class="mb-4 text-red-800 dark:text-red-300" id="lesson-plan-errors">
-      <%= pluralize(@lesson_plan.errors.count, "error") %> prevented this lesson plan from being saved.
+      <%= pluralize(lesson_plan.errors.count, "error") %> prevented this lesson plan from being saved.
       <ul>
-        <% @lesson_plan.errors.full_messages.each do |message| %>
+        <% lesson_plan.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
-  <% if @lesson_plan.content.blank? %>
-    <%= turbo_frame_tag "generate-lesson-plan-button" do %>
-      <div class="mb-4">
-        <i>You can use the LLM to generate lesson plan content. However, you should at least review and enhance it with your own resources.</i>
-        <%#= button_to "Generate Lesson Plan", class: "btn-primary", data: { turbo-confirm: "This will call the LLM to generate lesson plan content.", turbo_stream: true } %>
-      </div>
-    <% end %>
+  <% if lesson_plan.content.blank? %>
+    <div class="mb-4" id="gen-content-btn">
+      <i>You can use the LLM to generate lesson plan content. However, you should at least review and enhance it with your own resources.</i>
+      <%= link_to "Generate Lesson Plan", generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), 
+        class: "btn-primary", 
+        data: { turbo_confirm: "This will call the LLM to generate lesson plan content.", turbo_stream: true, turbo_method: :post } %>
+    </div>
   <% end %>
 
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
@@ -25,7 +25,7 @@
       The content will be used by the AI tutor to conduct the lesson.<br>
       As examples, you could specify information, resources, exercises, teaching methods, or evaluation criteria for the lesson.<br>
       Resources must be added and linked to the lesson plan (you can do so once the plan is saved to draft status).</i></p>
-    <% content_data = @lesson_plan.content.presence || [{ "" => "" }] %>
+    <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
     <% content_data.each do |item| %>
       <div class="flex items-center mb-2 space-x-2">
         <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Content type", class: "form-input w-1/4", required: true %>
@@ -60,6 +60,6 @@
 
   <div class="flex flex-row space-x-5 mb-4">
     <%= f.submit "Submit", class: "btn-primary" %>
-    <%= link_to "Cancel", admin_course_lessons_path(@lesson.course), class: "btn-primary" %>
+    <%= link_to "Cancel", admin_course_lessons_path(lesson.course), class: "btn-primary" %>
   </div>
 <% end %>

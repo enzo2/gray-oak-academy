@@ -21,6 +21,7 @@ Rails.application.routes.draw do
           post "link_resource/:resource_id", to: "lesson_plans#link_resource", as: :link_resource
           delete "unlink_resource/:resource_id", to: "lesson_plans#unlink_resource", as: :unlink_resource
           get "new_resource", to: "lesson_plans#new_resource", as: :new_resource
+          post "generate_content", to: "lesson_plans#generate_content", as: :generate_content
         end
       end
     end

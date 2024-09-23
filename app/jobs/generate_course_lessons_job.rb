@@ -22,7 +22,7 @@ class GenerateCourseLessonsJob < ApplicationJob
     "description": "An array of lesson objects for the course"
   }
 
-  SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt
+  SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
   TASK_PROMPT = Prompt.category_generate_lessons.first.prompt
 
   def perform(course)
@@ -69,7 +69,7 @@ class GenerateCourseLessonsJob < ApplicationJob
         }
       )
 
-      # Extract and parse the lessons
+      # Extract the response
       lessons_content = response.dig("choices", 0, "message", "content")
       unless lessons_content.present?
         raise "Empty response from LLM."
@@ -121,7 +121,7 @@ class GenerateCourseLessonsJob < ApplicationJob
 
   def broadcast_success(course)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
-    Turbo::StreamsChannel.broadcast_replace_to(
+    Turbo::StreamsChannel.broadcast_update_to(
       "teacher-dashboard",
       target: "lessons-table-body",
       partial: "admin/lessons/lessons_table",

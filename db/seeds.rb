@@ -6,7 +6,6 @@
 # Create a sample tool
 Tool.find_or_create_by!(name: 'Iframe Update Tool') do |tool|
   tool.description = 'A tool to update the iframe URL in the student view'
-  # tool.teacher = admin_user
   tool.specifications = {
     name: "iframe_update",
     description: "Updates the URL of the iframe in the student view",
@@ -52,18 +51,41 @@ Prompt.find_or_create_by!(category: 'base_system_prompt') do |p|
   PROMPT
 end
 
+Prompt.find_or_create_by!(category: 'teaching_principles') do |p|
+  p.title = "Default Teaching Principles Prompt"
+  p.prompt = <<~PROMPT
+    As an AI tutor, your role is to guide and inspire the student. Adhere to these core teaching principles:
+    - This is a 1:1 private tutoring app. Tailor your teaching and language to the student's level of understanding, interests, and learning style. Meet or exceed, for example, the quality of education that a privately tutored prodigy like John Von Neumann received.#{' '}
+    - Use a range of teaching methods beyond simple explanation, such as Socratic questioning, conundrums, or interactive exercises.#{' '}
+    - Adopt a first-principles approach. Encourage students to break down complex concepts into their fundamental components and build understanding from the ground up.
+    - Present students with conundrums and thought-provoking questions. Challenge them to think deeply, question assumptions, and develop their own unique perspectives.
+    - Prioritize experiential learning over rote memorization. Engage the student with real-world applications and thought-provoking discussions.#{' '}
+    - Incorporate practical mini-projects that allow students to build, create, and code. Encourage them to apply their knowledge in tangible ways and develop real-world skills.
+    - Avoid large projects, course-end presentations, and the like. The student will benefit most from simply proceeding to the next course without a time-consuming project.#{' '}
+    - The lesson plan is only a plan. For example, if the student mentions he is reading a particular book, shift gears and discuss it.
+    - Generative UI or just-in-time javascript applets can enable highly innovative and personally tailored lessons. Come up with whatever is needed.
+    - Screen time awarenesss: suggest "escape from the computer" moments. This is not a prison or struggle session. If the most instructive method is for the student to get up and look at something, then tell them to do it. Incorporate real-world experiments, book recommendations, outdoor activities, and hands-on projects.
+    - Be friendly and encouraging.#{' '}
+    - Emphasize the importance of reading.#{' '}
+    - Introduce the student to tools and technologies that can enhance their understanding and problem-solving skills.
+    - Focus on problem-solving rather than tool mastery. Teach students to approach challenges with creativity and critical thinking, rather than relying solely on specific tools or methods.
+    - Avoid quizzing and testing. Instead, conduct holistic, ongoing assessment  and gauge understanding through discussion. You do not have to reduce the student to a number, as you can store summaries of the student's progress, strengths and weaknesses for future reference.
+    - Avoid traditional homework, especially consisting of problem sets, preparing a presentation, etc. Instead, any homework should be#{' '}
+    - Remember the wisdom found in Ecclesiastes: increasing knowledge may lead to more pain than happiness. Education must be a means to a defined end. As a personal tutor, your role over all else is to guide students towards a love of learning, personal growth, and the ability to utilize their knowledge and skills in meaningful ways.
+    PROMPT
+end
+
 Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
   p.title = "Default Course Outline Generator"
   p.prompt = <<~PROMPT
     I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".#{' '}
-    Please generate a detailed course outline in JSON format where each key is a topic (string) and each value is a brief description of that topic (string).#{' '}
-    For example,#{' '}
-    {#{' '}
-      "Introduction to the Course": "Overview of course objectives and expectations",#{' '}
-      "Chapter 1: Fundamentals": "Basic concepts and terminology",#{' '}
+    Please generate a detailed course outline in JSON format as an array of objects, where each key is a topic (string) and each value is a brief description of that topic (string):
+    [#{' '}
+      {"Introduction to the Course": "Overview of course objectives and expectations"},
+      {"Chapter 1: Fundamentals": "Basic concepts and terminology"},
       ...#{' '}
-    }#{' '}
-    Don't nest beyond the key:value pairs.#{' '}
+    ]#{' '}
+    Don't nest any further.#{' '}
     Ensure the outline is comprehensive and suitable for the grade level.
   PROMPT
 end
@@ -94,6 +116,46 @@ Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
     Don't nest beyond the key:value pairs.
     Ensure the outline is comprehensive and suitable for the grade level.
   PROMPT
+end
+
+Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
+  p.title = "Default Lesson Plan Content Generator"
+  p.prompt = <<~PROMPT
+    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
+    The lesson goals are: "{goals}".
+    The lesson is to be roughly {approx_duration_min} min long.
+    Now, content for the lesson plan is needed.#{' '}
+    The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.
+    Please generate a detailed lesson plan content outline in JSON format as an array of properties, specifying each content type (string) and details (string). Do not nest objects.
+    For example:#{' '}
+    [
+      {"Knowledge": "Ensure student is aware of X,Y,Z."},
+      {"Method": "Casual discussion format."},
+      {"Resource": "Have the student watch the video during the lesson, then discuss it."},#{' '}
+      ....
+    ]
+    You are not restricted to these content types. Creative planning will lead to superior lessons.#{' '}
+    Content may include specific knowledge or data, as well as other moieties that can help specify a high-quality lesson, such as:
+      - Generative resources (e.g. tutor may generate just-in-time web component or javascript applet)
+      - Digital resources (e.g., website/video/audio, files, software)
+      - Theoretical components (e.g., teaching methods, learning theories, questioning techniques)
+      - Student evaluation criteria
+    Actual resource references, e.g. URL, file, will be referenced separately, so for the lesson plan, merely the use of it can be planned. Avoid suggesting a resource unless it is#{' '}
+    known to be generally available, e.g. Encyclopædia Britannica article, well-known lecture, famous photo, household materials, open-source software.#{' '}
+    Once you have generated the content, the teacher will be able to add further content like:
+      - Referenced resources
+      - Materials (e.g., specific textbooks, physical tools or demonstrations to obtain for the lesson)
+      - Human resources
+    Adhere to any previously specified requirements.#{' '}
+    Ensure the content is appropriate for the grade level.#{' '}
+    Other lessons in this course, which do not need to overlap with this one, include:#{' '}
+      {other_lessons}
+  PROMPT
+end
+
+Resource.find_or_create_by!(uri: "https://mathsolver.microsoft.com/en") do |r|
+  r.description = "Microsoft Math Solver is a web-based tool that allows users to solve and graph equations. It provides step-by-step solutions, making it a useful resource for students learning mathematics."
+  r.category = "Web tool"
 end
 
 puts "Seed data has been created successfully!"
