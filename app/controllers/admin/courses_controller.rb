@@ -27,9 +27,9 @@ module Admin
     end
 
     def edit
-      respond_to do |format|
+       respond_to do |format|
         format.turbo_stream
-      end
+       end
     end
 
     def update

@@ -10,7 +10,6 @@ Rails.application.routes.draw do
   get "admin/dashboard", as: :admin_root
 
   namespace :admin do
-    resources :prompts
     resources :courses do
       post "generate_outline", on: :member
       resources :lessons do
@@ -26,11 +25,15 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :prompts
+
     resources :resources do
       delete "delete_file", on: :member
     end
 
     resources :tools, only: [ :index, :show ]
+
+    resources :students, only: [ :index ]
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
