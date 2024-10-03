@@ -8,6 +8,9 @@ class User < ApplicationRecord
   enum :role, { student: "student", admin: "admin" }, prefix: true
   before_create :set_default_role
 
+  validates :first_name, presence: true
+  validates :last_name, presence: true
+
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
   has_one_attached :profile_picture, dependent: :destroy
@@ -23,6 +26,10 @@ class User < ApplicationRecord
   has_many :resources, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :tools, foreign_key: "teacher_id", inverse_of: :teacher
+
+  def name
+    "#{first_name} #{last_name}"
+  end
 
   private
 
