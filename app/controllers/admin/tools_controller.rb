@@ -1,5 +1,6 @@
 module Admin
   class ToolsController < AdminController
+    before_action :require_admin
     before_action :set_tool, only: [ :show ]
 
     def index
