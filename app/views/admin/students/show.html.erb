@@ -14,13 +14,15 @@
             <span class="text-sm">Next lesson ready.</span>
           <% else %>
             <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
-            <span class="text-sm">No lessons available for student. Please publish a lesson plan.</span>
+            <span class="text-sm">No lessons available for student. Please 
+              <%= link_to "publish a lesson plan", admin_course_lessons_path(enrollment.course), data: {turbo_frame: "dashboard-content"}, class: "underline" %>.
+              </span>
           <% end %>
         </div>
 
         <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
             method: :delete,
-            data: { turbo_confirm: 'Are you sure?' }, class: "btn-danger" %>
+            data: { turbo_confirm: 'Are you sure?' }, class: "btn-danger text-sm" %>
       </div>
     <% end %>
   </div>
@@ -45,6 +47,6 @@
     <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
       method: :delete, 
       data: { turbo_confirm: 'This will remove the student from your list. Are you sure?', turbo_frame: "dashboard-content" }, 
-      class: "btn-danger" %>
+      class: "btn-danger text-sm" %>
   <% end %>
 <% end %>

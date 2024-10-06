@@ -20,6 +20,8 @@
             turbo_confirm: "This will call the LLM to generate lessons. Are you sure?",
             turbo_stream: true }
         %>
+      <% else %>
+        <i>To generate the lessons via LLM, the course outline must be filled in, and there must be no existing lessons.</i>
       <% end %>
     <% end %>
   </div>

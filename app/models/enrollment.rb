@@ -23,4 +23,8 @@ class Enrollment < ApplicationRecord
   def has_available_lesson?
     course.lessons.published.not_completed_by_student(student).exists?
   end
+
+  def next_available_lesson
+    course.lessons.published.not_completed_by_student(student).first
+  end
 end
