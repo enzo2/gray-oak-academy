@@ -15,6 +15,11 @@ class Course < ApplicationRecord
             }
     validate :validate_outline_format
 
+
+  def enrolled_in?(student)
+    enrollments.exists?(student: student)
+  end
+
   def completed_by?(student)
     enrollments.exists?(student: student, completed: true)
   end

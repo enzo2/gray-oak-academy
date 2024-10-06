@@ -13,6 +13,7 @@ import "@shoelace-style/shoelace/button";
 import "@shoelace-style/shoelace/input";
 import "@shoelace-style/shoelace/dropdown";
 import "@shoelace-style/shoelace/spinner";
+import "@shoelace-style/shoelace/progress-bar";
 //import "@shoelace-style/shoelace/checkbox";
 //import "@shoelace-style/shoelace/dialog";
 //import "@shoelace-style/shoelace/textarea";

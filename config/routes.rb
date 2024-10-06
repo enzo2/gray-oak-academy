@@ -33,7 +33,14 @@ Rails.application.routes.draw do
 
     resources :tools, only: [ :index, :show ]
 
-    resources :students, only: [ :index ]
+    resources :students, only: [ :index, :show ] do
+      member do
+        post :adopt
+        delete :unadopt
+        post :enroll
+        delete :unenroll
+      end
+    end
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

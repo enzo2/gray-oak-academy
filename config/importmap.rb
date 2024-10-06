@@ -18,5 +18,4 @@ pin "@shoelace-style/shoelace/checkbox", to: "https://cdn.jsdelivr.net/npm/@shoe
 pin "@shoelace-style/shoelace/dialog", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/dialog/dialog.js"
 pin "@shoelace-style/shoelace/textarea", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/textarea/textarea.js"
 pin "@shoelace-style/shoelace/spinner", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/spinner/spinner.js"
-
-
+pin "@shoelace-style/shoelace/progress-bar", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/components/progress-bar/progress-bar.js"

@@ -30,13 +30,23 @@ frameworks/tooling:
 Features:
 - Separate Teacher and Student interfaces/dashboards
 - LLM co-design of lesson plans for teachers in bulk
-- Student-progress-aware LLM tutor
+- Student-progress-aware LLM tutor (RAG-based)
 - Multimodal tutoring: 
-    - speech-to-text, text-to-speech
-    - student can respond with either text/voice, or chalkboard sketching (rasterize and send as image to LLM)
     - large multipurpose chalkboard frame usable for handwriting, image viewing, generative UI components, iframe for websites, etc.
+    - support different levels of multimodality for cost management: allow teacher to set lessons as text (or STT) + image input only, +- speech input, +- realtime API
+    - student can respond with either text/voice, chalkboard sketching (rasterize and send as image to LLM), or screenshot of current desktop or webcam view
     - generative UI/mini-apps: GPT to stream components, send with turbo, render either in-chat or on chalkboard frame
-    - automated lesson summary student progress reports
+- automated lesson summary student progress reports
+
+Choosing AI model for lessons:
+- at minimum needs text + image input > text + tool use output (use TTS to read aloud responses)
+- STT input can be used for most lessons
+- audio (speech) input needed for certain types of lessons, eg. music, foreign language, vocal training, speech therapy, emotionally-loaded areas like psychology
+ i.e.  ideally audio+text+image input, speech+text+tool output model 
+- OpenAI Realtime API speech-speech can be used in some circumstances; but usually standard chat API with speech input (turn-based, non-realtime) will suffice
+  > would be cost-prohibitive for full days of schooling, without prompt caching
+  > future "gpt-4o-mini-realtime" likely cheaper, could be used for basic conversation, simple lessons, report creation, but probably not most lessons
+
 
 
 ########################################################
