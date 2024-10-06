@@ -4,7 +4,7 @@ module Admin
     before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll ]
 
     def index
-      @my_students = current_user.students
+      @my_students = current_user.students.order(last_name: :asc)
       @other_students = User.role_student.where.not(id: @my_students.pluck(:id))
     end
 

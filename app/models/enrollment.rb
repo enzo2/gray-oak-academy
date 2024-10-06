@@ -18,4 +18,9 @@ class Enrollment < ApplicationRecord
   def total_lessons
     course.lessons.count
   end
+
+  # Whether course has any published lessons not yet completed by student
+  def has_available_lesson?
+    course.lessons.published.not_completed_by_student(student).exists?
+  end
 end

@@ -24,6 +24,10 @@ class Course < ApplicationRecord
     enrollments.exists?(student: student, completed: true)
   end
 
+  def self.available_for_enrollment(student, teacher)
+    where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
+  end
+
   private
 
   def validate_outline_format

@@ -13,7 +13,14 @@ class Lesson < ApplicationRecord
   validates :goals, presence: true, length: { minimum: 10, maximum: 1000 }
   validates :approx_duration_min, presence: true, numericality: { greater_than: 0, only_integer: true }
 
+  scope :published, -> { joins(:lesson_plan).where(lesson_plans: { status: "published" }) }
+
   def completed_by?(student)
     student_reports.exists?(student: student, status: :completed)
+  end
+
+  def self.not_completed_by_student(student)
+    completed_lesson_ids = student.student_reports.status_completed.pluck(:lesson_id)
+    where.not(id: completed_lesson_ids)
   end
 end

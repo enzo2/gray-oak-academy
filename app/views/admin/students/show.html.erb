@@ -1,44 +1,50 @@
 <%= turbo_frame_tag "student-control-panel" do %>
-  <div class="control-panel p-4">
-    <h2 class="text-xl font-semibold"><%= @student.name %></h2>
+  <h2 class="text-xl font-semibold mb-6"><%= @student.name %></h2>
+  <h3 class="text-lg">Enrolled Courses</h3>
+  <div class="w-full grid grid-cols-[repeat(auto-fill,16rem)] gap-4 mb-6">
+    <% @student.enrollments.includes(:course).each do |enrollment| %>
+      <div class="py-2 rounded-s border-gray-500" id="<%= dom_id(enrollment) %>">
+        <span class="font-medium"><%= enrollment.course.title %></span>
 
-    <div class="mb-6">
-      <h3 class="text-lg font-semibold">Enrolled Courses</h3>
-      <ul class="mt-2">
-        <% @student.enrollments.includes(:course).each do |enrollment| %>
-          <li class="flex justify-between items-center py-2" id="<%= dom_id(enrollment) %>">
-            <div>
-              <span class="font-medium"><%= enrollment.course.title %></span>
-              <div class="mt-1">
-                <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 250px;"></sl-progress-bar>
-                <span class="text-sm"><%= "#{enrollment.completed_lessons} / #{enrollment.total_lessons} lessons completed" %></span>
-                <%# add green or red icon for each enrollment reflecting whether there is at least one lesson whose lesson plan is "published" available for the student to complete  (teacher needs to publish lesson plans before student will be able to start the lessons)  %>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id), 
-                method: :delete,
-                data: { turbo_confirm: 'Are you sure?' }, class: "btn-danger" %>
-            </div>
-          </li>
-        <% end %>
-      </ul>
-    </div>
+        <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 100%;"></sl-progress-bar>
+        <span class="text-sm"><%= "#{enrollment.completed_lessons} / #{enrollment.total_lessons} lessons completed" %></span>
+        <div class="block flex items-center my-2">
+          <% if enrollment.has_available_lesson? %>
+            <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0" title="Available lessons"></sl-icon>
+            <span class="text-sm">Next lesson ready.</span>
+          <% else %>
+            <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
+            <span class="text-sm">No lessons available for student. Please publish a lesson plan.</span>
+          <% end %>
+        </div>
 
-    <div class="mb-6">
-      <h3 class="text-lg font-semibold">Enroll in a New Course</h3>
-      <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex space-x-2" do |form| %>
-      <%= form.collection_select :course_id, Course.where(teacher: current_user).reject { |course| course.enrolled_in?(@student) }, :id, :title,
-        { prompt: "Select Course" }, { class: "form-select" } %>
-        <%= form.submit 'Enroll', class: "btn-primary" %>
-      <% end %>
-    </div>
-
-    <% if @student.teacher == current_user %>
-      <%= button_to 'Un-adopt', unadopt_admin_student_path(@student), 
-        method: :delete, 
-        data: { turbo_confirm: 'Are you sure?', turbo_frame: "dashboard-content" }, 
-        class: "btn-danger" %>
+        <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
+            method: :delete,
+            data: { turbo_confirm: 'Are you sure?' }, class: "btn-danger" %>
+      </div>
     <% end %>
   </div>
+
+  <div class="mb-6">
+    <h3 class="text-lg">Enroll in a New Course</h3>
+      <% available_courses = Course.available_for_enrollment(@student, current_user) %>
+    <% if available_courses.any? %>
+      <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex" do |form| %>
+      <%= form.collection_select :course_id, available_courses, :id, :title,
+        { prompt: "Select Course" }, { class: "form-select" } %>
+        <%= form.submit 'Enroll', class: "btn-primary ml-2" %>
+      <% end %>
+    <% else %>
+      <p class="text-sm">No courses available for enrollment.</p>
+    <% end %>
+  </div>
+
+  <hr class="mb-6">
+
+  <% if @student.teacher == current_user %>
+    <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
+      method: :delete, 
+      data: { turbo_confirm: 'This will remove the student from your list. Are you sure?', turbo_frame: "dashboard-content" }, 
+      class: "btn-danger" %>
+  <% end %>
 <% end %>
