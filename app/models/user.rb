@@ -7,6 +7,7 @@ class User < ApplicationRecord
 
   enum :role, { student: "student", admin: "admin" }, prefix: true
   before_create :set_default_role
+  after_create :ensure_setting
 
   validates :first_name, presence: true
   validates :last_name, presence: true
@@ -31,10 +32,19 @@ class User < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
+  # access settings accessors logically e.g. current_user.settings.theme
+  def settings
+    setting
+  end
+
   private
 
   # For initial setup, first account is set as admin
   def set_default_role
     self.role = User.count.zero? ? :admin : :student
+  end
+
+  def ensure_setting
+    create_setting! if setting.nil?
   end
 end
