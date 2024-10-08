@@ -1,0 +1,19 @@
+<div id="<%= dom_id(enrollment) %>" class="border rounded p-2 border-gray-300 dark:border-gray-700">
+  <h2 class="text-xl font-semibold mb-6"><%= enrollment.course.title %></h2>
+
+  <div class="mb-4">
+    <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 100%;"></sl-progress-bar>
+    <span class="text-sm"><%= "#{enrollment.completed_lessons} / #{enrollment.total_lessons} lessons completed" %></span>
+  </div>
+
+  <div class="flex items-center my-4">
+    <% if enrollment.has_available_lesson? %>
+      <sl-button>
+        <sl-icon slot="prefix" name="check-circle-fill" class="text-green-500"></sl-icon>
+        Start next lesson
+    <% else %>
+      <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
+      <span class="text-sm">No lessons available. Check with teacher.</span>
+    <% end %>
+  </div>
+</div>

@@ -3,12 +3,12 @@
   <h3 class="text-lg">Enrolled Courses</h3>
   <div class="w-full grid grid-cols-[repeat(auto-fill,16rem)] gap-4 mb-6">
     <% @student.enrollments.includes(:course).each do |enrollment| %>
-      <div class="py-2 rounded-s border-gray-500" id="<%= dom_id(enrollment) %>">
+      <div class="p-2 rounded border border-gray-300 dark:border-gray-700" id="<%= dom_id(enrollment) %>">
         <span class="font-medium"><%= enrollment.course.title %></span>
 
         <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 100%;"></sl-progress-bar>
         <span class="text-sm"><%= "#{enrollment.completed_lessons} / #{enrollment.total_lessons} lessons completed" %></span>
-        <div class="block flex items-center my-2">
+        <div class="flex items-center my-2">
           <% if enrollment.has_available_lesson? %>
             <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0" title="Available lessons"></sl-icon>
             <span class="text-sm">Next lesson ready.</span>
