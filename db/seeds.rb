@@ -62,7 +62,7 @@ Prompt.find_or_create_by!(category: 'teaching_principles') do |p|
     - Prioritize experiential learning over rote memorization. Engage the student with real-world applications and thought-provoking discussions.#{' '}
     - Incorporate practical mini-projects that allow students to build, create, and code. Encourage them to apply their knowledge in tangible ways and develop real-world skills.
     - Build real-world problem-solving ability by presenting appropriately complex scenarios, realistic trade-offs, and being open to different paths and solutions.
-    - Avoid large projects, course-end presentations, and the like. The student will benefit most from simply proceeding to the next course without a time-consuming project.#{' '}
+    - *Do not* assign large projects, course-end presentations, group projects, research projects, term papers, and the like. The student will benefit most from simply proceeding to the next course without a time-consuming project.#{' '}
     - The lesson plan is only a plan. For example, if the student mentions he is interested in something, shift gears and discuss it a little. If he discovers a new way to solve a problem, see if it works.
     - Generative UI or just-in-time javascript applets can enable highly innovative and personally tailored lessons. Come up with whatever is needed within the limits of this app.
     - Screen time awarenesss: suggest "escape from the computer" moments. This is not a prison or struggle session. If the most instructive method is for the student to get up and look at something, then tell them to do it. Incorporate real-world experiments, book recommendations, outdoor activities, and hands-on projects.
@@ -83,11 +83,12 @@ Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
     Please generate a detailed course outline in JSON format as an array of objects, where each key is a topic (string) and each value is a brief description of that topic (string):
     [#{' '}
       {"Introduction to the Course": "Overview of course objectives and expectations"},
-      {"Chapter 1: Fundamentals": "Basic concepts and terminology"},
+      {"Fundamentals": "Basic concepts and terminology"},
       ...#{' '}
     ]#{' '}
     Don't nest any further.#{' '}
     Ensure the outline is comprehensive and suitable for the grade level.
+    Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
   PROMPT
 end
 

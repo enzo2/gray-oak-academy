@@ -26,28 +26,11 @@ class GenerateCourseLessonsJob < ApplicationJob
   TASK_PROMPT = Prompt.category_generate_lessons.first.prompt
 
   def perform(course)
-    # Customize the prompt
     customized_prompt = TASK_PROMPT
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)
       .gsub("{grade_level}", course.grade_level)
       .gsub("{course_outline}", course.outline.to_json)
-
-    require "faraday/retry"
-    retry_options = {
-      max: 2,
-      interval: 0.05,
-      interval_randomness: 0.5,
-      backoff_factor: 2
-    }
-    client = OpenRouter::Client.new(access_token: ENV["OPENROUTER_ACCESS_TOKEN"]) do |config|
-      config.faraday do |f|
-        f.request :retry, retry_options
-        f.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
-          logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')
-        end
-      end
-    end
 
     # Prepare messages for the LLM
     messages = [
@@ -57,11 +40,9 @@ class GenerateCourseLessonsJob < ApplicationJob
 
     begin
       # Make the LLM request
-      response = client.complete(
+      client = OpenRouterService.new()
+      parsed_content = client.complete(
         messages,
-        model: [
-          "anthropic/claude-3.5-sonnet:beta"
-        ],
         extras: {
           response_format: {
             type: "json_object"
@@ -69,35 +50,16 @@ class GenerateCourseLessonsJob < ApplicationJob
         }
       )
 
-      # Extract the response
-      lessons_content = response.dig("choices", 0, "message", "content")
-      unless lessons_content.present?
-        raise "Empty response from LLM."
-      end
-
-      # Extract valid JSON array from the response
-      json_content = lessons_content.match(/(\[[\s\S]*\])/)&.[](0)
-      unless json_content
-        raise "No valid JSON array found in the LLM response."
-      end
-
-      # Parse the JSON content
-      begin
-        parsed_lessons = JSON.parse(json_content)
-      rescue JSON::ParserError => e
-        raise "Failed to parse JSON from LLM response: #{e.message}"
-      end
-
       # Validate the parsed lessons against the schema
       schemer = JSONSchemer.schema(LESSONS_SCHEMA)
-      unless schemer.valid?(parsed_lessons)
-        errors = schemer.validate(parsed_lessons).to_a
+      unless schemer.valid?(parsed_content)
+        errors = schemer.validate(parsed_content).to_a
         # Retry ?
         raise "Invalid lessons structure: #{errors.map { |e| e['error'] }.join(', ')}"
       end
 
       # Create lessons for the course
-      parsed_lessons.each do |lesson|
+      parsed_content.each do |lesson|
         course.lessons.create!(
           title: lesson["title"],
           goals: lesson["goals"],

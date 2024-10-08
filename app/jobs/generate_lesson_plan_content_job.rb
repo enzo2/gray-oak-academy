@@ -30,23 +30,6 @@ class GenerateLessonPlanContentJob < ApplicationJob
       .gsub("{course_title}", course.title)
       .gsub("{other_lessons}", lesson.course.lessons.where.not(id: lesson.id).map(&:title).join(", "))
 
-    # Initialize LLM client
-    require "faraday/retry"
-    retry_options = {
-      max: 2,
-      interval: 0.05,
-      interval_randomness: 0.5,
-      backoff_factor: 2
-    }
-    client = OpenRouter::Client.new(access_token: ENV["OPENROUTER_ACCESS_TOKEN"]) do |config|
-      config.faraday do |f|
-        f.request :retry, retry_options
-        f.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
-          logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')
-        end
-      end
-    end
-
     # Prepare messages for the LLM
     messages = [
       { role: "system", content: SYSTEM_PROMPT },
@@ -55,36 +38,15 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
     begin
       # Make the LLM request
-      response = client.complete(
+      client = OpenRouterService.new()
+      parsed_content = client.complete(
         messages,
-        model: [
-          ENV["OPENROUTER_MODEL_NAME"]
-        ],
         extras: {
           response_format: {
             type: "json_object"
           }
         }
       )
-
-      # Extract the response
-      content = response.dig("choices", 0, "message", "content")
-      unless content.present?
-        raise "Empty response from LLM."
-      end
-
-      # Extract valid JSON from the response
-      json_content = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
-      unless json_content
-        raise "No valid JSON found in the LLM response."
-      end
-
-      # Parse the JSON
-      begin
-        parsed_content = JSON.parse(json_content)
-      rescue JSON::ParserError => e
-        raise "Failed to parse JSON from LLM response: #{e.message}"
-      end
 
       # Validate the parsed content against the schema
       schemer = JSONSchemer.schema(CONTENT_SCHEMA)
