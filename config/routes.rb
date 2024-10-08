@@ -13,6 +13,7 @@ Rails.application.routes.draw do
     resources :courses do
       post "generate_outline", on: :member
       resources :lessons do
+        get "printable", on: :collection
         post "generate_lessons", on: :collection
         patch "move_higher", on: :member
         patch "move_lower", on: :member

@@ -75,6 +75,10 @@ module Admin
       end
     end
 
+    def printable
+      render layout: false
+    end
+
     private
 
     def set_course
