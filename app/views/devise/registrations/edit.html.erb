@@ -57,7 +57,7 @@
       </sl-tab-panel>
 
       <sl-tab-panel name="user-settings">
-        <%= form_for(current_user, url: user_path(current_user), html: { method: :patch }) do |f| %>
+        <%= form_for(current_user, url: user_settings_path, html: { method: :patch }) do |f| %>
           <% current_user.settings.each do |key, value| %>
             <div class="mb-4">
               <%= f.label key, class: "form-label" %>
