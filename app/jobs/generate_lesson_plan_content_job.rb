@@ -19,7 +19,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
   SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
   TASK_PROMPT = Prompt.category_generate_lesson_plan.first.prompt
 
-  def perform(lesson_plan)
+  def perform(lesson_plan, current_user)
     lesson = lesson_plan.lesson
     course = lesson.course
     customized_prompt = TASK_PROMPT
@@ -38,7 +38,10 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenRouterService.new()
+      client = OpenRouterService.new(
+        model: current_user.setting.openrouter_model,
+        access_token: current_user.setting.openrouter_access_token
+      )
       parsed_content = client.complete(
         messages,
         extras: {

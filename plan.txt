@@ -20,7 +20,7 @@ frameworks/tooling:
 - active job: solid queue (production only)
 - Authentication: devise (upon Rails 8, could remove Devise and switch to the built-in generator and BYO)
 - Authorization: User role: student / admin
-- LLM servers -  need to be both openai-compatible, anthropic-compatible. can use OpenRouter for this
+- LLM servers -  use OpenRouter as it avoids tiered token limits, supports prompt caching and unified API
 - LlamaIndex
 - RAG: postgres + pgvector + neighbor gem
     https://github.com/ankane/neighbor - ruby gem to use pgvector with rails

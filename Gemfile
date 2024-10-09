@@ -33,7 +33,7 @@ gem "neighbor"
 gem "faraday-retry"
 gem "open_router"
 # gem "openai"
-# gem "anthropic"
+# gem "anthropic"  #not using for now as users likely to hit rate limit
 #
 # gem 'llama_index' ?? avoid abstractions
 

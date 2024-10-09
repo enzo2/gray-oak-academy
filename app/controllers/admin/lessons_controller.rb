@@ -55,7 +55,7 @@ module Admin
     end
 
     def generate_lessons
-      GenerateCourseLessonsJob.perform_later(@course)
+      GenerateCourseLessonsJob.perform_later(@course, current_user)
       respond_to do |format|
         format.turbo_stream # renders a spinner
       end

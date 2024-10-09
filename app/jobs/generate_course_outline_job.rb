@@ -19,7 +19,7 @@ class GenerateCourseOutlineJob < ApplicationJob
   SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
   TASK_PROMPT = Prompt.category_generate_course_outline.first.prompt
 
-  def perform(course)
+  def perform(course, current_user)
     customized_prompt = TASK_PROMPT
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)
@@ -33,7 +33,10 @@ class GenerateCourseOutlineJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenRouterService.new()
+      client = OpenRouterService.new(
+        model: current_user.setting.openrouter_model,
+        access_token: current_user.setting.openrouter_access_token
+      )
       parsed_content = client.complete(
         messages,
         extras: {

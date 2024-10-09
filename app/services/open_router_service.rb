@@ -2,8 +2,9 @@ class OpenRouterService
   # Class for chat completions with OpenRouter.
   require "faraday/retry"
 
-  def initialize(model: nil)
+  def initialize(model: nil, access_token: nil)
     @model = model || default_model
+    @access_token = access_token || default_access_token
     @client = create_client
   end
 
@@ -26,7 +27,11 @@ class OpenRouterService
   private
 
   def default_model
-    ENV.fetch("DEFAULT_OPENROUTER_MODEL") { raise "DEFAULT_OPENROUTER_MODEL is not set" }
+    ENV.fetch("DEFAULT_OPENROUTER_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_OPENROUTER_MODEL." }
+  end
+
+  def default_access_token
+    ENV.fetch("OPENROUTER_ACCESS_TOKEN") { raise "Access token was neither provided nor set in ENV variable OPENROUTER_ACCESS_TOKEN." }
   end
 
   def create_client
@@ -37,7 +42,7 @@ class OpenRouterService
       backoff_factor: 2
     }
 
-    OpenRouter::Client.new(access_token: ENV.fetch("OPENROUTER_ACCESS_TOKEN")) do |config|
+    OpenRouter::Client.new(access_token: @access_token) do |config|
       config.faraday do |f|
         f.request :retry, retry_options
         f.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|

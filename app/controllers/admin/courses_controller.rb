@@ -54,7 +54,7 @@ module Admin
     # POST /admin/courses/:id/generate_outline
     def generate_outline
       # Enqueue the background job
-      GenerateCourseOutlineJob.perform_later(@course)
+      GenerateCourseOutlineJob.perform_later(@course, current_user)
 
       respond_to do |format|
         format.turbo_stream # renders a spinner

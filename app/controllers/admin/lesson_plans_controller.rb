@@ -57,7 +57,7 @@ module Admin
     def generate_content
       # Persist the lesson plan before generating content
       @lesson_plan.save!
-      GenerateLessonPlanContentJob.perform_later(@lesson_plan)
+      GenerateLessonPlanContentJob.perform_later(@lesson_plan, current_user)
       respond_to do |format|
         format.turbo_stream
       end
