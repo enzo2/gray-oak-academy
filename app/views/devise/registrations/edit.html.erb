@@ -1,57 +1,78 @@
 <main class="md:container md:mx-auto px-15 flex justify-center items-center">
   <div class="p-8 min-h-1/2 max-w-md w-full">
-
     <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Edit <%= resource_name.to_s.humanize %></h2>
 
-    <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
-      <%= render "devise/shared/error_messages", resource: resource %>
+    <sl-tab-group>
+      <sl-tab slot="nav" panel="account">Account Settings</sl-tab>
+      <sl-tab slot="nav" panel="user-settings">User Settings</sl-tab>
 
-      <% if current_user.role_admin? %>
-        <div class="mb-4">
-          <%= f.label :first_name, class: "form-label" %>
-          <%= f.text_field :first_name, autofocus: true, class: "form-input" %>
-        </div>
+      <sl-tab-panel name="account">
+        <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
+          <%= render "devise/shared/error_messages", resource: resource %>
 
-        <div class="mb-4">
-          <%= f.label :last_name, class: "form-label" %>
-          <%= f.text_field :last_name, class: "form-input" %>
-        </div>
-      <% end %>
+          <% if current_user.role_admin? %>
+            <div class="mb-4">
+              <%= f.label :first_name, class: "form-label" %>
+              <%= f.text_field :first_name, autofocus: true, class: "form-input" %>
+            </div>
 
-      <div class="mb-4">
-        <%= f.label :email, class: "form-label" %>
-        <%= f.email_field :email, autocomplete: "email", class: "form-input" %>
-      </div>
+            <div class="mb-4">
+              <%= f.label :last_name, class: "form-label" %>
+              <%= f.text_field :last_name, class: "form-input" %>
+            </div>
+          <% end %>
 
-      <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">Currently waiting confirmation for: <%= resource.unconfirmed_email %></div>
-      <% end %>
+          <div class="mb-4">
+            <%= f.label :email, class: "form-label" %>
+            <%= f.email_field :email, autocomplete: "email", class: "form-input" %>
+          </div>
 
-      <div class="mb-4">
-        <%= f.label :password, class: "form-label" %>
-        <%= f.password_field :password, autocomplete: "new-password", class: "form-input" %>
-        <% if @minimum_password_length %>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400"><%= @minimum_password_length %> characters minimum (leave blank if you don't want to change it)</p>
+          <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
+            <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">Currently waiting confirmation for: <%= resource.unconfirmed_email %></div>
+          <% end %>
+
+          <div class="mb-4">
+            <%= f.label :password, class: "form-label" %>
+            <%= f.password_field :password, autocomplete: "new-password", class: "form-input" %>
+            <% if @minimum_password_length %>
+              <p class="mt-1 text-sm text-gray-600 dark:text-gray-400"><%= @minimum_password_length %> characters minimum (leave blank if you don't want to change it)</p>
+            <% end %>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :password_confirmation, class: "form-label" %>
+            <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-input" %>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :current_password, class: "form-label" %>
+            <%= f.password_field :current_password, autocomplete: "current-password", class: "form-input" %>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">We need your current password to confirm your changes</p>
+          </div>
+
+          <div class="mb-6">
+            <%= f.submit "Update", class: "btn-primary" %>
+          </div>
         <% end %>
-      </div>
+      </sl-tab-panel>
 
-      <div class="mb-4">
-        <%= f.label :password_confirmation, class: "form-label" %>
-        <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-input" %>
-      </div>
+      <sl-tab-panel name="user-settings">
+        <%= form_for(current_user, url: user_path(current_user), html: { method: :patch }) do |f| %>
+          <% current_user.settings.each do |key, value| %>
+            <div class="mb-4">
+              <%= f.label key, class: "form-label" %>
+              <%= f.text_field "settings[#{key}]", value: value, class: "form-input" %>
+            </div>
+          <% end %>
 
-      <div class="mb-4">
-        <%= f.label :current_password, class: "form-label" %>
-        <%= f.password_field :current_password, autocomplete: "current-password", class: "form-input" %>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">We need your current password to confirm your changes</p>
-      </div>
+          <div class="mb-6">
+            <%= f.submit "Update Settings", class: "btn-primary" %>
+          </div>
+        <% end %>
+      </sl-tab-panel>
+    </sl-tab-group>
 
-      <div class="mb-6">
-        <%= f.submit "Update", class: "btn-primary" %>
-      </div>
-    <% end %>
-
-    <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Cancel my account</h3>
+    <h3 class="text-xl font-bold mb-4 mt-8 text-gray-800 dark:text-white">Cancel my account</h3>
     <div class="mb-4">
     <% if current_user.role_admin? %>
       <p class="mb-2 text-gray-600 dark:text-gray-400">This is permanent!</p>
@@ -62,6 +83,5 @@
     </div>
 
     <%= link_to "Back", :back, class: "link-primary" %>
-
   </div>
 </main>
