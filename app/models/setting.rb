@@ -5,4 +5,6 @@ class Setting < ApplicationRecord
   # e.g. user.settings.pref1="123", user.settings.save!
   store_accessor :settings, :openrouter_model
   store_accessor :settings, :openrouter_access_token
+
+  private
 end

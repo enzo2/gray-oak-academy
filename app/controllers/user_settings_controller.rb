@@ -1,17 +1,25 @@
 class UserSettingsController < ApplicationController
-  before_action :authenticate_user!
+  before_action :set_settings
 
   def update
-    if current_user.settings.update(user_settings_params)
-      redirect_to edit_user_registration_path, notice: 'Settings updated successfully.'
+    if  @settings.update(user_settings_params)
+      respond_to do |format|
+        format.turbo_stream { render :update }
+      end
     else
-      redirect_to edit_user_registration_path, alert: 'Failed to update settings.'
+      respond_to do |format|
+        format.turbo_stream { render :update, status: :unprocessable_entity }
+      end
     end
   end
 
   private
 
+  def set_settings
+    @settings = current_user.settings
+  end
+
   def user_settings_params
-    params.require(:user).permit(settings: {})
+    params.require(:setting).permit(:openrouter_model, :openrouter_access_token)
   end
 end

@@ -1,0 +1,33 @@
+<%= form_with(model: settings, url: user_settings_path, method: :patch, id: "user-settings-form") do |f| %>
+  <% if settings.errors.any? %>
+    <div class="mb-4 text-red-950 dark:text-red-300">
+      <%= pluralize(settings.errors.count, "error") %> prevented the settings from being saved.
+      <ul>
+        <% settings.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if current_user.role_admin? %>
+      <p class="mb-4">
+          <i>Note: If your database is not secure, don't store secret keys in settings. You can leave it blank and set them as environment variables.</i>
+      </p>
+      <div class="mb-4">
+        <%= f.label "OpenRouter model", class: "form-label" %>
+        <%= f.text_field :openrouter_model, class: "form-input" %>
+      </div>
+      <div class="mb-4">
+        <%= f.label "OpenRouter access token", class: "form-label" %>
+        <%= f.text_field :openrouter_access_token, class: "form-input" %>
+      </div>    
+
+
+    <div class="mb-6">
+      <%= f.submit "Update Settings", class: "btn-primary" %>
+    </div>
+  <% else %>
+    There are no available preferences.
+  <% end %>
+<% end %>

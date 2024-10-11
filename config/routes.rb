@@ -8,6 +8,7 @@ Rails.application.routes.draw do
 
   get "students/dashboard", as: :students_root
   get "admin/dashboard", as: :admin_root
+  patch "user_settings", to: "user_settings#update"
 
   namespace :admin do
     resources :courses do
@@ -43,8 +44,6 @@ Rails.application.routes.draw do
       end
     end
   end
-
-  patch 'user_settings', to: 'user_settings#update'
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
