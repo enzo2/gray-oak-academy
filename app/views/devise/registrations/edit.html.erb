@@ -7,7 +7,7 @@
       <sl-tab slot="nav" panel="user-settings">Preferences</sl-tab>
       <sl-tab slot="nav" panel="delete-account">Delete Account</sl-tab>
 
-      <sl-tab-panel name="account">
+      <sl-tab-panel name="account" active><!--set as active so that it shows up after devise form submission-->
         <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
           <%= render "devise/shared/error_messages", resource: resource %>
 
