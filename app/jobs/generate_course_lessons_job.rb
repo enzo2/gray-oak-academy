@@ -22,7 +22,6 @@ class GenerateCourseLessonsJob < ApplicationJob
     "description": "An array of lesson objects for the course"
   }
 
-  SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
   TASK_PROMPT = Prompt.category_generate_lessons.first.prompt
 
   def perform(course, current_user)
@@ -34,7 +33,6 @@ class GenerateCourseLessonsJob < ApplicationJob
 
     # Prepare messages for the LLM
     messages = [
-      { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: customized_prompt }
     ]
 

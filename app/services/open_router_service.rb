@@ -6,9 +6,15 @@ class OpenRouterService
     @models = models.compact.empty? ? default_model : models
     @access_token = access_token || default_access_token
     @client = create_client
+    @system_prompt = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
   end
 
   def complete(messages, extras: {}, schema: nil)
+    # Add system prompt to messages if it's not already given
+    unless messages.any? { |message| message[:role] == "system" }
+      messages.unshift({ role: "system", content: @system_prompt })
+    end
+
     response = @client.complete(
       messages,
       model: @models,

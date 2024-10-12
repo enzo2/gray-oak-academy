@@ -16,7 +16,6 @@ class GenerateLessonPlanContentJob < ApplicationJob
     "minItems": 1
   }
 
-  SYSTEM_PROMPT = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
   TASK_PROMPT = Prompt.category_generate_lesson_plan.first.prompt
 
   def perform(lesson_plan, current_user)
@@ -32,7 +31,6 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
     # Prepare messages for the LLM
     messages = [
-      { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: customized_prompt }
     ]
 
