@@ -6,5 +6,20 @@ class Setting < ApplicationRecord
   store_accessor :settings, :openrouter_model
   store_accessor :settings, :openrouter_access_token
 
-  private
+  # for students, use the teacher's settings
+  def openrouter_model
+    if user.role_student? && user.teacher
+      user.teacher.settings.openrouter_model
+    else
+      super
+    end
+  end
+
+  def openrouter_access_token
+    if user.role_student? && user.teacher
+      user.teacher.settings.openrouter_access_token
+    else
+      super
+    end
+  end
 end
