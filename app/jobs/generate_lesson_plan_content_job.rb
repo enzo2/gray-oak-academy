@@ -39,7 +39,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
     begin
       # Make the LLM request
       client = OpenRouterService.new(
-        model: current_user.setting.openrouter_model,
+        models: [ current_user.setting.openrouter_model ],
         access_token: current_user.setting.openrouter_access_token
       )
       parsed_content = client.complete(
@@ -48,15 +48,9 @@ class GenerateLessonPlanContentJob < ApplicationJob
           response_format: {
             type: "json_object"
           }
-        }
+        },
+        schema: CONTENT_SCHEMA
       )
-
-      # Validate the parsed content against the schema
-      schemer = JSONSchemer.schema(CONTENT_SCHEMA)
-      unless schemer.valid?(parsed_content)
-        errors = schemer.validate(parsed_content).to_a
-        raise "Invalid content structure: #{errors.map { |e| e['error'] }.join(', ')}"
-      end
 
       # Update the lesson plan with the generated content (Stored as array in JSONB column.)
       lesson_plan.update!(content: parsed_content)
@@ -64,12 +58,9 @@ class GenerateLessonPlanContentJob < ApplicationJob
       # Broadcast the updated lesson plan content
       broadcast_success(lesson_plan, lesson, course)
 
-    rescue JSON::ParserError => e
-      Rails.logger.error "JSON Parsing Error: #{e.message}"
-      broadcast_error(lesson_plan, "Invalid JSON format from LLM response.")
     rescue StandardError => e
-      Rails.logger.error "LLM Error: #{e.message}"
-      broadcast_error(lesson_plan, "Failed to generate lesson plan content.")
+      Rails.logger.error "Error: #{e.message}"
+      broadcast_error(lesson_plan, "Failed to generate lesson plan content: #{e.message}")
     end
   end
 

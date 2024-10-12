@@ -34,7 +34,7 @@ class GenerateCourseOutlineJob < ApplicationJob
     begin
       # Make the LLM request
       client = OpenRouterService.new(
-        model: current_user.setting.openrouter_model,
+        models: [ current_user.setting.openrouter_model ],
         access_token: current_user.setting.openrouter_access_token
       )
       parsed_content = client.complete(
@@ -43,15 +43,9 @@ class GenerateCourseOutlineJob < ApplicationJob
           response_format: {
             type: "json_object"
           }
-        }
+        },
+        schema: OUTLINE_SCHEMA
       )
-
-      # Validate the parsed outline against the schema
-      schemer = JSONSchemer.schema(OUTLINE_SCHEMA)
-      unless schemer.valid?(parsed_content)
-        errors = schemer.validate(parsed_content).to_a
-        raise "Invalid outline structure: #{errors.map { |e| e['error'] }.join(', ')}"
-      end
 
       # Update the course with the generated outline. (Stored as array in JSONB column.)
       course.update!(outline: parsed_content)
@@ -59,12 +53,9 @@ class GenerateCourseOutlineJob < ApplicationJob
       # Broadcast the updated course outline
       broadcast_success(course)
 
-    rescue JSON::ParserError => e
-      Rails.logger.error "JSON Parsing Error: #{e.message}"
-      broadcast_error(course, "Invalid JSON format from LLM response.")
     rescue StandardError => e
-      Rails.logger.error "LLM Error: #{e.message}"
-      broadcast_error(course, "Failed to generate course outline.")
+      Rails.logger.error "Job Error: #{e.message}"
+      broadcast_error(course, "Failed to generate course outline: #{e.message}")
     end
   end
 
