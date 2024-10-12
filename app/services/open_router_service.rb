@@ -2,23 +2,25 @@ class OpenRouterService
   # Class for chat completions with OpenRouter.
   require "faraday/retry"
 
-  def initialize(model: nil, access_token: nil)
-    @model = model || default_model
+  def initialize(models: [], access_token: nil)
+    @models = models.compact.empty? ? default_model : models
     @access_token = access_token || default_access_token
     @client = create_client
   end
 
-  def complete(messages, extras = {})
+  def complete(messages, extras: {}, schema: nil)
     response = @client.complete(
       messages,
-      model: [ @model ],
+      model: @models,
       extras: extras
     )
     check_for_refusal(response)
     content = response.dig("choices", 0, "message", "content")
     check_content(content)
-    if extras.dig(:extras, :response_format, :type) == "json_object"
-      parse_JSON(content)
+    if extras.dig(:response_format, :type) == "json_object"
+      parsed_content = parse_JSON(content)
+      validate_JSON(parsed_content, schema) if schema.present?
+      parsed_content
     else
       content
     end
@@ -27,7 +29,7 @@ class OpenRouterService
   private
 
   def default_model
-    ENV.fetch("DEFAULT_OPENROUTER_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_OPENROUTER_MODEL." }
+    [ ENV.fetch("DEFAULT_OPENROUTER_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_OPENROUTER_MODEL." } ]
   end
 
   def default_access_token
@@ -78,6 +80,17 @@ class OpenRouterService
     rescue JSON::ParserError => e
       raise "Failed to parse JSON from LLM response: #{e.message}"
     end
+
     parsed_content
+  end
+
+  def validate_JSON(parsed_content, schema)
+    # Validate the parsed lessons against the schema
+    schemer = JSONSchemer.schema(schema)
+    unless schemer.valid?(parsed_content)
+      errors = schemer.validate(parsed_content).to_a
+      # Retry ?
+      raise "Invalid lessons structure: #{errors.map { |e| e['error'] }.join(', ')}"
+    end
   end
 end
