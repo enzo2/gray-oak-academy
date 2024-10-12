@@ -45,15 +45,13 @@
             <%= link_to "Log in", new_user_session_path, class: "" %>
           <% end %>
           <div class="text-2xl pr-5" id="dark_mode_switch">
-
             <sl-icon-button name="sun" class="dark-mode-toggle" onclick="toggleDarkMode();"></sl-icon-button>
           </div>
         </div>
       </nav>
-      <div id="flash_bar" class="bg-yellow-500/20">
-        <%= render "shared/flash" %>
+      <div id="flash_bar" class="hidden">
+        <%= render "shared/flash" if flash.any? %>
       </div>
-
     </header>
 
     <%= yield %>
