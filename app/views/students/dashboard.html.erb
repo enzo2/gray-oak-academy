@@ -3,7 +3,7 @@
 
   <p class="mb-4">Today is <%= Date.current.strftime("%A, %B %d, %Y") %></p>
 
-  <h2 class="text-lg mb-4">Courses Overview</h2>
+  <h2 class="text-lg mb-4">Your Courses</h2>
 
   <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
     <% @enrollments.each do |enrollment| %>

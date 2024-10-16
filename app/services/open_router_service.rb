@@ -2,15 +2,20 @@ class OpenRouterService
   # Class for chat completions with OpenRouter.
   require "faraday/retry"
 
-  def initialize(models: [], access_token: nil)
+  def initialize(models: [], access_token: nil, task_system_prompt: nil)
     @models = models.compact.empty? ? default_model : models
     @access_token = access_token || default_access_token
     @client = create_client
-    @system_prompt = Prompt.category_base_system_prompt.first.prompt + Prompt.category_teaching_principles.first.prompt
+    @base_system_prompt = Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt
+    if task_system_prompt
+      @system_prompt = @base_system_prompt + " Specific task instructions: " + task_system_prompt
+    else
+      @system_prompt = @base_system_prompt
+    end
   end
 
   def complete(messages, extras: {}, schema: nil)
-    # Add system prompt to messages if it's not already given
+    # inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
     end
