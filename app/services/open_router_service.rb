@@ -1,11 +1,19 @@
 class OpenRouterService
-  # Class for chat completions with OpenRouter.
+  # Wrapper around OpenRouter gem
+
   require "faraday/retry"
 
-  def initialize(models: [], access_token: nil, task_system_prompt: nil)
+  # To enable streaming, provide a Proc that processes the streamed data as it arrives.
+  # Each chunk will be passed to the Proc as a JSON object.
+  # The JSON object could be a data object or an error object.
+  # eg. { "id"=>"gen-1729201039-HySih1bbH1k153vXHcNA", "provider"=>"Anthropic", "model"=>"anthropic/claude-3.5-sonnet:beta", "object"=>"chat.completion.chunk", "created"=>1729201039, "choices"=>[ { "index"=>0, "delta"=>{ "role"=>"assistant", "content"=>" have evolved?" }, "finish_reason"=>nil, "logprobs"=>nil } ] }
+
+  def initialize(models: [], access_token: nil, stream_handler: nil, task_system_prompt: nil)
     @models = models.compact.empty? ? default_model : models
     @access_token = access_token || default_access_token
     @client = create_client
+    @stream_handler = wrap_stream_handler(stream_handler)
+    # Ensure the stream_handler is a Proc if provided
     @base_system_prompt = Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt
     if task_system_prompt
       @system_prompt = @base_system_prompt + " Specific task instructions: " + task_system_prompt
@@ -23,11 +31,21 @@ class OpenRouterService
     response = @client.complete(
       messages,
       model: @models,
-      extras: extras
+      extras: extras,
+      stream: @stream_handler
     )
+
+    # If a stream handler was provided, stop here since the response was already handled.
+    return if @stream_handler
+    # If no stream handler was provided, process the response.
     check_for_refusal(response)
     content = response.dig("choices", 0, "message", "content")
     check_content(content)
+
+    # Save usage info to DB.
+    QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+
+    # If JSON requested, parse and validate the content.
     if extras.dig(:response_format, :type) == "json_object"
       parsed_content = parse_JSON(content)
       validate_JSON(parsed_content, schema) if schema.present?
@@ -35,6 +53,10 @@ class OpenRouterService
     else
       content
     end
+  end
+
+  def query_generation_stats(id)
+    @client.query_generation_stats(id)
   end
 
   private
@@ -102,6 +124,38 @@ class OpenRouterService
       errors = schemer.validate(parsed_content).to_a
       # Retry ?
       raise "Invalid lessons structure: #{errors.map { |e| e['error'] }.join(', ')}"
+    end
+  end
+
+  def wrap_stream_handler(handler)
+    # Return nil if no stream handler is provided so streaming will be disabled
+    return nil unless handler
+
+    unless handler.is_a?(Proc)
+      raise ArgumentError, "stream_handler must be a Proc"
+    end
+
+    Proc.new do |chunk|
+      begin
+        # Handle the JSON chunk, extracting the content
+        content = chunk.dig("choices", 0, "delta", "content")
+        raise "No valid content found in chunk" if content.nil?
+
+        # Call the original handler with the extracted content
+        handler.call(content) if content.present?
+
+        # Handle the final chunk with token usage
+        if chunk["usage"]
+          log_token_usage(chunk["usage"])
+        end
+
+        # TODO: log cost
+        #
+      rescue StandardError => e
+        # Handle any errors during processing
+        puts "Error processing chunk: #{e.message}"
+        # Optionally log or handle the error as needed
+      end
     end
   end
 end

@@ -67,7 +67,6 @@ class GenerateLessonPlanContentJob < ApplicationJob
   def broadcast_success(lesson_plan, lesson, course)
     Rails.logger.info "Broadcasting success for lesson plan: #{lesson_plan.id}"
     # Broadcast the updated lesson plan row via Turbo Streams
-    # Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard", target: "lesson-plan-form", partial: "admin/lesson_plans/form", locals: { course: course, lesson: lesson, lesson_plan: lesson_plan })
     Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard",
       target: "lesson-plan-form",
       partial: "admin/lesson_plans/form",
