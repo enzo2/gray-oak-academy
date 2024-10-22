@@ -23,6 +23,10 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # Provide a renderer with a signed-in user to be able to render template views outside controllers
+  # eg.
+  # renderer = ApplicationController.renderer_with_signed_in_user(user)
+  # renderer.render template: 'notifications/show', layout: false, locals: { foo: 'bar' }
   def self.renderer_with_signed_in_user(user)
     ActionController::Renderer::RACK_KEY_TRANSLATION["warden"] ||= "warden"
     proxy = Warden::Proxy.new({}, Warden::Manager.new({})).tap { |i|
