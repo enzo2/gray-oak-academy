@@ -43,6 +43,15 @@ Rails.application.routes.draw do
         delete :unenroll
       end
     end
+
+    resources :conversations, only: [ :index, :show ]
+  end
+
+  resources :conversations do
+    member do
+      delete :clear
+    end
+    resources :messages, only: [ :create ]
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

@@ -5,17 +5,20 @@ class OpenRouterService
 
   # To enable streaming, provide a Proc that processes the streamed data as it arrives.
   # Each chunk will be passed to the Proc as a JSON object.
-  # The JSON object could be a data object or an error object.
   # eg. { "id"=>"gen-123", "provider"=>"Anthropic", "model"=>"anthropic/claude-3.5-sonnet:beta", "object"=>"chat.completion.chunk", "created"=>1729201039, "choices"=>[ { "index"=>0, "delta"=>{ "role"=>"assistant", "content"=>"or not to be??" }, "finish_reason"=>nil, "logprobs"=>nil } ] }
 
+  # Provide the system prompt upon initializing the client, and it will be added to the conversation.
+  # If no system prompt is provided, the default system prompt will be used.
+  # However, if a system message is already present in the completion messages, that will be used instead.
+
   def initialize(models: [], access_token: nil, stream_handler: nil, task_system_prompt: nil)
-    @models = models.compact.empty? ? default_model : models
-    @access_token = access_token || default_access_token
+    @models = models.compact.reject(&:empty?).presence || default_model
+    @access_token = access_token.presence || default_access_token
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
     @base_system_prompt = Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt
     if task_system_prompt
-      @system_prompt = @base_system_prompt + " Specific task instructions: " + task_system_prompt
+      @system_prompt = @base_system_prompt + " \n Now, focusing on your current role: " + task_system_prompt
     else
       @system_prompt = @base_system_prompt
     end
@@ -38,13 +41,13 @@ class OpenRouterService
     # and will be blank.
     return if @stream_handler
 
+    # Get cost afterwards and save to DB.
+    QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+
     # If no stream handler was provided, process the response.
     check_for_refusal(response)
     content = response.dig("choices", 0, "message", "content")
     check_content(content)
-
-    # Get cost afterwards and save to DB.
-    QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
 
     # If JSON requested, parse and validate the content.
     if extras.dig(:response_format, :type) == "json_object"

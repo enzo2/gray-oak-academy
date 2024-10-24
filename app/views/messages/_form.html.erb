@@ -1,0 +1,10 @@
+<%= turbo_frame_tag "#{dom_id(conversation)}_message_form" do %>
+  <%= form_with(model: Message.new, url: conversation_messages_path(conversation)) do |form| %>
+    <div class="my-5 flex items-center">
+      <%= form.text_field :content, class: "form-input flex-grow mr-2", autofocus: true %>
+      <%= form.button type: :submit, class: "" do %>
+        <sl-icon-button name="arrow-right-square" label="Send"></sl-icon-button>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

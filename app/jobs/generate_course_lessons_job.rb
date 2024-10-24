@@ -34,6 +34,7 @@ class GenerateCourseLessonsJob < ApplicationJob
     # Prepare messages for the LLM
     messages = [
       { role: "user", content: customized_prompt }
+      # try prefilling the assistant message
     ]
 
     begin

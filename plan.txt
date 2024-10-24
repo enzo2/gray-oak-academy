@@ -53,14 +53,17 @@ Choosing AI model for lessons:
 ###################################################
 
 data model for chats and lessons
+==================================
 
-Conversation
-  belongs_to :user  
-  has_many :messages
+conversation stores the thread of messages along with the initial task prompt in a separate field
+tools are not stored 
+system prompts are not stored
   
 
 #######################################################
 todo
+
+- seeded prompts should be created for each new teacher user, and prompts should be accessed per teacher
 
 - resource archive: view prior used resources and planned resources
 - school view - lessons by subject
@@ -76,6 +79,8 @@ internal tools available to LLMs (give one-shot example in system prompts):
 - query lesson summary history
 - save lesson summary, save student assessment
 
+
+############################################
 prompting principles
 - prompt should include anti-screen-time: ensure lessons often include "escape from the computer" moments, suggesting real-world experiments, books, activities, learning outside, resource finding, etc., create hard stops in the lessons to help break up screen time 
 - generally avoid testing/quizzing except in single questions as part of a lesson discussion. upon completion of each lesson, generate a summary of student's strengths and weaknesses demonstrated. add to DB. this collection must be embedded for RAG. 

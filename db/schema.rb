@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_10_02_205530) do
+ActiveRecord::Schema[7.2].define(version: 2024_10_22_022016) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -19,6 +19,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_10_02_205530) do
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
   create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "teacher_assistant", "teaching_principles", "base_system_prompt"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
+  create_enum "role_name", ["system", "user", "assistant"]
   create_enum "student_report_status", ["in_progress", "completed"]
   create_enum "user_role", ["student", "admin"]
 
@@ -48,6 +49,17 @@ ActiveRecord::Schema[7.2].define(version: 2024_10_02_205530) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "conversations", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "lesson_progress_id"
+    t.string "title", null: false
+    t.string "task_system_prompt"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lesson_progress_id"], name: "index_conversations_on_lesson_progress_id"
+    t.index ["user_id"], name: "index_conversations_on_user_id"
   end
 
   create_table "courses", force: :cascade do |t|
@@ -107,6 +119,15 @@ ActiveRecord::Schema[7.2].define(version: 2024_10_02_205530) do
     t.datetime "updated_at", null: false
     t.integer "position"
     t.index ["course_id"], name: "index_lessons_on_course_id"
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.bigint "conversation_id"
+    t.enum "role", null: false, enum_type: "role_name"
+    t.string "content", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id"], name: "index_messages_on_conversation_id"
   end
 
   create_table "prompts", force: :cascade do |t|
@@ -193,6 +214,8 @@ ActiveRecord::Schema[7.2].define(version: 2024_10_02_205530) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "conversations", "lesson_progresses"
+  add_foreign_key "conversations", "users"
   add_foreign_key "courses", "users", column: "teacher_id"
   add_foreign_key "enrollments", "courses"
   add_foreign_key "enrollments", "users", column: "student_id"
@@ -201,6 +224,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_10_02_205530) do
   add_foreign_key "lesson_progresses", "lessons"
   add_foreign_key "lesson_progresses", "users", column: "student_id"
   add_foreign_key "lessons", "courses"
+  add_foreign_key "messages", "conversations"
   add_foreign_key "prompts", "users", column: "teacher_id"
   add_foreign_key "resources", "users", column: "teacher_id"
   add_foreign_key "settings", "users"

@@ -1,0 +1,6 @@
+<%= turbo_stream.append "#{dom_id(@message.conversation)}_messages" do %>
+  <%= render "message", message: @message, scroll_to: true %>
+<% end %>
+<%= turbo_stream.replace "#{dom_id(@message.conversation)}_message_form" do %>
+  <%= render "form", conversation: @message.conversation %>
+<% end %>

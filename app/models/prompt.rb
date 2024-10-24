@@ -38,14 +38,13 @@ class Prompt < ApplicationRecord
   }
 
   validates :title, presence: true
-  validates :category, presence: true
+  validates :category, presence: true, uniqueness: { scope: :teacher_id } # Ensures uniqueness of category per teacher
   validates :prompt, presence: true
 
   # Scopes
   scope :by_category, ->(category:) { where(category: category) }
   scope :system_prompts, -> { where(category: [ :base_system_prompt, :teaching_principles ]) }
   scope :lesson_related, -> { where(category: [ :generate_lessons, :generate_lesson_plan, :lesson_tutor_session ]) }
-
 
   # Helper method to get user-friendly category name
   def friendly_category_name

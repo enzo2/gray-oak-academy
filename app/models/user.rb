@@ -27,6 +27,7 @@ class User < ApplicationRecord
   has_many :resources, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :tools, foreign_key: "teacher_id", inverse_of: :teacher
+  has_many :conversations
 
   def name
     "#{first_name} #{last_name}"

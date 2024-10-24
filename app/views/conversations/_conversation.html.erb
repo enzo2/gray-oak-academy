@@ -1,0 +1,19 @@
+<%= link_to 'Clear Conversation', clear_conversation_path(conversation), 
+method: :delete, 
+data: { 
+  turbo_method: :delete,
+  turbo_confirm: 'Are you sure you want to clear this conversation?'
+ }, class: "btn-danger mb-4" %>
+
+<div class="conversation" data-controller="conversation">
+  <ul role="list" class="overflow-y-auto max-h-[48vh] flex flex-col-reverse">
+    <%= turbo_stream_from "#{dom_id(conversation)}_messages" %>
+    <div id="<%= dom_id(conversation) %>_messages">
+      <% for message in conversation.messages %>
+        <%= render partial: "messages/message", locals: { message: message }  %>
+      <% end %>
+    </div>
+  </ul>
+
+  <%= render partial: "messages/form", locals: { conversation: conversation } %>
+</div>

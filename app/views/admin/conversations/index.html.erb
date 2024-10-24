@@ -1,0 +1,30 @@
+<%= turbo_frame_tag "dashboard-content" do %>
+  <h1 class="text-2xl font-bold mb-4">LLM Conversation</h1>
+  <p>This is just for casual purposes or testing.</p>
+
+  <div class="p-4 flex flex-row gap-8">
+    <!-- Chats Column -->
+    <div class="basis-64 pr-4 border-r">
+      <h3 class="text-lg mb-4">Chats</h3>
+      <div class="mb-6">
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+          <% @conversations.each do |conversation| %>
+            <li class="py-1">
+              <div class="flex justify-between items-center">
+                  <%= link_to conversation.title, conversation_path(conversation), data: { turbo_frame: "conversation-panel" }, class: "text-blue-500 hover:underline" %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Conversation Column -->
+    <div class="grow pl-4">
+      <%= turbo_frame_tag "conversation-panel" do %>
+        <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
+      <% end %>
+    </div>
+  </div>
+
+<% end %>
