@@ -28,11 +28,9 @@ class GetLlmCompletionJob < ApplicationJob
   private
 
   def stream_handler(conversation:)
-    # First, create a new empty message for the assistant's response
-    messages = []
-    message = conversation.messages.create(role: "assistant", content: "")
+    message = conversation.messages.create!(role: "assistant", content: "")
+    # Broadcast the new message to the user so it's ready to be streamed into
     message.broadcast_created
-    messages << message
     # Handle the streamed response
     Proc.new do |chunk|
       # Append the new chunk to the message's content
