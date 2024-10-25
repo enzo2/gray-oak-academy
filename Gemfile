@@ -24,6 +24,7 @@ gem "stimulus-rails"
 gem "devise"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
+gem "markdown_views"
 
 # Vector Search
 gem "pgvector"
