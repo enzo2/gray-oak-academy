@@ -3,7 +3,7 @@ source "https://rubygems.org"
 gem "dotenv-rails", groups: [ :development, :test ]
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 7.2.1"
+gem "rails", "8.0.0.rc2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
@@ -24,7 +24,9 @@ gem "stimulus-rails"
 gem "devise"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
-gem "markdown_views"
+
+#get from my fork at https://github.com/enzo2/markdown_views/tree/patch-1
+gem "markdown_views", github: "enzo2/markdown_views", branch: "patch-1"
 
 # Vector Search
 gem "pgvector"
@@ -47,9 +49,6 @@ gem "jbuilder"
 
 # JSON Schema validation
 gem "json_schemer"
-
-# Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
-# gem "kredis"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"

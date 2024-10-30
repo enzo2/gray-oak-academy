@@ -8,10 +8,10 @@ services:
     environment:
       RAILS_ENV: production
       DATABASE_URL: postgres://postgres:${DB_PASSWORD}@postgres:5432
-      REDIS_URL: redis://redis:6379/1
+      #REDIS_URL: redis://redis:6379/1
     depends_on:
       - postgres
-      - redis
+      #- redis
 
   postgres:
     image: postgres:16.1
@@ -23,11 +23,11 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
 
   #plan to remove with Rails 8
-  redis:
-    image: redis:7.2
-    volumes:
-      - redis-data:/data
+  #redis:
+    #image: redis:7.2
+    #volumes:
+      #- redis-data:/data
 
 volumes:
   postgres-data:
-  redis-data:
+  #redis-data:
