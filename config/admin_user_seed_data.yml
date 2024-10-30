@@ -1,0 +1,8 @@
+resources:
+  - category: "Printer"
+    description: "Color inkjet printer"
+  - category: "Web tool"
+    description: "Microsoft Math Solver is a web-based tool that allows users to solve and graph equations. It provides step-by-step solutions, making it a useful resource for students learning mathematics."
+    uri: "https://mathsolver.microsoft.com/en"
+  - category: "Library"
+    description: "Local library is nearby, and students have a library card."

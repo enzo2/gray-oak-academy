@@ -168,10 +168,4 @@ Prompt.find_or_create_by!(category: 'open_ended_student_chat') do |p|
   p.prompt = "You are now assisting the student in an open-ended chat format, outside of any specific lesson."
 end
 
-
-Resource.find_or_create_by!(uri: "https://mathsolver.microsoft.com/en") do |r|
-  r.description = "Microsoft Math Solver is a web-based tool that allows users to solve and graph equations. It provides step-by-step solutions, making it a useful resource for students learning mathematics."
-  r.category = "Web tool"
-end
-
 puts "Seed data has been created successfully!"

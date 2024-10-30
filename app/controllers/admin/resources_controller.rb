@@ -4,7 +4,7 @@ module Admin
     before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file ]
 
     def index
-      @resources = Resource.all
+      @resources = Resource.where(teacher: current_user).order(created_at: :desc)
     end
 
     def show

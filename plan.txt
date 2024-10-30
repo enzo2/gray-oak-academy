@@ -111,5 +111,5 @@ useful stuff
 just need to generate the app either in windows or WSL with rails new, then can run it with devcontainer
 if gen in linux, may have line ending issues
 
-.\rails-new.exe --ruby-version=3.3.4 --rails-version=7.2.1 gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer
+.\rails-new.exe --ruby-version=3.3.5 --rails-version=7.2.1 gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer
 rails new gray-oak-academy -a propshaft --database=postgresql --css=tailwind --devcontainer

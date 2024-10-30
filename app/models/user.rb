@@ -8,6 +8,7 @@ class User < ApplicationRecord
   enum :role, { student: "student", admin: "admin" }, prefix: true
   before_create :set_default_role
   after_create :ensure_setting
+  after_create :seed_admin_data, if: :role_admin?
 
   validates :first_name, presence: true
   validates :last_name, presence: true
@@ -47,5 +48,18 @@ class User < ApplicationRecord
 
   def ensure_setting
     create_setting! if setting.nil?
+  end
+
+  def seed_admin_data
+    yaml_file = Rails.root.join("config", "admin_user_seed_data.yml")
+    data = YAML.load_file(yaml_file)
+    process_initial_data(data)
+  end
+
+  def process_initial_data(data)
+    data["resources"].each do |resource|
+      # add the resource to db, with user set to current user
+      Resource.create!(resource.merge(teacher: self))
+    end
   end
 end
