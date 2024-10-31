@@ -1,0 +1,7 @@
+<%= turbo_stream.update "conversation-list" do %>
+  <%= render partial: "conversations/list", locals: { conversations: @conversations } %>
+<% end %>
+
+<%= turbo_stream.update "conversation-panel" do %>
+  <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
+<% end %>

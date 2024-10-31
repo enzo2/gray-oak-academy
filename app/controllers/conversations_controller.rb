@@ -1,6 +1,5 @@
 class ConversationsController < ApplicationController
-  before_action :set_conversation, only: [ :show, :clear ]
-
+  before_action :set_conversation, only: [ :show, :clear, :destroy ]
   def show
   end
 
@@ -11,7 +10,26 @@ class ConversationsController < ApplicationController
       task_system_prompt = Prompt.category_open_ended_student_chat.first.prompt
     end
 
-    @conversation = Conversation.create(conversation_params, user: current_user, task_system_prompt: task_system_prompt)
+    # Generate a title like "Chat 2" based on existing conversations count
+    chat_number = current_user.conversations.count + 1
+    title = "Chat #{chat_number}"
+
+    @conversation = current_user.conversations.create(
+      title: title,
+      task_system_prompt: task_system_prompt
+    )
+    set_conversations
+    respond_to do |format|
+      format.turbo_stream
+    end
+  end
+
+  def destroy
+    @conversation.destroy
+    set_conversations
+    respond_to do |format|
+      format.turbo_stream
+    end
   end
 
   def clear
@@ -31,7 +49,7 @@ class ConversationsController < ApplicationController
     @conversation = Conversation.find(params[:id])
   end
 
-  def conversation_params
-    params.require(:conversation).permit(:title)
+  def set_conversations
+    @conversations = current_user.conversations.generic.order(created_at: :desc)
   end
 end

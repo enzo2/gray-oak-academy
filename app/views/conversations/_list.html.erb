@@ -1,0 +1,15 @@
+<ul id="conversation-list" class="divide-y divide-gray-200 dark:divide-gray-700">
+  <% conversations.each do |conversation| %>
+    <li class="py-1">
+      <div class="flex justify-between items-center">
+          <%= link_to conversation.title, conversation_path(conversation), data: { turbo_frame: "conversation-panel" },
+           class: "" %>
+           <%= button_to conversation_path(conversation), method: :delete, 
+                 data: { turbo_method: :delete, turbo_confirm: "Are you sure?" },
+                 class: "hover:text-red-700" do %>
+             <sl-icon name="trash" label="Delete conversation"></sl-icon>
+            <% end %>
+      </div>
+    </li>
+  <% end %>
+</ul>

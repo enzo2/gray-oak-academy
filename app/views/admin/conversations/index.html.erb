@@ -5,17 +5,15 @@
   <div class="p-4 flex flex-row gap-8">
     <!-- Chats Column -->
     <div class="basis-64 pr-4 border-r border-gray-400">
-      <h3 class="text-lg mb-4">Chats</h3>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg">Chats</h3>
+        <%= button_to conversations_path, method: :post, class: "", 
+            data: { turbo_frame: "conversation-panel" } do %>
+          <sl-icon name="plus" class=""></sl-icon>
+        <% end %>
+      </div>
       <div class="mb-6">
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-          <% @conversations.each do |conversation| %>
-            <li class="py-1">
-              <div class="flex justify-between items-center">
-                  <%= link_to conversation.title, conversation_path(conversation), data: { turbo_frame: "conversation-panel" }, class: "text-blue-500 hover:underline" %>
-              </div>
-            </li>
-          <% end %>
-        </ul>
+        <%= render partial: "conversations/list", locals: { conversations: @conversations } %>
       </div>
     </div>
 
