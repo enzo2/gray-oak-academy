@@ -1,6 +1,5 @@
 <%
   #Helper since it may be called from controller with instance vars, or from Job with local vars
-  course = local_assigns[:course] || @course if defined?(@course)
   lesson = local_assigns[:lesson] || @lesson if defined?(@lesson)
   lesson_plan = local_assigns[:lesson_plan] || @lesson_plan if defined?(@lesson_plan)
 %>
@@ -15,7 +14,7 @@
     <%= lesson.goals %>
   </div>
   
-  <%= render "admin/lesson_plans/form", course: @course, lesson: lesson, lesson_plan: lesson_plan %>
+  <%= render "admin/lesson_plans/form", lesson: lesson, lesson_plan: lesson_plan %>
   <div class="mb-4" id="lesson-plan-form-result"></div>
 
   <% if lesson_plan.persisted? %>
@@ -24,7 +23,7 @@
 
   <hr class="my-4">
 
-  <%= render "admin/lesson_plans/manage_resources", lesson: lesson, lesson_plan: lesson_plan %>
+  <%= render "admin/lesson_plans/manage_resources", lesson: lesson, lesson_plan: lesson_plan, available_resources: current_user.resources.where.not(id: lesson_plan.resource_ids) %>
   
     
 <% end %>

@@ -15,10 +15,9 @@ module Admin
     end
 
     def create
-      # May submit the form from Resources dashboard, or Lesson Plan dashboard
+      # May submit the form from Resources dashboard (new available resource), or Lesson Plan dashboard (link to the plan upon creation)
+      # Remove the lesson_plan_id since it's not part of resource_params (there's a join table for HABTM relationship)
       @lesson_plan = LessonPlan.find(params[:resource].delete(:lesson_plan_id)) if params[:resource][:lesson_plan_id].present?
-      # Remove the lesson_plan_id so it will not be present next upon calling resource_params
-
       @resource = Resource.new(resource_params)
       @resource.teacher = current_user
 
