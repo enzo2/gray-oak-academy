@@ -25,9 +25,11 @@
                 <span class="font-medium">
                   <%= student.name %>
                 </span>
-                <%= button_to 'Adopt', adopt_admin_student_path(student), method: :post, 
-                data: { turbo_stream: true },
-                class: "btn-primary" %>
+                <% if student.teacher.nil? %>
+                  <%= button_to 'Adopt', adopt_admin_student_path(student), method: :post, 
+                      data: { turbo_stream: true },
+                      class: "btn-primary" %>
+                <% end %>
               </div>
             </li>
           <% end %>

@@ -12,8 +12,15 @@ module Admin
     end
 
     def adopt
-      @student.update(teacher: current_user)
-      redirect_to admin_students_path
+      if @student.teacher.nil?
+        @student.update(teacher: current_user)
+        redirect_to admin_students_path
+      else
+        flash[:alert] = "Student already has a teacher."
+        respond_to do |format|
+          format.turbo_stream
+        end
+      end
     end
 
     def unadopt
