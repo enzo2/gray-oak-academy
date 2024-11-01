@@ -47,6 +47,10 @@ Rails.application.routes.draw do
     resources :conversations, only: [ :index, :show ]
   end
 
+  namespace :student do
+    resources :lessons, only: [ :show ]
+  end
+
   resources :conversations do
     member do
       delete :clear

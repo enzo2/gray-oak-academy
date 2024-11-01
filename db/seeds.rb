@@ -4,7 +4,7 @@
 
 
 # Create a sample tool
-Tool.find_or_create_by!(name: 'Iframe Update Tool') do |tool|
+Tool.find_or_create_by!(name: 'Chalkboard Update Tool') do |tool|
   tool.description = 'A tool to update the iframe URL in the student view'
   tool.specifications = {
     name: "iframe_update",
@@ -160,12 +160,17 @@ end
 
 Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|
   p.title = "Default Teacher Assistant Chat"
-  p.prompt = "    You are now assisting the teacher in a chat format."
+  p.prompt = "You are now assisting the teacher in a chat format. You can use markdown."
 end
 
 Prompt.find_or_create_by!(category: 'open_ended_student_chat') do |p|
   p.title = "Default Student Chat"
-  p.prompt = "You are now assisting the student in an open-ended chat format, outside of any specific lesson."
+  p.prompt = "You are now assisting the student in an open-ended chat format, outside of any specific lesson. You can use markdown."
+end
+
+Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
+  p.title = "Default Lesson Tutoring Session"
+  p.prompt = "You are now beginning a lesson with the student. You can use markdown. Lesson plan details follow."
 end
 
 puts "Seed data has been created successfully!"

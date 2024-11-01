@@ -1,3 +1,4 @@
+# For generic LLM chats, not lessons.
 class ConversationsController < ApplicationController
   before_action :set_conversation, only: [ :show, :clear, :destroy ]
   def show

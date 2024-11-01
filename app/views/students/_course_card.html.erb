@@ -8,9 +8,10 @@
 
   <div class="flex items-center my-4">
     <% if enrollment.has_available_lesson? %>
-      <sl-button>
+      <sl-button href="<%= student_lesson_path(enrollment.next_available_lesson) %>" class="">
         <sl-icon slot="prefix" name="check-circle-fill" class="text-green-500"></sl-icon>
         Start next lesson
+      </sl-button>
     <% else %>
       <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
       <span class="text-sm">No lessons available. Check with teacher.</span>

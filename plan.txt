@@ -69,7 +69,7 @@ todo
 - school view - lessons by subject
 - lesson view - full screen optimized (16:9) -  description, tutor-bot chat. 
   > use lesson plan to conduct lesson. 
-  > use streaming components to generate lesson tools on the fly within the chat. include iframe for web browsing. 
+  > use streaming components to generate lesson tools on the fly within the chat. 
   > tutor-bot must have tool access to direct the iframe to relevant web pages from the lesson plans, eg. videos. 
   > use RAG to contemplate the student's previous strengths and weaknesses to tailor the lessons. 
 

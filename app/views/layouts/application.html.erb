@@ -26,8 +26,8 @@
   </head>
 
   <body class="bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white min-h-screen">
-    <header class="">
-      <nav class="flex justify-between items-center border-b border-gray-400">
+    <header class="h-10 border-b border-gray-400">
+      <nav class="flex justify-between items-center">
         <div class="flex flex-row space-x-5 pl-5" id="nav-left-items">
           <div class="" id="app_logotype">
             <%= link_to root_path, class: "text-xl font-bold" do %>
@@ -49,6 +49,7 @@
           </div>
         </div>
       </nav>
+      <!-- flashes will be rendered as toast -->
       <div id="flash_bar" class="hidden">
         <%= render "shared/flash" if flash.any? %>
       </div>

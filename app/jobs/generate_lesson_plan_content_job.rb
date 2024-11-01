@@ -55,7 +55,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
       lesson_plan.update!(content: parsed_content)
 
       # Broadcast the updated lesson plan content
-      broadcast_success(lesson_plan, lesson, course)
+      broadcast_success(lesson_plan, lesson)
 
     rescue StandardError => e
       Rails.logger.error "Error: #{e.message}"
@@ -65,13 +65,13 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
   private
 
-  def broadcast_success(lesson_plan, lesson, course)
+  def broadcast_success(lesson_plan, lesson)
     Rails.logger.info "Broadcasting success for lesson plan: #{lesson_plan.id}"
     # Broadcast the updated lesson plan row via Turbo Streams
     Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard",
       target: "lesson-plan-form",
       partial: "admin/lesson_plans/form",
-      locals: { course: course, lesson: lesson, lesson_plan: lesson_plan })
+      locals: { lesson: lesson, lesson_plan: lesson_plan })
 
     # Hide the loading indicator
     Turbo::StreamsChannel.broadcast_remove_to("teacher-dashboard", target: "lesson-plan-loading")
