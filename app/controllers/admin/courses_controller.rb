@@ -4,7 +4,7 @@ module Admin
     before_action :set_course, only: [ :edit, :update, :destroy, :generate_outline ]
 
     def index
-      @courses = Course.all
+      @courses = Course.where(teacher: current_user).order(created_at: :desc)
     end
 
     def new
