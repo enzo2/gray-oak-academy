@@ -6,12 +6,10 @@ export default class extends Controller {
 
   alertTargetConnected(alert){
     alert.toast();
-    console.log("toast");
   }
 
   alertTargetDisconnected(alert){
     alert.hide();
-    console.log("toast hide");
   }
 
 }

@@ -12,6 +12,7 @@ class User < ApplicationRecord
 
   validates :first_name, presence: true
   validates :last_name, presence: true
+  validate :validate_admin_signup_code, if: :role_admin?
 
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
@@ -30,6 +31,8 @@ class User < ApplicationRecord
   has_many :tools, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :conversations
 
+  attr_accessor :signup_code
+
   def name
     "#{first_name} #{last_name}"
   end
@@ -41,9 +44,8 @@ class User < ApplicationRecord
 
   private
 
-  # For initial setup, first account is set as admin
   def set_default_role
-    self.role = User.count.zero? ? :admin : :student
+    self.role = :admin if User.count.zero?
   end
 
   def ensure_setting
@@ -60,6 +62,13 @@ class User < ApplicationRecord
     data["resources"].each do |resource|
       # add the resource to db, with user set to current user
       Resource.create!(resource.merge(teacher: self))
+    end
+  end
+
+  def validate_admin_signup_code
+    return unless role_admin?
+    unless signup_code.present? && signup_code == ENV["TEACHER_SIGNUP_CODE"]
+      errors.add(:signup_code, "is invalid")
     end
   end
 end

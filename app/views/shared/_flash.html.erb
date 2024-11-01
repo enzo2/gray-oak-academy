@@ -1,8 +1,10 @@
-<div data-controller="alert" data-turbo-temporary> 
+<div data-controller="alert" data-turbo-temporary>
   <% flash.each do |message_type, message| %>
-    <sl-alert variant="warning" data-alert-target="alert" closable>
-      <sl-icon slot="icon" name="info-circle"> </sl-icon>
-        <%= message %>
-    </sl-alert>
+    <% unless message.blank? %>
+      <sl-alert variant="warning" data-alert-target="alert" closable>
+        <sl-icon slot="icon" name="info-circle"> </sl-icon>
+          <%= message %>
+      </sl-alert>
+    <% end %>
   <% end %>
 </div>
