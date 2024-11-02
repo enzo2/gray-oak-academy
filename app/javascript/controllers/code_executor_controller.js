@@ -32,6 +32,7 @@ export default class extends Controller {
     sandbox.appendChild(slider);
   Console is sandboxed. Use console.log() for any output that should be displayed as text to the user.
   Do not use document.body or any other global DOM methods. Instead, work within the provided sandbox environment.
+  By default there is a light background with dark text.  
   If you need to create event listeners, attach them to elements within the sandbox.
   The following APIs are available in the sandbox environment:
   - Basic DOM manipulation (createElement, createTextNode). (Don't use innerHTML.)
@@ -47,6 +48,7 @@ export default class extends Controller {
   - Math and random functions
   - Typed arrays (Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array)
   - Web Workers for parallel processing
+  
 */
   executeCode(block) {
     // Check if there's a <code> tag inside the <pre> element
@@ -67,8 +69,8 @@ export default class extends Controller {
       const sandbox = document.createElement('div');
       sandbox.className = 'sandbox';
       output.appendChild(sandbox);
-
-      // Create a safe execution context
+  
+      // Create a more restricted execution context
       const safeWindow = {
         console: {
           log: (...args) => {
@@ -153,12 +155,17 @@ export default class extends Controller {
       };
 
       // Execute the code with sandboxed environment
-      const fn = new Function("window", `
-        with (window) {
-          ${code}
-        }
-      `);
-      fn(safeWindow);
+      const createSafeFunction = (code) => {
+        return new Function('safeWindow', `
+          with (safeWindow) {
+            ${code}
+          }
+        `);
+      };
+
+      // Execute the code with sandboxed environment
+      const safeFunction = createSafeFunction(code);
+      safeFunction(safeWindow);
     } catch (error) {
       output.textContent = `Error: ${error.message}`;
       output.classList.add("text-red-500");
