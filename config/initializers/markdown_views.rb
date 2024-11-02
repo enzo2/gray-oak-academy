@@ -1,2 +1,3 @@
-# Doesn't seem to be working.
-# MarkdownViews.extensions += %i[math_dollars math_code]
+# Configure MarkdownViews options
+# MarkdownViews.strip_comments = false
+MarkdownViews.rendering_opts.merge! unsafe: true # Allow HTML in markdown

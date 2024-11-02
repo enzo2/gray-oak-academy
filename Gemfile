@@ -25,8 +25,7 @@ gem "devise"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
 
-#get from my fork at https://github.com/enzo2/markdown_views/tree/patch-1
-gem "markdown_views", github: "enzo2/markdown_views", branch: "patch-1"
+gem "markdown_views", "~> 3.0"
 
 # Vector Search
 gem "pgvector"

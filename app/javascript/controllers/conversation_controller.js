@@ -14,8 +14,23 @@ export default class extends Controller {
   }
 
   setupMutationObserver() {
-    const observer = new MutationObserver(() => {
-      this.scrollToBottom()
+    const observer = new MutationObserver((mutations) => {
+      for (let mutation of mutations) {
+        if (mutation.type === 'childList') {
+          // Check if the added node is a message
+          const addedNodes = Array.from(mutation.addedNodes);
+          const isNewMessage = addedNodes.some(node => 
+            node.nodeType === Node.ELEMENT_NODE && 
+            node.id && 
+            node.id.endsWith('_messages')
+          );
+
+          if (isNewMessage) {
+            this.scrollToBottom()
+            break;
+          }
+        }
+      }
     })
 
     observer.observe(this.messagesTarget, {
