@@ -162,29 +162,16 @@ js_guidelines = <<~JS_GUIDELINES
   You can use markdown, HTML and inline CSS.
   When generating code responses, follow these guidelines:
   Format non-executable code or snippets using markdown as usual.
-  You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag.
+  You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag.#{' '}
+  Inline applets will be executed within an iframe with about 300px of height and 550px width within the conversation.
+  By default there is a light background with dark text.
+  This sandbox contains a <div id="sandbox">, available as the sandbox object.
   Use the sandbox object to append any created elements. For example:
     const slider = document.createElement('input');
     sandbox.appendChild(slider);
-  Console is sandboxed. Use console.log() for any output that should be displayed as text to the user.
-  Do not use document.body or any other global DOM methods. Instead, work within the provided sandbox environment.
-  The sandbox has a light background with dark text.
-  If you need to create event listeners, attach them to elements within the sandbox.
-  The following APIs are available in the sandbox environment:
-  - Basic DOM manipulation (createElement, createTextNode). (Don't use innerHTML.)
-  - Fullscreen API
-  - Promise API
-  - Encoding API (TextEncoder, TextDecoder)
-  - Audio APIs (AudioContext, OscillatorNode, GainNode, AnalyserNode, BiquadFilterNode, ConvolverNode, DelayNode, DynamicsCompressorNode, WaveShaperNode)
-  - Canvas and WebGL (CanvasRenderingContext2D, WebGLRenderingContext)
-  - IndexedDB API
-  - Web Animations API (Animation, KeyframeEffect)
-  - Intersection Observer API
-  - Resize Observer API
-  - Math and random functions
-  - Typed arrays (Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array)
-  - Web Workers for parallel processing
-  .
+  Console is also sandboxed. Use console.log() for any output that should be displayed as text to the user.
+  You can use APIs like Fullscreen, Promise, Audio, Canvas, WebGL, Web Animations, etc.
+  Do not access the microphone or camera.
 JS_GUIDELINES
 
 Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|
