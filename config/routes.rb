@@ -33,7 +33,7 @@ Rails.application.routes.draw do
       delete "delete_file", on: :member
     end
 
-    resources :tools, only: [ :index, :show ]
+    resources :tools, only: [ :index, :show, :edit, :update ]
 
     resources :students, only: [ :index, :show ] do
       member do

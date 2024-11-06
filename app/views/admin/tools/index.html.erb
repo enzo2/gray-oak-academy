@@ -1,6 +1,9 @@
 <%= turbo_frame_tag "dashboard-content" do %>
   <h2 class="text-2xl font-bold mb-5">Tools</h2>
 
+  <p>Tools for LLM use specified in JSON.</p>
+  <p class="mb-4"><i><b>Warning! Power users only.</b>&nbsp;Editing these could break the app.</i></p>
+
   <table class="w-full border-collapse">
     <thead>
       <tr class="border-b border-gray-800 dark:border-gray-200">
@@ -11,15 +14,7 @@
     </thead>
     <tbody id="tools-table-body">
       <% if @tools.any? %>
-        <% @tools.each do |tool| %>
-          <tr class="border-b border-gray-300 dark:border-gray-700">
-            <td class="py-2 px-3"><%= tool.name %></td>
-            <td class="py-2 px-3"><%= tool.description %></td>
-            <td class="py-2 px-3 text-right">
-              <%= link_to "View", admin_tool_path(tool), class: "text-blue-600 hover:text-blue-800", data: { turbo_frame: "dashboard-content" } %>
-            </td>
-          </tr>
-        <% end %>
+        <%= render @tools %>
       <% else %>
         <tr id="no_tools">
           <td colspan="3" class="py-4 px-6 text-center">No tools available.</td>

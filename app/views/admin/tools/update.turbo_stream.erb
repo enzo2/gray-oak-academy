@@ -1,0 +1,2 @@
+<%# rendered when save fails %>
+<%= turbo_stream.replace("tools-form", partial: "admin/tools/form", locals: { tool: @tool }) %>

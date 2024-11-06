@@ -24,20 +24,29 @@ class Tool < ApplicationRecord
         name: { type: "string" },
         description: { type: "string" },
         parameters: {
-          type: "array",
-          items: {
-            type: "object",
-            required: [ "name", "description" ],
+          type: "object",
+          required: [ "type", "properties" ],
+          properties: {
+            type: { type: "string" },
             properties: {
-              name: { type: "string" },
-              type: { type: "string" },
-              description: { type: "string" },
-              required: { type: "boolean" }
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                required: [ "type", "description" ],
+                properties: {
+                  type: { type: "string" },
+                  description: { type: "string" }
+                }
+              }
+            },
+            required: {
+              type: "array",
+              items: { type: "string" }
             }
-
           }
         },
-        strict: { type: "boolean" },
+        strict_mode: { type: "boolean" },
+        example_usage: { type: "string" },
         constraints: {
           type: "array",
           items: {

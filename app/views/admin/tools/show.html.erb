@@ -1,27 +1,27 @@
 <%= turbo_frame_tag "dashboard-content" do %>
-  <h2 class="text-2xl font-bold mb-5">Tool Details</h2>
+  <h2 class="text-xl font-bold mb-5">Tool Details</h2>
 
-  <div class="shadow overflow-hidden sm:rounded-lg">
-    <div class="px-4 py-5 sm:px-6">
-      <h3 class="text-lg leading-6 font-medium"><%= @tool.name %></h3>
-    </div>
-    <div class="border-t">
-      <dl>
-        <div class="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-          <dt class="text-sm font-medium">Description</dt>
-          <dd class="mt-1 text-sm sm:mt-0 sm:col-span-2"><%= @tool.description %></dd>
-        </div>
-        <div class="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-          <dt class="text-sm font-medium">Specifications</dt>
-          <dd class="mt-1 text-sm sm:mt-0 sm:col-span-2">
-            <pre class="whitespace-pre-wrap"><%= JSON.pretty_generate(@tool.specifications) %></pre>
-          </dd>
-        </div>
-      </dl>
-    </div>
+  <div class="my-4">
+    <%= link_to "Back to Tools", admin_tools_path, class: "btn-primary", data: { turbo_frame: "dashboard-content" } %>
   </div>
 
-  <div class="mt-4">
-    <%= link_to "Back to Tools", admin_tools_path, class: "text-blue-600 hover:text-blue-800", data: { turbo_frame: "dashboard-content" } %>
+  <br>
+
+  <h3 class="text-2xl mt-4"><%= @tool.name %></h3>
+
+  <div class="border-t">
+    <dl>
+      <div class="py-5">
+        <dt><b>Description</b></dt>
+        <dd class="mt-1"><%= @tool.description %></dd>
+      </div>
+      <div class="py-5">
+        <dt class=""><b>Specifications</b></dt>
+        <dd class="mt-1 pl-4">
+          <pre class="whitespace-pre-wrap"><%= JSON.pretty_generate(@tool.specifications) %></pre>
+        </dd>
+      </div>
+    </dl>
   </div>
+
 <% end %>
