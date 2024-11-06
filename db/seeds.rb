@@ -4,26 +4,25 @@
 
 
 # Create a sample tool
-Tool.find_or_create_by!(name: 'Chalkboard Update Tool') do |tool|
-  tool.description = 'A tool to update the iframe URL in the student view'
+Tool.find_or_create_by!(name: 'Chalkboard URL tool') do |tool|
+  tool.description = 'Updates the chalkboard to display a URL in an iframe'
   tool.specifications = {
-    name: "iframe_update",
-    description: "Updates the URL of the iframe in the student view",
-    parameters: [
-      {
-        name: "url",
-        type: "string",
-        description: "The URL to load in the iframe",
-        required: true
-      }
-    ],
-    strict_mode: true,
-    return_type: "boolean",
-    example_usage: "update_iframe_url('https://example.com/educational-video')",
+    name: "chalkboard_URL",
+    description: "Updates the chalkboard to display a URL in an iframe",
+    parameters: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "The URL to load in the chalkboard iframe"
+        }
+      },
+      required: [ "url" ]
+    },
     constraints: [
       {
         type: "url_whitelist",
-        description: "Only allowed to use URLs that were specified in the lesson plan. May adjust for correct URI formatting or query parameters."
+        description: "Only allowed to use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
       }
     ]
   }
