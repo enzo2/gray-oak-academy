@@ -8,10 +8,18 @@ class Tool < ApplicationRecord
 
   private
 
+  def for_llm
+    # return the specifications wrapped in a function object
+    {
+      type: "function",
+      function: specifications
+    }
+  end
+
   def valid_specifications
     schema = {
       type: "object",
-      required: [ "name", "description", "parameters", "strict_mode", "return_type", "example_usage", "constraints" ],
+      required: [ "name", "description", "parameters" ],
       properties: {
         name: { type: "string" },
         description: { type: "string" },
@@ -19,18 +27,17 @@ class Tool < ApplicationRecord
           type: "array",
           items: {
             type: "object",
-            required: [ "name", "type", "description", "required" ],
+            required: [ "name", "description" ],
             properties: {
               name: { type: "string" },
               type: { type: "string" },
               description: { type: "string" },
               required: { type: "boolean" }
             }
+
           }
         },
-        strict_mode: { type: "boolean" },
-        return_type: { type: "string" },
-        example_usage: { type: "string" },
+        strict: { type: "boolean" },
         constraints: {
           type: "array",
           items: {
@@ -48,27 +55,3 @@ class Tool < ApplicationRecord
     errors.add(:specifications, "is not valid") unless JSONSchemer.schema(schema).valid?(specifications)
   end
 end
-
-# Example specification:
-=begin
-{
-  "type": "iframe_update",
-  "allowed_types": ["iframe_update", "student_assessment_query", "lesson_summary_query", "save_lesson_summary", "save_student_assessment"],
-  "parameters": [
-    {
-      "name": "url",
-      "type": "string",
-      "description": "The URL to load in the iframe",
-      "required": true
-    }
-  ],
-  "return_type": "boolean",
-  "example_usage": "update_iframe_url('https://example.com/educational-video')",
-  "constraints": [
-    {
-      "type": "url_whitelist",
-      "description": "Only allowed to use URLs that were specified in the lesson plan. May adjust for correct URI formatting or query parameters."
-    }
-  ]
-}
-=end
