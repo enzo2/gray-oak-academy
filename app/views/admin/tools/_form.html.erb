@@ -11,16 +11,6 @@
   <% end %>
 
   <div class="mb-4">
-    <%= form.label :name, class: "form-label mb-2" %>
-    <%= form.text_field :name, class: "form-input" %>
-  </div>
-
-  <div class="mb-4">
-    <%= form.label :description, class: "form-label mb-2" %>
-    <%= form.text_area :description, rows: 3, class: "form-input" %>
-  </div>
-
-  <div class="mb-4">
     <%= form.label :specifications, class: "form-label mb-2" %>
     <%= form.text_area :specifications, value: JSON.pretty_generate(tool.specifications), rows: 15, class: "form-input font-mono" %>
   </div>

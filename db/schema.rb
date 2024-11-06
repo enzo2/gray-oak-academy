@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_10_22_022016) do
+ActiveRecord::Schema[8.0].define(version: 2024_11_06_155442) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -181,12 +181,12 @@ ActiveRecord::Schema[8.0].define(version: 2024_10_22_022016) do
   end
 
   create_table "tools", force: :cascade do |t|
-    t.string "name"
-    t.text "description"
     t.jsonb "specifications"
     t.bigint "teacher_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.virtual "name", type: :string, as: "(specifications ->> 'name'::text)", stored: true
+    t.virtual "description", type: :string, as: "(specifications ->> 'description'::text)", stored: true
     t.index ["teacher_id"], name: "index_tools_on_teacher_id"
   end
 

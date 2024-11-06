@@ -31,7 +31,7 @@ module Admin
 
     def tool_params
       # Parse the JSON string from the form into a hash
-      params_hash = params.require(:tool).permit(:name, :description, :specifications)
+      params_hash = params.require(:tool).permit(:specifications)
       params_hash[:specifications] = JSON.parse(params_hash[:specifications])
       params_hash
     end
