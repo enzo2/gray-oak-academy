@@ -1,20 +1,18 @@
 class Tool < ApplicationRecord
   belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :tools, optional: true
 
-  validates :name, presence: true
-  validates :description, presence: true, length: { minimum: 10 }
   validates :specifications, presence: true
   validate :valid_specifications
-
-  private
 
   def for_llm
     # return the specifications wrapped in a function object
     {
-      type: "function",
-      function: specifications
+      "type": "function",
+      "function": specifications
     }
   end
+
+  private
 
   def valid_specifications
     schema = {
