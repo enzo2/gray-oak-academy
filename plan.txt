@@ -69,8 +69,6 @@ todo
 - school view - lessons by subject
 
 - chalkboard frame features:
-  - display applet
-  - send url
   - display image or document
   - display a drawing board
   - take a screenshot and add to conversation
@@ -79,9 +77,8 @@ todo
 
 
 internal tools available to LLMs (give one-shot example in system prompts):
-- query student assessment history
-- query lesson summary history
-- save lesson summary, save student assessment
+- complete lesson / save lesson report
+  - take a screenshot and add to conversation
 
 
 ############################################
