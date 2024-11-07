@@ -41,7 +41,7 @@ gem "open_router"
 
 gem "acts_as_list"
 
-
+gem "json-repair"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"

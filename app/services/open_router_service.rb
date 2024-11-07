@@ -118,6 +118,7 @@ class OpenRouterService
 
     # Parse the JSON
     begin
+      # Rails.logger.debug "Parsing JSON: #{json_content}"
       parsed_content = JSON.parse(json_content)
     rescue JSON::ParserError => e
       raise "Failed to parse JSON from LLM response: #{e.message}"

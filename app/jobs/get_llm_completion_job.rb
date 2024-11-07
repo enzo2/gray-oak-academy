@@ -48,7 +48,7 @@ class GetLlmCompletionJob < ApplicationJob
             arguments = tool_call.dig("function", "arguments")
             Rails.logger.debug "Processing tool call chunk: name=#{name}, arguments=#{arguments}"
             tool_call_buffer[:name] ||= name if name.present?
-            tool_call_buffer[:arguments] += arguments.to_s if arguments.present?
+            tool_call_buffer[:arguments] += arguments if arguments.present?
           end
         elsif chunk.dig("delta", "content").present?
           Rails.logger.debug "Content chunk: #{chunk.inspect}"

@@ -1,3 +1,5 @@
+require "json/repair"
+
 class ToolHandlerService
   class ToolExecutionError < StandardError; end
 
@@ -11,12 +13,12 @@ class ToolHandlerService
     raise ToolExecutionError, "Tool '#{tool_call[:name]}' not found" unless tool
 
     # Validate arguments against tool specifications
-    validate_arguments(tool, tool_call[:arguments])
+    args = validate_and_parse_arguments(tool, tool_call[:arguments])
 
     # Execute the tool based on its name
     case tool.name
     when "Chalkboard_URL"
-      execute_chalkboard_url(tool_call[:arguments])
+      execute_chalkboard_url(args)
     else
       raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented"
     end
@@ -24,12 +26,20 @@ class ToolHandlerService
 
   private
 
-  def validate_arguments(tool, arguments)
+  def validate_and_parse_arguments(tool, arguments)
     # Parse JSON arguments
     begin
       args = JSON.parse(arguments)
     rescue JSON::ParserError
-      raise ToolExecutionError, "Invalid JSON in tool arguments"
+      # If invalid, try repairing the JSON
+      begin
+        Rails.logger.debug "Invalid JSON in tool arguments, attempting to repair: #{arguments}"
+        repaired_arguments = JSON.repair(arguments)
+        args = JSON.parse(repaired_arguments)
+        Rails.logger.debug "Repaired JSON: #{args}"
+      rescue JSON::ParserError
+        raise ToolExecutionError, "Invalid JSON in tool arguments, unable to repair"
+      end
     end
 
     # Get required parameters from tool specifications
@@ -53,11 +63,11 @@ class ToolHandlerService
         # Add more type validations as needed
       end
     end
+    # Return the validated and parsed arguments
+    args
   end
 
-  def execute_chalkboard_url(arguments)
-    args = JSON.parse(arguments)
-
+  def execute_chalkboard_url(args)
     Rails.logger.debug "Broadcasting URL to chalkboard #{args["url"]}"
 
     # Broadcast chalkboard update to the conversation
