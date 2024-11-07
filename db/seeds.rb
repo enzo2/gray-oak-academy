@@ -2,12 +2,10 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-
-# Create a sample tool
-Tool.find_or_create_by!(name: 'Chalkboard URL tool') do |tool|
+Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
   tool.description = 'Updates the chalkboard to display a URL in an iframe'
   tool.specifications = {
-    name: "chalkboard_URL",
+    name: "Chalkboard_URL",
     description: "Updates the chalkboard to display a URL in an iframe",
     parameters: {
       type: "object",
@@ -22,7 +20,7 @@ Tool.find_or_create_by!(name: 'Chalkboard URL tool') do |tool|
     constraints: [
       {
         type: "url_whitelist",
-        description: "Only allowed to use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
+        description: "If an explicit lesson plan is present, only use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
       }
     ]
   }
@@ -109,14 +107,14 @@ Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
     Don't ever exceed 60 minutes per lesson.#{' '}
     Provide enough detail in the goals so that a complete lesson plan could be inferred.#{' '}
     For example, for a course on 3D modeling:
-    {[
+    [
       { "title": "Introduction to 3D Modeling",
         "goals": "Understand the basic concept of 3D modelling and its applications in various industries.
                   Familiarize students with the user interface of the chosen 3D modelling software.
                   Introduce the fundamental elements of 3D space: vertices, edges, and faces.
         "duration": 45 },
         ...
-    ]}
+    ]
     Don't nest beyond the key:value pairs.
     Ensure the outline is comprehensive and suitable for the grade level.
   PROMPT
@@ -157,8 +155,12 @@ Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
   PROMPT
 end
 
-js_guidelines = <<~JS_GUIDELINES
+generative_guidelines = <<~GENERATIVE_GUIDELINES
   You can use markdown, HTML and inline CSS.
+  You have a large chalkboard panel at your disposal next to the chat.#{' '}
+  Chalkboard capabilities include:#{' '}
+  1) Navigate to a URL: use a tool call.
+  2) Further capabilities disabled.
   When generating code responses, follow these guidelines:
   Format non-executable code or snippets using markdown as usual.
   You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag.#{' '}
@@ -171,21 +173,21 @@ js_guidelines = <<~JS_GUIDELINES
   Console is also sandboxed. Use console.log() for any output that should be displayed as text to the user.
   You can use APIs like Fullscreen, Promise, Audio, Canvas, WebGL, Web Animations, etc.
   Do not access the microphone or camera.
-JS_GUIDELINES
+GENERATIVE_GUIDELINES
 
 Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|
   p.title = "Default Teacher Assistant Chat"
-  p.prompt = "You are now assisting the teacher in a chat format. #{js_guidelines}"
+  p.prompt = "You are now assisting the teacher in a chat format, outside of any specific lesson. \n#{generative_guidelines}\n"
 end
 
 Prompt.find_or_create_by!(category: 'open_ended_student_chat') do |p|
   p.title = "Default Student Chat"
-  p.prompt = "You are now assisting the student in an open-ended chat format, outside of any specific lesson. #{js_guidelines}"
+  p.prompt = "You are now assisting the student in an open-ended chat format, outside of any specific lesson. \n#{generative_guidelines}\n"
 end
 
 Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
   p.title = "Default Lesson Tutoring Session"
-  p.prompt = "You are now beginning a lesson with the student. #{js_guidelines} Lesson plan details follow."
+  p.prompt = "You are now beginning a lesson with the student. #{generative_guidelines} Lesson plan details follow. \n"
 end
 
 puts "Seed data has been created successfully!"

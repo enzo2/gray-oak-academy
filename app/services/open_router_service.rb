@@ -3,15 +3,15 @@ class OpenRouterService
 
   require "faraday/retry"
 
-  # To enable streaming, provide a Proc that processes the streamed data as it arrives.
-  # Each chunk will be passed to the Proc as a JSON object.
-  # eg. { "id"=>"gen-123", "provider"=>"Anthropic", "model"=>"anthropic/claude-3.5-sonnet:beta", "object"=>"chat.completion.chunk", "created"=>1729201039, "choices"=>[ { "index"=>0, "delta"=>{ "role"=>"assistant", "content"=>"or not to be??" }, "finish_reason"=>nil, "logprobs"=>nil } ] }
+  # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives.
+  # Each chunk delta will be passed to the Proc as a JSON object.
+  # eg. { "role"=>"assistant", "content"=>"or not to be??" }
 
   # Provide the system prompt upon initializing the client, and it will be added to the conversation.
   # If no system prompt is provided, the default system prompt will be used.
   # However, if a system message is already present in the completion messages, that will be used instead.
 
-  def initialize(models: [], access_token: nil, stream_handler: nil, task_system_prompt: nil)
+  def initialize(models: [], access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
     @models = models.compact.reject(&:empty?).presence || default_model
     @access_token = access_token.presence || default_access_token
     @client = create_client
@@ -22,6 +22,7 @@ class OpenRouterService
     else
       @system_prompt = @base_system_prompt
     end
+    @tools = Tool.all.map(&:for_llm) if enable_tools # Load tools if enabled
   end
 
   def complete(messages, extras: {}, schema: nil)
@@ -29,6 +30,9 @@ class OpenRouterService
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
     end
+
+    # add tools to extras, if enabled
+    extras[:tools] = @tools if @tools.present?
 
     response = @client.complete(
       messages,
@@ -133,7 +137,7 @@ class OpenRouterService
   end
 
   def wrap_stream_handler(handler)
-    # Return nil if no stream handler is provided so streaming will be disabled
+    # Return nil if no stream handler is provided, so streaming will be disabled
     return nil unless handler
 
     unless handler.is_a?(Proc)
@@ -142,12 +146,16 @@ class OpenRouterService
 
     Proc.new do |chunk|
       begin
-        # Handle the JSON chunk, extracting the content
-        content = chunk.dig("choices", 0, "delta", "content")
-        raise "No valid content found in chunk" if content.nil?
+        Rails.logger.debug chunk.inspect
 
-        # Call the actual handler with the extracted content
-        handler.call(content) if content.present?
+        # Check for refusal
+        refusal = chunk.dig("choices", 0, "delta", "refusal")
+        if refusal.present?
+          raise "Response refused with message: #{refusal}"
+        end
+
+        # Call the actual handler with the chunk
+        handler.call(chunk.dig("choices", 0))
 
         # Handle the final chunk with token usage
         if chunk["usage"]

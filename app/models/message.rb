@@ -10,7 +10,7 @@ class Message < ApplicationRecord
 
   def broadcast_created
     broadcast_append_later_to(
-      "#{dom_id(conversation)}_messages",
+      "#{dom_id(conversation)}",
       partial: "messages/message",
       locals: { message: self, scroll_to: true },
       target: "#{dom_id(conversation)}_messages"
@@ -19,7 +19,7 @@ class Message < ApplicationRecord
 
   def broadcast_updated
     broadcast_append_to(
-      "#{dom_id(conversation)}_messages",
+      "#{dom_id(conversation)}",
       partial: "messages/message",
       locals: { message: self, scroll_to: true },
       target: "#{dom_id(conversation)}_messages"

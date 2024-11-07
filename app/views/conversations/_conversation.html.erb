@@ -11,12 +11,12 @@
     </div>
   <% end %>
 
+  <%= turbo_stream_from "#{dom_id(conversation)}" %>
 
   <div class="flex-grow overflow-hidden" data-controller="conversation">
     <div class="h-full overflow-y-auto pr-4" 
         id="<%= dom_id(conversation) %>_messages"
         data-conversation-target="messages">
-      <%= turbo_stream_from "#{dom_id(conversation)}_messages" %>
       <% conversation.messages.each do |message| %>
         <%= render partial: "messages/message", locals: { message: message } %>
       <% end %>

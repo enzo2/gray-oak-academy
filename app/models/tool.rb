@@ -1,11 +1,12 @@
 class Tool < ApplicationRecord
-  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :tools, optional: true
+  # belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :tools, optional: true
 
   validates :specifications, presence: true
+  validates :name, uniqueness: true
   validate :valid_specifications
 
   def for_llm
-    # return the specifications wrapped in a function object
+    # return the tool in OpenAI format
     {
       "type": "function",
       "function": specifications
@@ -19,7 +20,10 @@ class Tool < ApplicationRecord
       type: "object",
       required: [ "name", "description", "parameters" ],
       properties: {
-        name: { type: "string" },
+        name: {
+          type: "string",
+          pattern: "^[a-zA-Z0-9_-]{1,64}$"
+        },
         description: { type: "string" },
         parameters: {
           type: "object",

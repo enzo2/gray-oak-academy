@@ -12,7 +12,8 @@ class GetLlmCompletionJob < ApplicationJob
       models: [ user.settings.openrouter_model ],
       access_token: user.settings.openrouter_access_token,
       stream_handler: stream_handler(conversation: conversation),
-      task_system_prompt: conversation.task_system_prompt
+      task_system_prompt: conversation.task_system_prompt,
+      enable_tools: true
     )
 
     messages = Message.for_completion(conversation.messages) # Get the array of message hashes with roles and content
@@ -28,21 +29,51 @@ class GetLlmCompletionJob < ApplicationJob
   private
 
   def stream_handler(conversation:)
-    message = conversation.messages.create!(role: "assistant", content: "")
     # Broadcast the new message to the user so it's ready to be streamed into
+    message = conversation.messages.create!(role: "assistant", content: "")
     message.broadcast_created
-    # Handle the streamed response
+
+    # Initialize a buffer to accumulate chunks of tool calls
+    tool_call_buffer = { "name": nil, "arguments": "" }
+
+    # Return a proc that handles the streamed response
     Proc.new do |chunk|
-      # Append the new chunk to the message's content
-      # and broadcast the updated message
-      message.update(content: message.content + chunk)
-      message.broadcast_updated
+      begin
+        # Check if the chunk contains tool calls
+        if chunk.dig("delta", "tool_calls").present?
+          Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
+          # Buffer the tool call arguments as they are streamed in
+          chunk.dig("delta", "tool_calls").each do |tool_call|
+            name = tool_call.dig("function", "name")
+            arguments = tool_call.dig("function", "arguments")
+            Rails.logger.debug "Processing tool call chunk: name=#{name}, arguments=#{arguments}"
+            tool_call_buffer[:name] ||= name if name.present?
+            tool_call_buffer[:arguments] += arguments.to_s if arguments.present?
+          end
+        elsif chunk.dig("delta", "content").present?
+          Rails.logger.debug "Content chunk: #{chunk.inspect}"
+          # For standard content, append the new chunk to the message's content
+          delta_content = chunk.dig("delta", "content")
+          message.update(content: message.content + delta_content)
+          message.broadcast_updated
+        end
+
+        # Finalize and execute tool call when finish reason indicates tool call completion
+        if chunk["finish_reason"] == "tool_calls"
+          Rails.logger.debug "Tool call arguments buffer: #{tool_call_buffer.inspect}"
+          tool_handler = ToolHandlerService.new(conversation: conversation)
+          tool_handler.execute_tool_call(tool_call_buffer)
+          tool_call_buffer = { "name": nil, "arguments": "" } # Clear buffer for subsequent tool calls
+        end
+      rescue StandardError => e
+        Rails.logger.error "Error processing stream chunk: #{e.message}"
+      end
     end
   end
 
   def broadcast_error(message, conversation)
     Turbo::StreamsChannel.broadcast_update_to(
-      "#{dom_id(conversation)}_messages",
+      "#{dom_id(conversation)}",
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { type: "error", message: message } }
