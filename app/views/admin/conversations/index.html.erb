@@ -1,8 +1,8 @@
 <%= turbo_frame_tag "dashboard-content" do %>
-  <h1 class="text-2xl font-bold mb-4">LLM Conversation</h1>
-  <p>This is just for casual purposes or testing.</p>
+  <h1 class="text-2xl font-bold">LLM Conversation with Chalkboard</h1>
+  <p class="mb-2">This is just for casual purposes or testing.</p>
 
-  <div class="p-4 flex flex-row gap-8 h-[85dvh]">
+  <div class="p-4 flex flex-row gap-8 h-[85dvh]" data-controller="code-executor">
     <!-- Chats Column -->
     <div class="flex-none w-32 pr-4 border-r border-gray-400">
       <div class="flex justify-between items-center mb-4">
@@ -25,10 +25,7 @@
     </div>
 
     <!-- Chalkboard Column -->
-    <div class="grow bg-slate-100 dark:bg-gray-900">
-      <div id="chalkboard" class="w-full h-full">
-      </div>
-    </div>
+      <%= render partial: "shared/chalkboard" %>
   </div>
 
 <% end %>

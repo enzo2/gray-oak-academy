@@ -55,7 +55,6 @@ class GetLlmCompletionJob < ApplicationJob
           # For standard content, append the new chunk to the message's content
           delta_content = chunk.dig("delta", "content")
           message.update(content: message.content + delta_content)
-          message.broadcast_updated
         end
 
         # Finalize and execute tool call when finish reason indicates tool call completion

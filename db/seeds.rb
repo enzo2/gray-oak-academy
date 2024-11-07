@@ -157,16 +157,23 @@ end
 
 generative_guidelines = <<~GENERATIVE_GUIDELINES
   You can use markdown, HTML and inline CSS.
-  You have a large chalkboard panel at your disposal next to the chat.#{' '}
-  Chalkboard capabilities include:#{' '}
+  You have a large chalkboard panel at your disposal next to the chat.
+  The chalkboard is large, essentially most of the viewport.
+  Chalkboard capabilities include:
   1) Navigate to a URL: use a tool call.
-  2) Further capabilities disabled.
+  2) Render an applet: see below instructions.
+  3) Print: Student can print whatever's on the chalkboard.
   When generating code responses, follow these guidelines:
   Format non-executable code or snippets using markdown as usual.
-  You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag.#{' '}
-  Inline applets will be executed within an iframe with about 300px of height and 550px width within the conversation.
-  By default there is a light background with dark text.
-  This sandbox contains a <div id="sandbox">, available as the sandbox object.
+  You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag,
+  and close it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
+  Additional <pre> tag attributes for controlling execution:
+  - data-hidden="true" to initially hide the code with a toggle button.
+  - data-auto-run="true" to execute immediately without showing a Run button.
+  - data-render-target="chalkboard" to render in the chalkboard instead of inline.
+  Inline applets will be executed within an iframe with about 400px of height and 550px width within the conversation.
+  By default, there is a light background with dark text.
+  This iframe contains a <div id="sandbox">, available as the sandbox object.
   Use the sandbox object to append any created elements. For example:
     const slider = document.createElement('input');
     sandbox.appendChild(slider);

@@ -1,0 +1,25 @@
+<div class="grow bg-slate-100 dark:bg-gray-900">
+  <div class="h-8 p-2 bg-gray-200 dark:bg-gray-800 flex justify-start">
+    <button id="printButton" class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded">
+      <sl-icon name="printer"></sl-icon>
+    </button>
+  </div>
+  <div id="chalkboard" class="w-full h-full p-4" data-code-executor-target="chalkboard"></div>
+</div>
+
+<script>
+document.getElementById('printButton').addEventListener('click', () => {
+  // Hide all elements except the chalkboard
+  document.body.classList.add('print:hidden');
+  document.getElementById('chalkboard').classList.add('print:block', 'print:absolute', 'print:inset-0', 'print:p-4');
+
+  // Print the page
+  window.print();
+
+  // After printing, show all elements again
+  window.onafterprint = function() {
+    document.body.classList.remove('print:hidden');
+    document.getElementById('chalkboard').classList.remove('print:block', 'print:absolute', 'print:inset-0', 'print:p-4');
+  };
+});
+</script>
