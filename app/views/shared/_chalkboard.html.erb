@@ -4,22 +4,5 @@
       <sl-icon name="printer"></sl-icon>
     </button>
   </div>
-  <div id="chalkboard" class="w-full h-full p-4" data-code-executor-target="chalkboard"></div>
+  <div id="chalkboard" class="w-full h-full p-4" data-code-executor-target="chalkboard" data-controller="print-chalkboard" data-print-chalkboard-target="chalkboard"></div>
 </div>
-
-<script>
-document.getElementById('printButton').addEventListener('click', () => {
-  // Hide all elements except the chalkboard
-  document.body.classList.add('print:hidden');
-  document.getElementById('chalkboard').classList.add('print:block', 'print:absolute', 'print:inset-0', 'print:p-4');
-
-  // Print the page
-  window.print();
-
-  // After printing, show all elements again
-  window.onafterprint = function() {
-    document.body.classList.remove('print:hidden');
-    document.getElementById('chalkboard').classList.remove('print:block', 'print:absolute', 'print:inset-0', 'print:p-4');
-  };
-});
-</script>

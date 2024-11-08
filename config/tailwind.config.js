@@ -13,10 +13,6 @@ module.exports = {
   theme: {
     extend: {
 
-      colors:{
-        //'yellow-custom1': '#f8bc72',
-      },
-
       spacing:{
         '1/2screen':'50vh',
         '2/3screen':'66vh',
@@ -39,14 +35,5 @@ module.exports = {
     require("@tailwindcss/forms"),
     require('@tailwindcss/typography'),
     require('@tailwindcss/container-queries'),
-  ],
-
-  variants: {
-    extend: {
-      display: ['print'],
-      position: ['print'],
-      inset: ['print'],
-      padding: ['print'],
-    }
-  }
+  ]
 }
