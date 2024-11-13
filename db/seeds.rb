@@ -3,7 +3,6 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
-  tool.description = 'Updates the chalkboard to display a URL in an iframe'
   tool.specifications = {
     name: "Chalkboard_URL",
     description: "Updates the chalkboard to display a URL in an iframe",
@@ -12,7 +11,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
       properties: {
         url: {
           type: "string",
-          description: "The URL to load in the chalkboard iframe"
+          description: "The URL to load in the chalkboard iframe. Must begin with 'http://' or 'https://'. Do not send HTML."
         }
       },
       required: [ "url" ]
@@ -23,6 +22,38 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
         description: "Do not try to recall or make up URLs; only use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
       }
     ]
+  }
+end
+
+Tool.find_or_create_by!(name: 'Complete_Lesson') do |tool|
+  tool.specifications = {
+    name: "Complete_Lesson",
+    description: "Marks the current lesson as completed and saves the LLM tutor's student report",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: {
+          type: "string",
+          description: "A brief summary of the student's performance and understanding during the lesson"
+        },
+        strengths: {
+          type: "array",
+          items: { type: "string" },
+          description: "List areas (if any) where the student demonstrated adequate or strong understanding, which will require minimal to no review in subsequent lessons"
+        },
+        areas_for_review: {
+          type: "array",
+          items: { type: "string" },
+          description: "List aspects (if any) of the current lesson material/plan where the student should receive additional clarification, review or practice in subsequent lessons of the current course"
+        },
+        teaching_methods: {
+          type: "array",
+          items: { type: "string" },
+          description: "Note any aspects of the teaching methodology that were particularly effective or ineffective for this student"
+        }
+      },
+      required: [ "summary", "strengths", "areas_for_review", "teaching_methods" ]
+    }
   }
 end
 
@@ -173,8 +204,7 @@ generative_guidelines = <<~GENERATIVE_GUIDELINES
   - data-render-target="chalkboard" to render in the chalkboard instead of inline.
   Inline applets will be executed within an iframe with about 400px of height and 550px width within the conversation.
   By default, there is a light background with dark text.
-  This iframe contains a <div id="sandbox">, available as the sandbox object.
-  Use the sandbox object to append any created elements. For example:
+  This iframe contains a div available as the pre-defined 'sandbox' object. Append any created elements to it. For example:
     const slider = document.createElement('input');
     sandbox.appendChild(slider);
   Console is also sandboxed. Use console.log() for any output that should be displayed as text to the user.
@@ -194,7 +224,7 @@ end
 
 Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
   p.title = "Default Lesson Tutoring Session"
-  p.prompt = "You are now beginning a lesson with the student. #{generative_guidelines} Lesson plan details follow. \n"
+  p.prompt = "You are now beginning a lesson with the student. #{generative_guidelines} Lesson plan details follow. You may end the lesson once the lesson plan has been reasonably completed.\n"
 end
 
 puts "Seed data has been created successfully!"

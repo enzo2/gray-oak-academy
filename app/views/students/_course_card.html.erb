@@ -12,6 +12,8 @@
         <sl-icon slot="prefix" name="check-circle-fill" class="text-green-500"></sl-icon>
         Start next lesson
       </sl-button>
+    <% elsif enrollment.completed? %>
+      <span class="text-sm">All lessons complete!</span>
     <% else %>
       <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
       <span class="text-sm">No lessons available. Check with teacher.</span>

@@ -50,20 +50,30 @@ class GetLlmCompletionJob < ApplicationJob
             tool_call_buffer[:name] ||= name if name.present?
             tool_call_buffer[:arguments] += arguments if arguments.present?
           end
-        elsif chunk.dig("delta", "content").present?
-          Rails.logger.debug "Content chunk: #{chunk.inspect}"
-          # For standard content, append the new chunk to the message's content
-          delta_content = chunk.dig("delta", "content")
-          message.update(content: message.content + delta_content)
-        end
-
-        # Finalize and execute tool call when finish reason indicates tool call completion
-        if chunk["finish_reason"] == "tool_calls"
-          Rails.logger.debug "Tool call arguments buffer: #{tool_call_buffer.inspect}"
-          tool_handler = ToolHandlerService.new(conversation: conversation)
+        elsif chunk["finish_reason"] == "tool_calls"
+          # Finalize and execute tool call when finish reason indicates tool call completion
+          Rails.logger.debug "Calling tool with arguments: #{tool_call_buffer.inspect}"
+          tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
           tool_handler.execute_tool_call(tool_call_buffer)
           tool_call_buffer = { "name": nil, "arguments": "" } # Clear buffer for subsequent tool calls
+        elsif chunk.dig("delta", "content").present?
+          # For standard content, append the new chunk to the message's content
+          Rails.logger.debug "Content chunk: #{chunk.inspect}"
+          delta_content = chunk.dig("delta", "content")
+          message.update(content: message.content + delta_content)
+        else
+          Rails.logger.debug "Unknown chunk: #{chunk.inspect}"
         end
+
+=begin
+        if chunk["finish_reason"] == nil && tool_call_buffer[:name].present? && tool_call_buffer[:arguments].end_with?("}")
+           # There seems to be a bug where the tool call stream will end without finish_reason == tool_calls
+           Rails.logger.debug "Tool call finish_reason is nil, but arguments buffer ends with a closing brace: #{tool_call_buffer.inspect}"
+           tool_handler = ToolHandlerService.new(conversation: conversation)
+           tool_handler.execute_tool_call(tool_call_buffer)
+           tool_call_buffer = { "name": nil, "arguments": "" } # Clear buffer for subsequent tool calls
+        end
+=end
       rescue StandardError => e
         Rails.logger.error "Error processing stream chunk: #{e.message}"
       end

@@ -3,7 +3,7 @@ class Course < ApplicationRecord
   has_many :students, through: :enrollments, inverse_of: :courses
   has_many :lessons, -> { order(position: :asc) }, dependent: :destroy
   has_many :enrollments
-  has_many :student_reports, as: :reportable
+  has_many :student_reports, through: :enrollments
 
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :summary, presence: true, length: { minimum: 10, maximum: 2000 }
