@@ -63,22 +63,20 @@ system prompts are not stored
 #######################################################
 todo
 
-- seeded prompts should be created for each new teacher user, and prompts should be accessed per teacher
+internal tools available to LLMs (give one-shot example in system prompts):
+  - take a screenshot and add to conversation
 
-- resource archive: view prior used resources and planned resources
-- school view - lessons by subject
 
 - chalkboard frame features:
+  - take a screenshot and add to conversation
   - display image or document
   - display a drawing board
-  - take a screenshot and add to conversation
+
+- resource archive: view prior used resources and planned resources
 
   > use RAG to contemplate the student's previous strengths and weaknesses to tailor the lessons. 
 
 
-internal tools available to LLMs (give one-shot example in system prompts):
-- complete lesson / save lesson report
-  - take a screenshot and add to conversation
 
 
 ############################################
