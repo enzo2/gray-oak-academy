@@ -173,7 +173,7 @@ GEM
       regexp_parser (~> 2.0)
       simpleidn (~> 0.2)
     language_server-protocol (3.17.0.3)
-    logger (1.6.1)
+    logger (1.6.2)
     loofah (2.23.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
@@ -190,10 +190,10 @@ GEM
       securerandom
     matrix (0.4.2)
     mini_mime (1.1.5)
-    minitest (5.25.1)
+    minitest (5.25.4)
     msgpack (1.7.5)
     multipart-post (2.4.1)
-    neighbor (0.5.0)
+    neighbor (0.5.1)
       activerecord (>= 7)
     net-http (0.5.0)
       uri
@@ -317,7 +317,7 @@ GEM
       rubocop-rails
     ruby-progressbar (1.13.0)
     rubyzip (2.3.2)
-    securerandom (0.3.2)
+    securerandom (0.4.0)
     selenium-webdriver (4.26.0)
       base64 (~> 0.2)
       logger (~> 1.4)
