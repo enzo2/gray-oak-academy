@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
   When generating code responses, follow these guidelines:
   Format non-executable code or snippets using markdown as usual.
   You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag,
-  and close it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
+  closing it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
   Additional <pre> tag attributes for controlling execution:
   - data-hidden="true" to initially hide the code with a toggle button.
   - data-auto-run="true" to execute immediately without showing a Run button.
@@ -61,6 +61,9 @@ export default class extends Controller {
     const button = this.createRunButton(block, config.renderTarget);
     container.appendChild(button);
 
+    const archiveButton = this.createArchiveButton(block);
+    container.appendChild(archiveButton);
+
     if (config.renderTarget === 'inline') {
       const output = this.createOutputDiv();
       container.appendChild(output);
@@ -102,6 +105,14 @@ export default class extends Controller {
     button.textContent = "Run";
     button.className = "px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 ml-2";
     button.addEventListener("click", () => this.executeCode(block, renderTarget));
+    return button;
+  }
+
+  createArchiveButton(block) {
+    const button = document.createElement("button");
+    button.textContent = "Archive";
+    button.className = "px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 ml-2";
+    button.addEventListener("click", () => this.archiveApplet(block));
     return button;
   }
 
@@ -200,5 +211,31 @@ export default class extends Controller {
       </body>
       </html>
     `;
+  }
+
+  archiveApplet(block) {
+    const code = block.textContent.replace(/<pre.*?>(.*?)<\/pre>/s, '$1').trim();
+    const title = prompt("Enter a name for this applet:");
+    if (!title) return;
+
+    fetch('/applets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify({ applet: { title: title, code: code, archived: true } })
+    })
+    .then(response => {
+      if (response.ok) {
+        alert('Applet archived successfully!');
+      } else {
+        alert('Failed to archive applet.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Failed to archive applet.');
+    });
   }
 }

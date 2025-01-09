@@ -51,6 +51,8 @@ Rails.application.routes.draw do
     resources :lessons, only: [ :show ]
   end
 
+  resources :applets
+
   resources :conversations do
     member do
       delete :clear

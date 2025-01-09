@@ -30,6 +30,7 @@ class User < ApplicationRecord
   has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :tools, foreign_key: "teacher_id", inverse_of: :teacher
   has_many :conversations
+  has_many :applets
 
   attr_accessor :signup_code
 
