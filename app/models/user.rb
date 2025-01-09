@@ -66,7 +66,7 @@ class User < ApplicationRecord
   end
 
   def validate_admin_signup_code
-    return unless role_admin?
+    return unless role_admin? && new_record?
     unless signup_code.present? && signup_code == ENV["TEACHER_SIGNUP_CODE"]
       errors.add(:signup_code, "is invalid")
     end

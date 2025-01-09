@@ -34,7 +34,7 @@ gem "neighbor"
 # llms
 gem "faraday-retry"
 gem "open_router", git: "https://github.com/enzo2/open_router.git"
-# gem "openai"     #not using for now as users likely to hit rate limit
+ gem "ruby-openai"     # see if will work with openrouter?
 # gem "anthropic"  #not using for now as users likely to hit rate limit
 
 # gem 'llama_index' ?? avoid abstractions
