@@ -28,6 +28,10 @@ class Message < ApplicationRecord
 
   # Format the messages for the LLM api
   def self.for_completion(messages)
+    # Remove the latest message if it's blank, since some LLM providers don't like blank messages
+    if messages.last.content.blank?
+      messages = messages[0...-1]
+    end
     messages.map { |message| { role: message.role, content: message.content } }
   end
 end

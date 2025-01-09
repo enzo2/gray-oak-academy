@@ -18,7 +18,7 @@ class GetLlmCompletionJob < ApplicationJob
 
     messages = Message.for_completion(conversation.messages) # Get the array of message hashes with roles and content
 
-    client.complete(messages)     # Should return an empty string once completed
+    client.complete(messages)     # Should return an empty string once completed, since we used streaming.
 
   rescue StandardError => e
     Rails.logger.error "Error in GetLLMCompletionJob: #{e.message}"
@@ -30,6 +30,7 @@ class GetLlmCompletionJob < ApplicationJob
 
   def stream_handler(conversation:)
     # Broadcast the new message to the user so it's ready to be streamed into
+    # Since some LLM providers don't like blank messages, this will be removed in Message.for_completion.
     message = conversation.messages.create!(role: "assistant", content: "")
     message.broadcast_created
 
