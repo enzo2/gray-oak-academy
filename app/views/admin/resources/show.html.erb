@@ -18,7 +18,7 @@
       <i>URI:</i>
       <br>
       <% if @resource.uri.present? %>
-        <%= link_to @resource.uri, @resource.uri, target: "_blank" %>
+        <%= link_to sanitize(@resource.uri), sanitize(@resource.uri, tags: []), target: "_blank", rel: "noopener noreferrer" %>
       <% else %>
         No URI provided.
       <% end %>
