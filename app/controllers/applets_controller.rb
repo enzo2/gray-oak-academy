@@ -27,13 +27,13 @@ class AppletsController < ApplicationController
     end
   end
 
-  private 
-  
+  private
+
   def set_applet
     @applet = Applet.find(params[:id])
   end
 
   def applet_params
-    params.expect(applet: [:title, :code])
+    params.expect(applet: [ :title, :code ])
   end
 end
