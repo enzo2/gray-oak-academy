@@ -10,6 +10,8 @@
       <%= render 'course_card', enrollment: enrollment %>
     <% end %>
   </div>
-          
+
+  <h2 class="text-lg mb-4">History</h2>
+  <%= link_to "Archived Apps", applets_path, class: "hover:underline", data: { turbo_frame: "dashboard-content" } %>
 
 </main>

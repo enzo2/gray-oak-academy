@@ -1,19 +1,20 @@
 <%= turbo_frame_tag "dashboard-content" do %>
-  <h1 class="text-2xl font-bold mb-5">Applets</h1>
+<div class="p-4">
+  <h2 class="text-xl font-bold mb-5">Applets</h2>
 
   <p class="mb-4">Archived applets from past chats/lessons.</p>
 
-  <table class="w-1/2screen border-collapse">
+  <table class="w-1/2screen border-separate border-spacing-y-2">
     <thead>
-      <tr class="border-b border-gray-800 dark:border-gray-200">
-        <th class="py-2 px-3 text-left">Title</th>
-        <th class="py-2 px-3 text-right">Actions</th>
+      <tr class="">
+        <th class="py-2 text-left border-b border-gray-800 dark:border-gray-200">Title</th>
+        <th class="py-2 text-right border-b border-gray-800 dark:border-gray-200">Actions</th>
       </tr>
     </thead>
     <tbody id="applets-table-body">
       <% if @applets.any? %>
         <% @applets.each do |applet| %>
-          <tr id="<%= dom_id(applet) %>">
+          <tr id="<%= dom_id(applet) %>" class="">
             <td><%= applet.title %></td>
             <td class="text-right flex justify-end space-x-2">
               <%= link_to "Show", applet_path(applet),
@@ -29,6 +30,6 @@
       <% end %>
     </tbody>
   </table>
-
+</div>
 <% end %>
 
