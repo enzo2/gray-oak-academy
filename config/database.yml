@@ -27,7 +27,7 @@ default: &default
 
 development:
   <<: *default
-  database: gray_oak_academy_development
+  database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_development
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
@@ -61,7 +61,7 @@ development:
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: gray_oak_academy_test
+  database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_test
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -86,9 +86,9 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: gray_oak_academy_production
-    username: gray_oak_academy
-    password: <%= ENV["GRAY_OAK_ACADEMY_DATABASE_PASSWORD"] %>
+    database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_production
+    username: postgres
+    password: <%= ENV["DB_PASSWORD"] %>
   queue: 
     <<: *primary_production
     database: app_production_queue
