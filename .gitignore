@@ -11,9 +11,8 @@
 # Ignore bundler config.
 /.bundle
 
-# Ignore all environment files (except templates).
+# Ignore all environment files
 .env*
-!/.env*.erb
 
 # Ignore all logfiles and tempfiles.
 /log/*
@@ -37,6 +36,7 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+/config/credentials/*.key
 
 #Ignore .enc
 *.enc

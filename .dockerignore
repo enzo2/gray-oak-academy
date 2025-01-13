@@ -7,15 +7,18 @@
 # Ignore bundler config.
 /.bundle
 
-# Ignore all environment files (except templates).
+# Ignore all environment files
 /.env*
-!/.env*.erb
 
 # Ignore all default key files.
 /config/master.key
 /config/credentials/*.key
 #Include production key
 !/config/credentials/production.key
+
+# Ignore Kamal files.
+/config/deploy*.yml
+/.kamal
 
 #Ignore encoded credentials
 /config/*.enc
