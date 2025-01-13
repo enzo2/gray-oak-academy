@@ -1,4 +1,4 @@
-name: "gray_oak_academy"
+name: "gray_oak_academy_devcontainer"
 
 services:
   rails-app:
@@ -8,6 +8,9 @@ services:
 
     volumes:
     - ../..:/workspaces:cached
+
+    env_file: 
+      - .env.development
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
@@ -26,7 +29,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16.1
+    image: postgres:latest
     restart: unless-stopped
     networks:
     - default

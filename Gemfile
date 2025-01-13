@@ -1,15 +1,16 @@
 source "https://rubygems.org"
 
-gem "dotenv-rails", groups: [ :development, :test ]
+# use docker compose to import env files
+# gem "dotenv-rails", groups: [ :development, :test ]
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
+gem "pg"
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", ">= 5.0"
+gem "puma", "< 7"
 # Solid
 gem "solid_queue"
 gem "solid_cable"
@@ -34,8 +35,7 @@ gem "neighbor"
 # llms
 gem "faraday-retry"
 gem "open_router", git: "https://github.com/enzo2/open_router.git"
- gem "ruby-openai"     # see if will work with openrouter?
-# gem "anthropic"  #not using for now as users likely to hit rate limit
+gem "ruby-openai"     # see if will work with openrouter?
 
 # gem 'llama_index' ?? avoid abstractions
 

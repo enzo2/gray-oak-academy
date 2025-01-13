@@ -86,9 +86,10 @@ test:
 production:
   primary: &primary_production
     <<: *default
+    url: <%= ENV["DATABASE_URL"] %>
     database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_production
-    username: postgres
-    password: <%= ENV["DB_PASSWORD"] %>
+    #username: postgres
+    #password: <%= ENV["DB_PASSWORD"] %>
   queue: 
     <<: *primary_production
     database: app_production_queue

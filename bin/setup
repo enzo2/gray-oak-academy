@@ -12,9 +12,12 @@ FileUtils.chdir APP_ROOT do
   # This script is a way to set up or update your development environment automatically.
   # This script is idempotent, so that you can run it at any time and get an expectable outcome.
   # Add necessary setup steps to this file.
+  puts "== Updating rubygems =="
+  system!("gem update --system")
 
   puts "== Installing dependencies =="
   system! "gem install bundler --conservative"
+  system!("bundle update --bundler")
   system("bundle check") || system!("bundle install")
 
   # puts "\n== Copying sample files =="
