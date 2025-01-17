@@ -14,6 +14,7 @@ class Prompt < ApplicationRecord
     generate_student_assessment_report: "generate_student_assessment_report",
     generate_student_profile: "generate_student_profile",
     tool_usage: "tool_usage",
+    generative_guidelines: "generative_guidelines",
     teacher_assistant: "teacher_assistant",
     teaching_principles: "teaching_principles",
     base_system_prompt: "base_system_prompt"
@@ -32,6 +33,7 @@ class Prompt < ApplicationRecord
     generate_student_assessment_report: "Generate Student Assessment Report", # post-course assessment
     generate_student_profile: "Generate Student Profile", # for processing RAG results before a lesson
     tool_usage: "Tool Usage", # for enabling LLM to control the app during a lesson, generate UI, etc.
+    generative_guidelines: "Generative Guidelines", # LLM instructions for generative UI/UX and code execution
     teacher_assistant: "Teacher Assistant", # for 1:1 teacher assistant chat
     teaching_principles: "Teaching Principles", # appended to the base system prompt to establish teaching principles, ethical boundaries, etc.
     base_system_prompt: "Base System Prompt" # prepended to all prompts to explain the app
@@ -49,6 +51,10 @@ class Prompt < ApplicationRecord
   # Helper method to get user-friendly category name
   def friendly_category_name
     FRIENDLY_CATEGORIES[category.to_sym]
+  end
+
+  def self.full_system_prompt
+    Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt + " \n " + Prompt.category_generative_guidelines.first.prompt
   end
 
   # Class method to get all categories with their friendly names

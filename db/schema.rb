@@ -10,14 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_01_09_205727) do
+ActiveRecord::Schema[8.0].define(version: 2025_01_17_145810) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
-  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "teacher_assistant", "teaching_principles", "base_system_prompt"]
+  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
   create_enum "role_name", ["system", "user", "assistant"]
   create_enum "student_report_status", ["in_progress", "completed"]

@@ -16,7 +16,7 @@ class OpenRouterService
     @access_token = access_token.presence || default_access_token
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
-    @base_system_prompt = Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt
+    @base_system_prompt = Prompt.full_system_prompt
     if task_system_prompt
       @system_prompt = @base_system_prompt + " \n Now, focusing on your current role: " + task_system_prompt
     else
