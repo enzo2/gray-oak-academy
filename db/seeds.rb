@@ -198,8 +198,9 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     3) Print: Student can print whatever's on the chalkboard.
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using markdown as usual.
-    You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag,
-    and close it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
+    You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks.
+    Close it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
+    Do not enclose the block with triple backticks or any other formatting. This will disrupt the code block.
     Additional <pre> tag attributes for controlling execution:
     - data-hidden="true" to initially hide the code with a toggle button.
     - data-auto-run="true" to execute immediately without showing a Run button.
