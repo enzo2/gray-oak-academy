@@ -51,8 +51,6 @@ Rails.application.routes.draw do
         delete :unenroll
       end
     end
-
-    resources :conversations, only: [ :index, :show ]
   end
 
   namespace :student do

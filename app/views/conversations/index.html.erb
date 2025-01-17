@@ -1,6 +1,13 @@
 <%= turbo_frame_tag "dashboard-content" do %>
-  <h1 class="text-2xl font-bold">LLM Conversation with Chalkboard</h1>
-  <p class="mb-2">This is just for casual purposes or testing.</p>
+<div class="<%= current_user.role_admin? ? '' : 'p-4' %>">
+
+  <% if current_user.role_admin? %>
+    <h1 class="text-2xl font-bold">LLM Conversation with Chalkboard</h1>
+    <p class="mb-2">This is just for casual purposes or testing.</p>
+  <% else %>
+    <h1 class="text-2xl font-bold">GPT Chat</h1>
+    <p class="mb-2">This isn't part of a lesson. You can just talk with the AI about anything.</p>
+  <% end %>
 
   <div class="p-4 flex flex-row gap-8 h-[85dvh]" data-controller="code-executor">
     <!-- Chats Column -->
@@ -28,4 +35,5 @@
       <%= render partial: "shared/chalkboard" %>
   </div>
 
+<div>
 <% end %>

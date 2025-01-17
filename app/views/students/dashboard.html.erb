@@ -6,12 +6,24 @@
   <h2 class="text-lg mb-4">Your Courses</h2>
 
   <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
-    <% @enrollments.each do |enrollment| %>
-      <%= render 'course_card', enrollment: enrollment %>
+    <% if @enrollments.any? %>
+      <% @enrollments.each do |enrollment| %>
+        <%= render 'course_card', enrollment: enrollment %>
+      <% end %>
+    <% else %>
+      <p>You are not enrolled in any courses.</p>
     <% end %>
   </div>
 
-  <h2 class="text-lg mb-4">History</h2>
-  <%= link_to "Archived Apps", applets_path, class: "hover:underline", data: { turbo_frame: "dashboard-content" } %>
+  <h2 class="text-lg mb-4">Other tools</h2>
 
+  <sl-button href="<%= conversations_path %>" data-turbo-frame="dashboard-content">
+    <sl-icon slot="prefix" name="chat-right-dots"></sl-icon>
+    Random GPT Chat
+  </sl-button>
+  
+  <sl-button href="<%= applets_path %>" data-turbo-frame="dashboard-content">
+    <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
+    View Archived Applets
+  </sl-button>
 </main>
