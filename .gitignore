@@ -34,12 +34,13 @@
 
 /public/assets
 
-# Ignore master key for decrypting credentials and more.
+# Ignore master keys for decrypting credentials and more.
 /config/master.key
 /config/credentials/*.key
 
 #Ignore .enc
 *.enc
+/config/*.enc
 
 /app/assets/builds/*
 !/app/assets/builds/.keep

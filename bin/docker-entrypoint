@@ -6,11 +6,25 @@ if [ -z "${LD_PRELOAD+x}" ]; then
     export LD_PRELOAD
 fi
 
-# If running the rails server then create or migrate existing database
-if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
+prepare_database() {
   ./bin/rails db:prepare
-fi
+}
 
+# If running the rails server through either rails or thrust, prepare the database
+case "$1" in
+  "./bin/thrust")
+    if [ "$2" == "./bin/rails" ] && [ "$3" == "server" ]; then
+      prepare_database
+    fi
+    ;;
+  "./bin/rails")
+    if [ "$2" == "server" ]; then
+      prepare_database
+    fi
+    ;;
+esac
+
+# Always run seeds
 ./bin/rails db:seed
 
 exec "${@}"
