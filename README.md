@@ -1,5 +1,6 @@
 # Gray Oak Academy
 
+## Background
 Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. For totally self-directed students, a simple LLM chat may suffice. However, for K-12, or for "learning how to learn", we need a teacher in the loop. To create a high quality LLM tutor, the minimal requirements are:
 1. A curriculum management component, so that a supervising teacher can specify what is being taught, with LLM assistance.
 2. A learning resource management component, to enable use of resources that are not part of an LLM's knowledge base, like videos, websites, software, physical items/tools/places/people. By definition, this cannot be LLM-based.
@@ -11,10 +12,13 @@ The goals for such a system would be for the LLM to actually improve upon the su
 
 In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. Teachers will not be concerned whether students are "cheating", because the LLM is constantly evaluating the student. "Homework", if any, would shift toward things that should not be done on a computer.
 
-I had the idea for this app because I will be homeschooling my son soon when he starts Kindergarten, and I want to maximize his potential. It could be used in other school settings as well. It's better as a community project, as anything shaped by VC / Silicon Valley culture will be too opinionated, and possibly terrible. Flounder mode!
+I had the idea for this app because I will be homeschooling my son soon when he starts Kindergarten, and I want to maximize his potential. It could be used in other school settings as well. It's better as a community project, as anything shaped by VC / Silicon Valley culture will be too opinionated, and possibly terrible. 
+
+**I'm a doctor, Jim, not a software engineer.** Please forgive any rookie errors. (I had previously used Rails over a decade ago in college, so I re-learned it for this). LLMs were used, of course, but I don't think you will find any large blocks of verbatim LLM output. There are no tests yet, sorry.
 
 ## Features
 **App is at an early stage. Contributions welcome.**
+
 - Rails 8
 - Self-hostable with docker
 - Teacher and Student dashboards
@@ -29,9 +33,13 @@ I had the idea for this app because I will be homeschooling my son soon when he 
 - App name can be changed via env variable
 - NO plan for mobile support, as this would not allow the needed large screen area. 
 
-**I'm a doctor, Jim, not a software engineer.** Please forgive any rookie errors. (I had previously used Rails over a decade ago in college, so I re-learned it for this). LLMs were used, of course, but I don't think you will find any large blocks of verbatim LLM output. There are no tests yet, sorry.
+### Frameworks, Tooling, etc.
+ - Rails 8, Postgres, Hotwire 
+ - Ruby 3.4.1
+ - Tailwind + Shoelace components
+ - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
 
-# Planned Major Features
+### Planned Major Features
 - STT and TTS
 - Native voice model support (non-streaming, then streaming)
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
@@ -43,21 +51,15 @@ I had the idea for this app because I will be homeschooling my son soon when he 
 - Resource archive and use tracking
 - Support any openAI-compatible API / local inference servers
 
-## Security
+### Security
 - Devise for authentication
 - Teacher/Admin and Student roles
 - Designed for Docker use in a local secure environment
 - Not designed for exposure to public internet. SSL not forced by default. If you want to make it publically available, make sure you configure config.assume_ssl and config.force_ssl in config/environments/production.rb.
 - Note! The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
 
-# Frameworks, Tooling, etc.
- - Rails 8, Postgres, Hotwire 
- - Ruby 3.4.1
- - Tailwind + Shoelace components
- - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
 
 ## Setup Instructions
-
 Create an account on OpenRouter and get an API key.
 
 For a development server using devcontainer, create `.env.development` in the .devcontainer folder, and add the required variables as below.
@@ -92,7 +94,7 @@ To build and run with docker, run `docker compose up -d`.
     OPENROUTER_ACCESS_TOKEN=[your token]  #Ensure your environment is secure before adding API keys
     ```
 
-# How to Use
+## How to Use
  
 - Create a teacher account using the teacher signup code.
 - Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. Some models are better at tool use and instruction-following than others. Try different ones. (Ensure your database is secure before adding any API keys.)
@@ -107,9 +109,9 @@ To build and run with docker, run `docker compose up -d`.
 
 
 
-# Contributor guidelines:
+## Contributor guidelines:
 - I would like for the core principles to remain intact, particularly that it able to be self-hosted and used in a homeschool or small group setting. However, it should be usable for any kind of learning.
 - Make the code easy to follow / approachable so that a wide audience may contribute. 
 
-# License
+## License
 This project is licensed under the AGPL v3. See LICENSE.md.
