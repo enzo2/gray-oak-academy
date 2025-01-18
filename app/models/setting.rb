@@ -6,7 +6,7 @@ class Setting < ApplicationRecord
   store_accessor :settings, :openrouter_model
   store_accessor :settings, :openrouter_access_token
 
-  # for students, use the teacher's settings
+  # for students, if adopted by a teacher, use the teacher's settings
   def openrouter_model
     if user.role_student? && user.teacher
       user.teacher.settings.openrouter_model
