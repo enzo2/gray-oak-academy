@@ -1,33 +1,28 @@
 # Gray Oak Academy
 
 ## Background
-Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. For totally self-directed students, a simple LLM chat may suffice. However, for K-12, or for "learning how to learn", we need a teacher in the loop. To create a high quality LLM tutor, the minimal requirements are:
+Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. For totally self-directed students, a simple LLM chat may suffice. Otherwise, and especially for K-12, we need a teacher in the loop. To create a high quality LLM tutor, the minimal requirements are:
 1. A curriculum management component, so that a supervising teacher can specify what is being taught, with LLM assistance.
 2. A learning resource management component, to enable use of resources that are not part of an LLM's knowledge base, like videos, websites, software, physical items/tools/places/people. By definition, this cannot be LLM-based.
 3. Prompt transparency: the ability to edit the base prompts defining the teaching methodology, principles, and values for the LLM to follow. 
 4. RAG and/or ultra-long-context prompting in order to take into account previous lessons and student performance. (The teacher should also review LLM-generated progress reports.)
-5. An LLM chat interface, prompted with all of the above, that can function at or above the level of a paid tutor. Therefore, it needs multimodal interaction, adequate screen space to interact with the student in an arbitrary way (like a desk-*Not* cell phone-friendly), and sandboxed generative UI, including code execution.
+5. An LLM chat interface, prompted with all of the above, that can function at or above the level of a private tutor. Therefore, it needs multimodal interaction, adequate screen space to interact with the student in an arbitrary way (like a desk-*Not* cell phone-friendly), and sandboxed generative UI, including code execution.
 
-The goals for such a system would be for the LLM to actually improve upon the supervising teacher's lesson plans, perhaps by teaching more foundationally, in novel ways, and with the use of engaging just-in-time applets. 
+The system should not only give a top-notch education, but ideally improve upon the supervising teacher's plan. This could include teaching more foundationally, adapting to the student's progress, and generating just-in-time applets and games. It could even break into the real world—for example, if "3D printer" were marked as a resource, the LLM could develop a device in concert with the student, generate an OpenSCAD file, and ask the student to print it for the next lesson. 
 
-In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. Teachers will not be concerned whether students are "cheating", because the LLM is constantly evaluating the student. "Homework", if any, would shift toward things that should not be done on a computer.
+In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. Teachers will not be concerned whether students are "cheating" with LLMs, because the LLM is working for the teacher and constantly evaluating the student. "Homework", if any, would shift toward things that should not be done on a computer. Teachers will be challenged to incorporate a variety of tangible tools, demonstrations, and human resources, to hold students' interest. Students should immediately feel satisfied that their knowledge is practical and useful.
 
-I had the idea for this app because I will be homeschooling my son soon when he starts Kindergarten, and I want to maximize his potential. It could be used in other school settings as well. It's better as a community project, as anything shaped by VC / Silicon Valley culture will be too opinionated, and possibly terrible. 
-
-**I'm a doctor, Jim, not a software engineer.** Please forgive any rookie errors. (I had previously used Rails over a decade ago in college, so I re-learned it for this). LLMs were used, of course, but I don't think you will find any large blocks of verbatim LLM output. There are no tests yet, sorry.
+**I'm a doctor, Jim, not a software engineer.** Please forgive any rookie errors. LLMs were used, of course, but not without heavy iteration. There are no tests yet, sorry.
 
 ## Features
 **App is at an early stage. Contributions welcome.**
-
-- Rails 8
 - Self-hostable with docker
-- Teacher and Student dashboards
+- Teacher and Student views
 - Curriculum management: Courses, Lessons, Lesson Plans
 - One-click LLM generation of course outlines, lesson list, and lesson plans
 - Resource management, linkable to lessons
 - Default set of base prompts in the DB seeds (obviously, these are opinionated)
 - Lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
-- LLM can use markdown and HTML / generative UI
 - LLM can create and run Javascript applets, access browser APIs
 - LLM can complete the lesson and save the lesson summary
 - App name can be changed via env variable
@@ -48,6 +43,7 @@ I had the idea for this app because I will be homeschooling my son soon when he 
 - Additional chalkboard tools (drawing pad, send screenshot to LLM)
 - Additional LLM tools: activate drawing pad, retrieve screenshot, display image/pdf
 - Cost tracking
+- Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
 - Support any openAI-compatible API / local inference servers
 
@@ -100,7 +96,7 @@ To build and run with docker, run `docker compose up -d`.
 - Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. Some models are better at tool use and instruction-following than others. Try different ones. (Ensure your database is secure before adding any API keys.)
 - Go to Prompts if you want to change your system prompts.
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
-- You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first.
+- You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
 - Make a student account. On the teacher accou, go to Students, adopt the student, and enroll them in the course.
 - The student can then go to their dashboard and try out the lesson.
@@ -108,9 +104,14 @@ To build and run with docker, run `docker compose up -d`.
 - Ask the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."
 
 
-
 ## Contributor guidelines:
-- I would like for the core principles to remain intact, particularly that it able to be self-hosted and used in a homeschool or small group setting. However, it should be usable for any kind of learning.
+Maintain the core app principles:
+- The goal is to meet or exceed the level of a private tutor 
+- Self-hostable, and ideally improve in this respect
+- Suitable for all ages
+- All LLM prompts should be user-editable, and avoid testing with only one particular LLM
+
+I would like for the core principles to remain intact, particularly that it able to be self-hosted and used in a homeschool or small group setting. However, it should be usable for any kind of learning.
 - Make the code easy to follow / approachable so that a wide audience may contribute. 
 
 ## License
