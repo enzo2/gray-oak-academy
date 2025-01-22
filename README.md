@@ -35,13 +35,15 @@ In other words, this is the opposite of the "do my homework for me" status quo t
  - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
 
 ### Planned Major Features
-- STT and TTS
-- Native voice model support (non-streaming, then streaming)
+- Images, Chalkboard screen capturing
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
+- STT and TTS
+- Native voice model support (turn-based, then realtime)
 - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - RAG: pgvector + neighbor gem
 - Additional chalkboard tools (drawing pad, send screenshot to LLM)
-- Additional LLM tools: activate drawing pad, retrieve screenshot, display image/pdf
+- Finish resource file support (LLM access to saved files)
+- Additional LLM tools: activate drawing pad, retrieve screenshot, display resource (image/pdf)
 - Cost tracking
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
@@ -72,23 +74,12 @@ To build and run with docker, run `docker compose up -d`.
 
 ### .env Files
 
--   `.env`:
+-   `/.env`:
     ```
     #Postgres container doesn't need the full .env.production, so just put the DB_PASSWORD here for use by docker-compose.yml.
     DB_PASSWORD=....
     ```
--   `.env.development` and `.env.production` 
-    ```
-    APP_NAME=Gray Oak Academy  #Can be personalized
-    WEBMASTER_EMAIL_ADDRESS=webmaster@example.com
-    SMTP_ADDRESS=[your SMTP server URL]
-    SMTP_PORT=587
-    SMTP_USER=[your username]
-    SMTP_PASSWORD=[your pw]
-    TEACHER_SIGNUP_CODE=123456  #Set your own code here
-    DEFAULT_OPENROUTER_MODEL=anthropic/claude-3.5-sonnet:beta #Can be overridden in user settings; consider leaving a free model as default
-    OPENROUTER_ACCESS_TOKEN=[your token]  #Ensure your environment is secure before adding API keys
-    ```
+-   `/.devcontainer/.env.development` and `/.env.production`: see `.env.production.example`. 
 
 ## How to Use
  
@@ -109,10 +100,9 @@ Maintain the core app principles:
 - The goal is to meet or exceed the level of a private tutor 
 - Self-hostable, and ideally improve in this respect
 - Suitable for all ages
-- All LLM prompts should be user-editable, and avoid testing with only one particular LLM
-
-I would like for the core principles to remain intact, particularly that it able to be self-hosted and used in a homeschool or small group setting. However, it should be usable for any kind of learning.
+- Follow generally accepted Rails architecture, keep controllers light, models heavy
 - Make the code easy to follow / approachable so that a wide audience may contribute. 
+- All LLM prompts should be user-editable, and avoid testing with only one particular LLM
 
 ## License
 This project is licensed under the AGPL v3. See LICENSE.md.

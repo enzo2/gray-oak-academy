@@ -12,7 +12,9 @@
 /.bundle
 
 # Ignore all environment files
-.env*
+.env
+.env.production
+.env.development
 
 # Ignore all logfiles and tempfiles.
 *.tmp
