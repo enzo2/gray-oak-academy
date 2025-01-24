@@ -12,7 +12,7 @@ export default class extends Controller {
   }
 
   handleMenuSelect(event) {
-    console.log("Handling menu select", event.detail.item.value)
+    //console.log("Handling menu select", event.detail.item.value)
     if (event.detail.item.value === 'file') {
       this.fileInputTarget.click()
     } else if (event.detail.item.value === 'url') {
@@ -29,7 +29,7 @@ export default class extends Controller {
   }
 
   handleFiles(event) {
-    console.log("Handling files")
+    //console.log("Handling files")
     const files = Array.from(event.target.files)
     files.forEach(file => {
       if (!this.canAddMoreImages()) return
@@ -40,7 +40,7 @@ export default class extends Controller {
   }
 
   handleUrl(event) {
-    console.log("Handling URL input")
+    //console.log("Handling URL input")
     if (event.key === 'Enter') {
       this.handleUrlInput()
     }
@@ -64,12 +64,12 @@ export default class extends Controller {
     }
 
     try {
-      console.log("Validating image URL through proxy")
+      //console.log("Validating image URL through proxy")
       const proxyUrl = `/proxy/image?url=${encodeURIComponent(url)}`
       const response = await fetch(proxyUrl, { method: 'HEAD' })
-      console.log(response.headers.get('Content-Type'))
+      //console.log(response.headers.get('Content-Type'))
       const contentType = response.headers.get('Content-Type').split(';')[0]
-      console.log("Content-Type:", contentType)
+      //console.log("Content-Type:", contentType)
       if (!["image/png", "image/jpeg", "image/webp"].includes(contentType)) {
         alert("Invalid image type. Only PNG, JPEG, and WebP are allowed.")
         return
@@ -97,7 +97,7 @@ export default class extends Controller {
   }
 
   addImage(image) {
-    console.log("Adding image", image)
+    //console.log("Adding image", image)
     if (image.url) {
       this.images.push(image)
       this.updateImagesData()
@@ -118,7 +118,7 @@ export default class extends Controller {
   }
 
   updatePreview() {
-    console.log("Updating preview")
+    //console.log("Updating preview")
     this.previewAreaTarget.innerHTML = ""
     if (this.images.length === 0) {
       this.previewAreaTarget.classList.add("hidden")
@@ -144,7 +144,7 @@ export default class extends Controller {
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
             data-index="${index}" 
-            class="absolute top-0 right-0 bg-gray-500 rounded-md [&::part(base)]:p-[4px] text-white"
+            class="absolute top-0 right-0 bg-gray-500 rounded-md [&::part(base)]:p-[4px] text-white">
           </sl-icon-button>`
       }
       this.previewAreaTarget.appendChild(previewElement)
@@ -152,7 +152,7 @@ export default class extends Controller {
   }
 
   removeImage(event) {
-    console.log("Removing image")
+    //console.log("Removing image")
     const button = event.target.closest('sl-icon-button')
     if (button) {
       const index = button.dataset.index
@@ -165,7 +165,7 @@ export default class extends Controller {
   }
 
   updateImagesData() {
-    console.log("Updating images data")
+    //console.log("Updating images data")
     const processedImages = this.images.map(image => {
       if (image.url) {
         return { 
@@ -184,7 +184,7 @@ export default class extends Controller {
   }
 
   paste(event) {
-    console.log("Pasting image")
+    //console.log("Pasting image")
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (const item of items) {
       if (item.type.indexOf("image") === 0) {

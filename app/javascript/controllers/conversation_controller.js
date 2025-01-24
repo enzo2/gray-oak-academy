@@ -4,29 +4,27 @@ export default class extends Controller {
   static targets = ["messages"]
 
   connect() {
-    //console.log("Conversation controller connected")
     this.scrollToBottom()
     this.setupMutationObserver()
   }
 
   scrollToBottom() {
-    console.log("Scrolling to bottom")
-    const messagesContainer = this.messagesTarget
-    messagesContainer.scrollTop = messagesContainer.scrollHeight
+    if (this.messagesTarget.lastElementChild) {
+      this.messagesTarget.lastElementChild.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
   setupMutationObserver() {
-    //console.log("Setting up mutation observer")
     const observer = new MutationObserver((mutations) => {
-      for (let mutation of mutations) {
-        if (mutation.type === 'childList') {
-          const addedNode = mutations[0].addedNodes[0];
-          if (addedNode && addedNode.id && addedNode.id.endsWith('_messages')) {
-            this.scrollToBottom()
-            break;
-          }
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach((node, index) => {
+            console.log(`Added node ${index}:`, node);
+            // Trigger scrollToBottom for any added node
+            this.scrollToBottom();
+          });
         }
-      }
+      });
     })
 
     observer.observe(this.messagesTarget, {

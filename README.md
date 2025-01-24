@@ -17,7 +17,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 ## Features
 **App is at an early stage. Contributions welcome.**
 - Self-hostable with docker
-- Teacher and Student views
+- Teacher and Student views, dark mode
 - Curriculum management: Courses, Lessons, Lesson Plans
 - One-click LLM generation of course outlines, lesson list, and lesson plans
 - Resource management, linkable to lessons

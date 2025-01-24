@@ -1,8 +1,8 @@
-<div class="grow bg-slate-100 dark:bg-gray-900">
-  <div class="h-8 p-2 bg-gray-200 dark:bg-gray-800 flex justify-start">
-    <button id="printButton" class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded">
+<div class="grow bg-slate-100 dark:bg-gray-900 flex flex-col h-full">
+  <div class="h-8 p-2 flex justify-start shrink-0">
+    <button id="printButton" class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded border-b">
       <sl-icon name="printer"></sl-icon>
     </button>
   </div>
-  <div id="chalkboard" class="w-full h-full p-4" data-code-executor-target="chalkboard" data-controller="print-chalkboard" data-print-chalkboard-target="chalkboard"></div>
+  <div id="chalkboard" class="flex-1 p-4 overflow-auto" data-code-executor-target="chalkboard" data-controller="print-chalkboard" data-print-chalkboard-target="chalkboard"></div>
 </div>
