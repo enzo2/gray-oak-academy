@@ -125,17 +125,13 @@ export default class extends Controller {
           </button>
         `
       } else {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          previewElement.innerHTML = `
-            <img src="${e.target.result}" class="h-20 w-20 object-cover rounded" alt="Image ${index + 1}">
-            <span class="block text-xs mt-1">${image.name}</span>
-            <button data-action="new-message#removeImage" data-index="${index}" class="absolute top-0 right-0 bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center hover:bg-gray-300">
-              <sl-icon name="x"></sl-icon>
-            </button>
-          `
-        }
-        reader.readAsDataURL(image)
+        previewElement.innerHTML = `
+          <img src="${image.data}" class="h-20 w-20 object-cover rounded" alt="Image ${index + 1}">
+          <span class="block text-xs mt-1">${image.name}</span>
+          <button data-action="new-message#removeImage" data-index="${index}" class="absolute top-0 right-0 bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center hover:bg-gray-300">
+            <sl-icon name="x"></sl-icon>
+          </button>
+        `
       }
       this.previewAreaTarget.appendChild(previewElement)
     })

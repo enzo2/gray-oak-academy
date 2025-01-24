@@ -17,6 +17,7 @@ gem "puma", "< 7"
 gem "solid_queue"
 gem "solid_cable"
 gem "solid_cache"
+gem "image_processing"
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 # gem "kamal", require: false
@@ -32,7 +33,7 @@ gem "stimulus-rails"
 gem "devise"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
-#gem "markdown_views", "~> 3.0"
+# gem "markdown_views", "~> 3.0"
 gem "markdown_views", git: "https://github.com/enzo2/markdown_views.git", branch: "patch-2"
 
 gem "acts_as_list"

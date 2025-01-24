@@ -14,7 +14,7 @@
           </sl-menu-item>
         </sl-menu>
       </sl-dropdown>
-      <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "conversation#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
+      <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "new-message#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
       <sl-dialog label="Add image via URL" class="" data-new-message-target="urlDialog">
         <sl-input data-new-message-target="urlInput" data-action="new-message#handleUrl" placeholder="Enter image URL" class=""></sl-input>
         <sl-button slot="footer" data-action="click->new-message#submitUrl">Submit</sl-button>
