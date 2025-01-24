@@ -4,28 +4,24 @@ export default class extends Controller {
   static targets = ["messages"]
 
   connect() {
+    //console.log("Conversation controller connected")
     this.scrollToBottom()
     this.setupMutationObserver()
   }
 
   scrollToBottom() {
+    console.log("Scrolling to bottom")
     const messagesContainer = this.messagesTarget
     messagesContainer.scrollTop = messagesContainer.scrollHeight
   }
 
   setupMutationObserver() {
+    //console.log("Setting up mutation observer")
     const observer = new MutationObserver((mutations) => {
       for (let mutation of mutations) {
         if (mutation.type === 'childList') {
-          // Check if the added node is a message
-          const addedNodes = Array.from(mutation.addedNodes);
-          const isNewMessage = addedNodes.some(node => 
-            node.nodeType === Node.ELEMENT_NODE && 
-            node.id && 
-            node.id.endsWith('_messages')
-          );
-
-          if (isNewMessage) {
+          const addedNode = mutations[0].addedNodes[0];
+          if (addedNode && addedNode.id && addedNode.id.endsWith('_messages')) {
             this.scrollToBottom()
             break;
           }
@@ -38,4 +34,5 @@ export default class extends Controller {
       subtree: true
     })
   }
+
 }

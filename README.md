@@ -10,7 +10,7 @@ Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize t
 
 The system should ideally improve upon the supervising teacher's plan. This could include teaching more foundationally, adapting to the student's progress, and generating just-in-time applets and games. It could even break into the real world—for example, if "3D printer" were marked as a resource, the LLM could develop a device in concert with the student, generate an OpenSCAD file, and ask the student to print it for the next lesson. Such things may not always work with the current generation of LLMs, but as cost per intelligence comes down, it's a good time to get started.
 
-In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. The idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward things that should not be done on a computer. Teachers will be challenged to incorporate a variety of tangible tools, demonstrations, and even human resources, to hold students' interest. Students should immediately feel satisfied that their new knowledge is practical and useful, and no lesson should end on an ambiguous or confusing note.   
+In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. The idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward exploratory learning and meaningful application. Teachers will be challenged to incorporate a variety of tangible tools, demonstrations, and even human resources, to hold students' interest. The teacher will also be freed up to consider each student's overall trajectory, and adjust the curriculum accordingly. Students should immediately feel satisfied that their new knowledge is practical and useful.
 
 **I'm a doctor, Jim, not a software engineer.** Please forgive any rookie errors. LLMs were used, of course, but not without heavy iteration. There are no tests yet, sorry.
 
@@ -89,7 +89,7 @@ To build and run with docker, run `docker compose up -d`.
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
-- Make a student account. On the teacher accou, go to Students, adopt the student, and enroll them in the course.
+- Make a student account. On the teacher account, go to Students, adopt the student, and enroll them in the course.
 - The student can then go to their dashboard and try out the lesson.
 - To just try out the LLM outside of a lesson, go to LLM Chat.
 - Ask the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."

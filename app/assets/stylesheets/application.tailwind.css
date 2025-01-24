@@ -2,16 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {  /*where you can re-add styles to base elements that tailwind removed */
+@layer base {  
+  /*where you can re-add styles to base elements that tailwind removed */
+  /* or fix the default base styles that tailwind added */
   /* dont add h1, h2 etc, use 'prose' instead */
 
   input[type="radio"] {
     @apply bg-transparent border-2 focus:ring-offset-0 focus:ring-0;
   }
 
+  [type="text"] {
+    @apply bg-transparent border-0 focus:ring-offset-0 focus:ring-0;
+  }
+
   input[type="file"] {
     @apply file:font-sans text-xs file:border-0 file:p-2;
   }
+
 }
 
 

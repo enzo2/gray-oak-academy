@@ -5,6 +5,9 @@ class Message < ApplicationRecord
   # ? acts_as_list scope: :conversation
   belongs_to :conversation
 
+  # Images are kept separately.
+  has_many :images, dependent: :destroy
+
   after_create_commit -> { broadcast_created }
   after_update_commit -> { broadcast_updated }
 
@@ -26,12 +29,27 @@ class Message < ApplicationRecord
     )
   end
 
-  # Format the messages for the LLM api
+  # Return content in JSON format with base64 images for LLM APIs.
+  def content_with_images
+    content_json = { "type": "text", "text": content }
+    images.map { |image| content_json.merge({ "type": "image_url", "image_url": { "url": image.image_for_LLM } }) }
+    content_json.is_a?(Array) ? content_json : [ content_json ]
+  end
+
+  # Format messages for the LLM api
   def self.for_completion(messages)
     # Remove the latest message if it's blank, since some LLM providers don't like blank messages
     if messages.last.content.blank?
       messages = messages[0...-1]
     end
     messages.map { |message| { role: message.role, content: message.content } }
+  end
+
+  def self.for_completion_with_images(messages)
+    # Remove the latest message if it's blank, since some LLM providers don't like blank messages
+    if messages.last.content.blank?
+      messages = messages[0...-1]
+    end
+    messages.map { |message| { role: message.role, content: message.content_with_images } }
   end
 end
