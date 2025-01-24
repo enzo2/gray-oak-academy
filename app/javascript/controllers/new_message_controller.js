@@ -140,9 +140,14 @@ export default class extends Controller {
 
   removeImage(event) {
     console.log("Removing image")
-    const index = event.target.dataset.index
-    this.images.splice(index, 1)
-    this.updatePreview()
+    const button = event.target.closest('button')
+    if (button) {
+      const index = button.dataset.index
+      this.images.splice(index, 1)
+      this.updatePreview()
+    } else {
+      console.error("Remove button not found")
+    }
   }
 
   updateImagesData() {
