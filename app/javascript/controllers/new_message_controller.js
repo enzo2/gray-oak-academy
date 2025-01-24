@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "menu", "urlDialog"];
+  static MAX_IMAGES = 4;
 
   connect() {
     //console.log("New message controller connected")
@@ -18,15 +19,20 @@ export default class extends Controller {
       this.urlDialogTarget.show()
     }
   }
+  
+  canAddMoreImages() {
+    if (this.images.length >= this.constructor.MAX_IMAGES) {
+      alert(`You can only add up to ${this.constructor.MAX_IMAGES} images per message.`)
+      return false
+    }
+    return true
+  }
 
   handleFiles(event) {
     console.log("Handling files")
     const files = Array.from(event.target.files)
     files.forEach(file => {
-      if (this.images.length >= 4) {
-        alert("You can only upload up to 4 images per message.")
-        return
-      }
+      if (!this.canAddMoreImages()) return
       if (!this.validateImage(file)) return
       this.addImage(file)
     })
@@ -50,10 +56,8 @@ export default class extends Controller {
 
   async handleUrlInput() {
     const url = this.urlInputTarget.value
-    if (this.images.length >= 4) {
-      alert("You can only add up to 4 images per message.")
-      return
-    }
+    if (!this.canAddMoreImages()) return
+    
     if (!URL.canParse(url)) {
       alert("Invalid URL.")
       return
@@ -82,11 +86,11 @@ export default class extends Controller {
 
   validateImage(file) {
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      alert("Invalid image type. Only PNG, JPEG, and WebP are allowed.")
+      alert("Invalid image type. Only PNG, JPEG, and WebP are allowed.");
       return false
     }
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert("Image size must be less than 5MB.")
+      alert("Image size must be less than 5MB.");
       return false
     }
     return true
@@ -96,6 +100,7 @@ export default class extends Controller {
     console.log("Adding image", image)
     if (image.url) {
       this.images.push(image)
+      this.updateImagesData()
       this.updatePreview()
     } else {
       const reader = new FileReader()
@@ -105,6 +110,7 @@ export default class extends Controller {
           type: image.type,
           name: image.name
         })
+        this.updateImagesData()
         this.updatePreview()
       }
       reader.readAsDataURL(image)
@@ -143,7 +149,6 @@ export default class extends Controller {
       }
       this.previewAreaTarget.appendChild(previewElement)
     })
-    this.updateImagesData()
   }
 
   removeImage(event) {
@@ -152,6 +157,7 @@ export default class extends Controller {
     if (button) {
       const index = button.dataset.index
       this.images.splice(index, 1)
+      this.updateImagesData()
       this.updatePreview()
     } else {
       console.error("Remove button not found")
@@ -182,10 +188,7 @@ export default class extends Controller {
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (const item of items) {
       if (item.type.indexOf("image") === 0) {
-        if (this.images.length >= 4) {
-          alert("You can only add up to 4 images per message.")
-          return
-        }
+        if (!this.canAddMoreImages()) return
         if (!["image/png", "image/jpeg", "image/webp"].includes(item.type)) {
           alert("Invalid image type. Only PNG, JPEG, and WebP are allowed.")
           return
