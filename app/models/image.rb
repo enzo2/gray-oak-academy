@@ -1,4 +1,6 @@
 class Image < ApplicationRecord
+  # Images may be stored as URI or file.
+
   # fields:
   #   t.string :uri, null: true
   #   t.enum :content_type, enum_type: :content_type, null: false

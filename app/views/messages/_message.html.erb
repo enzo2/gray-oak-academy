@@ -1,18 +1,21 @@
 <div id="<%= dom_id(message) %>_messages">
-  <% if message.role_user? %>
-    <div class="bg-sky-200 dark:bg-sky-800 rounded-lg my-2 px-4 py-2 w-fit">
-      <%= simple_format(message.content, {}, wrapper_tag: "p") %>
-    </div>
-  <% else %>
-    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4 
-                prose dark:prose-invert 
-                max-w-none leading-relaxed 
-                prose-ul:my-2
-                [&>:not(:first-child)]:mt-3
-                [&>:not(:last-child)]:mb-3
-                " 
-          data-code-executor-target="message">
-      <%= markdown(message.content) %>
-    </div>
-  <% end %>
+<% if message.role_user? %>
+  <div class="bg-sky-200 dark:bg-sky-800 rounded-lg my-2 px-4 py-2 w-fit">
+    <% message.images.each do |image| %>
+      <%= image_tag(image.uri || image.file.variant(resize_to_limit: [100, 100]), alt: image.description, class: "m-2", size: "128") %>
+    <% end %>
+    <%= simple_format(message.content, {}, wrapper_tag: "p") %>
+  </div>
+<% else %>
+  <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4 
+              prose dark:prose-invert 
+              max-w-none leading-relaxed 
+              prose-ul:my-2
+              [&>:not(:first-child)]:mt-3
+              [&>:not(:last-child)]:mb-3
+              " 
+        data-code-executor-target="message">
+    <%= markdown(message.content) %>
+  </div>
+<% end %>
 </div>

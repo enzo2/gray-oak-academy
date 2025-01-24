@@ -2,9 +2,10 @@ class Message < ApplicationRecord
   include ActionView::RecordIdentifier
 
   enum :role, { system: "system", assistant: "assistant", user: "user" }, prefix: true
-  # ? acts_as_list scope: :conversation
+  # ? acts_as_list scope: :conversation  #MEssages are ordered correctly without this.
   belongs_to :conversation
 
+  # Message content field contains text.
   # Images are kept separately.
   has_many :images, dependent: :destroy
 
@@ -41,6 +42,7 @@ def content_with_images
 end
 
   # Format messages for the LLM api
+  # Deprecated now that images are added
   def self.for_completion(messages)
     # Remove the latest message if it's blank, since some LLM providers don't like blank messages
     if messages.last.content.blank?

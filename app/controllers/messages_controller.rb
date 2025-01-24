@@ -17,9 +17,9 @@ class MessagesController < ApplicationController
           )
         else
           # Handle file-based images (uploaded or pasted)
-          decoded_data = image_data["data"].split(",")[1]
+          data = image_data["data"].split(",")[1]
           blob = ActiveStorage::Blob.create_and_upload!(
-            io: StringIO.new(Base64.decode64(decoded_data)),
+            io: StringIO.new(Base64.decode64(data)),
             filename: image_data["name"] || "pasted-image-#{Time.current.to_i}.#{image_data['type'].split('/')[1]}",
             content_type: image_data["type"]
           )
