@@ -60,10 +60,12 @@ export default class extends Controller {
     }
 
     try {
-      console.log("Validating image URL")
-      const response = await fetch(url, { mode: 'no-cors', method: 'HEAD' })
-      console.log("content-type:", response.headers )
-      const contentType = response.headers.get('Content-Type')
+      console.log("Validating image URL through proxy")
+      const proxyUrl = `/proxy/image?url=${encodeURIComponent(url)}`
+      const response = await fetch(proxyUrl, { method: 'HEAD' })
+      console.log(response.headers.get('Content-Type'))
+      const contentType = response.headers.get('Content-Type').split(';')[0]
+      console.log("Content-Type:", contentType)
       if (!["image/png", "image/jpeg", "image/webp"].includes(contentType)) {
         alert("Invalid image type. Only PNG, JPEG, and WebP are allowed.")
         return

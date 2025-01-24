@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_01_17_145810) do
+ActiveRecord::Schema[8.0].define(version: 2025_01_22_174847) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
+  create_enum "content_type", ["image/png", "image/jpeg", "image/webp"]
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
   create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
@@ -91,6 +92,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_01_17_145810) do
     t.datetime "updated_at", null: false
     t.index ["course_id"], name: "index_enrollments_on_course_id"
     t.index ["student_id"], name: "index_enrollments_on_student_id"
+  end
+
+  create_table "images", force: :cascade do |t|
+    t.bigint "message_id"
+    t.string "uri"
+    t.enum "content_type", null: false, enum_type: "content_type"
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["message_id"], name: "index_images_on_message_id"
   end
 
   create_table "lesson_plans", force: :cascade do |t|
@@ -224,6 +235,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_01_17_145810) do
   add_foreign_key "courses", "users", column: "teacher_id"
   add_foreign_key "enrollments", "courses"
   add_foreign_key "enrollments", "users", column: "student_id"
+  add_foreign_key "images", "messages"
   add_foreign_key "lesson_plans", "lessons"
   add_foreign_key "lesson_plans", "users", column: "teacher_id"
   add_foreign_key "lesson_progresses", "lessons"

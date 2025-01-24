@@ -29,12 +29,16 @@ class Message < ApplicationRecord
     )
   end
 
-  # Return content in JSON format with base64 images for LLM APIs.
-  def content_with_images
-    content_json = { "type": "text", "text": content }
-    images.map { |image| content_json.merge({ "type": "image_url", "image_url": { "url": image.image_for_LLM } }) }
-    content_json.is_a?(Array) ? content_json : [ content_json ]
+# Return content in JSON format with base64 images for LLM APIs.
+def content_with_images
+  return content if images.empty?
+
+  content_json = [ { "type": "text", "text": content } ]
+  images.each do |image|
+    content_json << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
   end
+  content_json
+end
 
   # Format messages for the LLM api
   def self.for_completion(messages)

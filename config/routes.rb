@@ -14,6 +14,8 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root to: "application#index"
 
+  get "proxy/image", to: "messages#proxy_image"
+
   get "students/dashboard", as: :students_root
   get "admin/dashboard", as: :admin_root
   patch "user_settings", to: "user_settings#update"

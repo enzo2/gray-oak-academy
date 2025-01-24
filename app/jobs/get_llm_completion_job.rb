@@ -16,7 +16,7 @@ class GetLlmCompletionJob < ApplicationJob
       enable_tools: true
     )
 
-    messages = Message.for_completion(conversation.messages) # Get the array of message hashes with roles and content
+    messages = Message.for_completion_with_images(conversation.messages) # Get the array of message hashes with roles and content
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
 
