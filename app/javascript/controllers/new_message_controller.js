@@ -23,8 +23,8 @@ export default class extends Controller {
     console.log("Handling files")
     const files = Array.from(event.target.files)
     files.forEach(file => {
-      if (this.images.length >= 3) {
-        alert("You can only upload up to 3 images per message.")
+      if (this.images.length >= 4) {
+        alert("You can only upload up to 4 images per message.")
         return
       }
       if (!this.validateImage(file)) return
@@ -50,8 +50,8 @@ export default class extends Controller {
 
   async handleUrlInput() {
     const url = this.urlInputTarget.value
-    if (this.images.length >= 3) {
-      alert("You can only add up to 3 images per message.")
+    if (this.images.length >= 4) {
+      alert("You can only add up to 4 images per message.")
       return
     }
     if (!URL.canParse(url)) {
@@ -114,24 +114,32 @@ export default class extends Controller {
   updatePreview() {
     console.log("Updating preview")
     this.previewAreaTarget.innerHTML = ""
+    if (this.images.length === 0) {
+      this.previewAreaTarget.classList.add("hidden")
+    } else {
+      this.previewAreaTarget.classList.remove("hidden")
+    }
     this.images.forEach((image, index) => {
+      // Create a div for each image preview and append it to the previewAreaTarget 
       const previewElement = document.createElement('div')
       previewElement.classList.add('mr-2', 'relative')
       if (image.url) {
         previewElement.innerHTML = `
           <img src="${image.url}" class="h-20 w-20 object-cover rounded" alt="Image ${index + 1}">
-          <button data-action="new-message#removeImage" data-index="${index}" class="absolute top-0 right-0 bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center hover:bg-gray-300">
-            <sl-icon name="x"></sl-icon>
-          </button>
-        `
+          <sl-icon-button name="x"
+            data-action="click->new-message#removeImage" 
+            data-index="${index}" 
+            class="absolute top-0 right-0 bg-gray-500 rounded-md [&::part(base)]:p-[4px] text-white">
+          </sl-icon-button>`
       } else {
         previewElement.innerHTML = `
           <img src="${image.data}" class="h-20 w-20 object-cover rounded" alt="Image ${index + 1}">
-          <span class="block text-xs mt-1">${image.name}</span>
-          <button data-action="new-message#removeImage" data-index="${index}" class="absolute top-0 right-0 bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center hover:bg-gray-300">
-            <sl-icon name="x"></sl-icon>
-          </button>
-        `
+          <span class="block text-xs mt-1">${image.name.length > 15 ? `${image.name.slice(0, 10)}...${image.name.slice(-5)}` : image.name}</span>
+          <sl-icon-button name="x"
+            data-action="click->new-message#removeImage" 
+            data-index="${index}" 
+            class="absolute top-0 right-0 bg-gray-500 rounded-md [&::part(base)]:p-[4px] text-white"
+          </sl-icon-button>`
       }
       this.previewAreaTarget.appendChild(previewElement)
     })
@@ -140,7 +148,7 @@ export default class extends Controller {
 
   removeImage(event) {
     console.log("Removing image")
-    const button = event.target.closest('button')
+    const button = event.target.closest('sl-icon-button')
     if (button) {
       const index = button.dataset.index
       this.images.splice(index, 1)
@@ -174,8 +182,8 @@ export default class extends Controller {
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (const item of items) {
       if (item.type.indexOf("image") === 0) {
-        if (this.images.length >= 3) {
-          alert("You can only add up to 3 images per message.")
+        if (this.images.length >= 4) {
+          alert("You can only add up to 4 images per message.")
           return
         }
         if (!["image/png", "image/jpeg", "image/webp"].includes(item.type)) {

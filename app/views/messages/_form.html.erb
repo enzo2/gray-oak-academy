@@ -1,5 +1,6 @@
 <%= turbo_frame_tag "#{dom_id(conversation)}_message_form" do %>
   <%= form_with(model: Message.new, url: conversation_messages_path(conversation)) do |form| %>
+    <div data-new-message-target="previewArea" class="flex mt-2 bg-gray-100 dark:bg-gray-700 rounded-md p-4 hidden"></div>
     <div class="my-5 flex items-center">
       <sl-dropdown placement="top-end">
         <sl-icon-button slot="trigger" name="images" class="text-xl"></sl-icon-button>
@@ -19,7 +20,6 @@
         <sl-input data-new-message-target="urlInput" data-action="new-message#handleUrl" placeholder="Enter image URL" class=""></sl-input>
         <sl-button slot="footer" data-action="click->new-message#submitUrl">Submit</sl-button>
       </sl-dialog>
-      <div data-new-message-target="previewArea" class="flex mt-2"></div>
       <%= form.text_field :content, class: "form-input flex-grow mr-2", autofocus: true, data: { new_message_target: "contentField" } %>
       <%= form.hidden_field :images_data, data: { new_message_target: "imagesData" } %>
       <%= form.button type: :submit, class: "text-xl" do %>

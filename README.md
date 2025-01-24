@@ -22,6 +22,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - One-click LLM generation of course outlines, lesson list, and lesson plans
 - Resource management, linkable to lessons
 - Default set of base prompts in the DB seeds (obviously, these are opinionated)
+- Native LLM chat with image support
 - Lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - LLM can create and run Javascript applets, access browser APIs
 - LLM can complete the lesson and save the lesson summary
@@ -35,7 +36,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
  - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
 
 ### Planned Major Features
-- Images, Chalkboard screen capturing
+- Chalkboard screen capturing
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - STT and TTS
 - Native voice model support (turn-based, then realtime)
