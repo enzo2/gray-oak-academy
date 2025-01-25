@@ -51,7 +51,9 @@ class GetLlmCompletionJob < ApplicationJob
             tool_call_buffer[:name] ||= name if name.present?
             tool_call_buffer[:arguments] += arguments if arguments.present?
           end
-        elsif chunk["finish_reason"] == "tool_calls"
+        end
+
+        if chunk["finish_reason"] == "tool_calls"
           # Finalize and execute tool call when finish reason indicates tool call completion
           Rails.logger.debug "Calling tool with arguments: #{tool_call_buffer.inspect}"
           tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
