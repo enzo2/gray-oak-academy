@@ -10,24 +10,25 @@ Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize t
 
 The system should ideally improve upon the supervising teacher's plan. This could include teaching more foundationally, adapting to the student's progress, and generating just-in-time applets and games. It could even break into the real world—for example, if "3D printer" were marked as a resource, the LLM could develop a device in concert with the student, generate an OpenSCAD file, and ask the student to print it for the next lesson. Such things may not always work with the current generation of LLMs, but as cost per intelligence comes down, it's a good time to get started.
 
-In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. The idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward exploratory learning and meaningful application. Teachers will be challenged to incorporate a variety of tangible tools, demonstrations, and even human resources, to hold students' interest. The teacher will also be freed up to consider each student's overall trajectory, and adjust the curriculum accordingly. Students should immediately feel satisfied that their new knowledge is practical and useful.
+In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. The idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward exploratory learning and meaningful application. Teachers will be challenged to incorporate a variety of tangible tools, demonstrations, and even human resources, to hold students' interest. The teacher will also be freed up to consider each student's overall trajectory. Students should immediately feel satisfied that their new knowledge is practical and useful.
 
 **I'm a doctor, Jim, not a software engineer.** Please forgive any rookie errors. LLMs were used, of course, but not without heavy iteration. There are no tests yet, sorry.
 
-## Features
 **App is at an early stage. Contributions welcome.**
+
+## Features
 - Self-hostable with docker
 - Teacher and Student views, dark mode
 - Curriculum management: Courses, Lessons, Lesson Plans
 - One-click LLM generation of course outlines, lesson list, and lesson plans
 - Resource management, linkable to lessons
 - Default set of base prompts in the DB seeds (obviously, these are opinionated)
-- Native LLM chat with image support
+- Native LLM chat interface with image support
 - Lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - LLM can create and run Javascript applets, access browser APIs
 - LLM can complete the lesson and save the lesson summary
 - App name can be changed via env variable
-- NO plan for mobile support, as this would not allow the needed large screen area. 
+- NO plan for mobile support due to the need for adequate screen space.
 
 ### Frameworks, Tooling, etc.
  - Rails 8, Postgres, Hotwire 
@@ -36,12 +37,11 @@ In other words, this is the opposite of the "do my homework for me" status quo t
  - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
 
 ### Planned Major Features
-- STT and TTS
-- Native voice model support (turn-based, then realtime)
+- STT, TTS, and native voice model support (turn-based, then realtime)
 - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
-- RAG: pgvector + neighbor gem
 - Finish resource file support (LLM access to saved files)
+- RAG: pgvector + neighbor gem
 - Additional LLM tools: activate drawing pad, retrieve screenshot, display resource (image/pdf)
 - Cost tracking
 - Resource suggestions to the teacher based on lesson goals
