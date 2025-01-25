@@ -1,23 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Tailwind classes used:
-// print:hidden print:block print:bg-white print:w-full print:p-0
-
 export default class extends Controller {
-  static targets = ["chalkboard"]
+  static targets = ["chalkboard", "printButton"]
+  
+  print() {
 
-  connect() {
-    this.printButton = document.getElementById("printButton")
-    this.printButton.addEventListener("click", this.prepareForPrint.bind(this))
-  }
-
-  disconnect() {
-    this.printButton.removeEventListener("click", this.prepareForPrint)
-  }
-
-  prepareForPrint() {
-    document.body.classList.add("print:hidden")
-    this.chalkboardTarget.classList.add("print:block")
+    // This is a work in progress.
+    
+    document.body.classList.add("invisible")
+    this.chalkboardTarget.classList.add("visible", "absolute", "top-0", "left-0", "h-full", "w-full")
     window.print()
+    this.chalkboardTarget.classList.remove("visible", "absolute", "top-0", "left-0", "h-full", "w-full")
+    document.body.classList.remove("invisible")
+
   }
 }
