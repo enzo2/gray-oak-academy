@@ -36,13 +36,11 @@ In other words, this is the opposite of the "do my homework for me" status quo t
  - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
 
 ### Planned Major Features
-- Chalkboard screen capturing
-- Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - STT and TTS
 - Native voice model support (turn-based, then realtime)
 - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
+- Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - RAG: pgvector + neighbor gem
-- Additional chalkboard tools (drawing pad, send screenshot to LLM)
 - Finish resource file support (LLM access to saved files)
 - Additional LLM tools: activate drawing pad, retrieve screenshot, display resource (image/pdf)
 - Cost tracking
