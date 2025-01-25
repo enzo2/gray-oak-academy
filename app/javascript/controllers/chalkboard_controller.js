@@ -27,7 +27,7 @@ export default class extends Controller {
 
   openWhiteboard() {
      //For now just open https://excalidraw.com/
-     this.chalkboardTarget.innerHTML = `<iframe src="https://excalidraw.com/" class="h-full w-full"></iframe>`
+     this.chalkboardTarget.innerHTML = `<iframe src="https://excalidraw.com/" class="h-full w-full" allow="clipboard-read; clipboard-write;"></iframe>`
   }
 
 }

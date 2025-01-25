@@ -19,7 +19,7 @@ export default class extends Controller {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           mutation.addedNodes.forEach((node, index) => {
-            console.log(`Added node ${index}:`, node);
+            //console.log(`Added node ${index}:`, node);
             // Trigger scrollToBottom for any added node
             this.scrollToBottom();
           });
