@@ -1,12 +1,34 @@
-<div class="grow bg-slate-100 dark:bg-gray-900 flex flex-col h-full" data-controller="print-chalkboard">
-  <div id="chalkboard_toolbar" class="h-8 p-2 flex justify-start shrink-0">
+<div class="grow bg-slate-100 dark:bg-gray-900 flex flex-col h-full" data-controller="chalkboard">
+  <div id="chalkboard_toolbar" class="h-8 p-2 flex justify-start shrink-0 space-x-2 ml-4">
     <button 
       id="printButton" 
-      data-print-chalkboard-controller="printButton" 
-      data-action="click->print-chalkboard#print"
+      data-chalkboard-target="printButton" 
+      data-action="click->chalkboard#printChalkboard"
       class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded border-b">
       <sl-icon name="printer"></sl-icon>
     </button>
+    <button 
+      id="screenshotButton" 
+      data-chalkboard-target="screenshotButton" 
+      data-action="click->chalkboard#sendScreenshot"
+      class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded border-b">
+      <sl-icon name="camera"></sl-icon>
+    </button>
+    <!--
+    <button 
+      id="whiteboardButton" 
+      data-chalkboard-target="whiteboardButton" 
+      data-action="click->chalkboard#openWhiteboard"
+      class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded border-b">
+      <sl-icon name="pencil"></sl-icon>
+    </button>
+    -->
   </div>
-  <div id="chalkboard" class="flex-1 p-4 overflow-auto" data-code-executor-target="chalkboard" data-print-chalkboard-target="chalkboard"></div>
+  <sl-dialog label="Chalkboard screenshot instructions" data-chalkboard-target="screenshotDialog">
+    <p class="mb-2">The easiest way to take a screenshot and show it to the LLM is to use your computer's built-in screenshot tool.</p>
+    <p class="mb-2">You can paste images directly into the chat text box.</p>
+    <p class="mb-2"><b>Windows:</b> Press the 'PrtSc' (Print Screen) key (or 'Win ⊞ + Shift + S'), select the area, then click the chat text box and paste (Ctrl+V).</p>
+    <p class="mb-2"><b>Mac:</b> Press 'Cmd⌘ + Ctrl + Shift + 4', select the area, then click the chat text box and paste (Cmd⌘+V).</p>
+  </sl-dialog>
+  <div id="chalkboard" class="flex-1 pb-4 pl-4 pr-4 overflow-auto" data-code-executor-target="chalkboard" data-chalkboard-target="chalkboard"></div>
 </div>

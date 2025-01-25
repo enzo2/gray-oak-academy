@@ -2,7 +2,7 @@
 import 'darkModeManager';
 import "@hotwired/turbo-rails";
 import "controllers"; //pin of all from app/javascript/controllers
-import "channels" //pin of all from app/javascript/channels
+import "channels"; //pin of all from app/javascript/channels
 
 //shoelace
 import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path';
@@ -20,6 +20,6 @@ import "@shoelace-style/shoelace/dropdown";
 import "@shoelace-style/shoelace/menu";
 import "@shoelace-style/shoelace/menu-item";
 import "@shoelace-style/shoelace/input";
-//import "@shoelace-style/shoelace/checkbox";
 import "@shoelace-style/shoelace/dialog";
+//import "@shoelace-style/shoelace/checkbox";
 //import "@shoelace-style/shoelace/textarea";
