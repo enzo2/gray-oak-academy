@@ -197,9 +197,10 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     The chalkboard is large, essentially most of the viewport.
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call.
-    2) Render an applet: see below instructions.
+    2) Render an applet: instructions are below.
     3) Print: Student can print whatever's on the chalkboard.
     4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
+    5) Whiteboard / drawing pad: You can either navigate the charlkboard to https://excalidraw.com, or the user can press the toolbar button to do so.
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using markdown as usual.
     You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks.
