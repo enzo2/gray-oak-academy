@@ -5,8 +5,7 @@ export default class extends Controller {
   static targets = ["chalkboard", "printButton", "screenshotButton", "screenshotDialog"]
   
   connect() {
-    console.log("Chalkboard controller connected")
-
+    //console.log("Chalkboard controller connected")
   }
 
   printChalkboard() {
@@ -27,7 +26,8 @@ export default class extends Controller {
   }
 
   openWhiteboard() {
-     //Todo
+     //For now just open https://excalidraw.com/
+     this.chalkboardTarget.innerHTML = `<iframe src="https://excalidraw.com/" class="h-full w-full"></iframe>`
   }
 
 }
