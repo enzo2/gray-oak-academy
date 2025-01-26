@@ -34,19 +34,17 @@ In other words, this is the opposite of the "do my homework for me" status quo t
  - Rails 8, Postgres, Hotwire 
  - Ruby 3.4.1
  - Tailwind + Shoelace components
- - LLM API: OpenRouter (this avoids token limits and allows trying different models easily)
+ - OpenAI-compatible LLM API support (by default, OpenRouter, which avoids token limits and allows trying different models easily)
 
-### Planned Major Features
+### Planned Features
 - STT, TTS, and native voice model support (turn-based, then realtime)
 - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
-- Finish resource file support (LLM access to saved files)
+- Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
 - RAG: pgvector + neighbor gem
-- Additional LLM tools: activate drawing pad, retrieve screenshot, display resource (image/pdf)
 - Cost tracking
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
-- Support any openAI-compatible API / local inference servers
 
 ### Security
 - Devise for authentication
@@ -55,36 +53,32 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - Not designed for exposure to public internet. SSL not forced by default. If you want to make it publically available, make sure you configure config.assume_ssl and config.force_ssl in config/environments/production.rb.
 - Note! The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
 
-
 ## Setup Instructions
 Create an account on OpenRouter and get an API key.
+Create .env files as described in the next section and set up the required variables.
 
-For a development server using devcontainer, create `.env.development` in the .devcontainer folder, and add the required variables as below.
 Create /config/credentials/development.key and add a random 32-character string.
 Open the devcontainer with VSCode, etc.
 Run a server with bin/dev. 
 
-For a production server, create `.env` and `.env.production` in the root folder. Add the required variables as below.
 Create /config/credentials/production.key and add a random 32-character string.
-The default setup is not secure. It runs a server using Thruster and exposes port 80. Ensure this port is not in use by another process on your host machine, and is firewalled from the public internet, unless you set up SSL.
+The default setup is not secure. It runs a server using Thruster and exposes port 80. Ensure this port is not in use by another process on your host machine, and is firewalled from the public internet, unless you set up SSL. (Refer to Thruster docs or use another reverse proxy.) To only use Puma without Thruster, change the commented lines in the Dockerfile. 
 Confirm your settings in production.rb. Pay attention to config.assume_ssl and config.force_ssl if you plan on exposing the server or using a reverse proxy. 
-To only use Puma without Thruster, change the commented lines in the Dockerfile. 
 To build and run with docker, run `docker compose up -d`.
 
 ### .env Files
+.env files must be set up with the requisite variables. See the example files. 
 
--   `/.env`:
-    ```
-    #Postgres container doesn't need the full .env.production, so just put the DB_PASSWORD here for use by docker-compose.yml.
-    DB_PASSWORD=....
-    ```
--   `/.devcontainer/.env.development` and `/.env.production`: see `.env.production.example`. 
+For development:
+-  `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
+For production, both of the following are required:
+-   `/.env`: see `.env.example`. 
+-   `/.env.production`: see `.env.production.example`. 
 
-## How to Use
- 
+## Getting Started
 - Create a teacher account using the teacher signup code.
 - Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. Some models are better at tool use and instruction-following than others. Try different ones. (Ensure your database is secure before adding any API keys.)
-- Go to Prompts if you want to change your system prompts.
+- Go to Prompts if you want to review your system prompts.
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
@@ -92,7 +86,6 @@ To build and run with docker, run `docker compose up -d`.
 - The student can then go to their dashboard and try out the lesson.
 - To just try out the LLM outside of a lesson, go to LLM Chat.
 - Ask the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."
-
 
 ## Contributor guidelines:
 Maintain the core app principles:
