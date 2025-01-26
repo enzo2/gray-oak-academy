@@ -30,18 +30,17 @@ class Message < ApplicationRecord
     )
   end
 
-# Return content in JSON format with base64 images for LLM APIs.
-def content_with_images
-  return content if images.empty?
+  # Return content in JSON format with base64 images for LLM APIs.
+  def content_with_images
+    return content if images.empty?
 
-  content_json = [ { "type": "text", "text": content } ]
-  images.each do |image|
-    content_json << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
+    content_json = [ { "type": "text", "text": content } ]
+    images.each do |image|
+      content_json << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
+    end
+    content_json
   end
-  content_json
-end
 
-  # Format messages for the LLM api
   # Deprecated now that images are added
   def self.for_completion(messages)
     # Remove the latest message if it's blank, since some LLM providers don't like blank messages
@@ -51,6 +50,7 @@ end
     messages.map { |message| { role: message.role, content: message.content } }
   end
 
+  # Format messages for the LLM api
   def self.for_completion_with_images(messages)
     # Remove the latest message if it's blank, since some LLM providers don't like blank messages
     if messages.last.content.blank?

@@ -16,7 +16,7 @@ class QueryOpenrouterGenerationStatsJob < ApplicationJob
       # Placeholder for saving usage info to the DB
       Rails.logger.debug("Generation stats - Prompt tokens: #{prompt_tokens}, Completion tokens: #{completion_tokens}")
       Rails.logger.debug("Cost: #{total_cost}")
-      Rails.logger.debug("Cost: #{cache_discount}")
+      Rails.logger.debug("Cache discount: #{cache_discount}")
       Rails.logger.debug("Latency: #{latency} ms")
     rescue StandardError => e
       Rails.logger.error("Error querying generation stats: #{e.message}")

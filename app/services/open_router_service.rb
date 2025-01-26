@@ -1,5 +1,6 @@
 class OpenRouterService
   # Wrapper around OpenRouter gem
+  # Switched to ruby-openai gem, however still need this for querying the actual cost, when OpenRouter is used.
 
   require "faraday/retry"
 
@@ -71,11 +72,11 @@ class OpenRouterService
   private
 
   def default_model
-    [ ENV.fetch("DEFAULT_OPENROUTER_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_OPENROUTER_MODEL." } ]
+    [ ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." } ]
   end
 
   def default_access_token
-    ENV.fetch("OPENROUTER_ACCESS_TOKEN") { raise "Access token was neither provided nor set in ENV variable OPENROUTER_ACCESS_TOKEN." }
+    ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in ENV variable OPENAI_API_KEY." }
   end
 
   def create_client

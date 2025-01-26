@@ -1,6 +1,6 @@
 class OpenaiApiService
   # Wrapper around ruby-openai gem
-  # Base URI set in initializer
+  # Base URI set in config/initializers/openai.rb
 
   require "faraday/retry"
 
@@ -50,8 +50,11 @@ class OpenaiApiService
     # and will be blank.
     return if @stream_handler
 
-    # Get cost afterwards and save to DB.
-    QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+    # If OpenRouter was used, get cost afterwards and save to DB.
+    if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
+      # Delayed job to get generation stats from OpenRouter
+      QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+    end
 
     # If no stream handler was provided, process the response.
     check_for_refusal(response)
@@ -68,15 +71,10 @@ class OpenaiApiService
     end
   end
 
-  # This should be called from a delayed job since it is not time-sensitive
-  def query_generation_stats(id)
-    @client.query_generation_stats(id)
-  end
-
   private
 
   def default_model
-    ENV.fetch("DEFAULT_OPENAI_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_OPENAI_MODEL." }
+    ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." }
   end
 
   def default_access_token
@@ -164,8 +162,11 @@ class OpenaiApiService
         # Handle the final chunk with token usage
         if chunk["usage"]
           Rails.logger.debug("Streamed response complete: #{chunk["usage"]}")
-          # Queries the generation stats and saves to DB.
-          QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(chunk["id"])
+
+          # If using OpenRouter, query the generation stats and saves to DB.
+          if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
+            QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(chunk["id"])
+          end
         end
       rescue StandardError => e
         # Handle any errors during processing

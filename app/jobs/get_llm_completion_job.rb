@@ -1,13 +1,15 @@
-# Job submits a conversation to the OpenRouter API, handles the streamed response, and broadcasts the response to the user.
+# Job submits a conversation to the LLM API wrapper service, handles the streamed response, and broadcasts the response to the user.
 class GetLlmCompletionJob < ApplicationJob
   queue_as :default
-  # retry_on StandardError, wait: 5.seconds, attempts: 2
 
   # Add a task_system_prompt to the conversation, and it will be appended to the base system prompts.
-  # otherwise the default system prompt will be used without any further instructions
+  # Otherwise, the default system prompt will be used without any further instructions.
+
   def perform(conversation_id:)
     conversation = Conversation.find(conversation_id)
     user = conversation.user
+=begin
+    #With openrouter gem:
     client = OpenRouterService.new(
       models: [ user.settings.openrouter_model ],
       access_token: user.settings.openrouter_access_token,
@@ -15,6 +17,15 @@ class GetLlmCompletionJob < ApplicationJob
       task_system_prompt: conversation.task_system_prompt,
       enable_tools: true
     )
+=end
+     # With ruby-openai gem (also supports openrouter):
+     client = OpenaiApiService.new(
+       model: user.settings.openrouter_model,
+       access_token: user.settings.openrouter_access_token,
+       stream_handler: stream_handler(conversation: conversation),
+       task_system_prompt: conversation.task_system_prompt,
+       enable_tools: true
+     )
 
     messages = Message.for_completion_with_images(conversation.messages) # Get the array of message hashes with roles and content
 
@@ -29,10 +40,9 @@ class GetLlmCompletionJob < ApplicationJob
   private
 
   def stream_handler(conversation:)
-    # Broadcast the new message to the user so it's ready to be streamed into
-    # Since some LLM providers don't like blank messages, this will be removed in Message.for_completion.
+    # Broadcast the new message to the user so it's ready to be streamed into.
+    # Since some LLM providers don't like blank messages, this will be removed before sending.
     message = conversation.messages.create!(role: "assistant", content: "")
-    message.broadcast_created
 
     # Initialize a buffer to accumulate chunks of tool calls
     tool_call_buffer = { "name": nil, "arguments": "" }
@@ -68,15 +78,6 @@ class GetLlmCompletionJob < ApplicationJob
           Rails.logger.debug "Unknown chunk: #{chunk.inspect}"
         end
 
-=begin
-        if chunk["finish_reason"] == nil && tool_call_buffer[:name].present? && tool_call_buffer[:arguments].end_with?("}")
-           # There seems to be a bug where the tool call stream will end without finish_reason == tool_calls
-           Rails.logger.debug "Tool call finish_reason is nil, but arguments buffer ends with a closing brace: #{tool_call_buffer.inspect}"
-           tool_handler = ToolHandlerService.new(conversation: conversation)
-           tool_handler.execute_tool_call(tool_call_buffer)
-           tool_call_buffer = { "name": nil, "arguments": "" } # Clear buffer for subsequent tool calls
-        end
-=end
       rescue StandardError => e
         Rails.logger.error "Error processing stream chunk: #{e.message}"
       end

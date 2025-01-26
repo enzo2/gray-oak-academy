@@ -200,8 +200,6 @@ GEM
     minitest (5.25.4)
     msgpack (1.7.5)
     multipart-post (2.4.1)
-    neighbor (0.5.2)
-      activerecord (>= 7)
     net-http (0.6.0)
       uri
     net-imap (0.5.5)
@@ -231,7 +229,6 @@ GEM
       ast (~> 2.4.1)
       racc
     pg (1.5.9)
-    pgvector (0.3.2)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -315,7 +312,7 @@ GEM
     rubocop-performance (1.23.1)
       rubocop (>= 1.48.1, < 2.0)
       rubocop-ast (>= 1.31.1, < 2.0)
-    rubocop-rails (2.29.0)
+    rubocop-rails (2.29.1)
       activesupport (>= 4.2.0)
       rack (>= 1.1)
       rubocop (>= 1.52.0, < 2.0)
@@ -342,7 +339,7 @@ GEM
       rubyzip (>= 1.2.2, < 3.0)
       websocket (~> 1.0)
     simpleidn (0.2.3)
-    solid_cable (3.0.5)
+    solid_cable (3.0.7)
       actioncable (>= 7.2)
       activejob (>= 7.2)
       activerecord (>= 7.2)
@@ -422,10 +419,8 @@ DEPENDENCIES
   json-repair
   json_schemer
   markdown_views!
-  neighbor
   open_router!
   pg
-  pgvector
   propshaft
   puma (< 7)
   rails (~> 8.0.1)
@@ -443,4 +438,4 @@ DEPENDENCIES
   web-console
 
 BUNDLED WITH
-   2.6.2
+   2.6.3

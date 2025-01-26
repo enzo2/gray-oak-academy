@@ -39,13 +39,13 @@ gem "markdown_views", git: "https://github.com/enzo2/markdown_views.git", branch
 gem "acts_as_list"
 
 # Vector Search
-gem "pgvector"
-gem "neighbor"
+# gem "pgvector"
+# gem "neighbor"
 
-# llms
+# LLM APIs
 gem "faraday-retry"
-gem "open_router", git: "https://github.com/enzo2/open_router.git"
-gem "ruby-openai"     # see if will work with openrouter? open_router gem not maintained
+gem "open_router", git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
+gem "ruby-openai"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
