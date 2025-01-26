@@ -34,7 +34,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
  - Rails 8, Postgres, Hotwire 
  - Ruby 3.4.1
  - Tailwind + Shoelace components
- - OpenAI-compatible LLM API support (by default, OpenRouter, which avoids token limits and allows trying different models easily)
+ - OpenAI-compatible LLM API support (by default, OpenRouter, which avoids token limits, allows trying different models easily, and returns exact cost)
 
 ### Planned Features
 - STT, TTS, and native voice model support (turn-based, then realtime)

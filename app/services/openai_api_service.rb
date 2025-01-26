@@ -42,18 +42,33 @@ class OpenaiApiService
         temperature: 1,
         tools: extras.dig(:tools),
         response_format: extras.dig(:response_format),
-        stream: @stream_handler
+        stream: @stream_handler,
+        **(!ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
       }
     )
 
     # If a stream handler was provided, stop here since the response was already handled
-    # and will be blank.
+    # and will be blank. Handle logging token usage, cost, and refusal detection in the stream handler.
     return if @stream_handler
 
     # If OpenRouter was used, get cost afterwards and save to DB.
     if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
       # Delayed job to get generation stats from OpenRouter
       QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+    else # If not OpenRouter, use response stats directly
+      usage = response.dig("usage")
+      Completion.create(
+        model: response.dig("model"),
+        api_provider: ENV["OPENAI_API_BASE_URI"],
+        # model_provider:
+        prompt_tokens: usage.dig("prompt_tokens").to_i,
+        completion_tokens: usage.dig("completion_tokens").to_i,
+        total_tokens: usage.dig("total_tokens").to_i,
+        prompt_audio_tokens: usage.dig("prompt_tokens_details", "audio_tokens").to_i,
+        cached_tokens: usage.dig("prompt_tokens_details", "cached_tokens").to_i,
+        reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i,
+        completion_audio_tokens: usage.dig("completion_tokens_details", "audio_tokens").to_i,
+      )
     end
 
     # If no stream handler was provided, process the response.
@@ -150,15 +165,6 @@ class OpenaiApiService
       begin
         Rails.logger.debug chunk.inspect
 
-        # Check for refusal
-        refusal = chunk.dig("choices", 0, "delta", "refusal")
-        if refusal.present?
-          raise "Response refused with message: #{refusal}"
-        end
-
-        # Call the actual handler with the chunk
-        handler.call(chunk.dig("choices", 0))
-
         # Handle the final chunk with token usage
         if chunk["usage"]
           Rails.logger.debug("Streamed response complete: #{chunk["usage"]}")
@@ -166,8 +172,36 @@ class OpenaiApiService
           # If using OpenRouter, query the generation stats and saves to DB.
           if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
             QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(chunk["id"])
+          else # If not using OpenRouter, just save the usage from the response
+            usage = chunk["usage"]
+            Completion.create(
+              model: @model,
+              api_provider: ENV["OPENAI_API_BASE_URI"],
+              # model_provider:
+              prompt_tokens: usage.dig("prompt_tokens").to_i,
+              completion_tokens: usage.dig("completion_tokens").to_i,
+              total_tokens: usage.dig("total_tokens").to_i,
+              prompt_audio_tokens: usage.dig("prompt_tokens_details", "audio_tokens").to_i,
+              cached_tokens: usage.dig("prompt_tokens_details", "cached_tokens").to_i,
+              reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i,
+              completion_audio_tokens: usage.dig("completion_tokens_details", "audio_tokens").to_i,
+              # latency:
+              # generation_time:
+            )
           end
         end
+
+        choices = chunk.dig("choices")
+
+        # Check for refusal
+        refusal = choices.dig(0, "delta", "refusal")
+        if refusal.present?
+          raise "Response refused with message: #{refusal}"
+        end
+
+        # Call the actual handler with the LLM response
+        handler.call(choices[0]) unless choices.empty?
+
       rescue StandardError => e
         # Handle any errors during processing
         puts "Error processing chunk: #{e.message}"

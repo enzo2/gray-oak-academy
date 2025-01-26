@@ -19,7 +19,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
     constraints: [
       {
         type: "url_whitelist",
-        description: "Do not try to recall or make up URLs; only use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
+        description: "**Do not** try to recall or make up URLs; only use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
       }
     ]
   }

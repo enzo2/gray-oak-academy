@@ -75,7 +75,7 @@ class GetLlmCompletionJob < ApplicationJob
           delta_content = chunk.dig("delta", "content")
           message.update(content: message.content + delta_content)
         else
-          Rails.logger.debug "Unknown chunk: #{chunk.inspect}"
+          Rails.logger.debug "Non-content chunk: #{chunk.inspect}"
         end
 
       rescue StandardError => e
