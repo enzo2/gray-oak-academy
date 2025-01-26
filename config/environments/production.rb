@@ -58,7 +58,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # NOTE: this may change in rails 8.1
-  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 3000 }
+  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 80 }
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost") }

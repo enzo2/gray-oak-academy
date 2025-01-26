@@ -8,16 +8,16 @@ class GetLlmCompletionJob < ApplicationJob
   def perform(conversation_id:)
     conversation = Conversation.find(conversation_id)
     user = conversation.user
-=begin
-    #With openrouter gem:
-    client = OpenRouterService.new(
-      models: [ user.settings.openrouter_model ],
-      access_token: user.settings.openrouter_access_token,
-      stream_handler: stream_handler(conversation: conversation),
-      task_system_prompt: conversation.task_system_prompt,
-      enable_tools: true
-    )
-=end
+
+     # With openrouter gem (no longer needed, ruby-openai gem works with openrouter)
+     # client = OpenRouterService.new(
+     #  models: [ user.settings.openrouter_model ],
+     #  access_token: user.settings.openrouter_access_token,
+     #  stream_handler: stream_handler(conversation: conversation),
+     #  task_system_prompt: conversation.task_system_prompt,
+     #  enable_tools: true
+     # )
+
      # With ruby-openai gem (also supports openrouter):
      client = OpenaiApiService.new(
        model: user.settings.openrouter_model,
