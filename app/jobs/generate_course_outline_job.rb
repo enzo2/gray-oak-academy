@@ -33,8 +33,8 @@ class GenerateCourseOutlineJob < ApplicationJob
     begin
       # Make the LLM request
       client = OpenRouterService.new(
-        models: [ current_user.setting.openrouter_model ],
-        access_token: current_user.setting.openrouter_access_token
+        models: [ current_user.setting.llm_model_name ],
+        access_token: current_user.setting.llm_api_access_token
       )
       parsed_content = client.complete(
         messages,

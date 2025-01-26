@@ -20,6 +20,6 @@ class UserSettingsController < ApplicationController
   end
 
   def user_settings_params
-    params.require(:setting).permit(:openrouter_model, :openrouter_access_token)
+    params.require(:setting).permit(:llm_model_name, :llm_api_access_token)
   end
 end
