@@ -1,17 +1,15 @@
 module Admin
   class CompletionsController < ApplicationController
-  before_action :require_admin
+    before_action :require_admin
 
     def index
-      @usage_data = Completion.group(:model, :api_provider)
-      .select(
-        :model,
-        :api_provider,
-        "SUM(prompt_tokens) AS total_prompt_tokens",
-        "SUM(completion_tokens) AS total_completion_tokens",
-        "SUM(total_tokens) AS total_tokens",
-        "SUM(total_cost) AS total_costs"
-      )
+      @usage_data = Completion.all_time_usage_data
+
+      if params[:start_date].present? && params[:end_date].present?
+        start_date = Date.parse(params[:start_date])
+        end_date = Date.parse(params[:end_date])
+        @usage_data = Completion.date_ranged_usage_data(start_date, end_date)
+      end
     end
   end
 end

@@ -3,47 +3,17 @@
   
   <p>This reflects usage for the whole app across all users.</p>
 
-  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-5">
-    <thead class="bg-gray-50 dark:bg-gray-800">
-      <tr class="[&>th]:px-6 [&>th]:py-3 [&>th]:text-left [&>th]:text-sm [&>th]:uppercase [&>th]:tracking-wider text-gray-500 dark:text-gray-400">
-        <th>Model</th>
-        <th>API Provider</th>
-        <th>Total prompt tokens</th>
-        <th>Total completion tokens</th>
-        <th>Total tokens</th>
-        <th>Total costs (USD)</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-      <% total_prompt_tokens = 0 %>
-      <% total_completion_tokens = 0 %>
-      <% total_tokens = 0 %>
-      <% total_costs = 0 %>
-      <% @usage_data.each_with_index do |data, index| %>
-        <% total_prompt_tokens += data.total_prompt_tokens %>
-        <% total_completion_tokens += data.total_completion_tokens %>
-        <% total_tokens += data.total_tokens %>
-        <% total_costs += data.total_costs || 0 %>
-        <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-gray-100 dark:bg-gray-700' %>">
-          <td><%= data.model %></td>
-          <td><%= data.api_provider || 'N/A' %></td>
-          <td><%= data.total_prompt_tokens %></td>
-          <td><%= data.total_completion_tokens %></td>
-          <td><%= data.total_tokens %></td>
-          <td><%= number_to_currency(data.total_costs) %></td>
-        </tr>
-      <% end %>
-      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-gray-100 dark:bg-gray-700">
-        <td colspan="2" class="font-bold">Total</td>
-        <td class="font-bold"><%= total_prompt_tokens %></td>
-        <td class="font-bold"><%= total_completion_tokens %></td>
-        <td class="font-bold"><%= total_tokens %></td>
-        <td class="font-bold"><%= number_to_currency(total_costs) %></td>
-      </tr>
-    </tbody>
-  </table>
+  <%= form_tag admin_completions_path, method: :get, data: { turbo_frame: "dashboard-content" } do %>
+    <div class="mb-4 flex items-center gap-2">
+      <%= date_field_tag :start_date, params[:start_date], class: "input input-bordered" %>
+      <%= date_field_tag :end_date, params[:end_date], class: "input input-bordered" %>
+      <%= submit_tag "Filter by Date Range", class: "btn btn-primary" %>
+    </div>
+  <% end %>
+
+  <%= render partial: "usage_table", locals: { usage_data: @usage_data } %>
 
   <p>Note: Actual cost is only recorded when OpenRouter is used.</p>
-  <p>Note: Token total across different models is not meaningful, as the tokenizer may vary.</p>
+  <p>Note: Tokens are recorded according to the native tokenizer of the model, so summing different models' tokens might not be accurate.</p>
 
 <% end %>
