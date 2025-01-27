@@ -43,6 +43,8 @@ Rails.application.routes.draw do
 
     resources :tools, only: [ :index, :show, :edit, :update ]
 
+    resources :completions, only: [ :index ]
+
     resources :students, only: [ :index, :show ] do
       member do
         post :adopt
