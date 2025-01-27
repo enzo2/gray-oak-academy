@@ -19,22 +19,27 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 ## Features
 - Self-hostable with docker
 - Teacher and Student views, dark mode
-- Curriculum management: Courses, Lessons, Lesson Plans
-- One-click LLM generation of course outlines, lesson list, and lesson plans
-- Resource management, linkable to lessons
-- Default set of base prompts in the DB seeds (obviously, these are opinionated)
 - Native LLM chat interface with image support
 - Lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
+- Curriculum management: Courses, Lessons, Lesson Plans
+- One-click LLM generation of course outlines, lesson list, and lesson plans
+- Learning resource management (linkable to lessons)
 - LLM can create and run Javascript applets, access browser APIs
 - LLM can complete the lesson and save the lesson summary
+
+### More cool stuff
+- Default set of base prompts in the DB seeds (obviously, these are opinionated)
+- Cost/token tracking
 - App name can be changed via env variable
+- Dark/Light mode
 - NO plan for mobile support due to the need for adequate screen space.
 
 ### Frameworks, Tooling, etc.
  - Rails 8, Postgres, Hotwire 
  - Ruby 3.4.1
  - Tailwind + Shoelace components
- - OpenAI-compatible LLM API support (by default, OpenRouter, which avoids token limits, allows trying different models easily, and returns exact cost)
+ - OpenAI-compatible LLM API support (tested with OpenRouter and OpenAI)
+    - By default, OpenRouter, which avoids token limits, allows trying different models easily, and returns exact cost.
 
 ### Planned Features
 - STT, TTS, and native voice model support (turn-based, then realtime)
@@ -42,7 +47,6 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
 - RAG: pgvector + neighbor gem
-- Cost tracking
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
 
