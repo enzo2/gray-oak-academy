@@ -98,7 +98,6 @@ class ToolHandlerService
     student = @conversation.user
     lesson_progress = @conversation.lesson_progress
     lesson = lesson_progress.lesson
-    progress_data = args
 
     raise ToolExecutionError, "No active lesson found for this conversation" unless lesson
     raise ToolExecutionError, "No student found for this conversation" unless student
