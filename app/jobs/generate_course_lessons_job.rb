@@ -39,8 +39,8 @@ class GenerateCourseLessonsJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenRouterService.new(
-        models: [ current_user.setting.llm_model_name ],
+      client = OpenaiApiService.new(
+        model: current_user.setting.llm_model_name,
         access_token: current_user.setting.llm_api_access_token
       )
       parsed_content = client.complete(
