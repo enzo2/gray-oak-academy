@@ -156,19 +156,24 @@ end
 Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
   p.title = "Default Lesson Plan Content Generator"
   p.prompt = <<~PROMPT
-    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
-    The lesson goals are: "{goals}".
-    The lesson is to be roughly {approx_duration_min} min long.
+    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.#{' '}
+    The lesson goals are: "{goals}".#{' '}
+    The lesson is to be roughly {approx_duration_min} min long.#{' '}
     Now, content for the lesson plan is needed.#{' '}
-    The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.
-    Please generate a detailed lesson plan content outline in JSON format as an array of properties, specifying each content type (string) and details (string). Do not nest objects.
-    For example:#{' '}
-    [
-      {"Knowledge": "Ensure student is aware of X,Y,Z."},
-      {"Method": "Casual discussion format."},
+    The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.#{' '}
+
+    Please generate a detailed lesson plan content outline in JSON format as an array of single-property objects.#{' '}
+    Each object should have exactly one property where:#{' '}
+    - The property name describes the type of content (e.g., "Introduction", "Activity", "Discussion", etc.)#{' '}
+    - The property value is a detailed string describing that content element#{' '}
+
+    Format example:#{' '}
+    [#{' '}
+      {"Knowledge": "Ensure student is aware of X,Y,Z."},#{' '}
+      {"Method": "Casual discussion format."},#{' '}
       {"Resource": "Have the student watch the video during the lesson, then discuss it."},#{' '}
-      ....
-    ]
+      ....#{' '}
+    ]#{' '}
     You are not restricted to these content types. Creative planning will lead to superior lessons.#{' '}
     Content may include specific knowledge or data, as well as other moieties that can help specify a high-quality lesson, such as:
       - Generative resources (e.g. tutor may generate just-in-time web component or javascript applet)

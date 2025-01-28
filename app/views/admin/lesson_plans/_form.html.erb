@@ -52,7 +52,7 @@
 
   <div class="mb-4">
     <%= f.label :status, class: "form-label" %>
-    <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published.</i></p>
+    <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Don't forget to add resources below.</i></p>
     <div class="[&_label]:mr-4 [&_input]:mr-2">
       <%= f.collection_radio_buttons :status, LessonPlan.statuses.keys, :to_s, :titleize %>
     </div>

@@ -149,8 +149,8 @@ class OpenaiApiService
       begin
         Rails.logger.debug "Invalid JSON in LLM response, attempting to repair"
         repaired_content = JSON.repair(json_content)
-        parsed_content = JSON.parse(repaired_content)
         Rails.logger.debug "Repaired JSON: #{parsed_content}"
+        parsed_content = JSON.parse(repaired_content)
       rescue JSON::ParserError => e
         raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
       end
