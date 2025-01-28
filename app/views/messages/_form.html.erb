@@ -3,32 +3,57 @@
       id: "#{dom_id(conversation)}_message_form",
       data: { controller: "new-message" }
     ) do |form| %>
-  <div data-new-message-target="previewArea" class="flex mt-2 bg-gray-100 dark:bg-gray-700 rounded-md p-4 hidden"></div>
-  <div class="my-5 flex items-center space-x-2">
-    <sl-dropdown placement="top-end">
-      <sl-icon-button slot="trigger" name="images" class="text-xl"></sl-icon-button>
-      <sl-menu data-new-message-target="menu">
-        <sl-menu-item value="file">
-          Upload Image
-          <sl-icon slot="suffix" name="paperclip"></sl-icon>
-        </sl-menu-item>
-        <sl-menu-item value="url">
-          Link to URL
-          <sl-icon slot="suffix" name="link"></sl-icon>
-        </sl-menu-item>
-      </sl-menu>
-    </sl-dropdown>
-    <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "new-message#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
-    <sl-dialog label="Add image via URL" class="" data-new-message-target="urlDialog">
-      <sl-input data-new-message-target="urlInput" data-action="new-message#handleUrl" placeholder="Enter image URL" class=""></sl-input>
-      <sl-button slot="footer" data-action="click->new-message#submitUrl">Submit</sl-button>
-    </sl-dialog>
-    <%#= form.text_field :content, class: "form-input flex-grow", autofocus: true, data: { new_message_target: "contentField" } %>
-    <sl-textarea resize="auto" rows="1" name="message[content]" class="flex-grow" data-new-message-target="contentField"></sl-textarea>
+  <div data-new-message-target="previewArea" class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
+  <div class="my-5 relative">
+    <div class="[&_sl-textarea::part(form-control-input)]:shadow-none">
+      <sl-textarea 
+        resize="auto" 
+        rows="1" 
+        name="message[content]" 
+        placeholder="Type your message..." 
+        class="w-full 
+               [&::part(base)]:p-1 
+               [&::part(base)]:pr-12 
+               [&::part(base)]:border-1 
+               [&::part(base)]:border-neutral-200 
+               dark:[&::part(base)]:border-0 
+               [&::part(base)]:focus:shadow-none 
+               [&::part(base)]:focus:ring-offset-0 
+               [&::part(base)]:focus:ring-0"
+        data-new-message-target="contentField"
+      ></sl-textarea>
+    </div>
+
+    <div class="absolute right-[5px] top-[6px] flex items-center space-x-1">
+      <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "new-message#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
+      
+      <sl-dropdown placement="top-end">
+        <sl-icon-button slot="trigger" name="images" class="" data-new-message-target="imagesMenuButton"></sl-icon-button>
+        <sl-menu data-new-message-target="imagesMenu">
+          <sl-menu-item value="file">
+            Upload Image
+            <sl-icon slot="suffix" name="paperclip"></sl-icon>
+          </sl-menu-item>
+          <sl-menu-item value="url">
+            Link to URL
+            <sl-icon slot="suffix" name="link"></sl-icon>
+          </sl-menu-item>
+        </sl-menu>
+      </sl-dropdown>
+
+      <button type="submit" class="text-xl" data-new-message-target="submitButton" data-action="click->new-message#submit">
+        <sl-icon-button name="arrow-right-square" class="hidden" data-new-message-target="submitIcon"></sl-icon-button>
+        <div data-new-message-target="submitSpinner" class="hidden p-[6px]">
+          <sl-spinner></sl-spinner>
+        </div>
+      </button>
+    </div>
+
     <%= form.hidden_field :images_data, data: { new_message_target: "imagesData" } %>
-    <button type="submit" label="Send" class="text-xl" data-new-message-target="submitButton" data-action="click->new-message#submit">
-        <sl-icon-button name="arrow-right-square" class="" data-new-message-target="submitIcon"></sl-icon-button>
-        <sl-spinner class="hidden " data-new-message-target="submitSpinner"></sl-spinner>
-    </button>
   </div>
+
+  <sl-dialog label="Add image via URL" class="" data-new-message-target="urlDialog">
+    <sl-input data-new-message-target="urlInput" data-action="new-message#handleUrl" placeholder="Enter image URL" class=""></sl-input>
+    <sl-button slot="footer" data-action="click->new-message#submitUrl">Submit</sl-button>
+  </sl-dialog>
 <% end %>

@@ -1,15 +1,24 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "menu", "urlDialog", "submitButton", "submitSpinner", "submitIcon"];
+  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "imagesMenuButton", "imagesMenu", "urlDialog", "submitButton", "submitSpinner", "submitIcon"];
   static MAX_IMAGES = 4;
 
   connect() {
     //console.log("New message controller connected")
     this.images = []
-    this.menuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
+    this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
     this.contentFieldTarget.addEventListener('paste', this.paste.bind(this))
-   
+    this.contentFieldTarget.addEventListener('input', this.toggleSubmitButton.bind(this))
+    this.toggleSubmitButton() // Initial check
+  }
+
+  toggleSubmitButton() {
+    if (this.contentFieldTarget.value.trim() !== '') {
+      this.submitIconTarget.classList.remove("hidden")
+    } else {
+      this.submitIconTarget.classList.add("hidden")
+    }
   }
 
   handleMenuSelect(event) {
@@ -191,6 +200,7 @@ export default class extends Controller {
     this.element.requestSubmit(); // Submit the form
     this.submitIconTarget.classList.add("hidden")
     this.submitSpinnerTarget.classList.remove("hidden")
+    this.imagesMenuButtonTarget.classList.add("hidden");
   }
 /*
   resetSubmit() {

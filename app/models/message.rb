@@ -13,12 +13,14 @@ class Message < ApplicationRecord
   after_update_commit -> { broadcast_updated }
 
   def broadcast_created
-    broadcast_append_later_to(
+    broadcast_append_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
       locals: { message: self, scroll_to: true },
       target: "#{dom_id(conversation)}_messages"
     )
+    # Remove any temporary new message placeholder
+    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message_message")
   end
 
   def broadcast_updated
