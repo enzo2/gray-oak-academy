@@ -1,3 +1,5 @@
 <%= turbo_stream.replace "user-settings-form" do %>  
   <%= render "user_settings/form", settings: @settings %>
 <% end %>
+
+<%= turbo_stream.update "flash_bar", partial: "shared/flash" %>

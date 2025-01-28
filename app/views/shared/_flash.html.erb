@@ -1,8 +1,20 @@
-<div data-controller="alert" data-turbo-temporary>
+<div>
   <% flash.each do |message_type, message| %>
+    <% Rails.logger.debug "Flash message: #{message_type} - #{message}" %>
     <% unless message.blank? %>
-      <sl-alert variant="warning" data-alert-target="alert" closable>
-        <sl-icon slot="icon" name="info-circle"> </sl-icon>
+      <sl-alert 
+        <% if message_type == "success" %>
+          variant="success"
+        <% elsif message_type == "error" %>
+          variant="danger"
+        <% elsif message_type == "alert" %>
+          variant="warning"
+        <% else %>
+          variant="info"
+        <% end %>
+        data-alert-target="alert" 
+        closable data-turbo-temporary>
+        <sl-icon slot="icon" name="info-circle"></sl-icon>
           <%= message %>
       </sl-alert>
     <% end %>

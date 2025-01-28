@@ -125,7 +125,7 @@ class ToolHandlerService
       "conversation_#{@conversation.id}",
       target: "flash_bar",
       partial: "shared/flash",
-      locals: { flash: { type: "error", message: message } }
+      locals: { flash: { error: message } }
     )
   end
 end

@@ -71,7 +71,7 @@ class GenerateCourseOutlineJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
       target: "flash_bar",
       partial: "shared/flash",
-      locals: { flash: { type: "error", message: message } }
+      locals: { flash: { error: message } }
     )
   end
 end

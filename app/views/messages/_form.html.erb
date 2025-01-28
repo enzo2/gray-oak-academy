@@ -25,8 +25,8 @@
     </sl-dialog>
     <%= form.text_field :content, class: "form-input flex-grow mr-2", autofocus: true, data: { new_message_target: "contentField" } %>
     <%= form.hidden_field :images_data, data: { new_message_target: "imagesData" } %>
-    <%= form.button type: :submit, class: "text-xl" do %>
-      <sl-icon name="arrow-right-square" label="Send"></sl-icon>
-    <% end %>
+    <button type="submit" label="Send" class="text-xl">
+      <sl-icon-button name="arrow-right-square" class=""></sl-icon-button>
+    </button>
   </div>
 <% end %>
