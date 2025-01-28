@@ -37,6 +37,7 @@ class MessagesController < ApplicationController
     GetLlmCompletionJob.perform_later(conversation_id: @message.conversation_id)
 
     respond_to do |format|
+      # Send the user's new message to the conversation view
       format.turbo_stream
     end
   rescue StandardError => e

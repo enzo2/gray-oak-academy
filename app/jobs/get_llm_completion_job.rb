@@ -1,5 +1,6 @@
 # Job submits a conversation to the LLM API wrapper service, handles the streamed response, and broadcasts the response to the user.
 class GetLlmCompletionJob < ApplicationJob
+  include ActionView::RecordIdentifier
   queue_as :default
 
   # Add a task_system_prompt to the conversation, and it will be appended to the base system prompts.
@@ -30,19 +31,25 @@ class GetLlmCompletionJob < ApplicationJob
     messages = Message.for_completion_with_images(conversation.messages) # Get the array of message hashes with roles and content
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
-
+  rescue OpenAiError => e
+    Rails.logger.error "Faraday::ResourceNotFound caused by: #{e.message}"
+    broadcast_error("LLM Error. Ask your teacher to try a different model. Error: #{e.message}", conversation)
+    raise
+  rescue Faraday::TimeoutError => e
+    Rails.logger.error "Faraday::TimeoutError #{e.message}"
+    broadcast_error("LLM did not respond in time. Ask your teacher to try a different model.", conversation)
+    raise
   rescue StandardError => e
     Rails.logger.error "Error in GetLLMCompletionJob: #{e.message}"
-    broadcast_error("Failed to get LLM completion: #{e.message} \nRetrying...", conversation)
+    broadcast_error("Failed to get LLM completion: #{e.message} \n", conversation)
     raise e # This will trigger a retry
   end
 
   private
 
   def stream_handler(conversation:)
-    # Broadcast the new message to the user so it's ready to be streamed into.
-    # Since some LLM providers don't like blank messages, this will be removed before sending.
-    message = conversation.messages.create!(role: "assistant", content: "")
+    # Initialize the message variable. Don't save to DB yet since the request might fail.
+    message = nil
 
     # Initialize a buffer to accumulate chunks of tool calls
     tool_call_buffer = { "name": nil, "arguments": "" }
@@ -50,6 +57,8 @@ class GetLlmCompletionJob < ApplicationJob
     # Return a proc that handles the streamed response
     Proc.new do |chunk|
       begin
+        message ||= conversation.messages.create!(role: "assistant", content: "") # Create the empty message if it doesn't exist yet
+
         # Check if the chunk contains tool calls
         if chunk.dig("delta", "tool_calls").present?
           Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
@@ -85,11 +94,12 @@ class GetLlmCompletionJob < ApplicationJob
   end
 
   def broadcast_error(message, conversation)
+    Rails.logger.debug("Broadcasting error to conversation: #{conversation.id}")
     Turbo::StreamsChannel.broadcast_update_to(
       "#{dom_id(conversation)}",
       target: "flash_bar",
       partial: "shared/flash",
-      locals: { flash: { type: "error", message: message } }
+      locals: { flash: { error: message } }
     )
   end
 end
