@@ -5,8 +5,8 @@
 
   <%= form_tag admin_completions_path, method: :get, data: { turbo_frame: "dashboard-content" } do %>
     <div class="mb-4 flex items-center gap-2">
-      <%= date_field_tag :start_date, params[:start_date], class: "input input-bordered" %>
-      <%= date_field_tag :end_date, params[:end_date], class: "input input-bordered" %>
+      <%= date_field_tag :start_date, params[:start_date], class: "" %>
+      <%= date_field_tag :end_date, params[:end_date], class: "" %>
       <%= submit_tag "Filter by Date Range", class: "btn btn-primary" %>
     </div>
   <% end %>

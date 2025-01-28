@@ -19,6 +19,9 @@
     @apply file:font-sans text-xs file:border-0 file:p-2;
   }
 
+  input[type=date] {
+    @apply bg-transparent;
+  }
 }
 
 
