@@ -8,6 +8,7 @@ class Completion < ApplicationRecord
       :model,
       :api_provider,
       "SUM(prompt_tokens) AS total_prompt_tokens",
+      "SUM(cached_tokens) AS total_cached_tokens",
       "SUM(completion_tokens) AS total_completion_tokens",
       "SUM(total_tokens) AS total_tokens",
       "SUM(total_cost) AS total_costs"
@@ -21,6 +22,7 @@ class Completion < ApplicationRecord
       :model,
       :api_provider,
       "SUM(prompt_tokens) AS total_prompt_tokens",
+      "SUM(cached_tokens) AS total_cached_tokens",
       "SUM(completion_tokens) AS total_completion_tokens",
       "SUM(total_tokens) AS total_tokens",
       "SUM(total_cost) AS total_costs"

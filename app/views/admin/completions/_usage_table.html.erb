@@ -4,6 +4,7 @@
       <th>Model</th>
       <th>API Provider</th>
       <th>Total prompt tokens</th>
+      <th>Total cached tokens</th>
       <th>Total completion tokens</th>
       <th>Total tokens</th>
       <th>Total costs (USD)</th>
@@ -11,18 +12,21 @@
   </thead>
   <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
     <% total_prompt_tokens = 0 %>
+    <% total_cached_tokens = 0 %>
     <% total_completion_tokens = 0 %>
     <% total_tokens = 0 %>
     <% total_costs = 0 %>
     <% @usage_data.each_with_index do |data, index| %>
-      <% total_prompt_tokens += data.total_prompt_tokens %>
-      <% total_completion_tokens += data.total_completion_tokens %>
-      <% total_tokens += data.total_tokens %>
-      <% total_costs += data.total_costs || 0 %>
+      <% total_prompt_tokens += data.total_prompt_tokens.to_i %>
+      <% total_cached_tokens += data.total_cached_tokens.to_i %>
+      <% total_completion_tokens += data.total_completion_tokens.to_i %>
+      <% total_tokens += data.total_tokens.to_i %>
+      <% total_costs += data.total_costs.to_f || 0 %>
       <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-gray-100 dark:bg-gray-700' %>">
         <td><%= data.model %></td>
         <td><%= data.api_provider || 'N/A' %></td>
         <td><%= data.total_prompt_tokens %></td>
+        <td><%= data.total_cached_tokens %></td>
         <td><%= data.total_completion_tokens %></td>
         <td><%= data.total_tokens %></td>
         <td><%= number_to_currency(data.total_costs) %></td>
@@ -31,6 +35,7 @@
     <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-gray-100 dark:bg-gray-700">
       <td colspan="2" class="font-bold">Total</td>
       <td class="font-bold"><%= total_prompt_tokens %></td>
+      <td class="font-bold"><%= total_cached_tokens %></td>
       <td class="font-bold"><%= total_completion_tokens %></td>
       <td class="font-bold"><%= total_tokens %></td>
       <td class="font-bold"><%= number_to_currency(total_costs) %></td>
