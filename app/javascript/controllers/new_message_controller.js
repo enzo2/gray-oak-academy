@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "menu", "urlDialog"];
+  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "menu", "urlDialog", "submitButton", "submitSpinner", "submitIcon"];
   static MAX_IMAGES = 4;
 
   connect() {
@@ -9,6 +9,7 @@ export default class extends Controller {
     this.images = []
     this.menuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
     this.contentFieldTarget.addEventListener('paste', this.paste.bind(this))
+   
   }
 
   handleMenuSelect(event) {
@@ -77,6 +78,7 @@ export default class extends Controller {
       this.addImage({ url: url, type: contentType })
     } catch (error) {
       alert("Failed to validate image URL. Please ensure the URL is accessible.")
+   
       return
     }
 
@@ -183,6 +185,20 @@ export default class extends Controller {
     this.imagesDataTarget.value = JSON.stringify(processedImages)
   }
 
+  submit(e) {
+    e.preventDefault();
+    this.submitButtonTarget.disabled = true
+    this.element.requestSubmit(); // Submit the form
+    this.submitIconTarget.classList.add("hidden")
+    this.submitSpinnerTarget.classList.remove("hidden")
+  }
+/*
+  resetSubmit() {
+    this.submitButtonTarget.disabled = false
+    this.submitIconTarget.classList.remove("hidden")
+    this.submitSpinnerTarget.classList.add("hidden")
+  }
+*/
   paste(event) {
     //console.log("Pasting image")
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;

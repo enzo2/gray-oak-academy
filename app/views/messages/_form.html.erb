@@ -4,7 +4,7 @@
       data: { controller: "new-message" }
     ) do |form| %>
   <div data-new-message-target="previewArea" class="flex mt-2 bg-gray-100 dark:bg-gray-700 rounded-md p-4 hidden"></div>
-  <div class="my-5 flex items-center">
+  <div class="my-5 flex items-center space-x-2">
     <sl-dropdown placement="top-end">
       <sl-icon-button slot="trigger" name="images" class="text-xl"></sl-icon-button>
       <sl-menu data-new-message-target="menu">
@@ -23,10 +23,12 @@
       <sl-input data-new-message-target="urlInput" data-action="new-message#handleUrl" placeholder="Enter image URL" class=""></sl-input>
       <sl-button slot="footer" data-action="click->new-message#submitUrl">Submit</sl-button>
     </sl-dialog>
-    <%= form.text_field :content, class: "form-input flex-grow mr-2", autofocus: true, data: { new_message_target: "contentField" } %>
+    <%#= form.text_field :content, class: "form-input flex-grow", autofocus: true, data: { new_message_target: "contentField" } %>
+    <sl-textarea resize="auto" rows="1" name="message[content]" class="flex-grow" data-new-message-target="contentField"></sl-textarea>
     <%= form.hidden_field :images_data, data: { new_message_target: "imagesData" } %>
-    <button type="submit" label="Send" class="text-xl">
-      <sl-icon-button name="arrow-right-square" class=""></sl-icon-button>
+    <button type="submit" label="Send" class="text-xl" data-new-message-target="submitButton" data-action="click->new-message#submit">
+        <sl-icon-button name="arrow-right-square" class="" data-new-message-target="submitIcon"></sl-icon-button>
+        <sl-spinner class="hidden " data-new-message-target="submitSpinner"></sl-spinner>
     </button>
   </div>
 <% end %>
