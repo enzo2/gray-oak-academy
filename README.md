@@ -18,6 +18,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 
 ## Features
 - Self-hostable with docker
+- Works with any OpenAI-compatible API
 - Teacher and Student views, dark mode
 - Native LLM chat interface with image support
 - Lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
@@ -31,6 +32,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - Default set of base prompts in the DB seeds (obviously, these are opinionated)
 - Cost/token tracking
 - App name can be changed via env variable
+- Fast interface with Turbo Frames/Streams
 - Dark/Light mode
 - NO plan for mobile support due to the need for adequate screen space.
 
@@ -43,7 +45,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 
 ### Planned Features
 - STT, TTS, and native voice model support (turn-based, then realtime)
-- Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
+  - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
 - RAG: pgvector + neighbor gem
@@ -58,47 +60,45 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - Note! The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
 
 ## Setup Instructions
-Create an account on OpenRouter and get an API key.
-Create .env files as described in the next section and set up the required variables.
+- Create an account on OpenRouter and get an API key, or use another LLM API.
+- .env files must be set up with the requisite variables. See the example files. 
 
-Create /config/credentials/development.key and add a random 32-character string.
-Open the devcontainer with VSCode, etc.
-Run a server with bin/dev. 
+### Development: 
+- Create `/config/credentials/development.key` and add a random 32-character string.
+- Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
+- Open the devcontainer with VSCode, etc.
+- Run a server with: `bin/dev`. 
+- Note: if the app seems slow, don't worry, it's much faster in production (see below).
 
-Create /config/credentials/production.key and add a random 32-character string.
-The default setup is not secure. It runs a server using Thruster and exposes port 80. Ensure this port is not in use by another process on your host machine, and is firewalled from the public internet, unless you set up SSL. (Refer to Thruster docs or use another reverse proxy.) To only use Puma without Thruster, change the commented lines in the Dockerfile. 
-Confirm your settings in production.rb. Pay attention to config.assume_ssl and config.force_ssl if you plan on exposing the server or using a reverse proxy. 
-To build and run with docker, run `docker compose up -d`.
-
-### .env Files
-.env files must be set up with the requisite variables. See the example files. 
-
-For development:
--  `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
-For production, both of the following are required:
--   `/.env`: see `.env.example`. 
--   `/.env.production`: see `.env.production.example`. 
+### Production:
+- Create `/.env.production`: see `.env.production.example`. 
+- Also create `/.env`: see `.env.example`. 
+- Create `/config/credentials/production.key` and add a random 32-character string.
+- Confirm your settings in production.rb. Pay attention to config.assume_ssl and config.force_ssl if you plan on exposing the server or using a reverse proxy. 
+- The default setup is not secure. It runs a server using Thruster and exposes port 80. Ensure this port is not in use by another process on your host machine, and is firewalled from the public internet, unless you set up SSL. (Refer to Thruster docs or use another reverse proxy.) To only use Puma without Thruster, change the commented lines in the Dockerfile. 
+- To build and run with docker, run `docker compose up -d`.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code.
-- Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. Some models are better at tool use and instruction-following than others. Try different ones. (Ensure your database is secure before adding any API keys.)
+- Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. Some models are better at tool use and instruction-following than others. Try different ones. 
 - Go to Prompts if you want to review your system prompts.
+- To verify your setup and try the chat interface, go to LLM Chat. 
+- Try asking the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
 - Make a student account. On the teacher account, go to Students, adopt the student, and enroll them in the course.
 - The student can then go to their dashboard and try out the lesson.
-- To just try out the LLM outside of a lesson, go to LLM Chat.
-- Ask the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."
+
+
 
 ## Contributor guidelines:
 Maintain the core app principles:
 - The goal is to meet or exceed the level of a private tutor 
 - Self-hostable, and ideally improve in this respect
 - Suitable for all ages
-- Follow generally accepted Rails architecture, keep controllers light, models heavy
-- Make the code easy to follow / approachable so that a wide audience may contribute. 
-- All LLM prompts should be user-editable, and avoid testing with only one particular LLM
+- Follow generally accepted Rails architecture, keep controllers light, models heavy, code easy to follow
+- All LLM prompts should be user-editable, and avoid testing with only one particular LLM 
 
 ## License
-This project is licensed under the AGPL v3. See LICENSE.md.
+See LICENSE.md.
