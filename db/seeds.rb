@@ -112,14 +112,15 @@ Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
   p.title = "Default Course Outline Generator"
   p.prompt = <<~PROMPT
     I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".#{' '}
-    Please generate a detailed course outline in JSON format as an array of objects, where each key is a topic (string) and each value is a brief description of that topic (string):
+    Please generate a detailed course outline in JSON format as an array of single-property objects, where each object#{' '}
+    has exactly ONE key-value pair. Each key is a topic (string) and each value is a brief description (string) of the topic.#{' '}
+    Do not use nested structures. Here is a general example:#{' '}
     [#{' '}
       {"Introduction to the Course": "Overview of course objectives and expectations"},
       {"Fundamentals": "Basic concepts and terminology"},
       ...#{' '}
     ]#{' '}
-    Don't nest any further.#{' '}
-    Ensure the outline is comprehensive and suitable for the grade level.
+    Ensure the outline is comprehensive and suitable for the grade level.#{' '}
     Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
   PROMPT
 end
