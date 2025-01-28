@@ -35,55 +35,63 @@ class OpenaiApiService
     # add tools to extras, if enabled
     extras[:tools] = @tools if @tools.present?
 
-    response = @client.chat(
-      parameters: {
-        messages: messages,
-        model: @model,
-        temperature: 1,
-        tools: extras.dig(:tools),
-        response_format: extras.dig(:response_format),
-        stream: @stream_handler,
-        **(!ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
-      }
-    )
-
-    # If a stream handler was provided, stop here since the response was already handled
-    # and will be blank. Handle logging token usage, cost, and refusal detection in the stream handler.
-    return if @stream_handler
-
-    # If OpenRouter was used, get cost afterwards and save to DB.
-    if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
-      # Delayed job to get generation stats from OpenRouter
-      QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
-    else # If not OpenRouter, use response stats directly
-      usage = response.dig("usage")
-      Completion.create(
-        model: response.dig("model"),
-        api_provider: ENV["OPENAI_API_BASE_URI"],
-        # model_provider:
-        prompt_tokens: usage.dig("prompt_tokens").to_i,
-        completion_tokens: usage.dig("completion_tokens").to_i,
-        total_tokens: usage.dig("total_tokens").to_i,
-        prompt_audio_tokens: usage.dig("prompt_tokens_details", "audio_tokens").to_i,
-        cached_tokens: usage.dig("prompt_tokens_details", "cached_tokens").to_i,
-        reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i,
-        completion_audio_tokens: usage.dig("completion_tokens_details", "audio_tokens").to_i,
+    begin
+      response = @client.chat(
+        parameters: {
+          messages: messages,
+          model: @model,
+          temperature: 1,
+          tools: extras.dig(:tools),
+          response_format: extras.dig(:response_format),
+          stream: @stream_handler,
+          **(!ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
+        }
       )
-    end
 
-    # If no stream handler was provided, process the response.
-    check_for_refusal(response)
-    content = response.dig("choices", 0, "message", "content")
-    check_content(content)
+      # If a stream handler was provided, stop here since the response was already handled
+      # and will be blank. Handle logging token usage, cost, and refusal detection in the stream handler.
+      return if @stream_handler
 
-    # If JSON requested, parse and validate the content.
-    if extras.dig(:response_format, :type) == "json_object"
-      parsed_content = parse_JSON(content)
-      validate_JSON(parsed_content, schema) if schema.present?
-      parsed_content
-    else
-      content
-    end
+      # If OpenRouter was used, get cost afterwards and save to DB.
+      if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
+        # Delayed job to get generation stats from OpenRouter
+        QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+      else # If not OpenRouter, use response stats directly
+        usage = response.dig("usage")
+        Completion.create(
+          model: response.dig("model"),
+          api_provider: ENV["OPENAI_API_BASE_URI"],
+          # model_provider:
+          prompt_tokens: usage.dig("prompt_tokens").to_i,
+          completion_tokens: usage.dig("completion_tokens").to_i,
+          total_tokens: usage.dig("total_tokens").to_i,
+          prompt_audio_tokens: usage.dig("prompt_tokens_details", "audio_tokens").to_i,
+          cached_tokens: usage.dig("prompt_tokens_details", "cached_tokens").to_i,
+          reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i,
+          completion_audio_tokens: usage.dig("completion_tokens_details", "audio_tokens").to_i,
+        )
+      end
+
+      # If no stream handler was provided, process the response.
+      check_for_refusal(response)
+      content = response.dig("choices", 0, "message", "content")
+      check_content(content)
+
+      # If JSON requested, parse and validate the content.
+      if extras.dig(:response_format, :type) == "json_object"
+        parsed_content = parse_JSON(content)
+        validate_JSON(parsed_content, schema) if schema.present?
+        parsed_content
+      else
+        content
+      end
+    rescue Faraday::ResourceNotFound => e
+      # Get the actual error message from the response body.
+      error_message = extract_error_message(e)
+      raise OpenAiError, error_message
+    rescue StandardError => e
+      raise e
+    end # end of begin/rescue/end block
   end
 
   private
@@ -209,4 +217,15 @@ class OpenaiApiService
       end
     end
   end
+
+  def extract_error_message(exception)
+    response_body = exception.response[:body]
+    if response_body.is_a?(Hash)
+      response_body.dig("error", "message") || "#{response_body.inspect} Error"
+    else
+      "HTTP #{exception.response[:status]} Error" # Fallback if message is not found
+    end
+  end
 end
+
+class OpenAiError < StandardError; end
