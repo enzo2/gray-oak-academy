@@ -1,7 +1,7 @@
 class OpenaiApiService
   # Wrapper around ruby-openai gem
   # Base URI set in config/initializers/openai.rb
-
+  require "json/repair"
   require "faraday/retry"
 
   # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives.
@@ -142,22 +142,30 @@ class OpenaiApiService
 
     # Parse the JSON
     begin
-      # Rails.logger.debug "Parsing JSON: #{json_content}"
+      Rails.logger.debug "Parsing JSON: #{json_content}"
       parsed_content = JSON.parse(json_content)
     rescue JSON::ParserError => e
-      raise "Failed to parse JSON from LLM response: #{e.message}"
+      # If invalid, try repairing the JSON
+      begin
+        Rails.logger.debug "Invalid JSON in LLM response, attempting to repair"
+        repaired_content = JSON.repair(json_content)
+        parsed_content = JSON.parse(repaired_content)
+        Rails.logger.debug "Repaired JSON: #{parsed_content}"
+      rescue JSON::ParserError => e
+        raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
+      end
     end
 
     parsed_content
   end
 
   def validate_JSON(parsed_content, schema)
-    # Validate the parsed lessons against the schema
+    # Validate the parsed content against the schema
     schemer = JSONSchemer.schema(schema)
     unless schemer.valid?(parsed_content)
       errors = schemer.validate(parsed_content).to_a
       # Retry ?
-      raise "Invalid lessons structure: #{errors.map { |e| e['error'] }.join(', ')}"
+      raise "Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
     end
   end
 
