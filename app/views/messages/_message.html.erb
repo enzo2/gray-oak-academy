@@ -6,14 +6,20 @@
       <% end %>
       <%= simple_format(message.content, {}, wrapper_tag: "p") %>
     </div>
+  <%# handle assistant messages %>
+  <% elsif message.content.blank? # && message.images.blank? %>
+    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4 flex justify-center items-center"
+          data-code-executor-target="message">
+      <sl-spinner></sl-spinner>
+    </div>
   <% else %>
-    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4 
-                prose dark:prose-invert 
-                max-w-none leading-relaxed 
+    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4
+                prose dark:prose-invert
+                max-w-none leading-relaxed
                 prose-ul:my-2
                 [&>:not(:first-child)]:mt-3
                 [&>:not(:last-child)]:mb-3
-                " 
+                "
           data-code-executor-target="message">
       <%= markdown(message.content) %>
     </div>
