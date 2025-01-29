@@ -2,18 +2,28 @@ class GenerateCourseOutlineJob < ApplicationJob
   queue_as :default
 
   OUTLINE_SCHEMA = {
-    "type": "array",
-    "items": {
+    "strict": true,
+    "name": "Course_Outline",
+    "description": "A thorough proposal of course content organized into topics, each with a brief description.",
+    "schema": {
       "type": "object",
-      "propertyNames": { "type": "string" },
-      "patternProperties": {
-        "^.*$": { "type": "string" }
+      "properties": {
+        "outline": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "topic": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": [ "topic", "description" ],
+            "additionalProperties": false
+          }
+        }
       },
-      "additionalProperties": false,
-      "minProperties": 1,
-      "maxProperties": 1
-    },
-    "minItems": 1
+      "required": [ "outline" ],
+      "additionalProperties": false
+    }
   }
 
   TASK_PROMPT = Prompt.category_generate_course_outline.first.prompt
@@ -25,10 +35,9 @@ class GenerateCourseOutlineJob < ApplicationJob
       .gsub("{grade_level}", course.grade_level)
 
     # Prepare messages for the LLM
-    messages = [
-      { role: "user", content: customized_prompt }
-      # try prefilling the assistant message
-    ]
+    messages = [ { role: "user", content: customized_prompt },
+                 { role: "assistant", content: "{\"outline\": [{" } # Prefill the response to help it respond with valid JSON
+   ]
 
     begin
       # Make the LLM request
@@ -40,14 +49,19 @@ class GenerateCourseOutlineJob < ApplicationJob
         messages,
         extras: {
           response_format: {
-            type: "json_object"
+            # type: "json_object"  # Non-strict option, if need to support APIs that lack structured output support
+            type: "json_schema",
+            json_schema: OUTLINE_SCHEMA
           }
         },
-        schema: OUTLINE_SCHEMA
+        schema: OUTLINE_SCHEMA["schema"]  # Also pass the schema to the wrapper service for validation of the response
       )
 
-      # Update the course with the generated outline. (Stored as array in JSONB column.)
-      course.update!(outline: parsed_content)
+      # Update the course with the generated outline.
+      extracted_outline = parsed_content["outline"].map do |item|
+        { item["topic"] => item["description"] }
+      end
+      course.update!(outline: extracted_outline)
 
       # Broadcast the updated course outline
       broadcast_success(course)
@@ -63,7 +77,10 @@ class GenerateCourseOutlineJob < ApplicationJob
   def broadcast_success(course)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
     # Broadcast the updated course row via Turbo Streams
-    Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard", target: course, partial: "admin/courses/course", locals: { course: course })
+    Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard",
+      target: course,
+      partial: "admin/courses/course",
+      locals: { course: course })
   end
 
   def broadcast_error(course, message)

@@ -121,6 +121,7 @@ class OpenRouterService
     begin
       # Rails.logger.debug "Parsing JSON: #{json_content}"
       parsed_content = JSON.parse(json_content)
+      Rails.logger.debug "Parsed JSON: #{parsed_content}"
     rescue JSON::ParserError => e
       raise "Failed to parse JSON from LLM response: #{e.message}"
     end
@@ -133,6 +134,7 @@ class OpenRouterService
     schemer = JSONSchemer.schema(schema)
     unless schemer.valid?(parsed_content)
       errors = schemer.validate(parsed_content).to_a
+      Rails.logger.error "Invalid lessons structure"
       # Retry ?
       raise "Invalid lessons structure: #{errors.map { |e| e['error'] }.join(', ')}"
     end

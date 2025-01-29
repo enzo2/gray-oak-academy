@@ -54,7 +54,7 @@ class Prompt < ApplicationRecord
   end
 
   def self.full_system_prompt
-    Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt + " \n " + Prompt.category_generative_guidelines.first.prompt
+    Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt + " \n "
   end
 
   # Class method to get all categories with their friendly names

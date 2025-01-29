@@ -4,18 +4,22 @@
   <td class="py-2 px-3 text-center"><%= course.grade_level %></td>
   <td class="py-2 px-3 text-center"><%= course.outline.blank? ? "No" : "Yes" %></td>
   <td class="py-2 px-3 text-right [&_a:hover]:underline">
-    <%= link_to "Edit", edit_admin_course_path(course), class: "inline-block mr-2", data: { turbo_stream: true } %>
-    <% if course.outline.empty? %>
-      <%= button_to "Generate Outline", generate_outline_admin_course_path(course),
-        method: :post, 
-        class: "inline-block mr-2 hover:underline", 
-        id: "generate-outline-button-#{course.id}",
-        data: { 
-          turbo_confirm: "This will call the LLM to generate an outline. Are you sure?",
-          turbo_stream: true }
-      %>
-    <% end %>
-    <%= button_to "Delete", admin_course_path(course), method: :delete, class: "inline-block mr-2 hover:underline", data: { turbo_confirm: "Are you sure you want to delete this course?" } %>
-    <%= link_to "View Lessons", admin_course_lessons_path(course), class: "inline-block", data: { turbo_frame: "dashboard-content" } %>
+    <div class="flex-col justify-end justify-items-end">
+      <%= link_to "Edit", edit_admin_course_path(course), class: "block", data: { turbo_stream: true } %>
+      <% if course.outline.empty? %>
+        <%= button_to "Generate Outline", generate_outline_admin_course_path(course),
+          method: :post, 
+          class: "block hover:underline", 
+          id: "generate-outline-button-#{course.id}",
+          data: { 
+            turbo_confirm: "This will call the LLM to generate an outline. Are you sure?",
+            turbo_stream: true }
+        %>
+      <% end %>
+      <% if course.enrollments.empty? %>
+        <%= button_to "Delete", admin_course_path(course), method: :delete, class: "block hover:underline", data: { turbo_confirm: "Are you sure you want to delete this course?" } %>
+      <% end %>
+      <%= link_to "View Lessons", admin_course_lessons_path(course), class: "block", data: { turbo_frame: "dashboard-content" } %>
+    </div>
   </td>
 </tr>

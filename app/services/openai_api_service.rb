@@ -19,7 +19,7 @@ class OpenaiApiService
     @stream_handler = wrap_stream_handler(stream_handler)
     @base_system_prompt = Prompt.full_system_prompt
     if task_system_prompt
-      @system_prompt = @base_system_prompt + " \n Now, focusing on your current role: " + task_system_prompt
+      @system_prompt = @base_system_prompt + Prompt.category_generative_guidelines.first.prompt + " \n Now, focusing on your current role: " + task_system_prompt
     else
       @system_prompt = @base_system_prompt
     end
@@ -30,6 +30,12 @@ class OpenaiApiService
     # inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
+    end
+
+    # Remove any prefilled assistant message if OpenAI is being used, since it's not supported
+    if ENV["OPENAI_API_BASE_URI"].include?("api.openai.com") && messages.last[:role] == "assistant"
+      Rails.logger.debug "Prefill message detected, removing it: #{messages.last.inspect}"
+      messages.pop
     end
 
     # add tools to extras, if enabled
@@ -44,7 +50,7 @@ class OpenaiApiService
           tools: extras.dig(:tools),
           response_format: extras.dig(:response_format),
           stream: @stream_handler,
-          **(!ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
+          **(@stream_handler && ENV["OPENAI_API_BASE_URI"].include?("api.openai.com") ? { stream_options: { include_usage: true } } : {})
         }
       )
 
@@ -78,9 +84,10 @@ class OpenaiApiService
       check_content(content)
 
       # If JSON requested, parse and validate the content.
-      if extras.dig(:response_format, :type) == "json_object"
+      if extras.dig(:response_format, :type) == "json_schema" || extras.dig(:response_format, :type) == "json_object"
         parsed_content = parse_JSON(content)
         validate_JSON(parsed_content, schema) if schema.present?
+        Rails.logger.debug "Validated JSON content: #{parsed_content}"
         parsed_content
       else
         content
@@ -128,6 +135,7 @@ class OpenaiApiService
   end
 
   def check_content(content)
+    # Rails.logger.debug "Checking content: #{content}"
     if content.blank?
       raise "Empty response from LLM."
     end
@@ -135,14 +143,16 @@ class OpenaiApiService
 
   def parse_JSON(content)
     # Extract valid JSON from the response
+    # Rails.logger.debug "Parsing JSON from LLM response: #{content}"
     json_content = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
+    # Rails.logger.debug "Extracted JSON: #{json_content}"
     unless json_content.present?
       raise "No valid JSON found in the LLM response."
     end
 
     # Parse the JSON
     begin
-      Rails.logger.debug "Parsing JSON: #{json_content}"
+      # Rails.logger.debug "Parsing JSON: #{json_content}"
       parsed_content = JSON.parse(json_content)
     rescue JSON::ParserError => e
       # If invalid, try repairing the JSON
@@ -165,13 +175,13 @@ class OpenaiApiService
     unless schemer.valid?(parsed_content)
       errors = schemer.validate(parsed_content).to_a
       # Retry ?
-      raise "Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
+      raise "Please try again or try a more intelligent LLM. Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
     end
   end
 
   def wrap_stream_handler(handler)
     # Return nil if no stream handler is provided, so streaming will be disabled
-    return nil unless handler
+    return false unless handler
 
     unless handler.is_a?(Proc)
       raise ArgumentError, "stream_handler must be a Proc"

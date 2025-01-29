@@ -107,7 +107,8 @@ Prompt.find_or_create_by!(category: 'teaching_principles') do |p|
     - *Do not* assign large projects, course-end presentations, group projects, research projects, term papers, and the like. The student will benefit most from simply proceeding with the curriculum.#{' '}
     PROMPT
 end
-
+=begin
+# Version for use with non-structured output LLM
 Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
   p.title = "Default Course Outline Generator"
   p.prompt = <<~PROMPT
@@ -120,6 +121,27 @@ Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
       {"Fundamentals": "Basic concepts and terminology"},
       ...#{' '}
     ]#{' '}
+    Do not wrap the array in an object. Respond directly with the array.
+    Ensure the outline is comprehensive and suitable for the grade level.#{' '}
+    Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
+  PROMPT
+end
+=end
+
+Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
+  p.title = "Default Course Outline Generator"
+  p.prompt = <<~PROMPT
+    I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".#{' '}
+    Please generate a detailed course outline in JSON format as an "outline" object containing an array of objects, each with 2 key-value pairs.
+    Each object has a topic key and a description key. Here is an example:#{' '}
+    { "outline":#{' '}
+      [
+        { "topic": "Introduction to Computer Science", "description": "Overview of the field, its impact, and relevance in today's world." },
+        { "topic": "History of Computing", "description": "A brief journey through the key milestones and figures in the development of computers." },
+        { "topic": "Number Systems and Binary", "description": "Understanding different number systems and binary representation - the language of computers." },
+        ...
+      ]
+    }
     Ensure the outline is comprehensive and suitable for the grade level.#{' '}
     Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
   PROMPT

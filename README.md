@@ -48,6 +48,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
   - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
+- Context limit management
 - RAG: pgvector + neighbor gem
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
@@ -78,19 +79,23 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - The default setup is not secure. It runs a server using Thruster and exposes port 80. Ensure this port is not in use by another process on your host machine, and is firewalled from the public internet, unless you set up SSL. (Refer to Thruster docs or use another reverse proxy.) To only use Puma without Thruster, change the commented lines in the Dockerfile. 
 - To build and run with docker, run `docker compose up -d`.
 
+### Choice of LLM:
+- Model must support tool use.
+- For outline/lesson generation, model must support structured output.
+- You must use a fairly intelligent LLM like claude-3.5-sonnet or gemini-2.0-flash-exp.
+- Model should have long context limit, at least 128k.
+
 ## Getting Started
 - Create a teacher account using the teacher signup code.
-- Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. Some models are better at tool use and instruction-following than others. Try different ones. 
+- Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. 
 - Go to Prompts if you want to review your system prompts.
-- To verify your setup and try the chat interface, go to LLM Chat. 
+- To verify your setup and try the chat interface, go to LLM Chat. (Note: If Firefox fails to maintiain the Websockets connection, try Edge.)
 - Try asking the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
 - Make a student account. On the teacher account, go to Students, adopt the student, and enroll them in the course.
 - The student can then go to their dashboard and try out the lesson.
-
-
 
 ## Contributor guidelines:
 Maintain the core app principles:
