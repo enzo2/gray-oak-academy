@@ -1,6 +1,10 @@
-<%= turbo_stream.update(@course) do %>
+<%
+  #Helper since it may be called from controller with instance vars, or from Job with local vars
+  course = local_assigns[:course] || @course if defined?(@course)
+%>
+<%= turbo_stream.update(course) do %>
   <td colspan="4" class="py-4 px-6">
-      <h2 class="text-2xl mb-4">Edit Course: <b><%= @course.title %></b></h2>
-      <%= render "form", course: @course %>
+      <h2 class="text-2xl mb-4">Edit Course: <b><%= course.title %></b></h2>
+      <%= render "admin/courses/form", course: course %>
   </td>
 <% end %>

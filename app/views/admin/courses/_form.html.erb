@@ -1,9 +1,9 @@
-<%= form_with(model: [:admin, @course], id: "course-form") do |f| %>
-  <% if @course.errors.any? %>
+<%= form_with(model: [:admin, course], id: "course-form") do |f| %>
+  <% if course.errors.any? %>
     <div class="mb-4 text-red-950 dark:text-red-300">
-      <%= pluralize(@course.errors.count, "error") %> prevented this course from being saved.
+      <%= pluralize(course.errors.count, "error") %> prevented this course from being saved.
       <ul>
-        <% @course.errors.full_messages.each do |message| %>
+        <% course.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
@@ -33,8 +33,8 @@
         <br>You can also leave it blank for now and have the LLM generate it for you.
       </i>
     </p>
-    <% if @course.outline.any? %>
-      <% @course.outline.each do |item| %>
+    <% if course.outline.any? %>
+      <% course.outline.each do |item| %>
         <div class="flex items-center mb-2 space-x-2">
           <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "form-input w-1/4" %>
           <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "form-input w-3/4" %>
