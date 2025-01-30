@@ -45,7 +45,7 @@ class GenerateCourseOutlineJob < ApplicationJob
         model: current_user.setting.llm_model_name,
         access_token: current_user.setting.llm_api_access_token
       )
-      parsed_content = client.complete(
+      parsed_outline = client.complete(
         messages,
         extras: {
           response_format: {
@@ -58,13 +58,13 @@ class GenerateCourseOutlineJob < ApplicationJob
       )
 
       # Update the course with the generated outline.
-      extracted_outline = parsed_content["outline"].map do |item|
+      extracted_outline = parsed_outline["outline"].map do |item|
         { item["topic"] => item["description"] }
       end
       course.update!(outline: extracted_outline)
 
       # Broadcast the updated course outline
-      broadcast_success(course)
+      broadcast_success(course, current_user)
 
     rescue StandardError => e
       Rails.logger.error "Job Error: #{e.message}"
@@ -74,13 +74,24 @@ class GenerateCourseOutlineJob < ApplicationJob
 
   private
 
-  def broadcast_success(course)
+  def broadcast_success(course, current_user)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
     # Broadcast the updated course row via Turbo Streams
-    Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard",
-      target: course,
-      partial: "admin/courses/course",
-      locals: { course: course })
+    renderer = ApplicationController.renderer_with_signed_in_user(current_user)
+    html = renderer.render(
+      template: "admin/courses/edit",
+      layout: false,
+      locals: { course: course }
+    )
+    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+     target: course,
+     html: html
+     )
+    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { success: "Course outline generated successfully!" } }
+      )
   end
 
   def broadcast_error(course, message)
