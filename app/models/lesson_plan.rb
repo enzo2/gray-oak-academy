@@ -1,4 +1,6 @@
 class LessonPlan < ApplicationRecord
+  # Field: t.jsonb :content, default: [] # Array of hashes [{type:details}, ....]
+
   belongs_to :lesson
   belongs_to :teacher, class_name: "User", inverse_of: :lesson_plans
   has_one :course, through: :lesson

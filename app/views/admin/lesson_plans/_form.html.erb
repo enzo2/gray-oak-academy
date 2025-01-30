@@ -12,10 +12,12 @@
 
   <% if lesson_plan.content.blank? %>
     <div class="mb-4" id="gen-content-btn">
-      <i>You can use the LLM to generate lesson plan content. However, you should at least review and enhance it with your own resources.</i>
-      <%= link_to "Generate Lesson Plan", generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), 
-        class: "btn-primary", 
-        data: { turbo_confirm: "This will call the LLM to generate lesson plan content.", turbo_stream: true, turbo_method: :post } %>
+      <p class="mb-2"><i>You can use the LLM to generate lesson plan content. However, you should at least review and enhance it with your own resources.</i></p>
+      <div class="block">
+        <%= link_to "Generate Lesson Plan", generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), 
+          class: "btn-primary my-2", 
+          data: { turbo_confirm: "This will call the LLM to generate lesson plan content.", turbo_stream: true, turbo_method: :post } %>
+      </div>
     </div>
   <% end %>
 
