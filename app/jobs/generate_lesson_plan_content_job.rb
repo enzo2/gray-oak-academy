@@ -2,18 +2,28 @@ class GenerateLessonPlanContentJob < ApplicationJob
   queue_as :default
 
   CONTENT_SCHEMA = {
-    "type": "array",
-    "items": {
+    "strict": true,
+    "name": "Lesson_Plan",
+    "description": "A detailed lesson plan content outline.",
+    "schema": {
       "type": "object",
-      "propertyNames": { "type": "string" },
-      "additionalProperties": false,
-      "minProperties": 1,
-      "maxProperties": 1,
-      "patternProperties": {
-        "^.*$": { "type": "string" }
-      }
-    },
-    "minItems": 1
+      "properties": {
+        "lesson_plan": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "details": { "type": "string" }
+            },
+            "required": [ "type", "details" ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [ "lesson_plan" ],
+      "additionalProperties": false
+    }
   }
 
   TASK_PROMPT = Prompt.category_generate_lesson_plan.first.prompt
@@ -31,8 +41,8 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
     # Prepare messages for the LLM
     messages = [
-      { role: "user", content: customized_prompt }
-      # try prefilling the assistant message
+      { role: "user", content: customized_prompt },
+      { role: "assistant", content: "{\"lesson_plan\": [" }
     ]
 
     begin
@@ -45,14 +55,18 @@ class GenerateLessonPlanContentJob < ApplicationJob
         messages,
         extras: {
           response_format: {
-            type: "json_object"
+            type: "json_schema",
+            json_schema: CONTENT_SCHEMA
           }
         },
         schema: CONTENT_SCHEMA
       )
 
       # Update the lesson plan with the generated content (Stored as array in JSONB column.)
-      lesson_plan.update!(content: parsed_content)
+      extracted_content = parsed_content["lesson_plan"].map do |item|
+        { item["type"] => item["details"] }
+      end
+      lesson_plan.update!(content: extracted_content)
 
       # Broadcast the updated lesson plan content
       broadcast_success(lesson_plan, lesson)

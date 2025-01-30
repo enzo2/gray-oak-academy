@@ -2,24 +2,29 @@ class GenerateCourseLessonsJob < ApplicationJob
   queue_as :default
 
   LESSONS_SCHEMA = {
-    "type": "array",
-    "items": {
+    "strict": true,
+    "name": "Course_Lessons",
+    "description": "An array of lesson objects for the course",
+    "schema": {
       "type": "object",
       "properties": {
-        "title": {
-          "type": "string"
-        },
-        "goals": {
-          "type": "string"
-        },
-        "duration": {
-          "type": "integer"
+        "lessons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "goals": { "type": "string" },
+              "duration": { "type": "integer" }
+            },
+            "required": [ "title", "goals", "duration" ],
+            "additionalProperties": false
+          }
         }
       },
-      "required": [ "title", "goals", "duration" ]
-    },
-    "minItems": 1,
-    "description": "An array of lesson objects for the course"
+      "required": [ "lessons" ],
+      "additionalProperties": false
+    }
   }
 
   TASK_PROMPT = Prompt.category_generate_lessons.first.prompt
@@ -33,8 +38,8 @@ class GenerateCourseLessonsJob < ApplicationJob
 
     # Prepare messages for the LLM
     messages = [
-      { role: "user", content: customized_prompt }# ,
-      # { role: "assistant", content: "[" } # prefill the response to begin valid JSON
+      { role: "user", content: customized_prompt },
+      { role: "assistant", content: "{\"lessons\": [{" } # prefill the response to begin valid JSON
     ]
 
     begin
@@ -47,14 +52,15 @@ class GenerateCourseLessonsJob < ApplicationJob
         messages,
         extras: {
           response_format: {
-            type: "json_object"
+            type: "json_schema",
+            json_schema: LESSONS_SCHEMA
           }
         },
         schema: LESSONS_SCHEMA
       )
 
       # Create lessons for the course
-      parsed_content.each do |lesson|
+      parsed_content["lessons"].each do |lesson|
         course.lessons.create!(
           title: lesson["title"],
           goals: lesson["goals"],

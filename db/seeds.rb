@@ -107,26 +107,6 @@ Prompt.find_or_create_by!(category: 'teaching_principles') do |p|
     - *Do not* assign large projects, course-end presentations, group projects, research projects, term papers, and the like. The student will benefit most from simply proceeding with the curriculum.#{' '}
     PROMPT
 end
-=begin
-# Version for use with non-structured output LLM
-Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
-  p.title = "Default Course Outline Generator"
-  p.prompt = <<~PROMPT
-    I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".#{' '}
-    Please generate a detailed course outline in JSON format as an array of single-property objects, where each object#{' '}
-    has exactly ONE key-value pair. Each key is a topic (string) and each value is a brief description (string) of the topic.#{' '}
-    Do not use nested structures. Here is a general example:#{' '}
-    [#{' '}
-      {"Introduction to the Course": "Overview of course objectives and expectations"},
-      {"Fundamentals": "Basic concepts and terminology"},
-      ...#{' '}
-    ]#{' '}
-    Do not wrap the array in an object. Respond directly with the array.
-    Ensure the outline is comprehensive and suitable for the grade level.#{' '}
-    Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
-  PROMPT
-end
-=end
 
 Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
   p.title = "Default Course Outline Generator"
@@ -154,24 +134,24 @@ Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
     The course has been outlined:
     {course_outline}
     The next step is to develop the list of lessons.
-    Please generate a list of lessons for the course in JSON format using an array of hashes.
+    Please generate a list of lessons for the course in JSON format as a "lessons" object containing an array of objects.
     For each lesson, include the title (string), goals (string), and suggested duration in minutes (integer).
     Lessons do not need to exactly correspond to outline topics one-to-one; for example, smaller topics could be grouped into a single lesson, or larger topics could be broken down into multiple lessons.
     If the outline appears to be incomplete, additional appropriate topics may be added within the lessons.
     Importantly, lesson length and depth should be appropriate for the grade level.#{' '}
-    Don't ever exceed 60 minutes per lesson.#{' '}
+    Don't exceed 45 minutes per lesson regardless.#{' '}
     Provide enough detail in the goals so that a complete lesson plan could be inferred.#{' '}
     For example, for a course on 3D modeling:
-    [
-      { "title": "Introduction to 3D Modeling",
-        "goals": "Understand the basic concept of 3D modelling and its applications in various industries.
-                  Familiarize students with the user interface of the chosen 3D modelling software.
-                  Introduce the fundamental elements of 3D space: vertices, edges, and faces.
-        "duration": 45 },
-        ...
-    ]
-    Don't nest beyond the key:value pairs.
-    Ensure the outline is comprehensive and suitable for the grade level.
+    { "lessons":#{' '}
+      [#{' '}
+        { "title": "Introduction to 3D Modeling",
+          "goals": "Understand the basic concept of 3D modelling and its applications in various industries.
+                    Familiarize students with the user interface of the chosen 3D modelling software.
+                    Introduce the fundamental elements of 3D space: vertices, edges, and faces.
+          "duration": 45#{' '}
+        }, ...
+      ]
+    }
   PROMPT
 end
 
@@ -183,20 +163,19 @@ Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
     The lesson is to be roughly {approx_duration_min} min long.#{' '}
     Now, content for the lesson plan is needed.#{' '}
     The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.#{' '}
-
-    Please generate a detailed lesson plan content outline in JSON format as an array of single-property objects.#{' '}
-    Each object should have exactly one property where:#{' '}
-    - The property name describes the type of content (e.g., "Introduction", "Activity", "Discussion", etc.)#{' '}
-    - The property value is a detailed string describing that content element#{' '}
-
+    Please generate a detailed lesson plan content outline in JSON format as a "lesson_plan" object containing an array of objects, each with a type key and a details key.#{' '}
+    - Type should describe the type of content (e.g., "Introduction", "Activity", "Discussion", "Practice", etc.).#{' '}
+    - Details should elaborate on the content.#{' '}
     Format example:#{' '}
-    [#{' '}
-      {"Knowledge": "Ensure student is aware of X,Y,Z."},#{' '}
-      {"Method": "Casual discussion format."},#{' '}
-      {"Resource": "Have the student watch the video during the lesson, then discuss it."},#{' '}
-      ....#{' '}
-    ]#{' '}
-    You are not restricted to these content types. Creative planning will lead to superior lessons.#{' '}
+    { "lesson_plan":#{' '}
+      [
+        { "type": "Knowledge", "details": "Ensure student is aware of X,Y,Z." },
+        { "type": "Method", "details": "Casual discussion format." },
+        { "type": "Resource", "details": "Have the student watch the video at some point, then discuss it." },
+        ...
+      ]
+    }
+    You are not restricted to the aforementioned content types. Creative planning will lead to superior lessons.#{' '}
     Content may include specific knowledge or data, as well as other moieties that can help specify a high-quality lesson, such as:
       - Generative resources (e.g. tutor may generate just-in-time web component or javascript applet)
       - Digital resources (e.g., website/video/audio, files, software)
