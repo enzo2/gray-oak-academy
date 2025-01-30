@@ -12,9 +12,11 @@ class OpenaiApiService
   # If no system prompt is provided, the default system prompt will be used.
   # However, if a system message is already present in the completion messages, that will be used instead.
 
-  def initialize(model:, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
+  def initialize(current_user:, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
+    @user = current_user
     @model = model.presence || default_model
     @access_token = access_token.presence || default_access_token
+    @base_uri = current_user.settings.llm_api_base_uri || default_base_uri
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
     @base_system_prompt = Prompt.full_system_prompt
@@ -33,7 +35,7 @@ class OpenaiApiService
     end
 
     # Remove any prefilled assistant message if OpenAI is being used, since it's not supported
-    if ENV["OPENAI_API_BASE_URI"].include?("api.openai.com") && messages.last[:role] == "assistant"
+    if @base_uri.include?("api.openai.com") && messages.last[:role] == "assistant"
       Rails.logger.debug "Prefill message detected, removing it: #{messages.last.inspect}"
       messages.pop
     end
@@ -50,7 +52,7 @@ class OpenaiApiService
           tools: extras.dig(:tools),
           response_format: extras.dig(:response_format),
           stream: @stream_handler,
-          **(@stream_handler && ENV["OPENAI_API_BASE_URI"].include?("api.openai.com") ? { stream_options: { include_usage: true } } : {})
+          **(@stream_handler && @base_uri.include?("api.openai.com") ? { stream_options: { include_usage: true } } : {})
         }
       )
 
@@ -59,7 +61,7 @@ class OpenaiApiService
       return if @stream_handler
 
       # If OpenRouter was used, get cost afterwards and save to DB.
-      if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
+      if @base_uri.include?("openrouter.ai")
         # Delayed job to get generation stats from OpenRouter
         QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
       else # If not OpenRouter, use response stats directly
@@ -104,11 +106,15 @@ class OpenaiApiService
   private
 
   def default_model
-    ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." }
+    @user.setting.llm_model_name || ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." }
   end
 
   def default_access_token
-    ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in ENV variable OPENAI_API_KEY." }
+    @user.setting.llm_api_access_token || ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in ENV variable OPENAI_API_KEY." }
+  end
+
+  def default_base_uri
+    ENV.fetch("OPENAI_API_BASE_URI") { raise "Base URI was neither set nor set in ENV variable OPENAI_API_BASE_URI." }
   end
 
   def create_client
@@ -119,7 +125,7 @@ class OpenaiApiService
       backoff_factor: 2
     }
 
-    OpenAI::Client.new(access_token: @access_token) do |faraday|
+    OpenAI::Client.new(access_token: @access_token, uri_base: @base_uri) do |faraday|
       faraday.request :retry, retry_options
       faraday.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
         logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')

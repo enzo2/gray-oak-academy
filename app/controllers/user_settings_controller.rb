@@ -1,5 +1,5 @@
 class UserSettingsController < ApplicationController
-  before_action :set_settings
+  before_action :define_settings
 
   def update
     if @settings.update(user_settings_params)
@@ -17,11 +17,11 @@ class UserSettingsController < ApplicationController
 
   private
 
-  def set_settings
+  def define_settings
     @settings = current_user.settings
   end
 
   def user_settings_params
-    params.require(:setting).permit(:llm_model_name, :llm_api_access_token)
+    params.require(:setting).permit(:llm_model_name, :llm_api_access_token, :llm_api_base_uri)
   end
 end

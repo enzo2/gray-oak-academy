@@ -10,23 +10,13 @@ class GetLlmCompletionJob < ApplicationJob
     conversation = Conversation.find(conversation_id)
     user = conversation.user
 
-     # With openrouter gem (no longer needed, ruby-openai gem works with openrouter)
-     # client = OpenRouterService.new(
-     #  models: [ user.settings.llm_model_name ],
-     #  access_token: user.settings.llm_api_access_token,
-     #  stream_handler: stream_handler(conversation: conversation),
-     #  task_system_prompt: conversation.task_system_prompt,
-     #  enable_tools: true
-     # )
-
-     # With ruby-openai gem (also supports openrouter):
-     client = OpenaiApiService.new(
-       model: user.settings.llm_model_name,
-       access_token: user.settings.llm_api_access_token,
-       stream_handler: stream_handler(conversation: conversation),
-       task_system_prompt: conversation.task_system_prompt,
-       enable_tools: true
-     )
+    # With ruby-openai gem (also supports openrouter):
+    client = OpenaiApiService.new(
+      current_user: user,
+      stream_handler: stream_handler(conversation: conversation),
+      task_system_prompt: conversation.task_system_prompt,
+      enable_tools: true
+    )
 
     messages = Message.for_completion_with_images(conversation.messages) # Get the array of message hashes with roles and content
 
