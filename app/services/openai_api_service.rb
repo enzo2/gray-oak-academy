@@ -16,7 +16,7 @@ class OpenaiApiService
     @user = current_user
     @model = model.presence || default_model
     @access_token = access_token.presence || default_access_token
-    @base_uri = current_user.settings.llm_api_base_uri || default_base_uri
+    @base_uri = current_user.settings.llm_api_base_uri.presence || default_base_uri
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
     @base_system_prompt = Prompt.full_system_prompt
@@ -28,16 +28,15 @@ class OpenaiApiService
     @tools = Tool.all.map(&:for_llm) if enable_tools # Load tools if enabled
   end
 
-  def complete(messages, extras: {}, schema: nil)
+  def complete(messages, extras: {}, schema: nil, prefill: nil)
     # inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
     end
 
-    # Remove any prefilled assistant message if OpenAI is being used, since it's not supported
-    if @base_uri.include?("api.openai.com") && messages.last[:role] == "assistant"
-      Rails.logger.debug "Prefill message detected, removing it: #{messages.last.inspect}"
-      messages.pop
+    # inject prefill message unless OpenAI is being used
+    if prefill && !@base_uri.include?("api.openai.com")
+      messages << { role: "assistant", content: prefill }
     end
 
     # add tools to extras, if enabled
@@ -68,7 +67,7 @@ class OpenaiApiService
         usage = response.dig("usage")
         Completion.create(
           model: response.dig("model"),
-          api_provider: ENV["OPENAI_API_BASE_URI"],
+          api_provider: @base_uri,
           # model_provider:
           prompt_tokens: usage.dig("prompt_tokens").to_i,
           completion_tokens: usage.dig("completion_tokens").to_i,
@@ -83,6 +82,18 @@ class OpenaiApiService
       # If no stream handler was provided, process the response.
       check_for_refusal(response)
       content = response.dig("choices", 0, "message", "content")
+
+      # Remove all whitespace from prefill and content so they can be compared
+      normalized_prefill = prefill.gsub(/\s+/, "")
+      normalized_content = content.gsub(/\s+/, "")
+
+      # Restore the prefilled portion, unless it's present in the response.
+      if !@base_uri.include?("api.openai.com") && prefill.present? && !normalized_content.start_with?(normalized_prefill)
+        Rails.logger.debug "Response without prefill: #{content}"
+        Rails.logger.debug "Prefilling response with: #{prefill}"
+        content = prefill + content
+      end
+
       check_content(content)
 
       # If JSON requested, parse and validate the content.
@@ -106,11 +117,11 @@ class OpenaiApiService
   private
 
   def default_model
-    @user.setting.llm_model_name || ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." }
+    @user.setting.llm_model_name.presence || ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." }
   end
 
   def default_access_token
-    @user.setting.llm_api_access_token || ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in ENV variable OPENAI_API_KEY." }
+    @user.setting.llm_api_access_token.presence || ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in ENV variable OPENAI_API_KEY." }
   end
 
   def default_base_uri
