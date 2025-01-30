@@ -7,9 +7,9 @@ class CreateStudentReports < ActiveRecord::Migration[7.2]
       t.references :reportable, polymorphic: true, null: false
       t.references :student, null: false, foreign_key: { to_table: :users }
       t.references :teacher, null: false, foreign_key: { to_table: :users }
-      t.references :lesson, null: false, foreign_key: true
-      t.references :enrollment, null: false, foreign_key: true
-      t.references :course, null: false, foreign_key: true
+      t.references :lesson, null: false, foreign_key: true # REMOVED
+      t.references :enrollment, null: false, foreign_key: true # REMOVED
+      t.references :course, null: false, foreign_key: true # REMOVED
       t.enum :author_type, enum_type: :report_author_type, null: false
       t.enum :status, enum_type: :student_report_status, null: false
       t.jsonb :progress_data

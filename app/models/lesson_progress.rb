@@ -23,6 +23,7 @@ class LessonProgress < ApplicationRecord
       user: user,
       lesson_progress: self,
       title: lesson.title,
+      # This prompt will contain all the information needed to conduct the lesson and evaluate the student
       task_system_prompt: lesson.build_system_prompt
     )
 
