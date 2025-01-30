@@ -35,15 +35,11 @@ class GenerateCourseOutlineJob < ApplicationJob
       .gsub("{grade_level}", course.grade_level)
 
     # Prepare messages for the LLM
-    messages = [ { role: "user", content: customized_prompt },
-                 { role: "assistant", content: "{\"outline\": [{" } # Prefill the response to help it respond with valid JSON
-   ]
+    messages = [ { role: "user", content: customized_prompt } ]
 
     begin
       # Make the LLM request
-      client = OpenaiApiService.new(
-        current_user: current_user
-      )
+      client = OpenaiApiService.new(current_user: current_user)
       parsed_outline = client.complete(
         messages,
         extras: {
@@ -53,7 +49,8 @@ class GenerateCourseOutlineJob < ApplicationJob
             json_schema: OUTLINE_SCHEMA
           }
         },
-        schema: OUTLINE_SCHEMA["schema"]  # Also pass the schema to the wrapper service for validation of the response
+        schema: OUTLINE_SCHEMA["schema"],  # Also pass the schema to the wrapper service for validation of the response
+        prefill: "{\"outline\": ["
       )
 
       # Update the course with the generated outline.

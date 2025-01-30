@@ -37,10 +37,7 @@ class GenerateCourseLessonsJob < ApplicationJob
       .gsub("{course_outline}", course.outline.to_json)
 
     # Prepare messages for the LLM
-    messages = [
-      { role: "user", content: customized_prompt },
-      { role: "assistant", content: "{\"lessons\": [{" } # prefill the response to begin valid JSON
-    ]
+    messages = [ { role: "user", content: customized_prompt } ]
 
     begin
       # Make the LLM request
@@ -55,7 +52,8 @@ class GenerateCourseLessonsJob < ApplicationJob
             json_schema: LESSONS_SCHEMA
           }
         },
-        schema: LESSONS_SCHEMA
+        schema: LESSONS_SCHEMA,
+        prefill: "{\"lessons\": ["
       )
 
       # Create lessons for the course

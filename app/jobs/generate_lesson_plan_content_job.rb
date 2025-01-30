@@ -40,16 +40,12 @@ class GenerateLessonPlanContentJob < ApplicationJob
       .gsub("{other_lessons}", lesson.course.lessons.where.not(id: lesson.id).map(&:title).join(", "))
 
     # Prepare messages for the LLM
-    messages = [
-      { role: "user", content: customized_prompt },
-      { role: "assistant", content: "{\"lesson_plan\": [" }
-    ]
+    messages = [ { role: "user", content: customized_prompt } ]
 
     begin
       # Make the LLM request
-      client = OpenaiApiService.new(
-        current_user: current_user
-      )
+      client = OpenaiApiService.new(current_user: current_user)
+
       parsed_content = client.complete(
         messages,
         extras: {
@@ -58,7 +54,8 @@ class GenerateLessonPlanContentJob < ApplicationJob
             json_schema: CONTENT_SCHEMA
           }
         },
-        schema: CONTENT_SCHEMA
+        schema: CONTENT_SCHEMA,
+        prefill: "{\"lesson_plan\": ["
       )
 
       # Update the lesson plan with the generated content (Stored as array in JSONB column.)
