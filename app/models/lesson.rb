@@ -42,7 +42,7 @@ class Lesson < ApplicationRecord
       Grade Level: #{course.grade_level}
       Lesson Title: #{title}
       Goals: #{goals}
-      Duration: #{approx_duration_min} minutes
+      Duration: #{approx_duration_min} minutes (just a guide; does not need to be followed exactly)
       Lesson Plan:
       #{lesson_plan.content}
       Resources marked as available:
