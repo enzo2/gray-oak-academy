@@ -1,7 +1,7 @@
 require "json/repair"
 
 class ToolHandlerService
-  class ToolExecutionError < StandardError; end
+  class ToolExecutionError < StandardError; end  # Should be moved outside ToolHandlerService?
 
   def initialize(conversation:, message:)
     @conversation = conversation

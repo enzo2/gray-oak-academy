@@ -7,7 +7,7 @@
         <span class="font-medium"><%= enrollment.course.title %></span>
 
         <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 100%;"></sl-progress-bar>
-        <span class="text-sm"><%= "#{enrollment.completed_lessons} / #{enrollment.total_lessons} lessons completed" %></span>
+        <span class="text-sm"><%= "#{enrollment.completed_lessons_count} / #{enrollment.total_lessons_count} lessons completed" %></span>
         <div class="flex items-center my-2">
           <% if enrollment.has_available_lesson? %>
             <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0" title="Available lessons"></sl-icon>

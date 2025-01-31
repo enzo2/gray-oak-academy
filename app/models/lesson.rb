@@ -4,8 +4,8 @@ class Lesson < ApplicationRecord
   has_one :teacher, through: :course
   has_one :lesson_plan, dependent: :destroy
   has_many :students, through: :course, inverse_of: :lessons
-  has_many :lesson_progresses# , dependent: :destroy
-  has_many :student_reports, through: :lesson_progresses
+  has_many :lesson_progresses# , dependent: :destroy   #if we delete the course/lessons, keep the LessonProgress with its associated StudentReport
+  has_many :student_reports, through: :lesson_progresses# , source: :reportable, source_type: "StudentReport"  #?needed
 
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :goals, presence: true, length: { minimum: 10, maximum: 1000 }
@@ -33,34 +33,5 @@ class Lesson < ApplicationRecord
 
   def find_or_create_progress(student)
     LessonProgress.find_or_create_by(student: student, lesson: self)
-  end
-
-  def build_system_prompt
-    base_prompt = Prompt.category_lesson_tutor_session.first.prompt
-    lesson_info = <<~LESSON_INFO
-      Course: #{course.title}
-      Grade Level: #{course.grade_level}
-      Lesson Title: #{title}
-      Goals: #{goals}
-      Duration: #{approx_duration_min} minutes (just a guide; does not need to be followed exactly)
-      Lesson Plan:
-      #{lesson_plan.content}
-      Resources marked as available:
-      #{format_resources(lesson_plan.resources)}
-    LESSON_INFO
-    base_prompt + "\n\n" + lesson_info
-  end
-
-  def format_resources(resources)
-    resources_data = resources.map do |resource|
-      resource_info = {
-        "Description" => resource.description
-      }
-      resource_info["Category"] = resource.category if resource.category.present?
-      resource_info["URI"] = resource.uri if resource.uri.present?
-      resource_info["file_attached"] = "Yes" if resource.file.attached?
-      resource_info
-    end
-    JSON.pretty_generate(resources_data)
   end
 end

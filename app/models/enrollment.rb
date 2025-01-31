@@ -3,20 +3,25 @@ class Enrollment < ApplicationRecord
   belongs_to :course
   has_many :student_reports, as: :reportable # can be used for course-end reports
 
-  # Returns the number of lessons completed by the student in the course
+  # Returns the lessons completed by the student, as determined by having a student report
   def completed_lessons
-    course.lessons.completed_by_student(student).count
+    course.lessons.completed_by_student(student)
+  end
+
+  # Returns the number of lessons completed by the student in the course
+  def completed_lessons_count
+    completed_lessons.count
   end
 
   # Returns the total number of lessons in the course
-  def total_lessons
+  def total_lessons_count
     course.lessons.count
   end
 
   # Calculates the percentage of lessons completed in the course
   def progress_percentage
-    return 0 if total_lessons.zero?
-    (completed_lessons.to_f / total_lessons * 100).round
+    return 0 if total_lessons_count.zero?
+    (completed_lessons_count.to_f / total_lessons_count * 100).round
   end
 
   # Whether course has any published lessons not yet completed by student

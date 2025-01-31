@@ -28,7 +28,7 @@ end
 Tool.find_or_create_by!(name: 'Complete_Lesson') do |tool|
   tool.specifications = {
     name: "Complete_Lesson",
-    description: "Marks the current lesson as completed and saves the LLM tutor's student report",
+    description: "Marks the current lesson as completed and saves the LLM tutor's student report.",
     parameters: {
       type: "object",
       properties: {
