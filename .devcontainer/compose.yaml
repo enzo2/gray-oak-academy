@@ -2,6 +2,7 @@ name: "gray_oak_academy_devcontainer"
 
 services:
   rails-app:
+    tty: true
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile

@@ -31,10 +31,11 @@ gem "stimulus-rails"
 
 ## Authentication
 gem "devise"
+
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
-gem "tailwindcss-rails"
-# gem "markdown_views", "~> 3.0"
-gem "markdown_views", git: "https://github.com/enzo2/markdown_views.git", branch: "patch-2"
+gem "tailwindcss-rails", "~> 3.3.1"
+
+gem "markdown_views"
 
 gem "acts_as_list"
 
