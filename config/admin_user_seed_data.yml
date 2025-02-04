@@ -8,4 +8,4 @@ resources:
     description: "Local library is nearby, and students have a library card."
   - category: "Video"
     description: "David Attenborough demonstrates the Teddy-bear cholla cactus's unique defense mechanism."
-    uri: "https://www.youtube.com/watch?v=qK4G2KpmqFU"
+    uri: "https://www.youtube.com/embed/qK4G2KpmqFU"

@@ -33,15 +33,14 @@ class GenerateCourseReportJob < ApplicationJob
     }
   }
 
-  TASK_PROMPT = Prompt.category_generate_student_course_report.first.prompt
-
   def perform(enrollment)
     course = enrollment.course
     student = enrollment.student
     teacher = course.teacher
     lessons_history = enrollment.lesson_history_for_prompt
+    task_prompt = Prompt.category_generate_student_course_report.first.prompt
 
-    customized_prompt = TASK_PROMPT
+    customized_prompt = task_prompt
       .gsub("{course_title}", course.title)
       .gsub("{course_summary}", course.summary)
       .gsub("{lessons}", lessons_history)
@@ -62,7 +61,8 @@ class GenerateCourseReportJob < ApplicationJob
             json_schema: REPORT_SCHEMA
           }
         },
-        schema: REPORT_SCHEMA
+        schema: REPORT_SCHEMA,
+        prefill: "{"
       )
 
       # Create the student report

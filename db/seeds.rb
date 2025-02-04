@@ -229,7 +229,7 @@ end
 Prompt.find_or_create_by!(category: 'generate_student_course_report') do |p|
   p.title = "Generate Student Course Report"
   p.prompt = <<~PROMPT
-    The student has completed the course titled '{course_title}. The course summary was: '{course_summary}'.#{' '}
+    The student has completed the course titled {course_title}. The course summary was: {course_summary}.#{' '}
     The following were the lessons in the course, their goals, and the student's report following each lesson:
     {lessons}
     \n#{' '}

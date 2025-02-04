@@ -84,10 +84,11 @@ class OpenaiApiService
       content = response.dig("choices", 0, "message", "content")
 
       # Remove all whitespace from prefill and content so they can be compared
-      normalized_prefill = prefill.gsub(/\s+/, "")
+      normalized_prefill = prefill&.gsub(/\s+/, "")
       normalized_content = content.gsub(/\s+/, "")
 
-      # Restore the prefilled portion, unless it's present in the response.
+      # If prefill was used, restore the prefilled portion, unless it's present in the response.
+      # Prefill is not supported by OpenAI platform.
       if !@base_uri.include?("api.openai.com") && prefill.present? && !normalized_content.start_with?(normalized_prefill)
         Rails.logger.debug "Response without prefill: #{content}"
         Rails.logger.debug "Prefilling response with: #{prefill}"
