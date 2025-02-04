@@ -1,5 +1,5 @@
 class StudentReport < ApplicationRecord
-  # Report may be stored as report (string) or progress_data (JSONB)
+  # Report may be stored as report (string) or progress_data (JSONB). Currently using progress_data.
 
   belongs_to :reportable, polymorphic: true # allows any model to have a StudentReport through reportable
   belongs_to :student, class_name: "User", inverse_of: :student_reports, optional: false
@@ -7,4 +7,17 @@ class StudentReport < ApplicationRecord
 
   enum :author_type, { ai_generated: "ai_generated", teacher_written: "teacher_written" }, prefix: true
   enum :status, { in_progress: "in_progress", completed: "completed" }, prefix: true
+
+  # Automatically check if student course report needs to be generated
+  after_create :trigger_course_report_check
+
+  private
+
+  def trigger_course_report_check
+    if reportable_type == "LessonProgress"
+      Rails.logger.debug "Checking if need course report for student #{student.id} in course #{reportable.lesson.course.id}"
+      enrollment = reportable.lesson.course.enrollments.find_by(student: student)
+      enrollment.course_report_check
+    end
+  end
 end

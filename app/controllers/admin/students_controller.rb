@@ -40,6 +40,13 @@ module Admin
       redirect_to admin_student_path(@student)
     end
 
+    def retry_generate_course_report
+      enrollment = Enrollment.find(params[:enrollment_id])
+      GenerateCourseReportJob.perform_later(enrollment)
+      flash[:notice] = "Course report generation retried."
+      redirect_to admin_student_path(@student)
+    end
+
     private
 
     def set_student

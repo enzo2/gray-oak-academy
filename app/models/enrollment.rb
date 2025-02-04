@@ -1,11 +1,19 @@
 class Enrollment < ApplicationRecord
   belongs_to :student, class_name: "User", inverse_of: :enrollments
   belongs_to :course
-  has_many :student_reports, as: :reportable # can be used for course-end reports
+  has_many :student_reports, as: :reportable # used for course-end reports
 
   # Returns the lessons completed by the student, as determined by having a student report
+  # (Would not include any lessons that were completed and then deleted)
   def completed_lessons
-    course.lessons.completed_by_student(student)
+    course.lessons
+      .joins(:student_reports)
+      .where(student_reports: { student_id: student.id, status: :completed })
+      .order(position: :asc)
+  end
+
+  def incomplete_lessons
+    course.lessons.where.not(id: completed_lessons.pluck(:id)).order(position: :asc)
   end
 
   # Returns the number of lessons completed by the student in the course
@@ -26,14 +34,22 @@ class Enrollment < ApplicationRecord
 
   # Whether course has any published lessons not yet completed by student
   def has_available_lesson?
-    course.lessons.published.not_completed_by_student(student).exists?
+    incomplete_lessons.published.exists?
   end
 
   def next_available_lesson
-    course.lessons.published.not_completed_by_student(student).first
+    incomplete_lessons.published.first
   end
 
   def completed?
-    progress_percentage == 100
+    completed_lessons_count == total_lessons_count
+  end
+
+  # When the course is completed, we need to generate a course-end summary report based on all the lesson reports.
+  def course_report_check
+    # If the course is completed and there are no student reports, generate a course report
+    if completed? && !student_reports.exists?
+      GenerateCourseReportJob.perform_later(self)
+    end
   end
 end
