@@ -229,17 +229,17 @@ end
 Prompt.find_or_create_by!(category: 'generate_student_course_report') do |p|
   p.title = "Generate Student Course Report"
   p.prompt = <<~PROMPT
-      The student has completed the course titled '{course_title}. The course summary was: '{course_summary}'.#{' '}
-      The following were the lessons in the course, their goals, and the student's report following each lesson:
-      {lessons}
-      \n#{' '}
-      Now, please synthesize this information into a final course-end student report. You will need to comment on:
-      - An overview of the student's performance and understanding during the course
-      - Areas (if any) where the student demonstrated adequate or strong understanding, which will require minimal to no review in subsequent courses
-      - Aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions
-      - Aspects of the teaching methodology that were particularly effective or ineffective for this student
-      Please respond according to the provided JSON schema.#{' '}
-    PROMPT
+    The student has completed the course titled '{course_title}. The course summary was: '{course_summary}'.#{' '}
+    The following were the lessons in the course, their goals, and the student's report following each lesson:
+    {lessons}
+    \n#{' '}
+    Now, please synthesize this information into a final course-end student report. You will need to comment on:
+    - An overview of the student's performance and understanding during the course
+    - Areas (if any) where the student demonstrated adequate or strong understanding, which will require minimal to no review in subsequent courses
+    - Aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions
+    - Aspects of the teaching methodology that were particularly effective or ineffective for this student. \n
+    Please respond according to the provided JSON schema.#{' '}
+  PROMPT
 end
 
 Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|

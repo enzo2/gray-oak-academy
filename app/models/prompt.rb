@@ -2,22 +2,23 @@ class Prompt < ApplicationRecord
   belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :prompts, optional: true
 
   enum :category, {
-    other: "other",
-    generate_course_outline: "generate_course_outline",
-    generate_lessons: "generate_lessons",
-    generate_lesson_plan: "generate_lesson_plan",
-    suggest_resources: "suggest_resources",
-    lesson_tutor_session: "lesson_tutor_session",
-    open_ended_student_chat: "open_ended_student_chat",
-    student_progress_tutor_session: "student_progress_tutor_session",
-    generate_student_lesson_report: "generate_student_lesson_report",
-    generate_student_assessment_report: "generate_student_assessment_report",
-    generate_student_profile: "generate_student_profile",
-    tool_usage: "tool_usage",
-    generative_guidelines: "generative_guidelines",
-    teacher_assistant: "teacher_assistant",
-    teaching_principles: "teaching_principles",
-    base_system_prompt: "base_system_prompt"
+    other: "other", # unused
+    generate_course_outline: "generate_course_outline", # self-explanatory
+    generate_lessons: "generate_lessons", # self-explanatory
+    generate_lesson_plan: "generate_lesson_plan", # self-explanatory
+    suggest_resources: "suggest_resources", # unused, need to impelment
+    lesson_tutor_session: "lesson_tutor_session", # for conducting the lesson plan with student
+    open_ended_student_chat: "open_ended_student_chat", # for student 1:1 chat outside of lessons
+    student_progress_tutor_session: "student_progress_tutor_session", # Unused, can be for a planning session, 'office hours', student-directed lesson planning, etc.
+    generate_student_lesson_report: "generate_student_lesson_report", # Unused; specified in a Tool
+    generate_student_course_report: "generate_student_course_report", # Generate the course-end report
+    generate_student_assessment_report: "generate_student_assessment_report", # unused, could be for reports outside of a course/lesson, eg. one-off tutoring session, remedial/review, vibe check, etc.
+    generate_student_profile: "generate_student_profile", # unused. Could be for processing RAG results before a lesson
+    generative_guidelines: "generative_guidelines",  # LLM instructions for generative UI/UX and code execution
+    teacher_assistant: "teacher_assistant", # for 1:1 teacher assistant chat
+    teaching_principles: "teaching_principles", # appended to the base system prompt to establish teaching style, principles, ethical boundaries, etc.
+    base_system_prompt: "base_system_prompt", # prepended to all prompts to explain foundational principles
+    tool_usage: "tool_usage" # unused, there is a Tool model for this
   }, validate: true, prefix: true
 
   FRIENDLY_CATEGORIES = {
@@ -26,17 +27,18 @@ class Prompt < ApplicationRecord
     generate_lessons: "Generate Lessons",
     generate_lesson_plan: "Generate Lesson Plan",
     suggest_resources: "Suggest Resources",
-    lesson_tutor_session: "Lesson Tutor Session", # for conducting the lesson plan with student
-    open_ended_student_chat: "Open-Ended Student Chat", # for student 1:1 chat outside of lessons
-    student_progress_tutor_session: "Student Progress Tutor Session", # for providing the student with constructive feedback
-    generate_student_lesson_report: "Generate Student Lesson Report", # post-lesson assessment
-    generate_student_assessment_report: "Generate Student Assessment Report", # post-course assessment
-    generate_student_profile: "Generate Student Profile", # for processing RAG results before a lesson
-    tool_usage: "Tool Usage", # for enabling LLM to control the app during a lesson, generate UI, etc.
-    generative_guidelines: "Generative Guidelines", # LLM instructions for generative UI/UX and code execution
-    teacher_assistant: "Teacher Assistant", # for 1:1 teacher assistant chat
-    teaching_principles: "Teaching Principles", # appended to the base system prompt to establish teaching principles, ethical boundaries, etc.
-    base_system_prompt: "Base System Prompt" # prepended to all prompts to explain the app
+    lesson_tutor_session: "Lesson Tutor Session",
+    open_ended_student_chat: "Open-Ended Student Chat",
+    student_progress_tutor_session: "Student Progress Tutor Session",
+    generate_student_lesson_report: "Generate Student Lesson Report",
+    generate_student_course_report: "Generate Student Course Report",
+    generate_student_assessment_report: "Generate Student Assessment Report",
+    generate_student_profile: "Generate Student Profile",
+    tool_usage: "Tool Usage",
+    generative_guidelines: "Generative Guidelines",
+    teacher_assistant: "Teacher Assistant",
+    teaching_principles: "Teaching Principles",
+    base_system_prompt: "Base System Prompt"
   }
 
   validates :title, presence: true

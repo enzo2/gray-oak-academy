@@ -4,7 +4,7 @@ class LessonProgress < ApplicationRecord
   belongs_to :student, class_name: "User"
   belongs_to :lesson
   has_one :teacher, through: :lesson
-  has_one :conversation
+  has_one :conversation, dependent: :destroy
   has_one :student_report, as: :reportable, dependent: :destroy
 
   def find_or_create_conversation(user)
@@ -29,6 +29,7 @@ class LessonProgress < ApplicationRecord
       #{lesson.lesson_plan.content}
       Resources marked as available:
       #{lesson.lesson_plan.resources.format_collection}
+      Student's name: #{student.name}
       Student's progress in previous lessons in this course:
       #{previous_lesson_reports}
     LESSON_INFO
@@ -57,10 +58,10 @@ class LessonProgress < ApplicationRecord
 
   def previous_lesson_reports
     student = self.student
-    lesson = self.lesson
-    course = lesson.course
+    course = self.lesson.course
+    enrollment = student.enrollments.find_by(course: course)
 
-    completed_lessons_in_course = course.lessons.completed_by_student(student)
+    completed_lessons_in_course = enrollment.completed_lessons
 
     if completed_lessons_in_course.empty?
       "No previous lessons completed in this course yet."
