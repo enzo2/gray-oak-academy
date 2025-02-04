@@ -13,22 +13,11 @@ class Lesson < ApplicationRecord
 
   scope :published, -> { joins(:lesson_plan).where(lesson_plans: { status: "published" }) }
 
+  # Check if the student has a completed StudentReport associated with this lesson
   def completed_by?(student)
-    # Check if the student has a completed StudentReport associated with this lesson
     lesson_progress = lesson_progresses.find_by(student: student)
     return false if lesson_progress.nil?
     lesson_progress.completed?
-  end
-
-  # Filters lessons that have been completed by the given student, having an associated StudentReport
-  def self.completed_by_student(student)
-    joins(:student_reports).where(student_reports: { student_id: student.id, status: :completed })
-  end
-
-  # e.g. next_lesson = course.lessons.published.not_completed_by_student(student).first
-  def self.not_completed_by_student(student)
-    completed_lessons = completed_by_student(student).pluck(:id)
-    where.not(id: completed_lessons)
   end
 
   def find_or_create_progress(student)
