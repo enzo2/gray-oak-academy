@@ -31,7 +31,7 @@ class LessonProgress < ApplicationRecord
       #{lesson.lesson_plan.resources.format_collection}
       Student's name: #{student.name}
       Student's progress in previous lessons in this course:
-      #{previous_lesson_reports}
+      #{student.enrollments.find_by(course: lesson.course)&.lesson_history_for_prompt}
     LESSON_INFO
     base_prompt + "\n\n" + lesson_info
   end
@@ -54,24 +54,5 @@ class LessonProgress < ApplicationRecord
     )
 
     conversation
-  end
-
-  def previous_lesson_reports
-    student = self.student
-    course = self.lesson.course
-    enrollment = student.enrollments.find_by(course: course)
-
-    completed_lessons_in_course = enrollment.completed_lessons
-
-    if completed_lessons_in_course.empty?
-      "No previous lessons completed in this course yet."
-    else
-      completed_lessons_in_course.map do |lesson|
-        # Find the student report
-        report = lesson.student_reports.where(student: student).first
-        report_content = report.progress_data.to_s || "Report details not available."
-        "Lesson: #{lesson.title}, Report: #{report_content}"
-      end.join("\n")
-    end
   end
 end

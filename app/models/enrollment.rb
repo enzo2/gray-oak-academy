@@ -52,4 +52,16 @@ class Enrollment < ApplicationRecord
       GenerateCourseReportJob.perform_later(self)
     end
   end
+
+  def lesson_history_for_prompt
+    unless completed_lessons.empty?
+      completed_lessons.map do |lesson|
+        report = lesson.student_reports.where(student: student).first
+        report_content = report.progress_data.to_s || "Report not available."
+        "Lesson #{lesson.position}: #{lesson.title} | Goals: #{lesson.goals} | Student Report:#{report_content}"
+      end.join("\n")
+    else
+      "No previous lessons completed in this course yet."
+    end
+  end
 end

@@ -39,13 +39,7 @@ class GenerateCourseReportJob < ApplicationJob
     course = enrollment.course
     student = enrollment.student
     teacher = course.teacher
-
-    lessons_history = course.lessons.map do |lesson|
-        title: lesson.title,
-        summary: lesson.summary,
-        lesson_student_report: #Oops, we are repeating code that exists in lesson_progress
-      }
-    end
+    lessons_history = enrollment.lesson_history_for_prompt
 
     customized_prompt = TASK_PROMPT
       .gsub("{course_title}", course.title)
