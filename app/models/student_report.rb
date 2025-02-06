@@ -1,5 +1,6 @@
 class StudentReport < ApplicationRecord
-  # Report may be stored as report (string) or progress_data (JSONB). Currently using progress_data.
+  # Reports stored as progress_data (JSONB).
+  # As LLMs may not follow the desired schema for reports, don't depend on any particular JSON format.
 
   belongs_to :reportable, polymorphic: true # allows any model to have a StudentReport through reportable
   belongs_to :student, class_name: "User", inverse_of: :student_reports, optional: false
@@ -10,6 +11,35 @@ class StudentReport < ApplicationRecord
 
   # Automatically check if student course report needs to be generated
   after_create :trigger_course_report_check
+
+  def to_markdown
+      report = progress_data
+      return report.to_s unless report.is_a?(Hash)
+    begin
+      md = +""
+      report.each do |key, value|
+        # Convert the key (symbol or string) to a humanized heading.
+        md << "**#{key.to_s.humanize}**\n"
+        case value
+        when Array
+          if value.empty?
+            md << "None.\n\n"
+          else
+            value.each do |item|
+              md << "- #{item}\n"
+            end
+            md << "\n"
+          end
+        else
+          md << "#{value}\n\n"
+        end
+      end
+      md
+    rescue StandardError => e
+      Rails.logger.error "Error generating markdown for student report #{id}: #{e.message}"
+      report.to_s
+    end
+  end
 
   private
 

@@ -51,13 +51,14 @@ Rails.application.routes.draw do
         delete :unadopt
         post :enroll
         delete :unenroll
-        post 'retry_generate_course_report', to: 'students#retry_generate_course_report'
+        post "retry_generate_course_report", to: "students#retry_generate_course_report"
       end
     end
   end
 
   namespace :student do
     resources :lessons, only: [ :show ]
+    resources :enrollments, only: [ :show ]
   end
 
   resources :applets

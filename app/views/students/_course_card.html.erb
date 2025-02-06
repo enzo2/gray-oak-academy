@@ -6,14 +6,17 @@
     <span class="text-sm"><%= "#{enrollment.completed_lessons_count} / #{enrollment.total_lessons_count} lessons completed" %></span>
   </div>
 
-  <div class="flex items-center my-4">
+  <div class="my-4">
     <% if enrollment.has_available_lesson? %>
       <sl-button href="<%= student_lesson_path(enrollment.next_available_lesson) %>" class="">
-        <sl-icon slot="prefix" name="check-circle-fill" class="text-green-500"></sl-icon>
+        <sl-icon slot="prefix" name="check-circle-fill" class="text-blue-700"></sl-icon>
         Start next lesson
       </sl-button>
     <% elsif enrollment.completed? %>
-      <span class="text-sm">All lessons complete!</span>
+      <sl-button href="<%= student_enrollment_path(enrollment) %>" class="" data-turbo-frame="student-dashboard" }>
+        <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
+          View course summary
+      </sl-button>
     <% else %>
       <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
       <span class="text-sm">No lessons available. Check with teacher.</span>

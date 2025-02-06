@@ -1,0 +1,23 @@
+<%= turbo_frame_tag "student-dashboard" do %>
+
+  <%= link_to "Back to Dashboard", students_root_path, class: "block hover:underline mb-3", data: { turbo_frame: "student-dashboard" } %>
+
+  <h2 class="text-2xl mb-2"><%= @enrollment.course.title %></h2>
+  <p class="mb-4">Course completed on <%= @enrollment.student_reports.first.created_at.strftime("%B %d, %Y") %>.</p>
+
+  <% if @enrollment.completed? %>
+    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4
+                prose dark:prose-invert
+                max-w-2xl prose-li:my-0 marker:prose-ul:text-gray-800 dark:marker:prose-ul:text-gray-100">
+      <h3 class="mb-3">Course report</h3>
+      <%= markdown(@enrollment.student_reports.first.to_markdown) %>
+    </div>
+  <% elsif %>
+    <p>This course is not yet completed.</p>
+  <% end %>
+
+  <% @enrollment.course.lessons.each do |lesson| %>
+    <%# insert table of lessons and student lesson reports %>
+  <% end %>
+
+<% end %>

@@ -1,29 +1,31 @@
-<main class="p-4">
-  <h1 class="font-bold text-2xl mb-4"><%= current_user.first_name %>'s Dashboard</h1>
+  <main class="p-4">
+    <%= turbo_frame_tag "student-dashboard" do %>
+      <h1 class="font-bold text-2xl mb-4"><%= current_user.first_name %>'s Dashboard</h1>
 
-  <p class="mb-4">Today is <%= Date.current.strftime("%A, %B %d, %Y") %></p>
+      <p class="mb-4">Today is <%= Date.current.strftime("%A, %B %d, %Y") %></p>.
 
-  <h2 class="text-lg mb-4">Your Courses</h2>
+      <h2 class="text-lg mb-4">Your Courses</h2>
 
-  <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
-    <% if @enrollments.any? %>
-      <% @enrollments.each do |enrollment| %>
-        <%= render 'course_card', enrollment: enrollment %>
-      <% end %>
-    <% else %>
-      <p>You are not enrolled in any courses.</p>
+      <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
+        <% if @enrollments.any? %>
+          <% @enrollments.each do |enrollment| %>
+            <%= render 'course_card', enrollment: enrollment %>
+          <% end %>
+        <% else %>
+          <p>You are not enrolled in any courses.</p>
+        <% end %>
+      </div>
+
+      <h2 class="text-lg mb-4">Other tools</h2>
+
+      <sl-button href="<%= conversations_path %>" data-turbo-frame="dashboard-content">
+        <sl-icon slot="prefix" name="chat-right-dots"></sl-icon>
+        Random GPT Chat
+      </sl-button>
+      
+      <sl-button href="<%= applets_path %>" data-turbo-frame="dashboard-content">
+        <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
+        View Archived Applets
+      </sl-button>
     <% end %>
-  </div>
-
-  <h2 class="text-lg mb-4">Other tools</h2>
-
-  <sl-button href="<%= conversations_path %>" data-turbo-frame="dashboard-content">
-    <sl-icon slot="prefix" name="chat-right-dots"></sl-icon>
-    Random GPT Chat
-  </sl-button>
-  
-  <sl-button href="<%= applets_path %>" data-turbo-frame="dashboard-content">
-    <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
-    View Archived Applets
-  </sl-button>
-</main>
+  </main>
