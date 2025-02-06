@@ -3,6 +3,11 @@ class Enrollment < ApplicationRecord
   belongs_to :course
   has_many :student_reports, as: :reportable # used for course-end reports
 
+  scope :completed, -> { joins(:student_reports).where(student_reports: { status: :completed }) }
+  scope :in_progress, -> { where.not(
+      id: joins(:student_reports).where(student_reports: { status: :completed }).select(:id)
+  )}
+
   # Returns the lessons completed by the student, as determined by having a student report
   # (Would not include any lessons that were completed and then deleted)
   def completed_lessons
@@ -41,6 +46,7 @@ class Enrollment < ApplicationRecord
     incomplete_lessons.published.first
   end
 
+  # Determine if course is completed by checking if all lessons have been completed
   def completed?
     completed_lessons_count == total_lessons_count
   end
