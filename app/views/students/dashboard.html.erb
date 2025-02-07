@@ -3,7 +3,7 @@
     <h1 class="font-bold text-2xl mb-4"><%= current_user.first_name %>'s Dashboard</h1>
     <p class="mb-4">Today is <%= Date.current.strftime("%A, %B %d, %Y") %>.</p>
 
-    <sl-tab-group>
+    <sl-tab-group id="student-dashboard-tabs">
       <sl-tab slot="nav" panel="courses">My Courses</sl-tab>
       <sl-tab slot="nav" panel="past_courses">Past Courses</sl-tab>
       <sl-tab slot="nav" panel="chat">Chat</sl-tab>
@@ -22,16 +22,7 @@
         </div>
       </sl-tab-panel>
       <sl-tab-panel name="past_courses">
-        <h2 class="text-lg mb-4">Completed Courses</h2>
-        <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
-          <% if @enrollments.completed.any? %>
-            <% @enrollments.completed.each do |enrollment| %>
-              <%= render 'course_card', enrollment: enrollment %>
-            <% end %>
-          <% else %>
-            <p>You don't have any previous courses.</p>
-          <% end %>
-        </div>
+        <%= render 'completed_courses', enrollments: @enrollments.completed %>
       </sl-tab-panel>
       <sl-tab-panel name="chat">
         <p>
@@ -60,6 +51,21 @@
         
       </sl-tab-panel>
     </sl-tab-group>
+
+    <script> //Allow closing tabs. 
+      const tabGroup = document.getElementById('student-dashboard-tabs');
+      tabGroup.addEventListener('sl-close', async event => {
+        const tab = event.target;
+        const panel = tabGroup.querySelector(`sl-tab-panel[name="${tab.panel}"]`);
+        // Show the previous tab if the tab is currently active
+        if (tab.active) {
+          tabGroup.show(tab.previousElementSibling.panel);
+        }
+        // Remove the tab + panel
+        tab.remove();
+        panel.remove();
+      });
+    </script>
 
     <%= turbo_frame_tag "dashboard-content" %>
 

@@ -3,6 +3,10 @@ module Student
     before_action :set_enrollment, only: [ :show ]
 
     def show
+      respond_to do |format|
+        format.turbo_stream
+        # format.html
+      end
     end
 
     private

@@ -1,0 +1,6 @@
+<%= turbo_stream.append "student-dashboard-tabs" do %>
+  <sl-tab slot="nav" panel="<%= dom_id(@enrollment) %>" closable active><%= truncate(@enrollment.course.title, length: 20) %></sl-tab>
+  <sl-tab-panel name="<%= dom_id(@enrollment) %>">
+    <%= render template: "student/enrollments/show", formats: [:html] %>
+  </sl-tab-panel>
+<% end %>

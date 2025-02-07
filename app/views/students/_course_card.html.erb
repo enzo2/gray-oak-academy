@@ -13,7 +13,7 @@
         Start next lesson
       </sl-button>
     <% elsif enrollment.completed? %>
-      <sl-button href="<%= student_enrollment_path(enrollment) %>" class="" target="_blank">
+      <sl-button href="<%= student_enrollment_path(enrollment) %>" class="" data-turbo-stream="true">
         <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
           View course summary
       </sl-button>
