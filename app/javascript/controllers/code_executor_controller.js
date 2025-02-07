@@ -20,6 +20,7 @@ export default class extends Controller {
   }
 
   setupExecutableBlocks(element) {
+    // Find all executable code blocks in the message.
     const executableBlocks = element.querySelectorAll("pre[data-executable]");
 
     executableBlocks.forEach(block => {
@@ -40,8 +41,10 @@ export default class extends Controller {
     });
   }
 
+  // Main function for setting up the code block.
   setupBlock(block, config) {
-    
+
+    // Create a container div to hold the block and its associated buttons.
     const container = this.createContainer(block);
     
     if (config.hidden) {
@@ -53,7 +56,8 @@ export default class extends Controller {
 
     const archiveButton = this.createArchiveButton(block);
     container.appendChild(archiveButton);
-
+    
+    // Create an output div if the render target is inline.
     if (config.renderTarget === 'inline') {
       const output = this.createOutputDiv();
       container.appendChild(output);
@@ -66,6 +70,7 @@ export default class extends Controller {
     console.log("Applet has been set up!");
   }
 
+  // Creates a container div to hold the block and its associated buttons.
   createContainer(block) {
     const container = document.createElement("div");
     container.className = "relative";
@@ -74,6 +79,7 @@ export default class extends Controller {
     return container;
   }
 
+  // Sets up the block to be hidden initially and adds a toggle button.
   setupHiddenBlock(block, container) {
     block.style.display = 'none';
     const toggleBtn = this.createToggleButton(block);
@@ -134,8 +140,9 @@ export default class extends Controller {
     iframe.srcdoc = iframeContent;
   }
 
+  // Helper method to get the output element based on the render target
   getOutputElement(block, renderTarget) {
-    if (renderTarget === 'chalkboard') {
+    if (renderTarget === 'chalkboard') { //Use the chalkboard as output
       const output = this.chalkboardTarget;
       if (!output) {
         console.error("Chalkboard element not found");
@@ -144,7 +151,7 @@ export default class extends Controller {
       output.style.display = "block";
       output.innerHTML = "";
       return output;
-    } else {
+    } else  { //Use the inline output div as output
       const output = block.parentNode.querySelector("div:last-child");
       if (!output) {
         console.error("Inline output element not found");

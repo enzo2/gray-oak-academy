@@ -17,6 +17,7 @@ class AppletsController < ApplicationController
   end
 
   def show
+     render json: { code: @applet.code }
   end
 
   def destroy
