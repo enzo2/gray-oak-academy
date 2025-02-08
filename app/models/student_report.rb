@@ -12,6 +12,9 @@ class StudentReport < ApplicationRecord
   # Automatically check if student course report needs to be generated
   after_create :trigger_course_report_check
 
+  scope :lesson_reports, -> { where(reportable_type: "LessonProgress") }
+  scope :course_reports, -> { where(reportable_type: "Enrollment") }
+
   def to_markdown
       report = progress_data
       return report.to_s unless report.is_a?(Hash)

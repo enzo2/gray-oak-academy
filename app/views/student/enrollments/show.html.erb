@@ -2,17 +2,31 @@
 
 <% if @enrollment.completed? %>
   <p class="mb-4">Course completed on <%= @enrollment.student_reports.first.created_at.strftime("%B %d, %Y") %>.</p>
-  <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4
-              prose dark:prose-invert
+  <div class="bg-gray-300 dark:bg-gray-700 rounded-lg mt-2 mb-4 px-4 py-2 pl-4
+              prose dark:prose-invert max-w-none
               prose-li:my-0 marker:prose-ul:text-gray-800 dark:marker:prose-ul:text-gray-100">
     <h3 class="mb-3">Course report</h3>
     <%= markdown(@enrollment.student_reports.first.to_markdown) %>
   </div>
 <% elsif %>
-  <p>This course is not yet completed.</p>
+  <p class="mb-2">This course is not yet completed.</p>
 <% end %>
 
+<h3 class="text-xl mb-2 font-bold">Lessons:</h3>
 <% @enrollment.course.lessons.each do |lesson| %>
-  <h4 class="mb-2 font-bold"><%= lesson.title %></h3>
-  <%# insert table of lessons and student lesson reports %>
+  <% student_reports = lesson.student_reports.where(student: @enrollment.student)%>
+  <sl-details summary="<%= "✔ " unless student_reports.empty? %><%= lesson.title %>" class="my-1">
+    <p class="mb-4">
+      <b>Lesson Goals:</b>
+      <%= lesson.goals %>
+    </p>
+    <% student_reports.each do |student_report| %>
+      <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4
+                    prose dark:prose-invert max-w-none
+                    prose-li:my-0 marker:prose-ul:text-gray-800 dark:marker:prose-ul:text-gray-100">
+        <span class="mb-3"><i>Completed <%= student_report.created_at.strftime("%B %d, %Y") %></i>:</span>
+        <%= markdown(student_report.to_markdown) %>
+      </div>
+    <% end %>
+  </sl-details>
 <% end %>
