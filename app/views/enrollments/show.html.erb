@@ -12,7 +12,7 @@
   <p class="mb-2">This course is not yet completed.</p>
 <% end %>
 
-<h3 class="text-xl mb-2 font-bold">Lessons:</h3>
+<h3 class="text-xl mb-2">Lessons:</h3>
 <% @enrollment.course.lessons.each do |lesson| %>
   <% student_reports = lesson.student_reports.where(student: @enrollment.student)%>
   <sl-details summary="<%= "✔ " unless student_reports.empty? %><%= lesson.title %>" class="my-1">

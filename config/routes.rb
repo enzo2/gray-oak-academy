@@ -18,6 +18,19 @@ Rails.application.routes.draw do
   get "admin/dashboard", as: :admin_root
   patch "user_settings", to: "user_settings#update"
 
+  resources :conversations do
+    member do
+      delete :clear
+    end
+    resources :messages, only: [ :create ]
+  end
+
+  get "proxy/image", to: "messages#proxy_image"
+
+  resources :enrollments, only: [ :show ]
+
+  resources :applets
+
   namespace :admin do
     resources :courses do
       post "generate_outline", on: :member
@@ -58,17 +71,5 @@ Rails.application.routes.draw do
 
   namespace :student do
     resources :lessons, only: [ :show ]
-    resources :enrollments, only: [ :show ]
   end
-
-  resources :applets
-
-  resources :conversations do
-    member do
-      delete :clear
-    end
-    resources :messages, only: [ :create ]
-  end
-
-  get "proxy/image", to: "messages#proxy_image"
 end

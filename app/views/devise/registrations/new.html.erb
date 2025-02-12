@@ -1,7 +1,7 @@
 <main class="md:container md:mx-auto px-15 flex justify-center items-center">
   <div class="p-8 min-h-1/2 max-w-md w-full">
     
-    <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Sign up</h2>
+    <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Register</h2>
 
     <%= form_for(resource, as: resource_name, url: registration_path(resource_name), 
         data: { controller: "role-selection" }) do |f| %>
@@ -52,7 +52,7 @@
       </div>
 
       <div class="mb-6">
-        <%= f.submit "Sign up", class: "btn-primary" %>
+        <%= f.submit "Register", class: "btn-primary" %>
       </div>
     <% end %>
 
