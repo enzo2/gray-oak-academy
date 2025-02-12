@@ -1,52 +1,80 @@
 <%= turbo_frame_tag "student-control-panel" do %>
-  <h2 class="text-xl font-semibold mb-6"><%= @student.name %></h2>
-  <h3 class="text-lg">Enrolled Courses</h3>
-  <div class="w-full grid grid-cols-[repeat(auto-fill,16rem)] gap-4 mb-6">
-    <% @student.enrollments.includes(:course).each do |enrollment| %>
-      <div class="p-2 rounded border border-gray-300 dark:border-gray-700" id="<%= dom_id(enrollment) %>">
-        <span class="font-medium"><%= enrollment.course.title %></span>
+  <h2 class="text-xl font-semibold mb-4"><%= @student.name %></h2>
 
-        <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 100%;"></sl-progress-bar>
-        <span class="text-sm"><%= "#{enrollment.completed_lessons_count} / #{enrollment.total_lessons_count} lessons completed" %></span>
-        <div class="flex items-center my-2">
-          <% if enrollment.has_available_lesson? %>
-            <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0" title="Available lessons"></sl-icon>
-            <span class="text-sm">Next lesson ready.</span>
-          <% else %>
-            <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
-            <span class="text-sm">No lessons available for student. Please 
-              <%= link_to "publish a lesson plan", admin_course_lessons_path(enrollment.course), data: {turbo_frame: "dashboard-content"}, class: "underline" %>.
-              </span>
-          <% end %>
-        </div>
+  <sl-tab-group id="student-dashboard-tabs">
+    <sl-tab slot="nav" panel="active_courses">Active Courses</sl-tab>
+    <sl-tab slot="nav" panel="past_courses">Past Courses</sl-tab>
+    <sl-tab slot="nav" panel="enroll">Add Course</sl-tab>
+    <sl-tab slot="nav" panel="settings">Settings</sl-tab>
+    <sl-tab slot="nav" panel="applets">Applets</sl-tab>
 
-        <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
-            method: :delete,
-            data: { turbo_confirm: 'Are you sure?' }, class: "btn-danger text-sm" %>
-      </div>
-    <% end %>
-  </div>
-
-  <div class="mb-6">
-    <h3 class="text-lg">Enroll in a New Course</h3>
-      <% available_courses = Course.available_for_enrollment(@student, current_user) %>
-    <% if available_courses.any? %>
-      <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex" do |form| %>
-      <%= form.collection_select :course_id, available_courses, :id, :title,
-        { prompt: "Select Course" }, { class: "form-select" } %>
-        <%= form.submit 'Enroll', class: "btn-primary ml-2" %>
+    <sl-tab-panel name="active_courses">
+      <% if @active_enrollments.presence %>
+        <%= render 'active_courses', enrollments: @active_enrollments %>
+      <% else %>
+        <p class="">This student is not currently enrolled in any courses.</p>
       <% end %>
-    <% else %>
-      <p class="text-sm">No courses available for enrollment.</p>
-    <% end %>
-  </div>
+    </sl-tab-panel>
+    
+    <sl-tab-panel name="past_courses">
+      <% if @completed_enrollments.presence %>
+        <%= render 'completed_courses', enrollments: @completed_enrollments %>
+      <% else %>
+        <p class="">This student has not completed any courses.</p>
+      <% end %>
+    </sl-tab-panel>
 
-  <hr class="mb-6">
+    <sl-tab-panel name="enroll">
+      <h3 class="text-lg">Enroll in a New Course</h3>
+      <% available_courses = Course.available_for_enrollment(@student, current_user) %>
+      <% if available_courses.any? %>
+        <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex" do |form| %>
+        <%= form.collection_select :course_id, available_courses, :id, :title,
+          { prompt: "Select Course" }, { class: "form-select" } %>
+          <%= form.submit 'Enroll', class: "btn-primary ml-2" %>
+        <% end %>
+      <% else %>
+        <p class="text-sm">No courses available for enrollment.</p>
+      <% end %>
+    </sl-tab-panel>
 
-  <% if @student.teacher == current_user %>
-    <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
-      method: :delete, 
-      data: { turbo_confirm: 'This will remove the student from your list. Are you sure?', turbo_frame: "dashboard-content" }, 
-      class: "btn-danger text-sm" %>
-  <% end %>
+    <sl-tab-panel name="settings">
+      <h3 class="text-lg mb-4">Settings</h3>
+        <% if @student.teacher == current_user %>
+          <span class="text-red-600 mb-1 font-bold block">Danger zone </span>
+          <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
+            method: :delete, 
+            data: { turbo_confirm: 'This will remove the student from your list. Are you sure?', turbo_frame: "dashboard-content" }, 
+            class: "btn-danger text-sm" %>
+        <% end %>
+    </sl-tab-panel>
+
+    <sl-tab-panel name="applets">
+      <h2 class="text-lg mb-4">Applets</h2>
+      <p class="mb-4 block">These are applets the student has archieved.<br>
+        Since they're made for this app, you may need some help running them again. You can:
+        <ol class="prose dark:prose-invert list-decimal list-inside">
+          <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
+          <li>Ask any LLM to modify the code for you and help you run it in a playground, for example, on jsfiddle.net.</li>
+        </ol>        
+      </p>
+      <%= render "applets/applets_table", applets: @student.applets %>
+    </sl-tab-panel>
+  </sl-tab-group>
+
+  <script> //Allow closing tabs. 
+    const tabGroup = document.getElementById('student-dashboard-tabs');
+    tabGroup.addEventListener('sl-close', async event => {
+      const tab = event.target;
+      const panel = tabGroup.querySelector(`sl-tab-panel[name="${tab.panel}"]`);
+      // Show the previous tab if the tab is currently active
+      if (tab.active) {
+        tabGroup.show(tab.previousElementSibling.panel);
+      }
+      // Remove the tab + panel
+      tab.remove();
+      panel.remove();
+    });
+  </script>
+
 <% end %>

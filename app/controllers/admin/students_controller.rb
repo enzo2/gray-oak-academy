@@ -9,6 +9,8 @@ module Admin
     end
 
     def show
+      @active_enrollments = @student.enrollments.in_progress
+      @completed_enrollments = @student.enrollments.completed
     end
 
     def adopt

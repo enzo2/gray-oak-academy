@@ -2,8 +2,7 @@
   <h2 class="text-xl font-semibold mb-6"><%= enrollment.course.title %></h2>
 
   <div class="mb-4">
-    <sl-progress-bar value="<%= enrollment.progress_percentage %>" max="100" style="width: 100%;"></sl-progress-bar>
-    <span class="text-sm"><%= "#{enrollment.completed_lessons_count} / #{enrollment.total_lessons_count} lessons completed" %></span>
+    <%= render partial: "enrollments/enrollment_progress_bar", locals: { enrollment: enrollment } %>
   </div>
 
   <div class="my-4 *:m-1">
@@ -12,12 +11,12 @@
         <sl-icon slot="prefix" name="check-circle-fill" class="text-blue-700"></sl-icon>
         Start next lesson
       </sl-button>
-      <sl-button href="<%= student_enrollment_path(enrollment) %>" data-turbo-stream="true">
+      <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
         <sl-icon slot="prefix" name="file-text" class="text-blue-700"></sl-icon>
         View Progress
       </sl-button>
     <% elsif enrollment.completed? %>
-      <sl-button href="<%= student_enrollment_path(enrollment) %>" data-turbo-stream="true">
+      <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
         <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
           View course summary
       </sl-button>

@@ -1,0 +1,14 @@
+<h2 class="text-lg mb-2">Completed Courses</h2>
+<div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
+
+  <% enrollments.each do |enrollment| %>
+    <div id="<%= dom_id(enrollment) %>" class="p-4 rounded border border-gray-300 dark:border-gray-700">
+      <span class="font-medium mb-2 block"><%= enrollment.course.title %></span>
+      <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
+        <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
+          View course summary
+      </sl-button>
+    </div>
+  <% end %>
+
+</div>

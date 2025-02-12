@@ -1,0 +1,38 @@
+<h3 class="text-lg mb-2">Enrolled Courses</h3>
+<div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
+
+  <% enrollments.each do |enrollment| %>
+    <div id="<%= dom_id(enrollment) %>" class="p-4 rounded border border-gray-300 dark:border-gray-700">
+      <span class="font-medium mb-2 block"><%= enrollment.course.title %></span>
+
+      <div class="mb-4 block">
+        <%= render partial: "enrollments/enrollment_progress_bar", locals: { enrollment: enrollment } %>
+      </div>
+
+      <div class="mb-4 flex justify-start">
+        <% if enrollment.has_available_lesson? %>
+          <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0 text-green-500" title="Available lessons"></sl-icon>
+          <span class="text-sm">Next lesson ready.</span>
+        <% else %>
+          <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
+          <span class="text-sm">No lessons available for student. Please 
+            <%= link_to "publish a lesson plan", admin_course_lessons_path(enrollment.course), data: {turbo_frame: "dashboard-content"}, class: "underline" %>.
+            </span>
+        <% end %>
+      </div>
+
+      <div class="mb-4">
+        <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
+          <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
+            View student progress
+        </sl-button>
+      </div>
+
+      <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
+          method: :delete,
+          data: { turbo_confirm: 'WARNING! This will delete all student progress. Are you sure?' }, class: "btn-danger text-sm" %>
+
+    </div>
+  <% end %>
+
+</div>
