@@ -39,19 +39,20 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - NO plan for mobile support due to the need for adequate screen space.
 
 ### Frameworks, Tooling, etc.
- - Rails 8, Postgres, Hotwire 
- - Ruby 3.4.1
+ - Rails 8, Ruby 3.4.1
+ - Turbo/Stimulus
+ - Postgres 
  - Tailwind + Shoelace components
+ - No node/yarn, just importmaps
  - OpenAI-compatible LLM API support (tested with OpenRouter and OpenAI)
-    - By default, OpenRouter, which avoids token limits, allows trying different models easily, and returns exact cost.
  
 ### Planned Features
 - STT, TTS, and native voice model support (turn-based, then realtime)
   - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
-- Context limit management
-- RAG: pgvector + neighbor gem
+- Context limit management, so user knows when they need to
+- RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
 
@@ -63,7 +64,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 - Note! The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
 
 ## Setup Instructions
-- Create an account on OpenRouter and get an API key, or use another LLM API.
+- Create an account on OpenRouter and get an API key, or use another LLM API. (OpenRouter will allow you to avoid token limits, try different models easily, and track exact costs.)
 - .env files must be set up with the requisite variables. See the example files. 
 - If you're just trying out the app, run it with docker compose in production mode as below.
 - Development mode is useful for viewing more detailed logs and debugging, but it's slow.

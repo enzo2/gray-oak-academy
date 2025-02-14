@@ -34,7 +34,7 @@ export default class extends Controller {
       const config = {
         hidden: block.dataset.hidden === 'true',
         autoRun: block.dataset.autoRun === 'true',
-        renderTarget: block.dataset.renderTarget || 'inline'
+        renderTarget: block.dataset.renderTarget || 'chalkboard'
       };
 
       this.setupBlock(block, config);
