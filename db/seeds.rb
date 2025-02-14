@@ -124,6 +124,7 @@ Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
     }
     Ensure the outline is comprehensive and suitable for the grade level.#{' '}
     Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
+    Do not use formatting such as markdown or bullet points. Use plain text.
   PROMPT
 end
 
@@ -152,6 +153,7 @@ Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
         }, ...
       ]
     }
+    Do not use formatting such as markdown or bullet points. Use plain text.
   PROMPT
 end
 
@@ -212,12 +214,12 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     Close it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
     Do not enclose the block with triple backticks or any other formatting. This will disrupt the code block.
     Additional <pre> tag attributes for controlling execution:
-    - data-hidden="true" to initially hide the code with a toggle button.
-    - data-auto-run="true" to execute immediately without showing a Run button.
-    - data-render-target="chalkboard" to render in the chalkboard instead of inline.
+    - data-hidden="true" to initially hide the code with a toggle button. (Useful if the course is not focused on coding or technology.)
+    - data-auto-run="true" to execute immediately without showing a Run button. 
+    - data-render-target="inline" to render inline rather than on the chalkboard. (Useful for applets only needing a small amount of space.)
     Inline applets will be executed within an iframe with about 400px of height and 550px width within the conversation.
     By default, there is a light background with dark text.
-    This iframe contains a div available as the pre-defined 'sandbox' object. Append any created elements to it. For example:
+    The applet iframe contains a div available as the pre-defined 'sandbox' object. Append any created elements to it. For example:
       const slider = document.createElement('input');
       sandbox.appendChild(slider);
     Console is also sandboxed. Use console.log() for any output that should be displayed as text to the user.
@@ -254,7 +256,13 @@ end
 
 Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
   p.title = "Default Lesson Tutoring Session"
-  p.prompt = "You are now beginning a lesson with the student. Lesson plan details follow. You may end the lesson once the lesson plan has been reasonably completed.\n"
+  p.prompt = <<~PROMPT
+    You are now beginning a lesson with the student. Lesson plan details follow.\n
+    You have time to carry out the lesson plan in a measured and well-paced fashion. Don't feel pressured to include multiple aspects 
+    of lesson content in a single message to the student. Avoid asking the student multiple questions simultaneously. If you've asked a question, 
+    that would be a good time to end the message.\n
+    You may end the lesson once the lesson plan has been reasonably completed.\n
+  PROMPT
 end
 
 puts "Seed data has been created successfully!"

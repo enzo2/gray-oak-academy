@@ -50,7 +50,7 @@ class LessonProgress < ApplicationRecord
     Message.create!(
       conversation: conversation,
       role: :assistant,
-      content: "Hello. Ready to begin?"
+      content: "Ready to begin?"
     )
 
     conversation

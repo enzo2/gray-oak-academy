@@ -1,6 +1,5 @@
 class OpenaiApiService
   # Wrapper around ruby-openai gem
-  # Base URI set in config/initializers/openai.rb
   require "json/repair"
   require "faraday/retry"
 
@@ -8,9 +7,9 @@ class OpenaiApiService
   # Each chunk delta will be passed to the Proc as a JSON object.
   # eg. { "role"=>"assistant", "content"=>"or not to be??" }
 
-  # Provide the system prompt upon initializing the client, and it will be added to the conversation.
+  # Provide the task system prompt upon initializing the client, and it will be added to the conversation, along with the base system prompt and generative guidelines prompt.
   # If no system prompt is provided, the default system prompt will be used.
-  # However, if a system message is already present in the completion messages, that will be used instead.
+  # However, if a system message is already present in the completion messages array, that will be used instead.
 
   def initialize(current_user:, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
     @user = current_user
@@ -162,8 +161,8 @@ class OpenaiApiService
   def parse_JSON(content)
     # Extract valid JSON from the response
     # Rails.logger.debug "Parsing JSON from LLM response: #{content}"
-    json_content = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
-    # Rails.logger.debug "Extracted JSON: #{json_content}"
+    json_content = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)  # Try to rescue lack of structured output by removing things before and after the JSON
+    Rails.logger.info "Extracted JSON: #{json_content}"
     unless json_content.present?
       raise "No valid JSON found in the LLM response."
     end
@@ -175,9 +174,9 @@ class OpenaiApiService
     rescue JSON::ParserError => e
       # If invalid, try repairing the JSON
       begin
-        Rails.logger.debug "Invalid JSON in LLM response, attempting to repair"
+        Rails.logger.info "Invalid JSON in LLM response, attempting to repair"
         repaired_content = JSON.repair(json_content)
-        Rails.logger.debug "Repaired JSON: #{parsed_content}"
+        Rails.logger.info "Repaired JSON: #{parsed_content}"
         parsed_content = JSON.parse(repaired_content)
       rescue JSON::ParserError => e
         raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
@@ -193,7 +192,7 @@ class OpenaiApiService
     unless schemer.valid?(parsed_content)
       errors = schemer.validate(parsed_content).to_a
       # Retry ?
-      raise "Please try again or try a more intelligent LLM. Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
+      raise "Please try again, or try a more intelligent LLM. Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
     end
   end
 
