@@ -51,7 +51,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
   - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
-- Context limit management, so user knows when they need to
+- Context limit management
 - RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
@@ -86,7 +86,7 @@ In other words, this is the opposite of the "do my homework for me" status quo t
 ### Choosing an LLM:
 - Model must support tool use.
 - For outline/lesson generation, model must support structured outputs.
-- You must use a fairly intelligent LLM like claude-3.5-sonnet, or you may encounter issues related to tool use and structured outputs. (You may be surprised that supposedly high-performing models like DeepSeek-V3 perform inconsistently.) 
+- You must use a fairly intelligent LLM like claude-3.5-sonnet, or you may encounter issues related to tool use, structured outputs, and lesson pacing. This app is quite demanding on LLMs.
 - Model should have long context limit. Long lesson durations may necessitate a 1 megatoken context limit!
 - Providers supporting automated prompt caching will save you money. 
 
