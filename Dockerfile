@@ -66,9 +66,11 @@ USER 1000:1000
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 #For Puma server
-#EXPOSE 3000
-#CMD ["./bin/rails", "server"]
+#NOTE: Not suitable for serving on public internet!
+EXPOSE 3001
+CMD ["./bin/rails", "server", "-p", "3001"]
 
 #For Thruster-wrapped Puma
-EXPOSE 80
-CMD ["./bin/thrust", "./bin/rails", "server"]
+#Make sure you also reconfigure production.rb, docker-compose.yml, .env.production
+#EXPOSE 443
+#CMD ["./bin/thrust", "./bin/rails", "server"]

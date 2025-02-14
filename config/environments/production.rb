@@ -3,6 +3,18 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # NOTE: this may change in rails 8.1
+  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 3001 }
+
+  # Set host to be used by links generated in mailer templates.
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 3001 }
+
+  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
+  config.assume_ssl = false
+
+  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
+  config.force_ssl = false
+
   # Code is not reloaded between requests.
   config.enable_reloading = false
 
@@ -23,12 +35,6 @@ Rails.application.configure do
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
-
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = false
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = false
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -56,12 +62,6 @@ Rails.application.configure do
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
-
-  # NOTE: this may change in rails 8.1
-  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 80 }
-
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost") }
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
   # config.action_mailer.smtp_settings = {

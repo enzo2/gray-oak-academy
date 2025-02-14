@@ -24,7 +24,7 @@ case "$1" in
     ;;
 esac
 
-# Always run seeds since we need to make sure all prompts and tools are present
+# Always run seeds, since we need to make sure all prompts and tools are present
 ./bin/rails db:seed
 
 exec "${@}"
