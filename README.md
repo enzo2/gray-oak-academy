@@ -1,20 +1,24 @@
 # Gray Oak Academy
 
 ## Background
-Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. For totally self-directed students, a simple LLM chat may suffice. Otherwise, and especially for K-12, we need a teacher in the loop. To create a high quality LLM tutor, the minimal requirements are:
-1. A curriculum management component, so that a supervising teacher can specify what is being taught, with LLM assistance.
-2. A learning resource management component, to enable use of resources that are not part of an LLM's knowledge base, like books, videos, websites, software, physical items, people. By definition, this cannot be LLM-based.
-3. Prompt transparency: the ability to edit the base prompts defining the teaching methodology, principles, and values for the LLM to follow. 
-4. RAG and/or ultra-long-context prompting in order to take into account previous lessons and student performance. (The teacher should also review LLM-generated progress reports.)
-5. An LLM chat interface, prompted with all of the above, that can function at or above the level of a private tutor. Therefore, it needs multimodal interaction, adequate screen space to interact with the student in an arbitrary way (like a desk-*Not* cell phone-friendly), and sandboxed generative UI, including code execution.
+Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. 
+
+For totally self-directed students, a simple LLM chat may suffice. Otherwise—and especially for K-12—we need a teacher in the loop. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
+1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity/leeway.
+2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even people and human resources. 
+3. Prompt transparency: a strong set of user-editable prompts defining the teaching methodology, principles, and values for the LLM to follow. 
+4. RAG and/or ultra-long-context prompting in order to take into account previous lessons and student performance.
+5. An LLM chat interface with interactivity comparable to a real tutor sitting across the desk, including full multimodality, generative UI, sandboxed code execution, and perhaps a webcam view of the student's desk.
 
 The system should ideally improve upon the supervising teacher's plan. This could include teaching more foundationally, adapting to the student's progress, and generating just-in-time applets and games. It could even break into the real world—for example, if "3D printer" were marked as a resource, the LLM could develop a device in concert with the student, generate an OpenSCAD file, and ask the student to print it for the next lesson. Such things may be beyond the current generation of LLMs, but there is already plenty of unexplored territory.
 
-In other words, this is the opposite of the "do my homework for me" status quo that has arisen in the ChatGPT era. The idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward exploratory learning and meaningful application. Teachers will be challenged to incorporate a variety of tangible tools, demonstrations, and even human resources, to hold students' interest. The teacher will also be freed up to consider each student's overall trajectory. Students should immediately feel satisfied that their new knowledge is practical and useful.
+This system should negate the arguments made in Isaac Asimov's 1951 story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. But as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated.
+
+"Do my homework for me" is the status quo that has arisen in the ChatGPT era. But with the LLM running the show, the idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward exploratory learning and meaningful application. The teacher will also be freed up to consider each student's overall trajectory. Students will immediately feel satisfied that their new knowledge is practical and useful.
 
 **Gray Oak Academy is a prototype of this system.**
 
-*I'm a doctor, Jim, not a software engineer.* Please forgive any rookie errors or lack of best practices. 
+*I'm a doctor, Jim, not a software engineer.* I started this as a personal project for my son. Please forgive any rookie errors or lack of best practices. 
 
 **App is at an early stage. Contributions welcome.** 
 
