@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://github.com/
+HostUrl=https://raw.githubusercontent.com/rails/rails/6c7a848a6e09fba5185a09e90c39a41a17c19ed0/railties/lib/rails/generators/rails/app/templates/public/icon.png
