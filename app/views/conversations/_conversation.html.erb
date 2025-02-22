@@ -15,7 +15,7 @@
 
   <div class="flex-grow overflow-hidden" data-controller="conversation">
     <div class="h-full overflow-y-auto pr-4" 
-        id="<%= dom_id(conversation) %>_messages"
+        id="<%= dom_id(conversation) %>"
         data-conversation-target="messages">
       <% conversation.messages.each do |message| %>
         <%= render partial: "messages/message", locals: { message: message } %>
