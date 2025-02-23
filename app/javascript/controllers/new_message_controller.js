@@ -14,7 +14,7 @@ export default class extends Controller {
   }
 
   toggleSubmitButton() {
-    if (this.contentFieldTarget.value.trim() !== '') {
+    if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
       this.submitIconTarget.classList.remove("hidden")
     } else {
       this.submitIconTarget.classList.add("hidden")
@@ -160,6 +160,7 @@ export default class extends Controller {
       }
       this.previewAreaTarget.appendChild(previewElement)
     })
+    this.toggleSubmitButton()
   }
 
   removeImage(event) {
