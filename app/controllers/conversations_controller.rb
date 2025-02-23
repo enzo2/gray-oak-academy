@@ -17,12 +17,8 @@ class ConversationsController < ApplicationController
   end
 
   def create
-    # Generate a title like "Chat 2" based on existing conversations count
-    chat_number = current_user.conversations.count + 1
-    title = "Chat #{chat_number}"
-
     @conversation = current_user.conversations.create(
-      title: title,
+      title: generate_unique_chat_title,
       task_system_prompt: get_task_system_prompt
     )
     set_conversations
@@ -65,6 +61,16 @@ class ConversationsController < ApplicationController
       Prompt.category_teacher_assistant.first.prompt
     else
       Prompt.category_open_ended_student_chat.first.prompt
+    end
+  end
+
+  def generate_unique_chat_title
+    base_title = "Chat"
+    counter = 1
+    loop do
+      title = "#{base_title} #{counter}"
+      break title unless current_user.conversations.exists?(title: title)
+      counter += 1
     end
   end
 end
