@@ -70,22 +70,20 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 ## Setup Instructions
 - Create an account on OpenRouter and get an API key, or use another LLM API. (OpenRouter will allow you to avoid token limits, try different models easily, and track exact costs.)
 - .env files must be set up with the requisite variables. See the example files. 
-- If you're just trying out the app, run it with docker compose in production mode as below.
-- Development mode is useful for viewing more detailed logs and debugging, but it's slow.
-
-### Production / Personal use:
-- Create `/.env.production`: see `.env.production.example`. 
-- Also create `/.env`: see `.env.example`. 
-- Create `/config/credentials/production.key` and add a random 32-character string.
-- Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
-- *The default setup is not secure and is meant for local use only. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
+- If you're just trying it out and don't care to see detailed logs, use a production environment with docker compose, as per below.
 
 ### Development: 
 - Create `/config/credentials/development.key` and add a random 32-character string.
 - Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
 - Open the devcontainer with VSCode, etc.
 - Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
-- Note: the app will be slow. To actually use it, build with production settings (see above).
+
+### Production:
+- Create `/.env.production`: see `.env.production.example`. 
+- Also create `/.env`: see `.env.example`. 
+- Create `/config/credentials/production.key` and add a random 32-character string.
+- Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
+- *The default setup is not secure and is meant for local use only. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 
 ### Choosing an LLM:
 - Model must support tool use.
