@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "imagesMenuButton", "imagesMenu", "urlDialog", "submitButton", "submitSpinner", "submitIcon"];
+  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "imagesMenuButton", "imagesMenu", "urlDialog", "submitButton", "submitSpinner", "submitIcon", "helpText"];
   static MAX_IMAGES = 4;
 
   connect() {
@@ -10,14 +10,27 @@ export default class extends Controller {
     this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
     this.contentFieldTarget.addEventListener('paste', this.paste.bind(this))
     this.contentFieldTarget.addEventListener('input', this.toggleSubmitButton.bind(this))
+    this.contentFieldTarget.addEventListener('keydown', this.handleKeydown.bind(this))
     this.toggleSubmitButton() // Initial check
   }
 
   toggleSubmitButton() {
-    if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
-      this.submitIconTarget.classList.remove("hidden")
+    const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0;
+    if (hasContent) {
+      this.submitIconTarget.classList.remove("hidden");
+      this.helpTextTarget.classList.remove("hidden");
     } else {
-      this.submitIconTarget.classList.add("hidden")
+      this.submitIconTarget.classList.add("hidden");
+      this.helpTextTarget.classList.add("hidden");
+    }
+  }
+
+  handleKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
+        this.submit(event);
+      }
     }
   }
 
@@ -203,13 +216,7 @@ export default class extends Controller {
     this.submitSpinnerTarget.classList.remove("hidden")
     this.imagesMenuButtonTarget.classList.add("hidden");
   }
-/*
-  resetSubmit() {
-    this.submitButtonTarget.disabled = false
-    this.submitIconTarget.classList.remove("hidden")
-    this.submitSpinnerTarget.classList.add("hidden")
-  }
-*/
+
   paste(event) {
     //console.log("Pasting image")
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;

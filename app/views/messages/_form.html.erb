@@ -5,7 +5,7 @@
     ) do |form| %>
   <div data-new-message-target="previewArea" class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
   <div class="my-5 relative">
-    <div class="[&_sl-textarea::part(form-control-input)]:shadow-none">
+    <div class="[&_sl-textarea::part(form-control-input)]:shadow-none relative">
       <sl-textarea 
         resize="auto" 
         rows="1" 
@@ -14,6 +14,7 @@
         class="w-full 
                [&::part(base)]:p-1 
                [&::part(base)]:pr-12 
+               [&::part(base)]:pb-6
                [&::part(base)]:border-1 
                [&::part(base)]:border-neutral-200 
                dark:[&::part(base)]:border-0 
@@ -21,7 +22,13 @@
                [&::part(base)]:focus:ring-offset-0 
                [&::part(base)]:focus:ring-0"
         data-new-message-target="contentField"
+        data-action="keydown->new-message#handleKeydown"
       ></sl-textarea>
+      
+      <div data-new-message-target="helpText" 
+           class="text-xs text-neutral-500 hidden absolute bottom-1 right-2">
+        Shift+Enter for new line
+      </div>
     </div>
 
     <div class="absolute right-[5px] top-[6px] flex items-center space-x-1">
