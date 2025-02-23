@@ -2,33 +2,37 @@ class Message < ApplicationRecord
   include ActionView::RecordIdentifier
 
   enum :role, { system: "system", assistant: "assistant", user: "user" }, prefix: true
-  # ? acts_as_list scope: :conversation  #MEssages are ordered correctly without this.
+  # ? acts_as_list scope: :conversation  # Messages are ordered correctly without this.
   belongs_to :conversation
 
-  # Message content field contains text.
-  # Images are kept separately.
+  # Message content field contains text. Images are kept separately.
   has_many :images, dependent: :destroy
 
   after_create_commit -> { broadcast_created }
   after_update_commit -> { broadcast_updated }
 
   def broadcast_created
-    broadcast_append_to(
+    Rails.logger.debug "Broadcasting created message: #{self.inspect}"
+    broadcast_append_to(  # docs recommend _later_to, but this causes view to render first, putting the placeholder out of order
       "#{dom_id(conversation)}",
       partial: "messages/message",
-      locals: { message: self, scroll_to: true },
-      target: "#{dom_id(conversation)}_messages"
+      locals: { message: self },
+      scroll_to: true,
+      target: "#{dom_id(conversation)}"
     )
+
     # Remove any temporary new message placeholder
-    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message_message")
+    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
   end
 
   def broadcast_updated
-    broadcast_append_to(
+    Rails.logger.debug "Broadcasting updated message: #{self.inspect}"
+    broadcast_replace_later_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
-      locals: { message: self, scroll_to: true },
-      target: "#{dom_id(conversation)}_messages"
+      locals: { message: self },
+      # scroll_to: true,
+      target: dom_id(self)
     )
   end
 

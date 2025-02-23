@@ -2,6 +2,7 @@ class MessagesController < ApplicationController
   def create
     @message = Message.new(message_params.except(:images_data).merge(conversation_id: params[:conversation_id], role: "user"))
 
+    # Handle images
     if params[:message][:images_data].present?
       images_data = JSON.parse(params[:message][:images_data])
       images_data.each do |image_data|
@@ -31,14 +32,14 @@ class MessagesController < ApplicationController
       end
     end
 
+    # This will trigger the model callback to broadcast the user message
     @message.save!
 
     # Get completion and stream the response to the conversation view
     GetLlmCompletionJob.perform_later(conversation_id: @message.conversation_id)
 
     respond_to do |format|
-      # Send the user's new message to the conversation view
-      format.turbo_stream
+      format.turbo_stream # Adds an assistant placeholder and refreshes the form
     end
   rescue StandardError => e
     Rails.logger.error "Failed to create message: #{e.message}"
