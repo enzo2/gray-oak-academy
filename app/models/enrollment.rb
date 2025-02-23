@@ -46,7 +46,7 @@ class Enrollment < ApplicationRecord
     incomplete_lessons.published.first
   end
 
-  # Determine if course is completed by checking if all lessons have been completed
+  # Determine if enrollment is completed by checking if all lessons have been completed
   def completed?
     completed_lessons_count == total_lessons_count
   end

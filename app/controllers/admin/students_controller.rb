@@ -11,6 +11,11 @@ module Admin
     def show
       @active_enrollments = @student.enrollments.in_progress
       @completed_enrollments = @student.enrollments.completed
+
+      # Perform verification that the course reports were generated, in case the job failed originally
+      @completed_enrollments.each do |enrollment|
+        enrollment.course_report_check
+      end
     end
 
     def adopt
@@ -39,13 +44,6 @@ module Admin
     def unenroll
       enrollment = @student.enrollments.find_by(course_id: params[:course_id])
       enrollment&.destroy
-      redirect_to admin_student_path(@student)
-    end
-
-    def retry_generate_course_report
-      enrollment = Enrollment.find(params[:enrollment_id])
-      GenerateCourseReportJob.perform_later(enrollment)
-      flash[:notice] = "Course report generation retried."
       redirect_to admin_student_path(@student)
     end
 
