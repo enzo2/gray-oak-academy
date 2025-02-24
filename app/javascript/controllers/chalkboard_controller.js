@@ -17,16 +17,17 @@ export default class extends Controller {
   }
 
   sendScreenshot() {
-    //Work in progress. 
-    //Don't think available options aren't better than showing the user how to use their OS screen capture.
-    //Screen Capture API requires https
-    //html2canvas project is unmaintained and html2canvas-pro is possible malware
-    //If this can be worked out then an LLM tool can also be added to retrieve a screenshot.
+    //Available options aren't better than showing the user how to use their OS native screen capture.
+    //Screen Capture API requires https.
+    //html2canvas project is unmaintained and html2canvas-pro is possible malware.
+    //If this can be worked out, then an LLM tool can also be added to retrieve a screenshot.
+    //For now, just show the user instructions on taking a screenshot.
     this.screenshotDialogTarget.show();
   }
 
   openWhiteboard() {
      //For now just open https://excalidraw.com/
+     //Future goal to add a hosted whiteboard tool using importmap.
      this.chalkboardTarget.innerHTML = `<iframe src="https://excalidraw.com/" class="h-full w-full" allow="clipboard-read; clipboard-write;"></iframe>`
   }
 

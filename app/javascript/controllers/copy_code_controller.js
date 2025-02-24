@@ -1,11 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Copies applet code to the clipboard
 export default class extends Controller {
   static targets = [ "source", "successDialog" ]
-
-  connect () {
-    //console.log("connected")
-  }
 
   async copy(event) { 
     const button = event.currentTarget; 

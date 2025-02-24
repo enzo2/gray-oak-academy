@@ -1,5 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Handles the message form in LLM conversations
+// Enables image uploads, URL image previews, pasting images, shift+enter for new lines, and form submission
 export default class extends Controller {
   static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "imagesMenuButton", "imagesMenu", "urlDialog", "submitButton", "submitSpinner", "submitIcon", "helpText"];
   static MAX_IMAGES = 4;

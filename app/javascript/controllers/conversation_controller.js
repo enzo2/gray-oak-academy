@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
-// Scrolls to the last message on initial load 
 
+// Scrolls to the last message on initial load 
 export default class extends Controller {
   static targets = ["messages"]
 

@@ -1,14 +1,9 @@
 import { Controller } from "@hotwired/stimulus";
 
-// Connects to data-controller="outline"
+// This controller handles add/remove/rearrange content fields in course and lesson plan forms
+// <template> tag is used to clone the field content
 export default class extends Controller {
   static targets = ["fieldContainer"];
-
-  initialize() {
-  }
-
-  connect() {
-  }
 
   addField(event) {
     event.preventDefault();

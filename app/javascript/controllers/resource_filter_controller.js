@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
+// This controller is used to filter resources by name
 export default class extends Controller {
   static targets = ["availableResource"]
 

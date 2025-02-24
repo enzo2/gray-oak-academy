@@ -1,5 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
+// This controller is used to show/hide the teacher code input field based on the selected role
+// It also listens for the `turbo:render` event to re-apply the logic when the page is re-rendered, e.g. if errors are displayed
 export default class extends Controller {
   static targets = ["teacherCode"]
 
