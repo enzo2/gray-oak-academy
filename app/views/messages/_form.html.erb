@@ -1,6 +1,7 @@
 <%= form_with(model: Message.new, 
       url: conversation_messages_path(conversation), 
       id: "#{dom_id(conversation)}_message_form",
+      class: "", #bottom-0
       data: { controller: "new-message" }
     ) do |form| %>
   <div data-new-message-target="previewArea" class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
@@ -22,7 +23,10 @@
                [&::part(base)]:focus:ring-offset-0 
                [&::part(base)]:focus:ring-0"
         data-new-message-target="contentField"
-        data-action="keydown->new-message#handleKeydown"
+        data-action="
+          input->new-message#toggleSubmitButton 
+          keydown.enter->new-message#submit:prevent
+          paste->new-message#paste"
       ></sl-textarea>
       
       <div data-new-message-target="helpText" 
@@ -60,7 +64,7 @@
   </div>
 
   <sl-dialog label="Add image via URL" class="" data-new-message-target="urlDialog">
-    <sl-input data-new-message-target="urlInput" data-action="new-message#handleUrl" placeholder="Enter image URL" class=""></sl-input>
-    <sl-button slot="footer" data-action="click->new-message#submitUrl">Submit</sl-button>
+    <sl-input data-new-message-target="urlInput" data-action="keydown.enter->new-message#handleUrlInput:prevent" placeholder="Enter image URL" class=""></sl-input>
+    <sl-button slot="footer" data-action="click->new-message#handleUrlInput">Submit</sl-button>
   </sl-dialog>
 <% end %>

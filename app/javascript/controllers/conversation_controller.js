@@ -13,7 +13,7 @@ export default class extends Controller {
   scrollToBottom() {
     if (this.messagesTarget.lastElementChild) {
       this.messagesTarget.lastElementChild.scrollIntoView({ behavior: 'smooth' })
-      console.log("scrollIntoView")
+      //console.log("scrollIntoView")
     }
   }
 

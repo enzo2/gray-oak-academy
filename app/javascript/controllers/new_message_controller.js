@@ -7,16 +7,13 @@ export default class extends Controller {
   static MAX_IMAGES = 4;
 
   connect() {
-    //console.log("New message controller connected")
     this.images = []
     this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
-    this.contentFieldTarget.addEventListener('paste', this.paste.bind(this))
-    this.contentFieldTarget.addEventListener('input', this.toggleSubmitButton.bind(this))
-    this.contentFieldTarget.addEventListener('keydown', this.handleKeydown.bind(this))
     this.toggleSubmitButton() // Initial check
   }
 
   toggleSubmitButton() {
+    //console.log("toggleSubmitButton")
     const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0;
     if (hasContent) {
       this.submitIconTarget.classList.remove("hidden");
@@ -24,15 +21,6 @@ export default class extends Controller {
     } else {
       this.submitIconTarget.classList.add("hidden");
       this.helpTextTarget.classList.add("hidden");
-    }
-  }
-
-  handleKeydown(event) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
-        this.submit(event);
-      }
     }
   }
 
@@ -62,17 +50,6 @@ export default class extends Controller {
       this.addImage(file)
     })
     this.fileInputTarget.value = null
-  }
-
-  handleUrl(event) {
-    //console.log("Handling URL input")
-    if (event.key === 'Enter') {
-      this.handleUrlInput()
-    }
-  }
-
-  submitUrl() {
-    this.handleUrlInput()
   }
 
   closeUrlDialog() {
@@ -212,11 +189,14 @@ export default class extends Controller {
 
   submit(e) {
     e.preventDefault();
-    this.submitButtonTarget.disabled = true
-    this.element.requestSubmit(); // Submit the form
-    this.submitIconTarget.classList.add("hidden")
-    this.submitSpinnerTarget.classList.remove("hidden")
-    this.imagesMenuButtonTarget.classList.add("hidden");
+    if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
+      //console.log("Submitting form")
+      this.submitButtonTarget.disabled = true
+      this.element.requestSubmit(); // Submit the form
+      this.submitIconTarget.classList.add("hidden")
+      this.submitSpinnerTarget.classList.remove("hidden")
+      this.imagesMenuButtonTarget.classList.add("hidden");
+    }
   }
 
   paste(event) {
