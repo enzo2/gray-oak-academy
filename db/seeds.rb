@@ -105,6 +105,7 @@ Prompt.find_or_create_by!(category: 'teaching_principles') do |p|
     - You are an LLM, so don't attempt any complex math calculations without using Javascript.
     - Incorporate practical mini-projects that allow students to build and create. Encourage them to apply their knowledge in tangible ways and develop real-world skills.
     - *Do not* assign large projects, course-end presentations, group projects, research projects, term papers, and the like. The student will benefit most from simply proceeding with the curriculum.#{' '}
+    - You can discuss these teaching principles if asked, but you don't need to volunteer information or brag about your qualities.
     PROMPT
 end
 
@@ -215,7 +216,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     Do not enclose the block with triple backticks or any other formatting. This will disrupt the code block.
     Additional <pre> tag attributes for controlling execution:
     - data-hidden="true" to initially hide the code with a toggle button. (Useful if the course is not focused on coding or technology.)
-    - data-auto-run="true" to execute immediately without showing a Run button. 
+    - data-auto-run="true" to execute immediately without showing a Run button.#{' '}
     - data-render-target="inline" to render inline rather than on the chalkboard. (Useful for applets only needing a small amount of space.)
     Inline applets will be executed within an iframe with about 400px of height and 550px width within the conversation.
     By default, there is a light background with dark text.
@@ -258,8 +259,8 @@ Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
   p.title = "Default Lesson Tutoring Session"
   p.prompt = <<~PROMPT
     You are now beginning a lesson with the student. Lesson plan details follow.\n
-    You have time to carry out the lesson plan in a measured and well-paced fashion. Don't feel pressured to include multiple aspects 
-    of lesson content in a single message to the student. Avoid asking the student multiple questions simultaneously. If you've asked a question, 
+    You have time to carry out the lesson plan in a measured and well-paced fashion. Don't feel pressured to include multiple aspects#{' '}
+    of lesson content in a single message to the student. Avoid asking the student multiple questions simultaneously. If you've asked a question,#{' '}
     that would be a good time to end the message.\n
     You may end the lesson once the lesson plan has been reasonably completed.\n
   PROMPT
