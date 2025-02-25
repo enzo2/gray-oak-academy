@@ -8,12 +8,12 @@
     </div>
   <%# handle assistant messages %>
   <% elsif message.content.blank? # && message.images.blank? %>
-    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4 flex justify-center items-center"
+    <div class="border-gray-200 dark:border-gray-700 border rounded-lg my-2 py-2 flex justify-center items-center"
           data-code-executor-target="message">
       <sl-spinner></sl-spinner>
     </div>
   <% else %>
-    <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4
+    <div class="rounded-lg my-2 py-2
                 prose dark:prose-invert
                 max-w-none leading-relaxed
                 prose-ul:my-2 prose-li:my-0 marker:prose-ul:text-gray-800 dark:marker:prose-ul:text-gray-100

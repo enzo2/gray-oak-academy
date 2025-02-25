@@ -1,25 +1,19 @@
 <%= turbo_frame_tag "dashboard-content" do %>
 <div class="<%= current_user.role_admin? ? '' : 'p-4' %>">
 
-  <% if current_user.role_admin? %>
-    <h1 class="text-xl font-bold">LLM Conversation</h1>
-    <p class="mb-2">This is just for casual purposes or testing.</p>
-  <% else %>
-    <h2 class="text-xl font-bold">LLM Chat</h2>
-  <% end %>
-
-  <div class="p-4 flex flex-row gap-8 h-[90dvh]" data-controller="code-executor">
+  <div class="flex flex-row gap-4 h-[calc(100dvh-3.5rem)]" data-controller="code-executor">
     <!-- Chats Column -->
     <div class="flex-none w-32 pr-4 border-r border-gray-400">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg">Chats</h3>
-        <%= button_to conversations_path, method: :post, class: "", 
-            data: { turbo_frame: "conversation-panel" } do %>
-          <sl-icon name="plus" class=""></sl-icon>
+        <%= link_to conversations_path,
+            data: { turbo_method: :post, turbo_frame: "conversation-panel" },
+            class: "inline-block" do %>
+          <sl-icon-button name="plus-circle"></sl-icon-button>
         <% end %>
       </div>
       <div class="mb-6">
-        <%= render partial: "conversations/list", locals: { conversations: @conversations } %>
+        <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
       </div>
     </div>
 

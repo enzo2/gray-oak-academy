@@ -14,7 +14,7 @@
   <%= turbo_stream_from "#{dom_id(conversation)}" %>
 
   <div class="flex-grow overflow-hidden" data-controller="conversation">
-    <div class="h-full overflow-y-auto pr-4" 
+    <div class="h-full overflow-y-auto pr-4 mx-2" 
         id="<%= dom_id(conversation) %>"
         data-conversation-target="messages">
       <% conversation.messages.each do |message| %>

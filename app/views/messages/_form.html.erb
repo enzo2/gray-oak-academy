@@ -1,27 +1,32 @@
 <%= form_with(model: Message.new, 
       url: conversation_messages_path(conversation), 
       id: "#{dom_id(conversation)}_message_form",
-      class: "", #bottom-0
+      class: "",
       data: { controller: "new-message" }
     ) do |form| %>
   <div data-new-message-target="previewArea" class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
-  <div class="my-5 relative">
+  <div class="relative">
     <div class="[&_sl-textarea::part(form-control-input)]:shadow-none relative">
       <sl-textarea 
         resize="auto" 
         rows="1" 
         name="message[content]" 
         placeholder="Type your message..." 
-        class="w-full 
+        class="w-full
+               [&::part(textarea)]:max-h-64
+               [&::part(textarea)]:overflow-y-auto
                [&::part(base)]:p-1 
-               [&::part(base)]:pr-12 
+               [&::part(base)]:pr-19
                [&::part(base)]:pb-6
-               [&::part(base)]:border-1 
+               [&::part(base)]:border-1
+               [&::part(base)]:rounded-none
+               [&::part(base)]:rounded-t-md
                [&::part(base)]:border-neutral-200 
                dark:[&::part(base)]:border-0 
                [&::part(base)]:focus:shadow-none 
                [&::part(base)]:focus:ring-offset-0 
-               [&::part(base)]:focus:ring-0"
+               [&::part(base)]:focus:ring-0
+               "
         data-new-message-target="contentField"
         data-action="
           input->new-message#toggleSubmitButton 
