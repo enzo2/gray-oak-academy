@@ -6,7 +6,7 @@ import "channels"; //pin of all from app/javascript/channels
 
 //shoelace
 import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path';
-setBasePath('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/dist/');
+setBasePath('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/dist/');
 import "@shoelace-style/shoelace/icon";
 import "@shoelace-style/shoelace/icon-button";
 import "@shoelace-style/shoelace/button";
