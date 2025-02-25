@@ -23,7 +23,7 @@
     </div>
 
     <!-- Conversation Column -->
-    <div class="w-[48rem]">
+    <div class="w-[40rem]">
       <%= turbo_frame_tag "conversation-panel" do %>
         <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
       <% end %>
