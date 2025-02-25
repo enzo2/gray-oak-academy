@@ -2,17 +2,22 @@
 <div class="<%= current_user.role_admin? ? '' : 'p-4' %>">
 
   <div class="flex flex-row gap-4 h-[calc(100dvh-3.5rem)]" data-controller="code-executor">
-    <!-- Chats Column -->
-    <div class="flex-none w-32 pr-4 border-r border-gray-400">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg">Chats</h3>
-        <%= link_to conversations_path,
-            data: { turbo_method: :post, turbo_frame: "conversation-panel" },
-            class: "inline-block" do %>
-          <sl-icon-button name="plus-circle"></sl-icon-button>
-        <% end %>
+<!-- Chats Column (Collapsible Sidebar) -->
+    <div class="flex-none border-r border-gray-400 transition-all duration-300 ease-in-out w-8 hover:w-32 group">
+      <!-- Sidebar header with icon -->
+      <div class="flex items-center justify-left h-12 group-hover:justify-between">
+        <sl-icon name="list" class="group-hover:hidden"></sl-icon>
+        <h3 class="text-lg hidden group-hover:block">Chats</h3>
+        <div class="hidden group-hover:block">
+          <%= link_to conversations_path,
+              data: { turbo_method: :post, turbo_frame: "conversation-panel" } do %>
+            <sl-icon-button name="plus-circle"></sl-icon-button>
+          <% end %>
+        </div>
       </div>
-      <div class="mb-6">
+      
+      <!-- Chat list (hidden when collapsed) -->
+      <div class="mb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-2 overflow-hidden">
         <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
       </div>
     </div>
