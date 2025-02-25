@@ -54,8 +54,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - STT, TTS, and native voice model support (turn-based, then realtime)
   - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
-- Finish resource file support (LLM access to saved files, LLM tool to display image/pdf)
-- Context limit management
+- Add LLM reasoning support to course/lesson/plan generation
 - RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
