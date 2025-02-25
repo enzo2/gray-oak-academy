@@ -6,27 +6,33 @@
     ) do |form| %>
   <div data-new-message-target="previewArea" class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
   <div class="relative">
-    <div class="[&_sl-textarea::part(form-control-input)]:shadow-none relative">
+    <div class="
+               [&_sl-textarea::part(form-control-input)]:shadow-none 
+               relative
+               ">
       <sl-textarea 
         resize="auto" 
         rows="1" 
         name="message[content]" 
         placeholder="Type your message..." 
         class="w-full
-               [&::part(textarea)]:max-h-64
-               [&::part(textarea)]:overflow-y-auto
-               [&::part(base)]:p-1 
-               [&::part(base)]:pr-[4.5rem]
-               [&::part(base)]:pb-6
-               [&::part(base)]:border-1
-               [&::part(base)]:rounded-none
-               [&::part(base)]:rounded-t-md
-               [&::part(base)]:border-neutral-200 
-               dark:[&::part(base)]:border-0 
-               [&::part(base)]:focus:shadow-none 
-               [&::part(base)]:focus:ring-offset-0 
-               [&::part(base)]:focus:ring-0
-               "
+              [&::part(base)]:min-h-[80px]
+              [&::part(base)]:pl-1 
+              [&::part(base)]:pr-[4.75rem]
+              [&::part(base)]:pb-6
+              [&::part(base)]:pt-2
+              [&::part(base)]:border-1
+              [&::part(base)]:rounded-none
+              [&::part(base)]:rounded-t-md
+              [&::part(base)]:border-neutral-200 
+              dark:[&::part(base)]:border-0 
+              [&::part(base)]:focus:shadow-none 
+              [&::part(base)]:focus:ring-offset-0 
+              [&::part(base)]:focus:ring-0
+              [&::part(textarea)]:min-h-[50px]
+              [&::part(textarea)]:max-h-64
+              [&::part(textarea)]:overflow-y-auto
+              "
         data-new-message-target="contentField"
         data-action="
           input->new-message#toggleSubmitButton 
