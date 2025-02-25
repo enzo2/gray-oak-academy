@@ -1,7 +1,7 @@
 <%= turbo_frame_tag "dashboard-content" do %>
-<div class="<%= current_user.role_admin? ? '' : 'p-4' %>">
 
-  <div class="flex flex-row gap-4 h-[calc(100dvh-3.5rem)]" data-controller="code-executor">
+
+  <div class="flex flex-row gap-4 <%= current_user.role_admin? ? 'h-full' : 'px-4 pt-4 h-[calc(100dvh-2.5rem)]' %>" data-controller="code-executor">
 <!-- Chats Column (Collapsible Sidebar) -->
     <div class="flex-none border-r border-gray-400 transition-all duration-300 ease-in-out w-8 hover:w-32 group">
       <!-- Sidebar header with icon -->
@@ -33,5 +33,5 @@
       <%= render partial: "shared/chalkboard" %>
   </div>
 
-<div>
+
 <% end %>
