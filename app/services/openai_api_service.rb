@@ -220,7 +220,7 @@ class OpenaiApiService
             usage = chunk["usage"]
             Completion.create(
               model: @model,
-              api_provider: ENV["OPENAI_API_BASE_URI"],
+              api_provider: @base_uri,
               # model_provider:
               prompt_tokens: usage.dig("prompt_tokens").to_i,
               completion_tokens: usage.dig("completion_tokens").to_i,

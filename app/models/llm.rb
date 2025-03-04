@@ -8,6 +8,7 @@ class Llm < ApplicationRecord
   validates :model, uniqueness: { scope: :api_provider }
 
   before_create :extract_model_provider_for_openrouter
+  before_save :update_feature_flags_from_supported_parameters
   after_create :update_metadata
 
   private
@@ -16,6 +17,13 @@ class Llm < ApplicationRecord
     if api_provider == "OpenRouter"
       self.model_provider = model.split("/").first
     end
+  end
+
+  def update_feature_flags_from_supported_parameters
+    return if supported_parameters.nil?
+
+    self.supports_tool_use = supported_parameters.intersect?([ "tools", "tool_choice" ])
+    self.supports_structured_outputs = supported_parameters.include?("structured_outputs")
   end
 
   def metadata_stale?

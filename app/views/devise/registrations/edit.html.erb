@@ -3,10 +3,14 @@
     <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Edit <%= resource_name.to_s.humanize %> Settings</h2>
 
     <sl-tab-group class="[&_form]:max-w-96" placement="start">
-      <sl-tab slot="nav" panel="account">Login Settings</sl-tab>
       <sl-tab slot="nav" panel="user-settings">Preferences</sl-tab>
+      <sl-tab slot="nav" panel="account">Login Settings</sl-tab>
       <sl-tab slot="nav" panel="delete-account">Delete Account</sl-tab>
 
+      <sl-tab-panel name="user-settings">
+        <%= render "user_settings/form", settings: current_user.settings %>
+      </sl-tab-panel>
+      
       <sl-tab-panel name="account" active><!--set as active so that it shows up after devise form submission-->
         <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
           <%= render "devise/shared/error_messages", resource: resource %>
@@ -55,10 +59,6 @@
             <%= f.submit "Update", class: "btn-primary" %>
           </div>
         <% end %>
-      </sl-tab-panel>
-
-      <sl-tab-panel name="user-settings">
-        <%= render "user_settings/form", settings: current_user.settings %>
       </sl-tab-panel>
 
       <sl-tab-panel name="delete-account">
