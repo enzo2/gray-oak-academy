@@ -29,6 +29,7 @@ class UpdateOpenrouterModelMetadataJob < ApplicationJob
   end
 
   def update_metadata(llm)
+    return unless llm.api_provider.include?("openrouter.ai")
     response = fetch_model_endpoints(llm)
     return nil unless response && response["data"] && response["data"]["endpoints"]
 
@@ -51,7 +52,7 @@ class UpdateOpenrouterModelMetadataJob < ApplicationJob
   end
 
   def update_all_models
-    Llm.where(api_provider: "OpenRouter").find_each do |llm|
+    Llm.where("api_provider LIKE ?", "%openrouter.ai%").find_each do |llm|
       update_metadata(llm)
     end
   end

@@ -14,7 +14,7 @@ class Llm < ApplicationRecord
   private
 
   def extract_model_provider_for_openrouter
-    if api_provider == "OpenRouter"
+    if api_provider.include?("openrouter.ai")
       self.model_provider = model.split("/").first
     end
   end
@@ -33,7 +33,7 @@ class Llm < ApplicationRecord
   # OpenRouter provides an endpoint for fetching model metadata
   def update_metadata
     Rails.logger.debug "Updating metadata for LLM: #{self.inspect}"
-    return unless api_provider == "OpenRouter" && metadata_stale?
+    return unless api_provider.include?("openrouter.ai") && metadata_stale?
     UpdateOpenrouterModelMetadataJob.perform_later(self) if metadata_stale?
   end
 end

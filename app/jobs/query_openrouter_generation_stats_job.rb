@@ -12,7 +12,7 @@ class QueryOpenrouterGenerationStatsJob < ApplicationJob
 
       generation_stats = Completion.create(
         model: stats["model"],
-        api_provider: "OpenRouter",
+        api_provider: user.settings.llm_api_base_uri.presence || ENV.fetch("OPENAI_API_BASE_URI"),
         model_provider: stats["provider_name"],
         total_cost: stats["total_cost"].to_f,
         cache_discount: stats["cache_discount"].to_f,

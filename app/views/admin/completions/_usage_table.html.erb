@@ -36,7 +36,7 @@
             <sl-icon name="dash-square" slot="collapse-icon"></sl-icon>
             <div class="text-sm mt-2">
               <p><strong>Context Length:</strong> <%= data.context_length || 'Unknown' %></p>
-              <% if data.api_provider == "OpenRouter" %>
+              <% if data.api_provider.include?("openrouter.ai") %>
                 <p class="mt-2"><strong>Features:</strong></p>
                 <ul class="list-disc ml-4">
                   <li>Tool use: <%= data.supports_tool_use ? '✅' : '❌' %></li>
