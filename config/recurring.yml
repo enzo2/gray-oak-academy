@@ -7,3 +7,7 @@
 #   command: "SoftDeletedRecord.due.delete_all"
 #   priority: 2
 #   schedule: at 5am every day
+
+update_openrouter_context_lengths:
+  class: UpdateOpenrouterModelMetadataJob
+  schedule: every day at 2am

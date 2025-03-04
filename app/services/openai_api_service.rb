@@ -50,7 +50,8 @@ class OpenaiApiService
           tools: extras.dig(:tools),
           response_format: extras.dig(:response_format),
           stream: @stream_handler,
-          **(@stream_handler && @base_uri.include?("api.openai.com") ? { stream_options: { include_usage: true } } : {})
+          # Don't need to include usage stats for OpenRouter, as they will be queried afterwards
+          **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
         }
       )
 
@@ -61,7 +62,7 @@ class OpenaiApiService
       # If OpenRouter was used, get cost afterwards and save to DB.
       if @base_uri.include?("openrouter.ai")
         # Delayed job to get generation stats from OpenRouter
-        QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(response.dig("id"))
+        QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: response.dig("id"), user: @user)
       else # If not OpenRouter, use response stats directly
         usage = response.dig("usage")
         Completion.create(
@@ -213,8 +214,8 @@ class OpenaiApiService
           Rails.logger.debug("Streamed response complete: #{chunk["usage"]}")
 
           # If using OpenRouter, query the generation stats and saves to DB.
-          if ENV["OPENAI_API_BASE_URI"].include?("openrouter.ai")
-            QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(chunk["id"])
+          if @base_uri.include?("openrouter.ai")
+            QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: chunk["id"], user: @user)
           else # If not using OpenRouter, just save the usage from the response
             usage = chunk["usage"]
             Completion.create(
