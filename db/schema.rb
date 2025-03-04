@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_02_01_012907) do
+ActiveRecord::Schema[8.0].define(version: 2025_03_02_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,7 +79,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_02_01_012907) do
     t.integer "generation_time"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "llm_id", null: false
     t.index ["api_provider"], name: "index_completions_on_api_provider"
+    t.index ["llm_id"], name: "index_completions_on_llm_id"
     t.index ["model"], name: "index_completions_on_model"
     t.index ["model_provider"], name: "index_completions_on_model_provider"
   end
@@ -162,6 +164,25 @@ ActiveRecord::Schema[8.0].define(version: 2025_02_01_012907) do
     t.datetime "updated_at", null: false
     t.integer "position"
     t.index ["course_id"], name: "index_lessons_on_course_id"
+  end
+
+  create_table "llms", force: :cascade do |t|
+    t.string "model", null: false
+    t.string "model_provider"
+    t.string "api_provider", null: false
+    t.integer "context_length"
+    t.boolean "supports_tool_use"
+    t.boolean "supports_structured_outputs"
+    t.boolean "supports_image_input"
+    t.boolean "supports_image_output"
+    t.boolean "supports_audio_input"
+    t.boolean "supports_audio_output"
+    t.boolean "supports_streaming_audio"
+    t.jsonb "supported_parameters"
+    t.datetime "metadata_fetched_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["model", "api_provider"], name: "index_llms_on_model_and_api_provider", unique: true
   end
 
   create_table "messages", force: :cascade do |t|
@@ -252,6 +273,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_02_01_012907) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "applets", "users"
+  add_foreign_key "completions", "llms"
   add_foreign_key "conversations", "lesson_progresses"
   add_foreign_key "conversations", "users"
   add_foreign_key "courses", "users", column: "teacher_id"

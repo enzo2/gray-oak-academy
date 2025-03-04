@@ -1,5 +1,8 @@
 # For storing token usage and cost data.
 class Completion < ApplicationRecord
+  belongs_to :llm
+  before_validation :associate_llm # Set the LLM association automatically.
+
   validates :model, presence: true
 
   def self.all_time_usage_data
@@ -26,6 +29,16 @@ class Completion < ApplicationRecord
       "SUM(completion_tokens) AS total_completion_tokens",
       "SUM(total_tokens) AS total_tokens",
       "SUM(total_cost) AS total_costs"
+    )
+  end
+
+  private
+
+  def associate_llm
+    Rails.logger.info "Associating LLM for completion: #{self.inspect}"
+    self.llm = Llm.find_or_create_by!(
+      model: model,
+      api_provider: api_provider
     )
   end
 end
