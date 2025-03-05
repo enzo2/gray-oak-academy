@@ -10,4 +10,9 @@ class Conversation < ApplicationRecord
   # Conversations have a task_system_prompt field which is optional.
   # This should not include the base system prompts, which are combined by Prompt.full_system_prompt.
   # The base prompts and the task prompt are injected together by the API wrapper (eg OpenRouterService) upon the first completion request.
+  #
+
+  def total_prompt_tokens
+    completions.sum(&:prompt_tokens)
+  end
 end

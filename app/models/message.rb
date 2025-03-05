@@ -8,7 +8,7 @@ class Message < ApplicationRecord
   belongs_to :conversation
   has_many :images, dependent: :destroy # Message content field contains text. Images are kept separately.
 
-  after_create_commit -> { broadcast_created }
+  after_create_commit -> { broadcast_created; check_context_limit }
   after_update_commit -> { broadcast_updated }
 
   def broadcast_created
@@ -63,5 +63,37 @@ class Message < ApplicationRecord
       messages = messages[0...-1]
     end
     messages.map { |message| { role: message.role, content: message.content_with_images } }
+  end
+
+  private
+
+  def check_context_limit
+    return unless role_user? # Only run this check for user messages
+    Rails.logger.debug "Checking context limit for message: #{self.inspect}"
+
+    # Get the model's context limit
+    llm = conversation.completions.last&.llm
+    return unless llm
+
+    context_limit = llm.context_length
+    return unless context_limit
+
+    # Check the threshold (model's context limit - 64,000)
+    threshold = context_limit - 64000
+
+    if conversation.total_prompt_tokens > threshold
+      Rails.logger.warn("Conversation #{conversation.id} is approaching the context limit: #{conversation.total_prompt_tokens} / #{threshold}")
+      # Display the flash warning
+      Turbo::StreamsChannel.broadcast_update_to(
+        "#{dom_id(conversation)}",
+        target: "flash_bar",
+        partial: "shared/flash",
+        locals: { flash: { warning: "The conversation is approaching the token limit. Please notify the teacher to switch to a model with a larger limit." } }
+      )
+
+      # Send email to teacher/admin
+      Rails.logger.debug "Sending email to admin for conversation: #{conversation.id}"
+      ContextLimitMailer.notify_admin(conversation).deliver_later
+    end
   end
 end
