@@ -5,5 +5,12 @@ Rails.application.config.filter_parameters += [
   :passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn
 ]
 
+# Can use if you want to filter out "token" but not "tokens"
+# Rails.application.config.filter_parameters += [
+#  lambda do |key, value|
+#   key.to_s =~ /\A(.*)token(?!s)(.*)\z/i
+#  end
+# ]
+
 # workaround due to bug, filtering doesn't work on SQL logging within a hash, so filter out the whole parameter containing the hash
 ActiveRecord::Base.filter_attributes += [ :settings ]

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_03_02_000001) do
+ActiveRecord::Schema[8.0].define(version: 2025_03_05_132739) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,7 +80,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_03_02_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "llm_id", null: false
+    t.bigint "conversation_id"
     t.index ["api_provider"], name: "index_completions_on_api_provider"
+    t.index ["conversation_id"], name: "index_completions_on_conversation_id"
     t.index ["llm_id"], name: "index_completions_on_llm_id"
     t.index ["model"], name: "index_completions_on_model"
     t.index ["model_provider"], name: "index_completions_on_model_provider"
@@ -273,6 +275,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_03_02_000001) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "applets", "users"
+  add_foreign_key "completions", "conversations"
   add_foreign_key "completions", "llms"
   add_foreign_key "conversations", "lesson_progresses"
   add_foreign_key "conversations", "users"

@@ -1,5 +1,6 @@
 class Conversation < ApplicationRecord
   has_many :messages, -> { order(created_at: :asc) }, dependent: :destroy
+  has_many :completions
   belongs_to :user
   belongs_to :lesson_progress, optional: true
 

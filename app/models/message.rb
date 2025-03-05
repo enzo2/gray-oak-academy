@@ -1,12 +1,12 @@
 class Message < ApplicationRecord
   include ActionView::RecordIdentifier
 
-  enum :role, { system: "system", assistant: "assistant", user: "user" }, prefix: true
-  # ? acts_as_list scope: :conversation  # Messages are ordered correctly without this.
-  belongs_to :conversation
+  self.implicit_order_column = "created_at" # just in case IDs get out of order somehow
 
-  # Message content field contains text. Images are kept separately.
-  has_many :images, dependent: :destroy
+  enum :role, { system: "system", assistant: "assistant", user: "user" }, prefix: true
+
+  belongs_to :conversation
+  has_many :images, dependent: :destroy # Message content field contains text. Images are kept separately.
 
   after_create_commit -> { broadcast_created }
   after_update_commit -> { broadcast_updated }

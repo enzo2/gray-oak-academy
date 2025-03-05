@@ -11,8 +11,9 @@ class OpenaiApiService
   # If no system prompt is provided, the default system prompt will be used.
   # However, if a system message is already present in the completion messages array, that will be used instead.
 
-  def initialize(current_user:, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
+  def initialize(current_user:, conversation: nil, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
     @user = current_user
+    @conversation = conversation
     @model = model.presence || default_model
     @access_token = access_token.presence || default_access_token
     @base_uri = current_user.settings.llm_api_base_uri.presence || default_base_uri
@@ -62,10 +63,11 @@ class OpenaiApiService
       # If OpenRouter was used, get cost afterwards and save to DB.
       if @base_uri.include?("openrouter.ai")
         # Delayed job to get generation stats from OpenRouter
-        QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: response.dig("id"), user: @user)
+        QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: response.dig("id"), user: @user, conversation: @conversation)
       else # If not OpenRouter, use response stats directly
         usage = response.dig("usage")
         Completion.create(
+          conversation: @conversation,
           model: response.dig("model"),
           api_provider: @base_uri,
           # model_provider:
@@ -215,10 +217,11 @@ class OpenaiApiService
 
           # If using OpenRouter, query the generation stats and saves to DB.
           if @base_uri.include?("openrouter.ai")
-            QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: chunk["id"], user: @user)
+            QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: chunk["id"], user: @user, conversation: @conversation)
           else # If not using OpenRouter, just save the usage from the response
             usage = chunk["usage"]
             Completion.create(
+              conversation: @conversation,
               model: @model,
               api_provider: @base_uri,
               # model_provider:

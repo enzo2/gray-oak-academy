@@ -1,6 +1,7 @@
 # For storing token usage and cost data.
 class Completion < ApplicationRecord
   belongs_to :llm
+  belongs_to :conversation, optional: true
   before_validation :associate_llm # Set the LLM association automatically.
 
   validates :model, presence: true
