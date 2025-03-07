@@ -1,15 +1,13 @@
 class AppletsController < ApplicationController
   before_action :set_applet, only: [ :show, :destroy ]
 
+  # Request is made from the Stimulus controller.
+  # It would be simpler to use a form submission so we can respond with a turbo_stream template & flash message.
   def create
-    @applet = Applet.new
-    @applet.user = current_user
+    @applet = Applet.new(user: current_user)
     @applet.update!(applet_params)
     @applet.save!
-    flash[:notice] = "Applet saved!"
-    respond_to do |format|
-      format.turbo_stream
-    end
+    render json: { id: @applet.id }
   end
 
   def index
@@ -22,7 +20,7 @@ class AppletsController < ApplicationController
 
   def destroy
     @applet.destroy
-    flash[:notice] = "Applet deleted!"
+    flash.now[:success] = "Applet deleted!"
     respond_to do |format|
       format.turbo_stream
     end
