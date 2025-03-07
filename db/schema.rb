@@ -275,7 +275,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_03_05_132739) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "applets", "users"
-  add_foreign_key "completions", "conversations"
+  add_foreign_key "completions", "conversations", on_delete: :nullify
   add_foreign_key "completions", "llms"
   add_foreign_key "conversations", "lesson_progresses"
   add_foreign_key "conversations", "users"
