@@ -1,0 +1,12 @@
+<% if file_type == "application/pdf" %>
+  <iframe src="<%= url %>" width="100%" height="100%" frameborder="0" allow=""></iframe>
+<% elsif file_type.start_with?("image/") %>
+  <div class="flex items-center justify-center h-full">
+    <img src="<%= url %>" alt="<%= filename %>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+  </div>
+<% else %>
+  <div class="flex flex-col items-center justify-center h-full">
+    <p>This file type (<%= file_type %>) cannot be displayed directly.</p>
+    <a href="<%= url %>" target="_blank" class="btn-primary mt-4">Download <%= filename %></a>
+  </div>
+<% end %>

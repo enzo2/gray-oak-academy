@@ -17,15 +17,17 @@ class ToolHandlerService
       # Validate arguments against tool specifications
       args = validate_and_parse_arguments(tool, tool_call[:arguments])
 
-      # Execute the tool based on its name
-      case tool.name
-      when "Chalkboard_URL"
-        execute_chalkboard_url(args)
-      when "Complete_Lesson"
-        execute_complete_lesson(args)
-      else
-        raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented"
-      end
+    # Execute the tool based on its name
+    case tool.name
+    when "Chalkboard_URL"
+      execute_chalkboard_url(args)
+    when "Chalkboard_File"
+      execute_chalkboard_file(args)
+    when "Complete_Lesson"
+      execute_complete_lesson(args)
+    else
+      raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented"
+    end
     rescue ToolExecutionError => e
       Rails.logger.error("ToolExecutionError: #{e.message}")
       broadcast_error(e.message, @conversation)
@@ -117,6 +119,34 @@ class ToolHandlerService
 
     # Broadcast completion message to the conversation
     @message.update(content: @message.content + "\n<span class='text-green'><b>Lesson completed!<b></span>")
+  end
+
+  def execute_chalkboard_file(args)
+    resource_id = args["resource_id"]
+
+    # Find the resource
+    resource = Resource.find_by(id: resource_id)
+    raise ToolExecutionError, "Resource not found with ID: #{resource_id}" unless resource
+
+    # Check if the resource has a file attached
+    raise ToolExecutionError, "Resource does not have a file attached" unless resource.file.attached?
+
+    # Get the file URL
+    url = Rails.application.routes.url_helpers.rails_blob_path(resource.file, disposition: "inline", only_path: true)
+
+    # Get the file type and filename
+    file_type = resource.file.content_type
+    filename = resource.file.filename.to_s
+
+    # Broadcast chalkboard update with the file
+    Turbo::StreamsChannel.broadcast_update_to(
+      "conversation_#{@conversation.id}",
+      target: "chalkboard",
+      partial: "shared/chalkboard_file",
+      locals: { url: url, file_type: file_type, filename: filename }
+    )
+
+    Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
   end
 
   def broadcast_error(message, conversation)

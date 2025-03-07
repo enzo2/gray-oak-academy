@@ -13,7 +13,12 @@ class Resource < ApplicationRecord
       }
       resource_info["Category"] = resource.category if resource.category.present?
       resource_info["URI"] = resource.uri if resource.uri.present?
-      resource_info["file_attached"] = "Yes" if resource.file.attached? # Need to include an ID so LLM can access the file
+      if resource.file.attached?
+        resource_info["file_attached"] = "Yes"
+        resource_info["resource_id"] = resource.id.to_s
+        resource_info["filename"] = resource.file.filename.to_s
+        resource_info["content_type"] = resource.file.content_type
+      end
       resource_info
     end
     JSON.pretty_generate(resources_data)

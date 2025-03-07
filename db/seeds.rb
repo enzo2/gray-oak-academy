@@ -25,6 +25,29 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
   }
 end
 
+Tool.find_or_create_by!(name: 'Chalkboard_File') do |tool|
+  tool.specifications = {
+    name: "Chalkboard_File",
+    description: "Displays a file from the lesson resources on the chalkboard",
+    parameters: {
+      type: "object",
+      properties: {
+        resource_id: {
+          type: "string",
+          description: "The ID of the resource containing the file to display"
+        }
+      },
+      required: [ "resource_id" ]
+    },
+    constraints: [
+      {
+        type: "resource_exists",
+        description: "The resource must exist and have a file attached"
+      }
+    ]
+  }
+end
+
 Tool.find_or_create_by!(name: 'Complete_Lesson') do |tool|
   tool.specifications = {
     name: "Complete_Lesson",

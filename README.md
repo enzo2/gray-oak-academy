@@ -29,23 +29,23 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans
-- LLM can create and run Javascript applets
-- At the end of lessons, the LLM generates a student report, which is fed into the next session, allowing the whole course to be personalized.
+- LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
+- LLM-generated student reports are fed into the next session, allowing the whole course to be personalized.
 
 ### More cool stuff
 - Default set of base prompts in the DB seeds (obviously, these are opinionated)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token tracking
 - App name can be changed via env variable
-- Fast interface with Turbo Frames/Streams
+- Snappy interface using Turbo & Stimulus
 - Dark/Light mode
 
 ### Frameworks, Tooling, etc.
  - Rails 8, Ruby 3.4.1
  - Turbo/Stimulus
- - Postgres 
+ - Postgres
  - Tailwind + Shoelace components
- - No node/yarn, just importmaps
+ - No node, just importmaps
  - OpenAI-compatible LLM API support (tested with OpenRouter and OpenAI)
  
 ### Planned Features
@@ -56,6 +56,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
+- Teacher notifications, etc.
 - NO plan for mobile support due to the need for adequate screen space.
 
 ### Security
@@ -112,8 +113,9 @@ Maintain the core app principles:
 - Self-hostable, and ideally improve in this respect
 - Suitable for all ages
 - Follow generally accepted Rails architecture, keep controllers light, models heavy, code easy to follow
+- OK to code with LLMs, but do not vibe-code, and fully review your code
 - All LLM prompts should be user-editable; use the Prompts model. 
-- Test with various LLMs
+- Test with different LLMs.  
 
 ## License
 See LICENSE.md.
