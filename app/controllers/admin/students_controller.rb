@@ -23,7 +23,7 @@ module Admin
         @student.update(teacher: current_user)
         redirect_to admin_students_path
       else
-        flash[:alert] = "Student already has a teacher."
+        flash.now[:error] = "Student already has a teacher."
         respond_to do |format|
           format.turbo_stream
         end
