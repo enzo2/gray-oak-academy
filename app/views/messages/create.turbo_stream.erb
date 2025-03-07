@@ -1,7 +1,15 @@
+<%# The controller saves the user's new message. %>
+<%# The model should first broadcast the new message using broadcast_append_to. %>
+<%# Then, this view is rendered, adding a placeholder for the assistant reply. %>
 <%= turbo_stream.append "#{dom_id(@message.conversation)}" do %>
   <%= render "message", message: Message.new(role: :assistant, content: "") %>
 <% end %>
 
 <%= turbo_stream.replace "#{dom_id(@message.conversation)}_message_form" do %>
   <%= render "form", conversation: @message.conversation %>
+<% end %>
+
+<%= turbo_stream.update "context-usage-bar" do %>
+  <% Rails.logger.debug "Updating context usage bar: #{@message.conversation.context_usage.inspect}" %>
+  <%= render "conversations/context_usage_bar", context_usage: @message.conversation.context_usage %>
 <% end %>

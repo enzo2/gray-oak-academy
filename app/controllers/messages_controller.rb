@@ -32,14 +32,15 @@ class MessagesController < ApplicationController
       end
     end
 
-    # This will trigger the model callback to broadcast the user message
+    # This will trigger the model callback to broadcast the user message synchronously, before the turbo_stream view below is rendered.
     @message.save!
 
     # Get completion and stream the response to the conversation view
     GetLlmCompletionJob.perform_later(conversation_id: @message.conversation_id)
 
+    # The view is then rendered with a placeholder for the assistant message while the above job runs.
     respond_to do |format|
-      format.turbo_stream # Adds an assistant placeholder and refreshes the form
+      format.turbo_stream
     end
   rescue StandardError => e
     Rails.logger.error "Failed to create message: #{e.message}"

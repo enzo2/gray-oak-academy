@@ -3,6 +3,7 @@ class Completion < ApplicationRecord
   belongs_to :llm
   belongs_to :conversation, optional: true
   before_validation :associate_llm # Set the LLM association automatically.
+  self.implicit_order_column = "created_at"
 
   validates :model, presence: true
 

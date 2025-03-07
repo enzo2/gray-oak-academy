@@ -1,17 +1,25 @@
-<div class="flex flex-col h-full">
-  <% if conversation.lesson_progress.nil? %>
-    <div class="mb-4">
-      <%= link_to 'Clear Conversation', clear_conversation_path(conversation), 
-        method: :delete, 
-        data: { 
-          turbo_method: :delete,
-          turbo_confirm: 'Are you sure you want to clear this conversation?'
-        }, 
-        class: "btn-danger" %>
-    </div>
-  <% end %>
+ <%= turbo_stream_from "#{dom_id(conversation)}" %>
 
-  <%= turbo_stream_from "#{dom_id(conversation)}" %>
+<div class="flex flex-col h-full">
+  <div id="conversation-header">
+    <% if conversation.lesson_progress.nil? %>
+      <div class="mb-4">
+        <%= link_to 'Clear Conversation', clear_conversation_path(conversation), 
+          method: :delete, 
+          data: { 
+            turbo_method: :delete,
+            turbo_confirm: 'Are you sure you want to clear this conversation?'
+          }, 
+          class: "btn-danger" %>
+      </div>
+    <% end %>
+
+    <%= turbo_frame_tag "context-usage-bar" do %>
+      <%= render partial: "conversations/context_usage_bar", locals: { context_usage: conversation.context_usage } %>
+    <% end %>
+  
+    <hr class=" border-gray-500 my-2">
+  </div>
 
   <div class="flex-grow overflow-hidden" data-controller="conversation">
     <div class="h-full overflow-y-auto pr-4 mx-2" 

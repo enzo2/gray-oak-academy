@@ -72,16 +72,15 @@ class Message < ApplicationRecord
     Rails.logger.debug "Checking context limit for message: #{self.inspect}"
 
     # Get the model's context limit
-    llm = conversation.completions.last&.llm
+    llm = conversation.llm_in_use
     return unless llm
-
     context_limit = llm.context_length
     return unless context_limit
 
     # Check the threshold (model's context limit - 64,000)
     threshold = context_limit - 64000
 
-    if conversation.total_prompt_tokens > threshold
+    if conversation.last_prompt_tokens > threshold
       Rails.logger.warn("Conversation #{conversation.id} is approaching the context limit: #{conversation.total_prompt_tokens} / #{threshold}")
       # Display the flash warning
       Turbo::StreamsChannel.broadcast_update_to(
