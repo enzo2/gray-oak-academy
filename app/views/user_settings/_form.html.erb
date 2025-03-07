@@ -23,7 +23,8 @@
         <%= f.text_field :llm_api_access_token, class: "form-input" %>
       </div>    
       <p class="text-sm mb-1">
-        <i>OpenAI-compatible APIs are supported.<br>However, only OpenRouter allows cost tracking in this app, and avoids token limits.</i>
+        <i>OpenAI-compatible APIs are supported.<br>
+        However, using OpenRouter will avoid token limits, enable native cost tracking, and automate context limit alerts.</i>
       </p>
       <div class="mb-4">
         <%= f.label :llm_api_base_uri, "LLM API base URI", class: "form-label" %>

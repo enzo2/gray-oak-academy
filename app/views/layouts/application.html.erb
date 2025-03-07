@@ -54,7 +54,7 @@
         </div>
       </nav>
       <!-- flashes will be rendered as toast -->
-      <div id="flash_bar" class="hidden" data-controller="alert">
+      <div id="flash_bar" class="hidden" data-controller="alert" data-turbo-cache="false">
         <%= render "shared/flash" if flash.any? %>
       </div>
     </header>

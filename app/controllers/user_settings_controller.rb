@@ -3,12 +3,12 @@ class UserSettingsController < ApplicationController
 
   def update
     if @settings.update(user_settings_params)
-      flash[:success] = "Settings updated successfully."
+      flash.now[:success] = "Settings updated successfully."
       respond_to do |format|
-        format.turbo_stream { render :update }
+        format.turbo_stream
       end
     else
-      flash[:error] = "Settings were not updated."
+      flash.now[:error] = "Settings were not updated."
       respond_to do |format|
         format.turbo_stream { render :update, status: :unprocessable_entity }
       end

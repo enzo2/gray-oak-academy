@@ -11,8 +11,10 @@
           variant="warning"
         <% elsif message_type == "alert" %>
           variant="warning"
+        <% elsif message_type == "neutral" %>
+          variant="neutral"
         <% else %>
-          variant="info"
+          variant="primary"
         <% end %>
         data-alert-target="alert" 
         closable data-turbo-temporary>
