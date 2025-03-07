@@ -25,22 +25,20 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API
-- Teacher and Student views, dark mode
 - Native LLM chat interface with image support
-- Lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
-- Curriculum management: Courses, Lessons, Lesson Plans
+- Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
+- Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans
-- Learning resource management (linkable to lessons) 
 - LLM can create and run Javascript applets
 - At the end of lessons, the LLM generates a student report, which is fed into the next session, allowing the whole course to be personalized.
 
 ### More cool stuff
 - Default set of base prompts in the DB seeds (obviously, these are opinionated)
+- Automated context limit tracking (when using OpenRouter)
 - Cost/token tracking
 - App name can be changed via env variable
 - Fast interface with Turbo Frames/Streams
 - Dark/Light mode
-- NO plan for mobile support due to the need for adequate screen space.
 
 ### Frameworks, Tooling, etc.
  - Rails 8, Ruby 3.4.1
@@ -58,6 +56,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
+- NO plan for mobile support due to the need for adequate screen space.
 
 ### Security
 - Devise for authentication
