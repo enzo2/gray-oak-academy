@@ -8,8 +8,9 @@
     </div>
   <%# handle assistant messages %>
   <% elsif message.content.blank? # && message.images.blank? %>
-    <div class="border-gray-200 dark:border-gray-700 border rounded-lg my-2 py-2 flex justify-center items-center"
-          data-code-executor-target="message">
+    <div class="border-gray-200 dark:border-gray-700 border rounded-lg my-2 py-2 flex justify-center items-center
+               assistant_placeholder"
+      data-code-executor-target="message">
       <sl-spinner></sl-spinner>
     </div>
   <% else %>

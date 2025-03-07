@@ -48,7 +48,8 @@ class GetLlmCompletionJob < ApplicationJob
     # Return a proc that handles the streamed response
     Proc.new do |chunk|
       begin
-        message ||= conversation.messages.create!(role: "assistant", content: "") # Create the empty message if it doesn't exist yet
+        # Create the empty message if it doesn't exist yet. This will broadcast the message.
+        message ||= conversation.messages.create!(role: "assistant", content: "")
 
         # Check if the chunk contains tool calls
         if chunk.dig("delta", "tool_calls").present?

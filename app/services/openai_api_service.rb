@@ -215,6 +215,14 @@ class OpenaiApiService
         if chunk["usage"]
           Rails.logger.debug("Streamed response complete: #{chunk["usage"]}")
 
+          # If the model didn't follow instructions and called a tool without any text content,
+          # then we need to add some text to the message to avoid confusion.
+          last_assistant_message = @conversation.messages.where(role: "assistant").last
+          if last_assistant_message.content.blank?
+            Rails.logger.debug "Completion message was empty. Adding blank message placeholder."
+            last_assistant_message.update(content: last_assistant_message.content + "<i>LLM did not include any text.</i>")
+          end
+
           # If using OpenRouter, query the generation stats and saves to DB.
           if @base_uri.include?("openrouter.ai")
             QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: chunk["id"], user: @user, conversation: @conversation)

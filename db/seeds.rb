@@ -28,7 +28,7 @@ end
 Tool.find_or_create_by!(name: 'Chalkboard_File') do |tool|
   tool.specifications = {
     name: "Chalkboard_File",
-    description: "Displays a file from the lesson resources on the chalkboard",
+    description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types can still be displayed as a link.",
     parameters: {
       type: "object",
       properties: {
@@ -42,7 +42,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_File') do |tool|
     constraints: [
       {
         type: "resource_exists",
-        description: "The resource must exist and have a file attached"
+        description: "The resource must exist and have a file attached. If a file is unsupported for native display, a download link will be shown."
       }
     ]
   }
@@ -229,9 +229,11 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call.
     2) Render an applet: instructions are below.
-    3) Print: Student can print whatever's on the chalkboard.
-    4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
-    5) Whiteboard / drawing pad: You can either navigate the charlkboard to https://excalidraw.com, or the user can press the toolbar button to do so.
+    3) Display an available file: use a tool call.
+    4) Print: Student can print whatever's on the chalkboard.
+    5) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
+    6) Whiteboard / drawing pad: You can either navigate the charlkboard to https://excalidraw.com, or the user can press the toolbar button to do so.
+    **When calling a tool, don't just respond with the tool call, but say something to the user--include some text so the user can follow along.**
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using markdown as usual.
     You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks.
