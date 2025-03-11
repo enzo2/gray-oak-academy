@@ -9,11 +9,11 @@
     <% if enrollment.has_available_lesson? %>
       <sl-button href="<%= student_lesson_path(enrollment.next_available_lesson) %>" target="_blank">
         <sl-icon slot="prefix" name="check-circle-fill" class="text-blue-700"></sl-icon>
-        Start next lesson
+          <%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start next" %> lesson
       </sl-button>
       <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
         <sl-icon slot="prefix" name="file-text" class="text-blue-700"></sl-icon>
-        View Progress
+          View Progress
       </sl-button>
     <% elsif enrollment.completed? %>
       <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">

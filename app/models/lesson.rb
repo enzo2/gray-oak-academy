@@ -13,6 +13,11 @@ class Lesson < ApplicationRecord
 
   scope :published, -> { joins(:lesson_plan).where(lesson_plans: { status: "published" }) }
 
+
+  def started_by?(student)
+    lesson_progresses.find_by(student: student).present?
+  end
+
   # Check if the student has a completed StudentReport associated with this lesson
   def completed_by?(student)
     lesson_progress = lesson_progresses.find_by(student: student)
