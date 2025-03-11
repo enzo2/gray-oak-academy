@@ -33,7 +33,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - LLM-generated student reports are fed into the next session, allowing the whole course to be personalized.
 
 ### More cool stuff
-- Default set of base prompts in the DB seeds (obviously, these are opinionated)
+- All prompts can be customized (default set of prompts included)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token tracking
 - App name can be changed via env variable
@@ -57,7 +57,8 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
 - Teacher notifications, etc.
-- NO plan for mobile support due to the need for adequate screen space.
+- Tailwind v4 upgrade
+- No plan for mobile support due to the need for adequate screen space.
 
 ### Security
 - Devise for authentication

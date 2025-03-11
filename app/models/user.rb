@@ -27,8 +27,8 @@ class User < ApplicationRecord
   has_many :student_reports, as: :reportable # for generic reports; specific ones for course or completed lessons would be associated via ENROLLMENTS, or LESSON_PROGRESS
   has_many :authored_reports, class_name: "StudentReport", foreign_key: "teacher_id", inverse_of: :teacher
   has_many :resources, foreign_key: "teacher_id", inverse_of: :teacher
-  has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher
-  has_many :tools, foreign_key: "teacher_id", inverse_of: :teacher
+  has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher, dependent: :destroy
+  # has_many :tools, foreign_key: "teacher_id", inverse_of: :teacher, dependent: :destroy
   has_many :conversations
   has_many :applets
 

@@ -7,9 +7,10 @@ class OpenaiApiService
   # Each chunk delta will be passed to the Proc as a JSON object.
   # eg. { "role"=>"assistant", "content"=>"or not to be??" }
 
-  # Provide the task system prompt upon initializing the client, and it will be added to the conversation, along with the base system prompt and generative guidelines prompt.
-  # If no system prompt is provided, the default system prompt will be used.
-  # However, if a system message is already present in the completion messages array, that will be used instead.
+  # System prompts are handled as follows:
+  # If a custom system prompt is present in the completion messages array, it will be used as the system prompt.
+  # If a task system prompt is provided, it will be added to the conversation, along with the base system prompt, teaching principles, and generative guidelines.
+  # If neither a system prompt message, nor a task system prompt is provided, the default system prompt will be used (base system prompt + teaching principles).
 
   def initialize(current_user:, conversation: nil, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
     @user = current_user
@@ -19,13 +20,14 @@ class OpenaiApiService
     @base_uri = current_user.settings.llm_api_base_uri.presence || default_base_uri
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
-    @base_system_prompt = Prompt.full_system_prompt
-    if task_system_prompt
-      @system_prompt = @base_system_prompt + Prompt.category_generative_guidelines.first.prompt + " \n Now, focusing on your current role: " + task_system_prompt
-    else
-      @system_prompt = @base_system_prompt
-    end
     @tools = Tool.all.map(&:for_llm) if enable_tools # Load tools if enabled
+
+    # Jobs without a task system prompt will use the base system prompt only
+    @system_prompt = Prompt.full_system_prompt(user: current_user)
+    if task_system_prompt
+      # Add the generative guidelines and the task system prompt to the base system prompt
+      @system_prompt += "\n " +  Prompt.get_prompt(category: "generative_guidelines", user: current_user) + " \n Now, focusing on your current role: " + task_system_prompt
+    end
   end
 
   def complete(messages, extras: {}, schema: nil, prefill: nil)

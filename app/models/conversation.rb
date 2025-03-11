@@ -7,16 +7,14 @@ class Conversation < ApplicationRecord
   scope :generic, -> { where(lesson_progress_id: nil) }
   scope :belongs_to_lesson, -> { where.not(lesson_progress_id: nil) }
 
-  # Conversations have a task_system_prompt field which is optional.
-  # This should not include the base system prompts, which are combined by Prompt.full_system_prompt.
-  # The base prompts and the task prompt are injected together by the API wrapper (eg OpenRouterService) upon the first completion request.
-  #
+  # Conversation stores the thread of messages, along with an optional task_system_prompt in a separate field.
+  # The task_system_prompt should include the task at hand, and should not include the base system prompts or generative guidelines, which are added in OpenAiApiService.
+  # The base prompts and the task prompt are injected together upon the completion request.
 
   # Returns the LLM used in the last completion.
   def llm_in_use
     completions.last&.llm
   end
-
 
   def last_prompt_tokens
     completions.last&.prompt_tokens || 0

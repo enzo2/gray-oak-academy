@@ -26,10 +26,8 @@ class GenerateCourseOutlineJob < ApplicationJob
     }
   }
 
-  TASK_PROMPT = Prompt.category_generate_course_outline.first.prompt
-
   def perform(course, current_user)
-    customized_prompt = TASK_PROMPT
+    customized_prompt = Prompt.get_prompt(category: "generate_course_outline", user: current_user)
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)
       .gsub("{grade_level}", course.grade_level)

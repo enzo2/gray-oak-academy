@@ -50,13 +50,19 @@ class Prompt < ApplicationRecord
   scope :system_prompts, -> { where(category: [ :base_system_prompt, :teaching_principles ]) }
   scope :lesson_related, -> { where(category: [ :generate_lessons, :generate_lesson_plan, :lesson_tutor_session ]) }
 
+  # Get the prompt belonging to the user; if none, use the default prompt
+  def self.get_prompt(category:, user:)
+    prompt = Prompt.find_by(category: category, teacher_id: user.id) || Prompt.find_by(category: category, teacher_id: nil)
+    prompt.prompt
+  end
+
   # Helper method to get user-friendly category name
   def friendly_category_name
     FRIENDLY_CATEGORIES[category.to_sym]
   end
 
-  def self.full_system_prompt
-    Prompt.category_base_system_prompt.first.prompt + " \n " + Prompt.category_teaching_principles.first.prompt + " \n "
+  def self.full_system_prompt(user:)
+    Prompt.get_prompt(category: "base_system_prompt", user: user) + " \n " + Prompt.get_prompt(category: "teaching_principles", user: user) + " \n "
   end
 
   # Class method to get all categories with their friendly names

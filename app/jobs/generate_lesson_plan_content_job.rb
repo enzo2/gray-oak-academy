@@ -26,12 +26,10 @@ class GenerateLessonPlanContentJob < ApplicationJob
     }
   }
 
-  TASK_PROMPT = Prompt.category_generate_lesson_plan.first.prompt
-
   def perform(lesson_plan, current_user)
     lesson = lesson_plan.lesson
     course = lesson.course
-    customized_prompt = TASK_PROMPT
+    customized_prompt = Prompt.get_prompt(category: "generate_lesson_plan", user: current_user)
       .gsub("{title}", lesson.title)
       .gsub("{goals}", lesson.goals)
       .gsub("{approx_duration_min}", lesson.approx_duration_min.to_s)

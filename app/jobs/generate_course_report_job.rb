@@ -38,7 +38,7 @@ class GenerateCourseReportJob < ApplicationJob
     student = enrollment.student
     teacher = course.teacher
     lessons_history = enrollment.lesson_history_for_prompt
-    task_prompt = Prompt.category_generate_student_course_report.first.prompt
+    task_prompt = Prompt.get_prompt(category: "generate_student_course_report", user: teacher)
 
     customized_prompt = task_prompt
       .gsub("{course_title}", course.title)

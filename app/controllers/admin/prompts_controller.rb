@@ -4,7 +4,8 @@ module Admin
     before_action :set_prompt, only: [ :edit, :update, :destroy ]
 
     def index
-      @prompts = Prompt.order(:category)
+      @user_prompts = Prompt.where(teacher: current_user).order(:category)
+      @default_prompts = Prompt.where(teacher: nil).order(:category)
     end
 
     # def show
