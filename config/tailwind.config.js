@@ -26,8 +26,8 @@ module.exports = {
   
     fontFamily: { 
       sans: ['Inter var', ...defaultTheme.fontFamily.sans],
-      //sans: ['"Merriweather Sans"', ...defaultTheme.fontFamily.sans], 
-      //serif: ['"Playfair Display"', ...defaultTheme.fontFamily.serif] 
+      serif: [...defaultTheme.fontFamily.serif],
+      mono: [...defaultTheme.fontFamily.mono]
     }
 
   },

@@ -23,4 +23,4 @@ import "@shoelace-style/shoelace/input";
 import "@shoelace-style/shoelace/dialog";
 import "@shoelace-style/shoelace/textarea";
 import "@shoelace-style/shoelace/details";
-//import "@shoelace-style/shoelace/checkbox";
+import "@shoelace-style/shoelace/copy-button";

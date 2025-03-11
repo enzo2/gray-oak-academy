@@ -33,6 +33,7 @@ gem "stimulus-rails"
 gem "devise"
 
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
+# https://github.com/rails/tailwindcss-rails?tab=readme-ov-file#upgrading-your-application-from-tailwind-v3-to-v4
 gem "tailwindcss-rails", "~> 3.3.1"
 
 gem "markdown_views"

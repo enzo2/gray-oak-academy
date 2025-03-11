@@ -1,5 +1,15 @@
 <%= turbo_frame_tag "dashboard-content" do %>
+  <%= link_to 'Back', admin_prompts_path, class: "hover:underline" %>
+  <br>
+  <br>
   <h2 class="font-bold text-2xl mb-4">New Prompt</h2>
+  <p>
+    <i><b>Warning! Power users only.</b> Many prompts include important app functionality.<br>
+    It is recommended to copy and paste the default prompt for your desired category, then make your changes.
+    </i>
+  </p>
+  <br>
 
   <%= render 'form', prompt: @prompt %>
+
 <% end %>

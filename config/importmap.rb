@@ -25,7 +25,7 @@ pin "@shoelace-style/shoelace/menu", to: "https://cdn.jsdelivr.net/npm/@shoelace
 pin "@shoelace-style/shoelace/dialog", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/dialog/dialog.js"
 pin "@shoelace-style/shoelace/textarea", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/textarea/textarea.js"
 pin "@shoelace-style/shoelace/details", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/details/details.js"
-# pin "@shoelace-style/shoelace/checkbox", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/checkbox/checkbox.js"
+pin "@shoelace-style/shoelace/copy-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/copy-button/copy-button.js"
 
 # Try adding Excalidraw to the chalkboard? Requires React....
 # pin "@excalidraw/excalidraw", to: "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"
