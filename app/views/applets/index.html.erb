@@ -4,15 +4,15 @@
   <p class="mb-4">
     Archived applets from past chats/lessons.
   </p>
-  <p class="mb-4">
+  <p class="mb-4 block">
     You can copy the code to your clipboard here, and then paste it into a JavaScript playground like jsfiddle.net.<br>
     Since the LLM is given specific instructions to generate applets, you'll need to either:
-    <ol class="prose dark:prose-invert list-decimal list-inside">
-      <li>Provide an HTML &lt;div&gt; with an id of "sandbox" in a JS playground.</li>
-      <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
-      <li>Have an LLM modify the code or help you to run it.</li>
-    </ol>
   </p>
+  <ol class="prose dark:prose-invert list-decimal list-inside dark:text-white mb-4">
+    <li>Provide an HTML &lt;div&gt; with an id of "sandbox" in a JS playground.</li>
+    <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
+    <li>Have an LLM modify the code or help you to run it.</li>
+  </ol>
 
   <%= render "applets/applets_table", applets: @applets %>
 
