@@ -29,10 +29,24 @@
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :outline, "Course Outline", class: "form-label" %>
     <p class="block text-sm mb-2">      
-      <i>The outline will be used to generate the list of lessons. Include any desired content.
-        <br>You can also leave it blank for now and have the LLM generate it for you.
+      <i>The outline will be used to generate the list of lessons. Include any desired content.<br>
+      You can also have the LLM generate it for you.
       </i>
     </p>
+
+    <% if course.outline.empty? %>
+      <%= link_to generate_outline_admin_course_path(course), 
+        data: { 
+          turbo_method: :post,
+          turbo_confirm: "This will call the LLM to generate an outline. Are you sure?" }, 
+          class: "block mb-2" do %>
+        <sl-button id="generate-outline-button-<%= course.id %>" outline variant="success">
+          <sl-icon slot="prefix" name="lightbulb"></sl-icon>
+          Generate outline
+        </sl-button>
+      <% end %>
+    <% end %>
+
     <% if course.outline.any? %>
       <% course.outline.each do |item| %>
         <div class="flex items-center mb-2 space-x-2">
