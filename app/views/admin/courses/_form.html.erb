@@ -34,7 +34,7 @@
       </i>
     </p>
 
-    <% if course.outline.empty? %>
+    <% if course.outline.empty? && course.persisted? %>
       <%= link_to generate_outline_admin_course_path(course), 
         data: { 
           turbo_method: :post,
