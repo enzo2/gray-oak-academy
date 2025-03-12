@@ -55,11 +55,9 @@ class GenerateCourseReportJob < ApplicationJob
       )
       parsed_content = client.complete(
         messages,
-        extras: {
-          response_format: {
-            type: "json_schema",
-            json_schema: REPORT_SCHEMA
-          }
+        response_format: {
+          type: "json_schema",
+          json_schema: REPORT_SCHEMA
         },
         schema: REPORT_SCHEMA,
         prefill: "{"

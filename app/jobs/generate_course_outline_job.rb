@@ -40,12 +40,9 @@ class GenerateCourseOutlineJob < ApplicationJob
       client = OpenaiApiService.new(current_user: current_user)
       parsed_outline = client.complete(
         messages,
-        extras: {
-          response_format: {
-            # type: "json_object"  # Non-strict option, if need to support APIs that lack structured output support
-            type: "json_schema",
-            json_schema: OUTLINE_SCHEMA
-          }
+        response_format: {
+          type: "json_schema",
+          json_schema: OUTLINE_SCHEMA
         },
         schema: OUTLINE_SCHEMA["schema"],  # Also pass the schema to the wrapper service for validation of the response
         prefill: "{\"outline\": ["

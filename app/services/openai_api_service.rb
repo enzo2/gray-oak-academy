@@ -30,7 +30,7 @@ class OpenaiApiService
     end
   end
 
-  def complete(messages, extras: {}, schema: nil, prefill: nil)
+  def complete(messages, response_format: nil, schema: nil, prefill: nil)
     # inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
@@ -41,17 +41,14 @@ class OpenaiApiService
       messages << { role: "assistant", content: prefill }
     end
 
-    # add tools to extras, if enabled
-    extras[:tools] = @tools if @tools.present?
-
     begin
       response = @client.chat(
         parameters: {
           messages: messages,
           model: @model,
           temperature: 1,
-          tools: extras.dig(:tools),
-          response_format: extras.dig(:response_format),
+          **(@tools.present? ? { tools: @tools } : {}),
+          **(response_format.present? ? { response_format: response_format } : {}),
           stream: @stream_handler,
           # Don't need to include usage stats for OpenRouter, as they will be queried afterwards
           **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
@@ -102,7 +99,7 @@ class OpenaiApiService
       check_content(content)
 
       # If JSON requested, parse and validate the content.
-      if extras.dig(:response_format, :type) == "json_schema" || extras.dig(:response_format, :type) == "json_object"
+      if response_format.dig(:type) == "json_schema" || response_format.dig(:type) == "json_object"
         parsed_content = parse_JSON(content)
         validate_JSON(parsed_content, schema) if schema.present?
         Rails.logger.debug "Validated JSON content: #{parsed_content}"

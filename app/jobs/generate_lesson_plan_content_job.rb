@@ -46,11 +46,9 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
       parsed_content = client.complete(
         messages,
-        extras: {
-          response_format: {
-            type: "json_schema",
-            json_schema: CONTENT_SCHEMA
-          }
+        response_format: {
+          type: "json_schema",
+          json_schema: CONTENT_SCHEMA
         },
         schema: CONTENT_SCHEMA,
         prefill: "{\"lesson_plan\": ["
