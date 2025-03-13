@@ -12,6 +12,8 @@
                   <%= link_to student.name, admin_student_path(student), data: { turbo_frame: "student-control-panel" }, class: "text-blue-500 hover:underline" %>
               </div>
             </li>
+          <% end.empty? and begin %>
+            <i>No students yet</i>
           <% end %>
         </ul>
       </div>
@@ -32,6 +34,8 @@
                 <% end %>
               </div>
             </li>
+          <% end.empty? and begin %>
+            <i>No other students</i>
           <% end %>
         </ul>
       </div>
