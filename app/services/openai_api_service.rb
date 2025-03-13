@@ -221,7 +221,7 @@ class OpenaiApiService
           last_assistant_message = @conversation.messages.where(role: "assistant").last
           if last_assistant_message && last_assistant_message.content.blank?
             Rails.logger.debug "Completion message was empty. Adding blank message placeholder."
-            last_assistant_message.update(content: last_assistant_message.content + "<i>LLM did not include any text.</i>")
+            last_assistant_message.update(content: last_assistant_message.content + "**LLM did not include any text.**")
           end
 
           # If using OpenRouter, query the generation stats and saves to DB.

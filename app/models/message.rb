@@ -8,6 +8,7 @@ class Message < ApplicationRecord
   belongs_to :conversation
   has_many :images, dependent: :destroy # Message content field contains text. Images are kept separately.
 
+  before_create :ensure_text_present
   after_create_commit -> { broadcast_created; check_context_limit }
   after_update_commit -> { broadcast_updated }
 
@@ -45,25 +46,24 @@ class Message < ApplicationRecord
     content_json
   end
 
-  # Deprecated now that images are added
-  def self.for_completion(messages)
-    # Remove the latest message if it's blank, since some LLM providers don't like blank messages
-    if messages.last.content.blank?
-      messages = messages[0...-1]
-    end
-    messages.map { |message| { role: message.role, content: message.content } }
-  end
-
   # Format messages for the LLM api
   def self.for_completion_with_images(messages)
     # Remove the latest message if it's blank, since some LLM providers don't like blank messages
-    if messages.last.content.blank?
-      messages = messages[0...-1]
-    end
+    # if messages.last.content.empty?
+    #  messages = messages[0...-1]
+    # end
     messages.map { |message| { role: message.role, content: message.content_with_images } }
   end
 
   private
+
+  # Some LLM providers do not accept empty messages even if an image is present.
+  def ensure_text_present
+    if content.blank? && images.any?
+      Rails.logger.warn "Images with empty message content. Adding some text."
+      self.content = "See image(s)."
+    end
+  end
 
   def check_context_limit
     return unless role_user? # Only run this check for user messages

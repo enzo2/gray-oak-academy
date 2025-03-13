@@ -118,7 +118,7 @@ class ToolHandlerService
     Rails.logger.debug("Report: #{args}")
 
     # Broadcast completion message to the conversation
-    @message.update(content: @message.content + "\n<span class='text-green'><b>Lesson completed!<b></span>")
+    @message.update(content: @message.content + "\n<br><span class='text-white bg-green-600 p-2 rounded'><b>Lesson completed!<b> You can close the tab.</span>")
   end
 
   def execute_chalkboard_file(args)
