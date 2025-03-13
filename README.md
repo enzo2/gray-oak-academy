@@ -89,11 +89,11 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
 
 ### Choosing an LLM:
-- Model must support images and tool use.
+- Model must support images and tool use. A long context window is recommended.
 - For outline/lesson generation, model must support structured outputs.
-- You must use a fairly intelligent LLM like claude-3.5-sonnet, or you may encounter issues related to tool use, structured outputs, and lesson pacing. This app is quite demanding on LLMs.
-- Model should have long context limit. Long lesson durations may necessitate a 1 megatoken context limit!
-- Providers supporting automated prompt caching will save you money. 
+- You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs.
+- Sonnet 3.7 seems to do best, but if a 1 megatoken context window is needed, you may need to use the Gemini series. GPT-4o does not perform well. 
+- Providers supporting automated prompt caching are recommended to reduce costs.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code.
