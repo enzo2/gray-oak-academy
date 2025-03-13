@@ -38,7 +38,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_File') do |tool|
       properties: {
         resource_id: {
           type: "string",
-          description: "The ID of the resource containing the file to display"
+          description: "The ID of the resource containing the file to display. Only use explicitly provided IDs. Do not make up IDs."
         }
       },
       required: [ "resource_id" ]
@@ -46,7 +46,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_File') do |tool|
     constraints: [
       {
         type: "resource_exists",
-        description: "The resource must exist and have a file attached. If a file is unsupported for native display, a download link will be shown."
+        description: "The resource must be explicitly provided and have a file attached. If a file is unsupported for native display, a download link will be shown."
       }
     ]
   }
@@ -233,7 +233,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     **When calling a tool, don't just respond with the tool call, but say something to the user--include some text so the user can follow along.**
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call. DO NOT navigate to any URL unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided URLs.
-    2) Display an available file: use a tool call.
+    2) Display an available file: use a tool call. DO NOT navigate to any ID unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided resource IDs.
     3) Print: Student can print whatever's on the chalkboard. You can suggest this to the student.
     4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
     5) Whiteboard / drawing pad:  The user can press the toolbar button to navigate to a drawing pad app. If you need to see their drawing/sketch, ask them to take a screenshot and paste it into the chat.
@@ -276,12 +276,18 @@ end
 
 Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|
   p.title = "Default Teacher Assistant Chat"
-  p.prompt = "You are now assisting the teacher in a chat format, outside of any specific lesson. \n"
+  p.prompt = <<~PROMPT
+    You are now assisting the teacher in a chat format, outside of any specific lesson.#{' '}
+    There is no lesson plan or resource list available, so do not attempt to navigate to any URLs or resources.\n
+  PROMPT
 end
 
 Prompt.find_or_create_by!(category: 'open_ended_student_chat') do |p|
   p.title = "Default Student Chat"
-  p.prompt = "You are now assisting the student in an open-ended chat format, outside of any specific lesson. \n"
+  p.prompt = <<~PROMPT
+    You are now assisting the student in an open-ended chat format, outside of any specific lesson. \n
+    There is no lesson plan or resource list available, so do not attempt to navigate to any URLs or resources.\n
+  PROMPT
 end
 
 Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
