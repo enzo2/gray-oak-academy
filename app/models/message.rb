@@ -17,7 +17,6 @@ class Message < ApplicationRecord
       "#{dom_id(conversation)}",
       partial: "messages/message",
       locals: { message: self },
-      scroll_to: true,
       target: "#{dom_id(conversation)}"
     )
 
@@ -31,7 +30,6 @@ class Message < ApplicationRecord
       "#{dom_id(conversation)}",
       partial: "messages/message",
       locals: { message: self },
-      # scroll_to: true,
       target: dom_id(self)
     )
   end
@@ -81,7 +79,7 @@ class Message < ApplicationRecord
     threshold = context_limit - 64000
 
     if conversation.last_prompt_tokens > threshold
-      Rails.logger.warn("Conversation #{conversation.id} is approaching the context limit: #{conversation.total_prompt_tokens} / #{threshold}")
+      Rails.logger.warn("Conversation #{conversation.id} is approaching the context limit: #{conversation.last_prompt_tokens} / #{threshold}")
       # Display the flash warning
       Turbo::StreamsChannel.broadcast_update_to(
         "#{dom_id(conversation)}",

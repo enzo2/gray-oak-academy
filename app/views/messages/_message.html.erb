@@ -1,6 +1,7 @@
 <div id="<%= dom_id(message) %>">
   <% if message.role_user? %>
-    <div class="bg-sky-200 dark:bg-sky-800 rounded-lg my-2 px-4 py-2 w-fit">
+    <div class="bg-sky-200 dark:bg-sky-800 rounded-lg my-2 px-4 py-2 w-fit"
+      data-conversation-target="user">
       <% message.images.each do |image| %>
         <%= image_tag(image.uri || image.file.variant(resize_to_limit: [150, 150]), alt: image.description, class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
       <% end %>
@@ -8,9 +9,8 @@
     </div>
   <%# handle assistant messages %>
   <% elsif message.content.blank? # && message.images.blank? %>
-    <div class="border-gray-200 dark:border-gray-700 border rounded-lg my-2 py-2 flex justify-center items-center
-               assistant_placeholder"
-      data-code-executor-target="message">
+    <div class="border-gray-200 dark:border-gray-700 border rounded-lg my-2 py-2 flex justify-center items-center"
+      data-conversation-target="assistant">
       <sl-spinner></sl-spinner>
     </div>
   <% else %>
@@ -21,7 +21,8 @@
                 [&>:not(:first-child)]:mt-3
                 [&>:not(:last-child)]:mb-3
                 "
-          data-code-executor-target="message">
+          data-code-executor-target="message"
+          data-conversation-target="assistant">
       <%= markdown(message.content) %>
     </div>
   <% end %>
