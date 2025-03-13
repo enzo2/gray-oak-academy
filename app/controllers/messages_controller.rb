@@ -1,4 +1,6 @@
 class MessagesController < ApplicationController
+  include ActionView::RecordIdentifier
+
   def create
     @message = Message.new(message_params.except(:images_data).merge(conversation_id: params[:conversation_id], role: "user"))
 

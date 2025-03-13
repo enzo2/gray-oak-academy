@@ -4,6 +4,13 @@
       class: "",
       data: { controller: "new-message" }
     ) do |form| %>
+
+  <% if local_assigns[:error].present? %>
+    <div class="mb-4 p-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-md">
+      <%= error %>
+    </div>
+  <% end %>
+
   <div data-new-message-target="previewArea" class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
   <div class="relative">
     <div class="
