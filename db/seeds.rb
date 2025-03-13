@@ -11,7 +11,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
       properties: {
         url: {
           type: "string",
-          description: "The URL to load in the chalkboard iframe. Must begin with 'http://' or 'https://'. Do not send HTML."
+          description: "The URL to load in the chalkboard iframe. Must begin with 'http://' or 'https://'. Do not send HTML. Only use URLs included in the lesson plan or resources."
         }
       },
       required: [ "url" ]
@@ -20,6 +20,10 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
       {
         type: "url_whitelist",
         description: "**Do not** try to recall or make up URLs; only use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
+      },
+      {
+        type: "not_for_generative_content",
+        description: "This tool is not for generative JavaScript applets. Do not use a tool call for applets; write the applet code as per the generative instructions."
       }
     ]
   }
@@ -226,22 +230,22 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     You can use markdown, HTML and inline CSS.
     You have a large chalkboard panel at your disposal next to the chat.
     The chalkboard is large, essentially most of the viewport.
-    Chalkboard capabilities include:
-    1) Navigate to a URL: use a tool call.
-    2) Render an applet: instructions are below.
-    3) Display an available file: use a tool call.
-    4) Print: Student can print whatever's on the chalkboard.
-    5) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
-    6) Whiteboard / drawing pad: You can either navigate the charlkboard to https://excalidraw.com, or the user can press the toolbar button to do so.
     **When calling a tool, don't just respond with the tool call, but say something to the user--include some text so the user can follow along.**
+    Chalkboard capabilities include:
+    1) Navigate to a URL: use a tool call. DO NOT navigate to any URL unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided URLs.
+    2) Display an available file: use a tool call.
+    3) Print: Student can print whatever's on the chalkboard. You can suggest this to the student.
+    4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
+    5) Whiteboard / drawing pad:  The user can press the toolbar button to navigate to a drawing pad app. If you need to see their drawing/sketch, ask them to take a screenshot and paste it into the chat.
+    6) Render an applet: you must write the applet code as per below instructions. Do not use a tool call.
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using markdown as usual.
-    You can create applets. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks.
-    Close it with //EOB</pre> to indicate the end of the code. The EOB marker is necessary to avoid executing the code prematurely.
+    You can create executable, generative applets in JS. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks.
+    **You absolutely must close the block with //EOB</pre> to indicate the end of the code. The EOB comment is necessary to avoid executing the code prematurely.**
     Do not enclose the block with triple backticks or any other formatting. This will disrupt the code block.
     Additional <pre> tag attributes for controlling execution:
-    - data-hidden="true" to initially hide the code with a toggle button. (Useful if the course is not focused on coding or technology.)
-    - data-auto-run="true" to execute immediately without showing a Run button.#{' '}
+    - data-hidden="false" to show the code by default, along with a toggle button. (Useful if the course is focused on coding or technology.)
+    - data-auto-run="true" to execute immediately without showing a Run button.
     - data-render-target="inline" to render inline rather than on the chalkboard. (Useful for applets only needing a small amount of space.)
     Inline applets will be executed within an iframe with about 400px of height and 550px width within the conversation.
     By default, there is a light background with dark text.
