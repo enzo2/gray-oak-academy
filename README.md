@@ -58,6 +58,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Resource archive and use tracking
 - Teacher notifications, etc.
 - Tailwind v4 upgrade
+- Regular & Power User modes
 - No plan for mobile support due to the need for adequate screen space.
 
 ### Security

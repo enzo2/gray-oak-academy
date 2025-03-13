@@ -59,13 +59,13 @@
         <td><%= number_to_currency(data.total_cost) %></td>
       </tr>
     <% end %>
-    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-gray-100 dark:bg-gray-700">
+    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-gray-200 dark:bg-gray-900">
       <td colspan="2" class="font-bold">Total</td>
-      <td class="font-bold"><%= total_prompt_tokens %></td>
-      <td class="font-bold"><%= total_cached_tokens %></td>
-      <td class="font-bold"><%= total_completion_tokens %></td>
-      <td class="font-bold"><%= total_tokens %></td>
-      <td class="font-bold"><%= number_to_currency(total_costs) %></td>
+      <td class=""><%= total_prompt_tokens %>*</td>
+      <td class=""><%= total_cached_tokens %>*</td>
+      <td class=""><%= total_completion_tokens %>*</td>
+      <td class=""><%= total_tokens %>*</td>
+      <td class=""><%= number_to_currency(total_costs) %>**</td>
     </tr>
   </tbody>
 </table>
