@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 /*
   This controller is responsible for setting up executable javascript applets in the conversation.
 
-  LLM instructions - found in seeds.rb. 
+  LLM instructions - found in seeds.rb.
 */
 
 export default class extends Controller {
@@ -29,10 +29,10 @@ export default class extends Controller {
       if (!endOfBlock.match(/\/\/EOB\s*<\/pre>$/)) return;
 
       console.log("Discovered executable code block.");
-      
+
       // Extract the configuration from the block's data attributes.
       const config = {
-        hidden: block.dataset.hidden === 'true',
+        hidden: block.dataset.hidden !== 'false', // Default to hidden unless explicitly set to false
         autoRun: block.dataset.autoRun === 'true',
         renderTarget: block.dataset.renderTarget || 'chalkboard'
       };
@@ -46,7 +46,8 @@ export default class extends Controller {
 
     // Create a container div to hold the block and its associated buttons.
     const container = this.createContainer(block);
-    
+
+    // Hide the block by default unless explicitly shown
     if (config.hidden) {
       this.setupHiddenBlock(block, container);
     }
@@ -56,7 +57,7 @@ export default class extends Controller {
 
     const archiveButton = this.createArchiveButton(block);
     container.appendChild(archiveButton);
-    
+
     // Create an output div if the render target is inline.
     if (config.renderTarget === 'inline') {
       const output = this.createOutputDiv();
@@ -126,7 +127,7 @@ export default class extends Controller {
       console.error("Execution cancelled: <code> tag found inside <pre data-executable>");
       return;
     }
-    
+
     // Get the code from the block
     const code = block.textContent;
     const output = this.getOutputElement(block, renderTarget);
