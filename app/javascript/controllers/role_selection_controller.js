@@ -5,10 +5,6 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["teacherCode"]
 
-  connect() {
-    this.toggleTeacherCode();
-  }
-
   initialize() {
     this.toggleTeacherCodeBound = this.toggleTeacherCode.bind(this);
   }
