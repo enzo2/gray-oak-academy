@@ -64,20 +64,15 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 ### Security
 - Devise for authentication
 - Teacher/Admin and Student roles
-- Designed for Docker use in a local secure environment
+- Designed for containerized use in a local secure environment
 - Not designed for hosting on the public internet by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
-- Note! The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
+- Note: The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
 
 ## Setup Instructions
-- Create an account on OpenRouter and get an API key, or use another LLM API. (OpenRouter will allow you to avoid token limits, try different models easily, and track exact costs.)
-- .env files must be set up with the requisite variables. See the example files. 
-- If you're just trying it out and don't care to see detailed logs, use a production environment with docker compose, as per below.
-
-### Development: 
-- Create `/config/credentials/development.key` and add a random 32-character string.
-- Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
-- Open the devcontainer with VSCode, etc.
-- Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
+- Create an account on OpenRouter and get an API key, or use another OpenAI-compatible API. (OpenRouter will allow you to avoid token limits, track exact costs, try different models easily, and track context window usage.)
+- `git clone` the repository to your machine. Docker is needed. 
+- Set up .env files. See the example files. 
+- If you're just trying it out and don't care to see detailed logs, use a production environment with docker compose, as per below. Or, for development, use the devcontainer.
 
 ### Production:
 - Create `/.env.production`: see `.env.production.example`. 
@@ -86,8 +81,15 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
 - *The default setup is not secure and is meant for local use only. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 
+### Development: 
+- Create `/config/credentials/development.key` and add a random 32-character string.
+- Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
+- Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise it will be super slow.
+- Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
+- Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
+
 ### Choosing an LLM:
-- Model must support tool use.
+- Model must support images and tool use.
 - For outline/lesson generation, model must support structured outputs.
 - You must use a fairly intelligent LLM like claude-3.5-sonnet, or you may encounter issues related to tool use, structured outputs, and lesson pacing. This app is quite demanding on LLMs.
 - Model should have long context limit. Long lesson durations may necessitate a 1 megatoken context limit!
