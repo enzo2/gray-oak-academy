@@ -149,6 +149,7 @@ class OpenaiApiService
   def check_for_refusal(response)
     refusal = response.dig("choices", 0, "message", "refusal")
     if refusal.present?
+      Rails.logger.warning "LLM refused to fulfill the request with message: #{refusal}"
       raise "Response refused with message: #{refusal}"
     end
   end
@@ -156,6 +157,7 @@ class OpenaiApiService
   def check_content(content)
     # Rails.logger.debug "Checking content: #{content}"
     if content.blank?
+      Rails.logger.warning "Empty response from LLM."
       raise "Empty response from LLM."
     end
   end
@@ -199,7 +201,7 @@ class OpenaiApiService
   end
 
   def wrap_stream_handler(handler)
-    # Return nil if no stream handler is provided, so streaming will be disabled
+    # Return if no stream handler is provided, so streaming will be disabled
     return false unless handler
 
     unless handler.is_a?(Proc)
@@ -217,7 +219,7 @@ class OpenaiApiService
           # If the model didn't follow instructions and called a tool without any text content,
           # then we need to add some text to the message to avoid confusion.
           last_assistant_message = @conversation.messages.where(role: "assistant").last
-          if last_assistant_message.content.blank?
+          if last_assistant_message && last_assistant_message.content.blank?
             Rails.logger.debug "Completion message was empty. Adding blank message placeholder."
             last_assistant_message.update(content: last_assistant_message.content + "<i>LLM did not include any text.</i>")
           end
@@ -245,20 +247,20 @@ class OpenaiApiService
           end
         end
 
-        choices = chunk.dig("choices")
+        choices = chunk&.dig("choices")
 
         # Check for refusal
-        refusal = choices.dig(0, "delta", "refusal")
+        refusal = choices&.dig(0, "delta", "refusal")
         if refusal.present?
           raise "Response refused with message: #{refusal}"
         end
 
         # Call the actual handler with the LLM response
-        handler.call(choices[0]) unless choices.empty?
+        handler.call(choices[0]) if choices.present?
 
       rescue StandardError => e
         # Handle any errors during processing
-        puts "Error processing chunk: #{e.message}"
+        Rails.logger.error "Error processing chunk: #{e.message}"
         # Optionally log or handle the error as needed
       end
     end
