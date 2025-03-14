@@ -12,6 +12,14 @@ export default class extends Controller {
     this.toggleSubmitButton() // Initial check
   }
 
+  async contentFieldTargetConnected() {
+    //Focus the input for ease of use
+    await Promise.allSettled([
+      customElements.whenDefined('sl-textarea')
+    ]);
+    this.contentFieldTarget.focus()
+  }
+
   toggleSubmitButton() {
     //console.log("toggleSubmitButton")
     const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0;
