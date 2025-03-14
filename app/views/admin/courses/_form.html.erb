@@ -21,10 +21,11 @@
     <%= f.text_area :summary, class: "form-input", required: true %>
   </div>
 
-  <div class="mb-4">
+  <div class="mb-2">
     <%= f.label :grade_level, class: "form-label" %>
     <%= f.text_field :grade_level, class: "form-input", required: true %>
   </div>
+  <p class="text-sm mb-4"><i>Hint: The grade level is useful for tuning the LLM's behavior. It doesn't have the be the exact grade level of the student.</i></p>
 
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :outline, "Course Outline", class: "form-label" %>

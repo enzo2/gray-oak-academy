@@ -18,13 +18,13 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 
 **Gray Oak Academy is a prototype of this system.**
 
-*I'm a doctor, Jim, not a software engineer.* I started this as a personal project for my son. Please forgive any rookie errors or lack of best practices. 
+*I'm a doctor, Jim, not a software engineer.* I started this as a personal project. Please forgive any rookie errors or lack of best practices. 
 
 **App is at an early stage. Contributions welcome.** 
 
 ## Features
 - Self-hostable with docker
-- Works with any OpenAI-compatible API
+- Works with any OpenAI-compatible API (including locally hosted)
 - Native LLM chat interface with image support
 - Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
@@ -49,16 +49,17 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
  - OpenAI-compatible LLM API support (tested with OpenRouter and OpenAI)
  
 ### Planned Features
-- STT, TTS, and native voice model support (turn-based, then realtime)
-  - Allow teacher to set lessons as text-only, STT/TTS, realtime native voice, non-streamed native voice, etc.
+- STT/TTS/native audio model support (turn-based vs. realtime)
+- Allow teacher to specify lessons as text-only, STT/TTS, native voice
 - Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
 - Add LLM reasoning support to course/lesson/plan generation
 - RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
-- Teacher notifications, etc.
+- Teacher notifications, mobile push notifications, etc.
 - Tailwind v4 upgrade
-- Regular & Power User modes
+- Hide more advanced features under a Power User mode
+- Make it easier for less intelligent LLMs to follow the instructions for generative applets
 - No plan for mobile support due to the need for adequate screen space.
 
 ### Security
@@ -106,10 +107,6 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - When the lesson plan is ready, mark it as published. You can also add resources.
 - Make a student account. On the teacher account, go to Students, adopt the student, and enroll them in the course.
 - The student can then go to their dashboard and try out the lesson.
-
-### Hints
-- When outlining a course, the grade level is useful for tuning the LLM's response. It doesn't have the be the exact grade level of the student.
-- If adding a Youtube URL as a resource, make sure you use the embeddable URL. 
 
 ## Contributor guidelines:
 Maintain the core app principles:
