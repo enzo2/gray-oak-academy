@@ -27,5 +27,8 @@ pin "@shoelace-style/shoelace/textarea", to: "https://cdn.jsdelivr.net/npm/@shoe
 pin "@shoelace-style/shoelace/details", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/details/details.js"
 pin "@shoelace-style/shoelace/copy-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.0/cdn/components/copy-button/copy-button.js"
 
+pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.js"
+pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"
+
 # Try adding Excalidraw to the chalkboard? Requires React....
 # pin "@excalidraw/excalidraw", to: "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"

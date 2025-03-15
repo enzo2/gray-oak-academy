@@ -24,3 +24,7 @@ import "@shoelace-style/shoelace/dialog";
 import "@shoelace-style/shoelace/textarea";
 import "@shoelace-style/shoelace/details";
 import "@shoelace-style/shoelace/copy-button";
+
+import "katex";
+import "katex-auto-render";
+
