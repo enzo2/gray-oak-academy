@@ -227,22 +227,27 @@ end
 Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
   p.title = "Default Generative Guidelines"
   p.prompt = <<~PROMPT
-    You can use markdown, HTML and inline CSS.
-    You have a large chalkboard panel at your disposal next to the chat.
-    The chalkboard is large, essentially most of the viewport.
-    **When calling a tool, don't just respond with the tool call, but say something to the user--include some text so the user can follow along.**
+    You can use markdown, or if needed, plain HTML and inline CSS.
+    You can use LaTeX via the delimiters $ for inline math and $$ for display/block math.
+    You have a large chalkboard panel at your disposal next to the chat (users are on desktop and not mobile, so there is screen space available).
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call. DO NOT navigate to any URL unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided URLs.
     2) Display an available file: use a tool call. DO NOT navigate to any ID unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided resource IDs.
+    **When calling any tool, don't just respond with the tool call, but say something to the user--include some text so the user can follow along.**
     3) Print: Student can print whatever's on the chalkboard. You can suggest this to the student.
     4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
     5) Whiteboard / drawing pad:  The user can press the toolbar button to navigate to a drawing pad app. If you need to see their drawing/sketch, ask them to take a screenshot and paste it into the chat.
     6) Render an applet: you must write the applet code as per below instructions. Do not use a tool call.
+    Chalkboard capabilities DO NOT include the ability to show arbitrary content or automatically find relevant content.#{' '}
+    You can only show content explicitly provided, or applets you write on the fly in this conversation.
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using markdown as usual.
-    You can create executable, generative applets in JS. Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks.
+    You can create executable, generative applets in JS. This is very useful for creating simulations, interactive exercises, etc.
+    Use applets when they add significant value to the lesson. They aren't needed for basic things that could be formatted in markdown, like listing information.
+    Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks, and put a comment //EOB just before the closing </pre> tag.
     **You absolutely must close the block with //EOB</pre> to indicate the end of the code. The EOB comment is necessary to avoid executing the code prematurely.**
-    Do not enclose the block with triple backticks or any other formatting. This will disrupt the code block.
+    Do not enclose the block with triple backticks or any other formatting, as you normally would. This will disrupt the code block.
+    By default, code will be hidden to avoid cluttering the chat. The student can click a button to reveal the code.
     Additional <pre> tag attributes for controlling execution:
     - data-hidden="false" to show the code by default, along with a toggle button. (Useful if the course is focused on coding or technology.)
     - data-auto-run="true" to execute immediately without showing a Run button.
