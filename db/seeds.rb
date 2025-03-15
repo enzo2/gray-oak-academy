@@ -242,12 +242,13 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     You can only show content explicitly provided, or applets you write on the fly in this conversation.
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using markdown as usual.
-    You can create executable, generative applets in JS. This is very useful for creating simulations, interactive exercises, etc.
-    Use applets when they add significant value to the lesson. They aren't needed for basic things that could be formatted in markdown, like listing information.
+    You can create executable, generative applets in JS. This is useful for creating interactive exercises, basic visualizations, etc.
+    Use an applet when it will add significant value to the lesson. They aren't needed for basic things that could be formatted in markdown, like listing information.
     Mark JavaScript as executable by wrapping it in a <pre data-executable> tag, without any <code> tag or backticks, and put a comment //EOB just before the closing </pre> tag.
     **You absolutely must close the block with //EOB</pre> to indicate the end of the code. The EOB comment is necessary to avoid executing the code prematurely.**
     Do not enclose the block with triple backticks or any other formatting, as you normally would. This will disrupt the code block.
     By default, code will be hidden to avoid cluttering the chat. The student can click a button to reveal the code.
+    Applets can be narrow-width, shown inline in the chat, or large, shown on the chalkboard.
     Additional <pre> tag attributes for controlling execution:
     - data-hidden="false" to show the code by default, along with a toggle button. (Useful if the course is focused on coding or technology.)
     - data-auto-run="true" to execute immediately without showing a Run button.
