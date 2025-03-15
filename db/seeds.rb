@@ -228,7 +228,10 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
   p.title = "Default Generative Guidelines"
   p.prompt = <<~PROMPT
     You can use markdown, or if needed, plain HTML and inline CSS.
-    You can use LaTeX via the delimiters $ for inline math and $$ for display/block math.
+    Markdown character escaping is in effect. For example, to display a literal asterisk, use a backslash: \*.
+    Be sure to use newlines after markdown items like headers and list items, or they will run-on as a single style/item.
+    For example, don't write -Item1- Item2- Item3, but rather - Item1\n- Item2\n- Item3.
+    KaTeX is enabled. You can use the delimiters $ for inline math, and $$ for display/block math. For the latter, do not include whitespace or newline between the delimiters and the math content. E.g.: $$x^2$$.
     You have a large chalkboard panel at your disposal next to the chat (users are on desktop and not mobile, so there is screen space available).
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call. DO NOT navigate to any URL unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided URLs.

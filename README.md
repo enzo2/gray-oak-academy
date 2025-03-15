@@ -93,7 +93,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Model must support images and tool use. A long context window is recommended.
 - For outline/lesson generation, model must support structured outputs.
 - You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs.
-- Sonnet 3.7 seems to do best, but if a 1 megatoken context window is needed, you may need to use the Gemini series. GPT-4o does not perform well. 
+- Sonnet 3.7 seems to do best overall, whereas Gemini 2.0 Flash is adequate in most cases, plus it's cheaper & has a 1 megatoken context window. GPT-4o does not perform well. 
 - Providers supporting automated prompt caching are recommended to reduce costs.
 
 ## Getting Started
