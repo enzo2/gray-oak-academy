@@ -1,6 +1,6 @@
 <main class="md:container md:mx-auto px-15 flex justify-center items-center">
   <div class="p-8 min-h-1/2 max-w-md w-full">
-    <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Change your password</h2>
+    <h2 class="text-2xl font-bold mb-6 text-stone-800 dark:text-white">Change your password</h2>
 
     <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put }) do |f| %>
       <%= render "devise/shared/error_messages", resource: resource %>
@@ -9,7 +9,7 @@
       <div class="mb-4">
         <%= f.label :password, "New password", class: "form-label" %>
         <% if @minimum_password_length %>
-          <em class="text-sm text-gray-600 dark:text-gray-400">(<%= @minimum_password_length %> characters minimum)</em>
+          <em class="text-sm text-stone-600 dark:text-stone-400">(<%= @minimum_password_length %> characters minimum)</em>
         <% end %>
         <%= f.password_field :password, autofocus: true, autocomplete: "new-password", class: "form-input" %>
       </div>

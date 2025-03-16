@@ -14,7 +14,7 @@
     <h1><%= @course.title %> - Lessons</h1>
     <table class="w-full border-collapse">
       <thead>
-        <tr class="border-b border-gray-800">
+        <tr class="border-b border-stone-800">
           <th class="py-2 px-3 text-left">#</th>
           <th class="py-2 px-3 text-left">Title</th>
           <th class="py-2 px-3 text-left">Goals</th>
@@ -23,7 +23,7 @@
       </thead>
       <tbody>
         <% @course.lessons.each do |lesson| %>
-          <tr class="border-b border-gray-600">
+          <tr class="border-b border-stone-600">
             <td class="py-2 px-3"><%= lesson.position %></td>
             <td class="py-2 px-3"><%= lesson.title %></td>
             <td class="py-2 px-3"><%= lesson.goals %></td>

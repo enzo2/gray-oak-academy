@@ -2,7 +2,7 @@
 <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
 
   <% enrollments.each do |enrollment| %>
-    <div id="<%= dom_id(enrollment) %>" class="p-4 rounded-sm border border-gray-300 dark:border-gray-700">
+    <div id="<%= dom_id(enrollment) %>" class="p-4 rounded-sm border border-stone-300 dark:border-stone-700">
       <span class="font-medium mb-2 block"><%= enrollment.course.title %></span>
 
       <div class="mb-4 block">

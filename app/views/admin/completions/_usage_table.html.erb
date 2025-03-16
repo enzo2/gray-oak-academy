@@ -1,6 +1,6 @@
-<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-5">
-  <thead class="bg-gray-50 dark:bg-gray-800">
-    <tr class="[&>th]:px-6 [&>th]:py-3 [&>th]:text-left [&>th]:text-sm [&>th]:uppercase [&>th]:tracking-wider text-gray-500 dark:text-gray-400">
+<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700 mt-5">
+  <thead class="bg-stone-50 dark:bg-stone-800">
+    <tr class="[&>th]:px-6 [&>th]:py-3 [&>th]:text-left [&>th]:text-sm [&>th]:uppercase [&>th]:tracking-wider text-stone-500 dark:text-stone-400">
       <th>Model</th>
       <th>API Provider</th>
       <th>Total prompt tokens</th>
@@ -10,7 +10,7 @@
       <th>Total costs (USD)</th>
     </tr>
   </thead>
-  <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+  <tbody class="divide-y divide-stone-200 dark:divide-stone-700">
     <% total_prompt_tokens = 0 %>
     <% total_cached_tokens = 0 %>
     <% total_completion_tokens = 0 %>
@@ -22,7 +22,7 @@
       <% total_completion_tokens += data.total_completion_tokens.to_i %>
       <% total_tokens += data.total_tokens.to_i %>
       <% total_costs += data.total_cost.to_f || 0 %>
-      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-gray-100 dark:bg-gray-700' %>">
+      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-stone-100 dark:bg-stone-700' %>">
         <td>
           <sl-details summary="<%= data.model %>" class="
             [&::part(base)]:bg-transparent
@@ -59,7 +59,7 @@
         <td><%= number_to_currency(data.total_cost) %></td>
       </tr>
     <% end %>
-    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-gray-200 dark:bg-gray-900">
+    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-stone-200 dark:bg-stone-900">
       <td colspan="2" class="font-bold">Total</td>
       <td class=""><%= total_prompt_tokens %>*</td>
       <td class=""><%= total_cached_tokens %>*</td>

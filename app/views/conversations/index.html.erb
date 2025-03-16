@@ -1,7 +1,7 @@
 <%= turbo_frame_tag "dashboard-content" do %>
   <div class="flex flex-row gap-4 <%= current_user.role_admin? ? 'h-[calc(100dvh-3.5rem)]' : 'px-4 pt-4 h-[calc(100dvh-2.5rem)]' %>" data-controller="code-executor">
     <!-- Chats Column (Collapsible Sidebar) -->
-    <div class="flex-none border-r border-gray-400 transition-all duration-300 ease-in-out w-8 hover:w-32 group">
+    <div class="flex-none border-r border-stone-400 transition-all duration-300 ease-in-out w-8 hover:w-32 group">
       <!-- Sidebar header with icon -->
       <div class="flex items-center justify-left h-12 group-hover:justify-between">
         <sl-icon name="list" class="group-hover:hidden"></sl-icon>

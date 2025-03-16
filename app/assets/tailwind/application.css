@@ -28,25 +28,25 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-stone-200, currentColor);
   }
 }
 
 /* re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
 @utility form-label {
-  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+  @apply block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1;
 }
 
 @utility form-input {
-  @apply w-full px-3 py-2 dark:text-white border rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700  focus:outline-hidden focus:ring-2 focus:ring-blue-500/50;
+  @apply w-full px-3 py-2 dark:text-white border rounded-md border-stone-300 dark:border-stone-600 dark:bg-stone-700  focus:outline-hidden focus:ring-2 focus:ring-blue-500/50;
 }
 
 @utility form-checkbox {
-  @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded-sm;
+  @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-stone-300 rounded-sm;
 }
 
 @utility form-select {
-  @apply block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800 grayscale focus:outline-hidden rounded-md;
+  @apply block pl-3 pr-10 py-2 text-base border-stone-300 dark:border-stone-500 bg-white dark:bg-stone-800 grayscale focus:outline-hidden rounded-md;
 }
 
 @utility btn-primary {
@@ -54,7 +54,7 @@
 }
 
 @utility btn-danger {
-  @apply text-base bg-gray-500 hover:bg-red-600 focus:outline-hidden text-white py-1 px-2 rounded-sm transition duration-150 ease-in-out;
+  @apply text-base bg-stone-500 hover:bg-red-600 focus:outline-hidden text-white py-1 px-2 rounded-sm transition duration-150 ease-in-out;
 }
 
 @utility link-primary {
@@ -62,7 +62,7 @@
 }
 
 @utility text-dim {
-  @apply text-gray-700 dark:text-gray-300;
+  @apply text-stone-700 dark:text-stone-300;
 }
 
 @layer base {  

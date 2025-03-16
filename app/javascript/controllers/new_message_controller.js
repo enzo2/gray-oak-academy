@@ -146,7 +146,7 @@ export default class extends Controller {
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
             data-index="${index}" 
-            class="absolute top-0 right-0 bg-gray-500 rounded-md [&::part(base)]:p-[4px] text-white">
+            class="absolute top-0 right-0 bg-stone-500 rounded-md [&::part(base)]:p-[4px] text-white">
           </sl-icon-button>`
       } else {
         previewElement.innerHTML = `
@@ -155,7 +155,7 @@ export default class extends Controller {
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
             data-index="${index}" 
-            class="absolute top-0 right-0 bg-gray-500 rounded-md [&::part(base)]:p-[4px] text-white">
+            class="absolute top-0 right-0 bg-stone-500 rounded-md [&::part(base)]:p-[4px] text-white">
           </sl-icon-button>`
       }
       this.previewAreaTarget.appendChild(previewElement)

@@ -1,24 +1,24 @@
-<div class="grow bg-slate-100 dark:bg-gray-900 flex flex-col h-full" data-controller="chalkboard">
+<div class="grow bg-slate-100 dark:bg-stone-900 flex flex-col h-full" data-controller="chalkboard">
   <div id="chalkboard_toolbar" class="h-8 p-2 flex justify-start shrink-0 space-x-2 ml-4">
     <button 
       id="printButton" 
       data-chalkboard-target="printButton" 
       data-action="click->chalkboard#printChalkboard"
-      class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded-sm border-b">
+      class="hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm border-b">
       <sl-icon name="printer"></sl-icon>
     </button>
     <button 
       id="screenshotButton" 
       data-chalkboard-target="screenshotButton" 
       data-action="click->chalkboard#sendScreenshot"
-      class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded-sm border-b">
+      class="hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm border-b">
       <sl-icon name="camera"></sl-icon>
     </button>
     <button 
       id="whiteboardButton" 
       data-chalkboard-target="whiteboardButton" 
       data-action="click->chalkboard#openWhiteboard"
-      class="hover:bg-gray-300 dark:hover:bg-gray-700 rounded-sm border-b">
+      class="hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm border-b">
       <sl-icon name="pencil"></sl-icon>
     </button>
   </div>

@@ -110,14 +110,14 @@ export default class extends Controller {
   createArchiveButton(block) {
     const button = document.createElement("button");
     button.textContent = "Archive";
-    button.className = "px-3 py-1 text-sm bg-gray-500 text-white rounded-sm hover:bg-gray-600 ml-2";
+    button.className = "px-3 py-1 text-sm bg-stone-500 text-white rounded-sm hover:bg-stone-600 ml-2";
     button.addEventListener("click", () => this.archiveApplet(block));
     return button;
   }
 
   createOutputDiv() {
     const output = document.createElement("div");
-    output.className = "mt-2 p-2 bg-gray-100 text-black rounded-sm";
+    output.className = "mt-2 p-2 bg-stone-100 text-black rounded-sm";
     output.style.display = "none";
     return output;
   }

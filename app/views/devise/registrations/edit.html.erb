@@ -1,6 +1,6 @@
 <main class="md:container md:mx-auto px-15 flex justify-center items-center">
   <div class="p-8 min-h-1/2 w-full">
-    <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Edit <%= resource_name.to_s.humanize %> Settings</h2>
+    <h2 class="text-2xl font-bold mb-6 text-stone-800 dark:text-white">Edit <%= resource_name.to_s.humanize %> Settings</h2>
 
     <sl-tab-group class="[&_form]:max-w-96" placement="start">
       <sl-tab slot="nav" panel="user-settings">Preferences</sl-tab>
@@ -33,14 +33,14 @@
           </div>
 
           <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
-            <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">Currently waiting confirmation for: <%= resource.unconfirmed_email %></div>
+            <div class="mb-4 text-sm text-stone-600 dark:text-stone-400">Currently waiting confirmation for: <%= resource.unconfirmed_email %></div>
           <% end %>
 
           <div class="mb-4">
             <%= f.label :password, class: "form-label" %>
             <%= f.password_field :password, autocomplete: "new-password", class: "form-input" %>
             <% if @minimum_password_length %>
-              <p class="mt-1 text-sm text-gray-600 dark:text-gray-400"><%= @minimum_password_length %> characters minimum (leave blank if you don't want to change it)</p>
+              <p class="mt-1 text-sm text-stone-600 dark:text-stone-400"><%= @minimum_password_length %> characters minimum (leave blank if you don't want to change it)</p>
             <% end %>
           </div>
 
@@ -52,7 +52,7 @@
           <div class="mb-4">
             <%= f.label :current_password, class: "form-label" %>
             <%= f.password_field :current_password, autocomplete: "current-password", class: "form-input" %>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">We need your current password to confirm your changes</p>
+            <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">We need your current password to confirm your changes</p>
           </div>
 
           <div class="mb-6">
@@ -63,12 +63,12 @@
 
       <sl-tab-panel name="delete-account">
         <div class="mb-4 mx-auto">
-          <h3 class="text-xl font-bold mb-4 mt-8 text-gray-800 dark:text-white">Delete my account</h3>
+          <h3 class="text-xl font-bold mb-4 mt-8 text-stone-800 dark:text-white">Delete my account</h3>
           <% if current_user.role_admin? %>
-            <p class="mb-2 text-gray-600 dark:text-gray-400">This is permanent!</p>
+            <p class="mb-2 text-stone-600 dark:text-stone-400">This is permanent!</p>
             <%= button_to "Delete my account", registration_path(resource_name), data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, method: :delete, class: "btn-danger w-full" %>
           <% else %>
-            <p class="mb-2 text-gray-600 dark:text-gray-400">You must ask a teacher to delete your account.</p>
+            <p class="mb-2 text-stone-600 dark:text-stone-400">You must ask a teacher to delete your account.</p>
           <% end %>
         </div>
       </sl-tab-panel>
