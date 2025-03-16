@@ -9,7 +9,7 @@ class Llm < ApplicationRecord
 
   before_create :extract_model_provider_for_openrouter
   before_save :update_feature_flags_from_supported_parameters
-  after_create :update_metadata
+  after_create_commit :update_metadata
 
   private
 
@@ -31,9 +31,10 @@ class Llm < ApplicationRecord
   end
 
   # OpenRouter provides an endpoint for fetching model metadata
+  # If this initial check fails, will be retried as recurring job daily (via recurring.yml)
   def update_metadata
-    Rails.logger.debug "Updating metadata for LLM: #{self.inspect}"
     return unless api_provider.include?("openrouter.ai") && metadata_stale?
-    UpdateOpenrouterModelMetadataJob.perform_later(self) if metadata_stale?
+    Rails.logger.debug "Updating metadata for LLM: #{self.inspect}"
+    UpdateOpenrouterModelMetadataJob.set(wait: 5.seconds).perform_later(self) if metadata_stale?
   end
 end

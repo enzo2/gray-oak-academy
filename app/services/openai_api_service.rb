@@ -52,6 +52,7 @@ class OpenaiApiService
           stream: @stream_handler,
           # Don't need to include usage stats for OpenRouter, as they will be queried afterwards
           **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
+          # **(@base_uri.include?("openrouter.ai") ? { reasoning: { .... } } : {})  future reasoning support
         }
       )
 
