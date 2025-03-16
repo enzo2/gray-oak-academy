@@ -18,7 +18,7 @@
   <div class="mb-2">
     <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "form-input", data: { action: "input->resource-filter#filterResources" } %>
   </div>
-  <div id="available-resources" class="max-h-60 overflow-y-auto border border-gray-500 rounded p-2 mb-4">
+  <div id="available-resources" class="max-h-60 overflow-y-auto border border-gray-500 rounded-sm p-2 mb-4">
     <% available_resources.each do |resource| %>
       <div id="available-resource-<%= resource.id %>" data-resource-filter-target="availableResource">
         <%= render partial: 'admin/resources/available_resource', locals: { resource: resource, lesson_plan: lesson_plan } %>

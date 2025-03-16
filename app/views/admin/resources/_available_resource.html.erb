@@ -1,4 +1,4 @@
-<div id="available-<%= dom_id(resource) %>" class="flex items-center justify-between p-2 mb-2 bg-gray-100 dark:bg-gray-700 rounded">
+<div id="available-<%= dom_id(resource) %>" class="flex items-center justify-between p-2 mb-2 bg-gray-100 dark:bg-gray-700 rounded-sm">
   <span><%= resource.category %> - <%= resource.description %></span>
   <%= link_to link_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
               data: { turbo_method: :post },

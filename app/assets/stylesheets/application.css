@@ -1,4 +1,4 @@
- 	 /*
+/*
 		+ * This is a manifest file that'll be compiled into application.css.
 		  *
 		+ * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
@@ -8,7 +8,6 @@
 		  *
 		+ * Consider organizing styles into separate files for maintainability.
 		  */
-
 
 /* Import Shoelace CSS for light and dark themes */
 @import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css');

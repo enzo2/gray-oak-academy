@@ -9,7 +9,7 @@
     </div>
 
     <!-- Conversation -->
-    <%= turbo_frame_tag "conversation-panel", class: "flex-grow overflow-hidden" do %>   
+    <%= turbo_frame_tag "conversation-panel", class: "grow overflow-hidden" do %>   
       <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
     <% end %>
   </div>

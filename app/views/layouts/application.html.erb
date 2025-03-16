@@ -22,14 +22,14 @@
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     -->
-    <%= stylesheet_link_tag "tailwind", "inter-font", "data-turbo-track": "reload" %>
+
     <%# Includes all stylesheet files in app/assets/stylesheets %>
 		<%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= action_cable_meta_tag  %>
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white min-h-screen">
+  <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100 min-h-screen">
     <header class="h-10 border-b border-gray-400">
       <nav class="flex justify-between items-center">
         <div class="flex flex-row space-x-5 pl-5" id="nav-left-items">

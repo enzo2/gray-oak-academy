@@ -4,7 +4,9 @@
   <p class="mb-4">Course completed on <%= @enrollment.student_reports.first.created_at.strftime("%B %d, %Y") %>.</p>
   <div class="bg-gray-300 dark:bg-gray-700 rounded-lg mt-2 mb-4 px-4 py-2 pl-4
               prose dark:prose-invert max-w-none
-              prose-li:my-0 marker:prose-ul:text-gray-800 dark:marker:prose-ul:text-gray-100">
+              prose-p:mb-0 leading-tight
+              prose-li:my-0 prose-ul:my-0
+              prose-ul:marker:text-gray-800 dark:prose-ul:marker:text-gray-100">
     <h3 class="mb-3">Course report</h3>
     <%= markdown(@enrollment.student_reports.first.to_markdown) %>
   </div>
@@ -23,7 +25,9 @@
     <% student_reports.each do |student_report| %>
       <div class="bg-gray-300 dark:bg-gray-700 rounded-lg my-2 px-4 py-2 pl-4
                     prose dark:prose-invert max-w-none
-                    prose-li:my-0 marker:prose-ul:text-gray-800 dark:marker:prose-ul:text-gray-100">
+                    prose-p:mb-0 leading-tight
+                    prose-li:my-0  prose-ul:my-0
+                    prose-ul:marker:text-gray-800 dark:prose-ul:marker:text-gray-100">
         <span class="mb-3"><i>Completed <%= student_report.created_at.strftime("%B %d, %Y") %></i>:</span>
         <%= markdown(student_report.to_markdown) %>
       </div>

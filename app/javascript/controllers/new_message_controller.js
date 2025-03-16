@@ -142,7 +142,7 @@ export default class extends Controller {
       previewElement.classList.add('mr-2', 'relative')
       if (image.url) {
         previewElement.innerHTML = `
-          <img src="${image.url}" class="h-20 w-20 object-cover rounded" alt="Image ${index + 1}">
+          <img src="${image.url}" class="h-20 w-20 object-cover rounded-sm" alt="Image ${index + 1}">
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
             data-index="${index}" 
@@ -150,7 +150,7 @@ export default class extends Controller {
           </sl-icon-button>`
       } else {
         previewElement.innerHTML = `
-          <img src="${image.data}" class="h-20 w-20 object-cover rounded" alt="Image ${index + 1}">
+          <img src="${image.data}" class="h-20 w-20 object-cover rounded-sm" alt="Image ${index + 1}">
           <span class="block text-xs mt-1">${image.name.length > 15 ? `${image.name.slice(0, 10)}...${image.name.slice(-5)}` : image.name}</span>
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
