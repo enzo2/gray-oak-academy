@@ -5,50 +5,34 @@
 Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
   tool.specifications = {
     name: "Chalkboard_URL",
-    description: "Updates the chalkboard to display a URL in an iframe",
+    description: "Updates the chalkboard to display a URL in an iframe. Allows URLs provided in the lesson plan to be displayed. This function is not for generative JavaScript applets or any on-the-fly content generation. Do not use a function call to create applets; write the applet code as per the generative instructions.",
     parameters: {
       type: "object",
       properties: {
         url: {
           type: "string",
-          description: "The URL to load in the chalkboard iframe. Must begin with 'http://' or 'https://'. Do not send HTML. Only use URLs included in the lesson plan or resources."
+          description: "The URL to load in the chalkboard iframe. Must begin with 'http://' or 'https://'. May adjust for obvious errors in formatting or query parameters. Do not send HTML. Only use URLs included in the lesson plan or resources; do not invent, guess, or attempt to recall URLs."
         }
       },
       required: [ "url" ]
-    },
-    constraints: [
-      {
-        type: "url_whitelist",
-        description: "**Do not** try to recall or make up URLs; only use URLs that were specified in the lesson plan. May adjust for correct formatting or query parameters."
-      },
-      {
-        type: "not_for_generative_content",
-        description: "This tool is not for generative JavaScript applets. Do not use a tool call for applets; write the applet code as per the generative instructions."
-      }
-    ]
+    }
   }
 end
 
 Tool.find_or_create_by!(name: 'Chalkboard_File') do |tool|
   tool.specifications = {
     name: "Chalkboard_File",
-    description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types can still be displayed as a link.",
+    description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types will be displayed as a downloadlink.",
     parameters: {
       type: "object",
       properties: {
         resource_id: {
           type: "string",
-          description: "The ID of the resource containing the file to display. Only use explicitly provided IDs. Do not make up IDs."
+          description: "The ID of the resource containing the file to display. Only use explicitly provided IDs from the list of resources. Do not make up IDs."
         }
       },
       required: [ "resource_id" ]
-    },
-    constraints: [
-      {
-        type: "resource_exists",
-        description: "The resource must be explicitly provided and have a file attached. If a file is unsupported for native display, a download link will be shown."
-      }
-    ]
+    }
   }
 end
 

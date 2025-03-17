@@ -46,7 +46,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
  - Postgres
  - Tailwind + Shoelace components
  - No node, just importmaps
- - OpenAI-compatible LLM API support (tested with OpenRouter and OpenAI)
+ - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini API)
  
 ### Planned Features
 - STT/TTS/native audio model support (turn-based vs. realtime)
@@ -89,7 +89,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
 - Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
 
-### Choosing an LLM:
+### Choosing an LLM & API:
 - Model must support images and tool use. A long context window is recommended.
 - For outline/lesson generation, model must support structured outputs.
 - You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs.

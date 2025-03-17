@@ -48,18 +48,7 @@ class Tool < ApplicationRecord
           }
         },
         strict_mode: { type: "boolean" },
-        example_usage: { type: "string" },
-        constraints: {
-          type: "array",
-          items: {
-            type: "object",
-            required: [ "type", "description" ],
-            properties: {
-              type: { type: "string" },
-              description: { type: "string" }
-            }
-          }
-        }
+        example_usage: { type: "string" }
       }
     }
 
