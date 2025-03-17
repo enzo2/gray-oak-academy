@@ -6,13 +6,26 @@
 /* Applies dark mode when the `dark` class is added to the `html` element */
 @custom-variant dark (&:where(.dark, .dark *));
 
+
+
 @theme {
+
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Merriweather", serif;
+
   --spacing-1\/2screen: 50vh;
   --spacing-2\/3screen: 66vh;
   --spacing-3\/4screen: 75vh;
   --spacing-5\/6screen: 83vh;
   --spacing-screen: 100vh;
 }
+
+/*
+@supports (font-variation-settings: normal) {
+  :root { font-family: "InterVariable", sans-serif; font-optical-sizing: auto; }
+}
+*/
+
 /* where you can re-add styles to base elements that tailwind removed, 
    or fix the default base styles that tailwind added.
    But don't add default typographic styles (h1, h2, etc), use 'prose' instead */
@@ -56,7 +69,8 @@
 
 }
 
-/* re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
+
+/* @utility: re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
 
 @utility btn-primary {
   @apply bg-stone-200 dark:bg-stone-700 

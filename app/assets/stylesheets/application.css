@@ -19,6 +19,10 @@
 /* Import Rouge CSS for syntax highlighting - included in markdown_views gem */
 @import url('rouge.monokai.css');
 
+/* fonts */
+@import url('Inter/inter.css');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
+
 /* Hide custom elements until they are defined */
 :not(:defined) {
   visibility: hidden;
