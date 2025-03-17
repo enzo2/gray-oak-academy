@@ -90,7 +90,7 @@ export default class extends Controller {
   createToggleButton(block) {
     const toggleBtn = document.createElement("button");
     toggleBtn.textContent = "Show Code";
-    toggleBtn.className = "px-3 py-1 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600";
+    toggleBtn.className = "px-3 py-1 text-sm bg-blue-500 text-white rounded-sm hover:bg-blue-600 font-sans";
     toggleBtn.addEventListener("click", () => {
       const isHidden = block.style.display === 'none';
       block.style.display = isHidden ? 'block' : 'none';
@@ -102,7 +102,7 @@ export default class extends Controller {
   createRunButton(block, renderTarget) {
     const button = document.createElement("button");
     button.textContent = "Run";
-    button.className = "px-3 py-1 text-sm bg-green-500 text-white rounded-sm hover:bg-green-600 ml-2";
+    button.className = "px-3 py-1 text-sm font-sans bg-green-500 text-white rounded-sm hover:bg-green-600 ml-2";
     button.addEventListener("click", () => this.executeCode(block, renderTarget));
     return button;
   }
@@ -110,7 +110,7 @@ export default class extends Controller {
   createArchiveButton(block) {
     const button = document.createElement("button");
     button.textContent = "Archive";
-    button.className = "px-3 py-1 text-sm bg-stone-500 text-white rounded-sm hover:bg-stone-600 ml-2";
+    button.className = "px-3 py-1 text-sm font-sans bg-stone-500 text-white rounded-sm hover:bg-stone-600 ml-2";
     button.addEventListener("click", () => this.archiveApplet(block));
     return button;
   }

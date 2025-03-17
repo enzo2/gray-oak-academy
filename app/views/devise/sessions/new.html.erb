@@ -6,17 +6,17 @@
     <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
       <div class="mb-4">
         <%= f.label :email, class: "form-label" %>
-        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-input" %>
+        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "input-primary" %>
       </div>
 
       <div class="mb-4">
         <%= f.label :password, class: "form-label" %>
-        <%= f.password_field :password, autocomplete: "current-password", class: "form-input" %>
+        <%= f.password_field :password, autocomplete: "current-password", class: "input-primary" %>
       </div>
 
       <% if devise_mapping.rememberable? %>
         <div class="mb-4 flex items-center">
-          <%= f.check_box :remember_me, class: "form-checkbox mr-2" %>
+          <%= f.check_box :remember_me, class: "checkbox-primary mr-2" %>
           <%= f.label :remember_me, class: "form-label" %>
         </div>
       <% end %>

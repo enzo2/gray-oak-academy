@@ -18,18 +18,18 @@
           <%# if current_user.role_admin? %>
             <div class="mb-4">
               <%= f.label :first_name, class: "form-label" %>
-              <%= f.text_field :first_name, autofocus: true, class: "form-input" %>
+              <%= f.text_field :first_name, autofocus: true, class: "input-primary" %>
             </div>
 
             <div class="mb-4">
               <%= f.label :last_name, class: "form-label" %>
-              <%= f.text_field :last_name, class: "form-input" %>
+              <%= f.text_field :last_name, class: "input-primary" %>
             </div>
           <%# end %>
 
           <div class="mb-4">
             <%= f.label :email, class: "form-label" %>
-            <%= f.email_field :email, autocomplete: "email", class: "form-input" %>
+            <%= f.email_field :email, autocomplete: "email", class: "input-primary" %>
           </div>
 
           <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
@@ -38,7 +38,7 @@
 
           <div class="mb-4">
             <%= f.label :password, class: "form-label" %>
-            <%= f.password_field :password, autocomplete: "new-password", class: "form-input" %>
+            <%= f.password_field :password, autocomplete: "new-password", class: "input-primary" %>
             <% if @minimum_password_length %>
               <p class="mt-1 text-sm text-stone-600 dark:text-stone-400"><%= @minimum_password_length %> characters minimum (leave blank if you don't want to change it)</p>
             <% end %>
@@ -46,12 +46,12 @@
 
           <div class="mb-4">
             <%= f.label :password_confirmation, class: "form-label" %>
-            <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-input" %>
+            <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "input-primary" %>
           </div>
 
           <div class="mb-4">
             <%= f.label :current_password, class: "form-label" %>
-            <%= f.password_field :current_password, autocomplete: "current-password", class: "form-input" %>
+            <%= f.password_field :current_password, autocomplete: "current-password", class: "input-primary" %>
             <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">We need your current password to confirm your changes</p>
           </div>
 

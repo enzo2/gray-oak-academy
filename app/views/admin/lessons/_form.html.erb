@@ -12,18 +12,18 @@
 
   <div class="mb-4">
     <%= f.label :title, class: "form-label" %>
-    <%= f.text_field :title, class: "form-input", required: true %>
+    <%= f.text_field :title, class: "input-primary", required: true %>
   </div>
 
   <div class="mb-4">
     <%= f.label :goals, class: "form-label" %>
     <p class="block text-sm mb-2"><i>The goals will be used to generate the lesson plan. Include any desired content.</i></p>
-    <%= f.text_area :goals, class: "form-input", required: true %>
+    <%= f.text_area :goals, class: "input-primary", required: true %>
   </div>
 
   <div class="mb-4">
     <%= f.label :approx_duration_min, "Approximate Duration (minutes)", class: "form-label" %>
-    <%= f.number_field :approx_duration_min, class: "form-input", required: true %>
+    <%= f.number_field :approx_duration_min, class: "input-primary", required: true %>
   </div>
 
   <div class="flex flex-row space-x-5">

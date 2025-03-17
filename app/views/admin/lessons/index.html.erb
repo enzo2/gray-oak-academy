@@ -3,14 +3,10 @@
 
   <h2 class="text-2xl mb-5 block">Lessons for: <b> <%= @course.title %></b></h2>
 
-  <div class="mb-4 flex justify-between">
+  <div class="mb-4">
     <%= turbo_frame_tag Lesson.new do %>
       <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary" %>
     <% end %>
-    <sl-button href="<%= printable_admin_course_lessons_path(@course)%>" target="_blank">
-      <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
-      Printable View
-    </sl-button>
   </div>
 
   <div class="mb-4">
@@ -28,6 +24,13 @@
         <i>To generate the lessons via LLM, the course outline must be filled in, and there must be no existing lessons.</i>
       <% end %>
     <% end %>
+  </div>
+
+  <div class="flex justify-end mb-4">
+  <sl-button href="<%= printable_admin_course_lessons_path(@course)%>" target="_blank">
+    <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
+    Printable View
+  </sl-button>
   </div>
 
   <table class="w-full border-collapse">

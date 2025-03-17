@@ -12,18 +12,18 @@
 
   <div class="mb-4">
     <%= f.label :title, class: "form-label" %>
-    <%= f.text_field :title, class: "form-input", required: true %>
+    <%= f.text_field :title, class: "input-primary", required: true %>
   </div>
 
   <div class="mb-4">
     <%= f.label :summary, class: "form-label" %>
     <p class="block text-sm mb-2"><i>Briefly describe the course goals.</i></p>
-    <%= f.text_area :summary, class: "form-input", required: true %>
+    <%= f.text_area :summary, class: "input-primary", required: true %>
   </div>
 
   <div class="mb-2">
     <%= f.label :grade_level, class: "form-label" %>
-    <%= f.text_field :grade_level, class: "form-input", required: true %>
+    <%= f.text_field :grade_level, class: "input-primary", required: true %>
   </div>
   <p class="text-sm mb-4"><i>Hint: The grade level is useful for tuning the LLM's behavior. It doesn't have the be the exact grade level of the student.</i></p>
 
@@ -51,8 +51,8 @@
     <% if course.outline.any? %>
       <% course.outline.each do |item| %>
         <div class="flex items-center mb-2 space-x-2">
-          <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "form-input w-1/4" %>
-          <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "form-input w-3/4" %>
+          <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "input-primary w-1/4" %>
+          <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "input-primary w-3/4" %>
           <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
           <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
           <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
@@ -65,8 +65,8 @@
     </sl-button>
     <template>
       <div class="flex items-center mb-2 space-x-2">
-        <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "form-input w-1/4", required: true %>
-        <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "form-input w-3/4", required: true %>
+        <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "input-primary w-1/4", required: true %>
+        <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "input-primary w-3/4", required: true %>
         <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
         <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>

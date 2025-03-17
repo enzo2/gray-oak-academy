@@ -23,17 +23,17 @@
 
   <div class="mb-4">
     <%= form.label :category, "Category (optional)", class: "form-label" %>
-    <%= form.text_field :category, class: "form-input", required: false %>
+    <%= form.text_field :category, class: "input-primary", required: false %>
   </div>
 
   <div class="mb-4">
     <%= form.label :description, class: "form-label" %>
-    <%= form.text_area :description, rows: 4, class: "form-input", required: true %>
+    <%= form.text_area :description, rows: 4, class: "input-primary", required: true %>
   </div>
 
   <div class="mb-2">
     <%= form.label :uri, "URL (optional)", class: "form-label" %>
-    <%= form.url_field :uri, class: "form-input" %>
+    <%= form.url_field :uri, class: "input-primary" %>
   </div>
   <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
     Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
@@ -58,7 +58,7 @@
       <% end %>
     <% else %>
       <%= form.label :file, "File (optional)", class: "form-label" %>
-      <%= form.file_field :file, class: "form-input" %>
+      <%= form.file_field :file, class: "input-primary" %>
     <% end %>
   </div>
 

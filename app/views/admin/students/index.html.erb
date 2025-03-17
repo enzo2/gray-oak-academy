@@ -9,7 +9,7 @@
           <% @my_students.each do |student| %>
             <li class="py-1">
               <div class="flex justify-between items-center">
-                  <%= link_to student.name, admin_student_path(student), data: { turbo_frame: "student-control-panel" }, class: "text-blue-500 hover:underline" %>
+                  <%= link_to student.name, admin_student_path(student), data: { turbo_frame: "student-control-panel" }, class: "hover:underline font-medium" %>
               </div>
             </li>
           <% end.empty? and begin %>

@@ -16,7 +16,7 @@
 
   <h3 class="text-lg font-semibold mb-2">Available Resources</h3>        
   <div class="mb-2">
-    <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "form-input", data: { action: "input->resource-filter#filterResources" } %>
+    <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "input-primary", data: { action: "input->resource-filter#filterResources" } %>
   </div>
   <div id="available-resources" class="max-h-60 overflow-y-auto border border-stone-500 rounded-sm p-2 mb-4">
     <% available_resources.each do |resource| %>

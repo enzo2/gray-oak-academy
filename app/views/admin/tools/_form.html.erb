@@ -12,11 +12,11 @@
 
   <div class="mb-4">
     <%= form.label :specifications, class: "form-label mb-2" %>
-    <%= form.text_area :specifications, value: JSON.pretty_generate(tool.specifications), rows: 15, class: "form-input font-mono" %>
+    <%= form.text_area :specifications, value: JSON.pretty_generate(tool.specifications), rows: 15, class: "input-primary font-mono" %>
   </div>
 
-  <div class="flex items-center justify-between">
+  <div class="flex items-center space-x-4">
     <%= form.submit class: "btn-primary" %>
-    <%= link_to "Cancel", admin_tools_path, class: "inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" %>
+    <%= link_to "Cancel", admin_tools_path, class: "inline-block align-baseline font-bold text-sm hover:underline" %>
   </div>
 <% end %>

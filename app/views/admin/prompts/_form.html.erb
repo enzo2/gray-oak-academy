@@ -12,23 +12,23 @@
 
   <div class="mb-4">
     <%= form.label :title, class: "form-label mb-2" %>
-    <%= form.text_field :title, class: "form-input" %>
+    <%= form.text_field :title, class: "input-primary" %>
   </div>
 
   <div class="mb-4">
     <%= form.label :category, class: "form-label mb-2" %>
     <%= form.collection_select :category, Prompt.category_options, :first, :last,
         { include_blank: "Select a category", selected: prompt.new_record? ? nil : prompt.category },
-        { class: "form-select" } %>
+        { class: "form-select-primary" } %>
   </div>
 
   <div class="mb-4">
     <%= form.label :prompt, class: "form-label mb-2" %>
-    <%= form.text_area :prompt, rows: 10, class: "form-input" %>
+    <%= form.text_area :prompt, rows: 10, class: "input-primary" %>
   </div>
 
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-left space-x-4">
     <%= form.submit class: "btn-primary" %>
-    <%= link_to "Cancel", admin_prompts_path, class: "inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" %>
+    <%= link_to "Cancel", admin_prompts_path, class: "inline-block align-baseline font-bold text-sm hover:underline" %>
   </div>
 <% end %>

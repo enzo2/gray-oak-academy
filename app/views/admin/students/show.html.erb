@@ -30,7 +30,7 @@
       <% if available_courses.any? %>
         <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex" do |form| %>
         <%= form.collection_select :course_id, available_courses, :id, :title,
-          { prompt: "Select Course" }, { class: "form-select" } %>
+          { prompt: "Select Course" }, { class: "form-select-primary" } %>
           <%= form.submit 'Enroll', class: "btn-primary ml-2" %>
         <% end %>
       <% else %>
