@@ -6,11 +6,9 @@
 /* Applies dark mode when the `dark` class is added to the `html` element */
 @custom-variant dark (&:where(.dark, .dark *));
 
-
-
 @theme {
 
-  --font-sans: "Inter", sans-serif;
+  --font-sans: "InterVariable", sans-serif;
   --font-serif: "Merriweather", serif;
 
   --spacing-1\/2screen: 50vh;

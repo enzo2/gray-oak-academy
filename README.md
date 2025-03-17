@@ -35,32 +35,31 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 ### More cool stuff
 - All prompts can be customized (default set of prompts included)
 - Automated context limit tracking (when using OpenRouter)
-- Cost/token tracking
-- App name can be changed via env variable
+- Cost/token usage tracking
+- App name can be customized via env variable
 - Snappy interface using Turbo & Stimulus
 - Dark/Light mode
 
 ### Frameworks, Tooling, etc.
- - Rails 8, Ruby 3.4.1
+ - Rails 8.0, Ruby 3.4.1, Postgres
  - Turbo/Stimulus
- - Postgres
- - Tailwind + Shoelace components
+ - Tailwind CSS + Shoelace components
  - No node, just importmaps
  - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini API)
  
 ### Planned Features
-- STT/TTS/native audio model support (turn-based vs. realtime)
-- Allow teacher to specify lessons as text-only, STT/TTS, native voice
-- Webcam streaming to multimodal LLM (e.g. show the LLM what's on your desk)
-- Add LLM reasoning support to course/lesson/plan generation
-- RAG: pgvector + neighbor gem (only if we are maxxing out context limits)
+- STT/TTS
+- Native audio support (starting with least expensive API(s), realtime vs async)
+- Support for native image generation (eg. Gemini 2.0)
+- Allow teacher to specify lessons as text-only vs. STT/TTS vs. realtime audio
+- Webcam capture (e.g. show the LLM what's on your desk)
+- Settings for reasoning models
 - Resource suggestions to the teacher based on lesson goals
 - Resource archive and use tracking
 - Teacher notifications, mobile push notifications, etc.
-- Tailwind v4 upgrade
 - Hide more advanced features under a Power User mode
-- Make it easier for less intelligent LLMs to follow the instructions for generative applets
-- No plan for mobile support due to the need for adequate screen space.
+- RAG (pgvector + neighbor gem) may not be needed, thanks to long context window models
+- No plan for mobile support due to the need for adequate screen space
 
 ### Security
 - Devise for authentication

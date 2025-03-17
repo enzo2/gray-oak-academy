@@ -181,7 +181,7 @@ export default class extends Controller {
       <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; padding: 10px; }
+          body { font-family: "Segoe UI", Optima, Futura, "Gill Sans MT", "Gill Sans", sans-serif; padding: 10px; }
           .error { color: red; }
         </style>
       </head>
