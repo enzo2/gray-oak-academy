@@ -11,6 +11,9 @@
   --font-sans: "InterVariable", sans-serif;
   --font-serif: "Merriweather", serif;
 
+  --color-moss-dark: #485340;
+  --color-moss-light: #dbe5cc;
+
   --spacing-1\/2screen: 50vh;
   --spacing-2\/3screen: 66vh;
   --spacing-3\/4screen: 75vh;

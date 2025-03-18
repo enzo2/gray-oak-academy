@@ -46,6 +46,7 @@ export default class extends Controller {
 
     // Create a container div to hold the block and its associated buttons.
     const container = this.createContainer(block);
+    container.classList.add("code-block-container");
 
     // Hide the block by default unless explicitly shown
     if (config.hidden) {

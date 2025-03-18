@@ -17,6 +17,7 @@
 @import url('https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.css');
 
 /* Import Rouge CSS for syntax highlighting - included in markdown_views gem */
+/* if changing, also change the pre block bg in _message.html.erb to match */
 @import url('rouge.monokai.css');
 
 /* fonts */
