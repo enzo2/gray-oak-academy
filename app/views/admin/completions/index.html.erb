@@ -14,6 +14,6 @@
   <%= render partial: "usage_table", locals: { usage_data: @usage_data } %>
   <hr class="my-5 dark:border-stone-700">
   <p><i>Notes:</i></p>
-  <p>* Tokens are recorded according to the native tokenizer of each model, so the total across different models should not be considered meaningful.</p>
-  <p>** Note: Actual cost is only recorded when OpenRouter is used.</p>
+  <p><sup>*</sup> Tokens are recorded according to the native tokenizer of each model, so the total across different models is not very meaningful.</p>
+  <p><sup>**</sup> Note: Actual cost is only recorded when OpenRouter is used.</p>
 <% end %>

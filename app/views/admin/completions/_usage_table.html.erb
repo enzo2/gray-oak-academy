@@ -3,26 +3,30 @@
     <tr class="[&>th]:px-6 [&>th]:py-3 [&>th]:text-left [&>th]:text-sm [&>th]:uppercase [&>th]:tracking-wider text-stone-500 dark:text-stone-400">
       <th>Model</th>
       <th>API Provider</th>
-      <th>Total prompt tokens</th>
-      <th>Total cached tokens</th>
-      <th>Total completion tokens</th>
-      <th>Total tokens</th>
-      <th>Total costs (USD)</th>
+      <th>Prompt tokens</th>
+      <th>Cached tokens</th>
+      <th>Reasoning tokens</th>
+      <th>Completion tokens</th>
+      <th>Total Tokens</th>
+      <th>Costs (USD)</th>
     </tr>
   </thead>
   <tbody class="divide-y divide-stone-200 dark:divide-stone-700">
     <% total_prompt_tokens = 0 %>
     <% total_cached_tokens = 0 %>
+    <% total_reasoning_tokens = 0 %>
     <% total_completion_tokens = 0 %>
     <% total_tokens = 0 %>
     <% total_costs = 0 %>
+    <%# Sum the totals across all models for the bottom totals row %>
     <% @usage_data.each_with_index do |data, index| %>
       <% total_prompt_tokens += data.total_prompt_tokens.to_i %>
       <% total_cached_tokens += data.total_cached_tokens.to_i %>
+      <% total_reasoning_tokens += data.total_reasoning_tokens.to_i %>
       <% total_completion_tokens += data.total_completion_tokens.to_i %>
       <% total_tokens += data.total_tokens.to_i %>
       <% total_costs += data.total_cost.to_f || 0 %>
-      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-stone-100 dark:bg-stone-700' %>">
+      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-stone-200 dark:bg-stone-700' %>">
         <td>
           <sl-details summary="<%= data.model %>" class="
             [&::part(base)]:bg-transparent
@@ -35,7 +39,7 @@
             <sl-icon name="plus-square" slot="expand-icon"></sl-icon>
             <sl-icon name="dash-square" slot="collapse-icon"></sl-icon>
             <div class="text-sm mt-2">
-              <p><strong>Context Length:</strong> <%= ActiveSupport::NumberHelper.number_to_delimited(data.context_length) || 'Unknown' %></p>
+              <p><strong>Context Length:</strong> <%= number_to_delimited(data.context_length) || 'Unknown' %></p>
               <% if data.api_provider.include?("openrouter.ai") %>
                 <p class="mt-2"><strong>Features:</strong></p>
                 <ul class="list-disc ml-4">
@@ -52,20 +56,22 @@
           </sl-details>
         </td>
         <td><%= data.api_provider || 'N/A' %></td>
-        <td><%= data.total_prompt_tokens %></td>
-        <td><%= data.total_cached_tokens %></td>
-        <td><%= data.total_completion_tokens %></td>
-        <td><%= data.total_tokens %></td>
+        <td><%= number_to_delimited(data.total_prompt_tokens) %></td>
+        <td><%= number_to_delimited(data.total_cached_tokens) %></td>
+        <td><%= data.total_reasoning_tokens.positive? ? number_to_delimited(data.total_reasoning_tokens) : "" %></td>
+        <td><%= number_to_delimited(data.total_completion_tokens) %></td>
+        <td><%= number_to_delimited(data.total_tokens) %></td>
         <td><%= number_to_currency(data.total_cost) %></td>
       </tr>
     <% end %>
-    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-stone-200 dark:bg-stone-900">
+    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-stone-300 dark:bg-stone-900">
       <td colspan="2" class="font-bold">Total</td>
-      <td class=""><%= total_prompt_tokens %>*</td>
-      <td class=""><%= total_cached_tokens %>*</td>
-      <td class=""><%= total_completion_tokens %>*</td>
-      <td class=""><%= total_tokens %>*</td>
-      <td class=""><%= number_to_currency(total_costs) %>**</td>
+      <td class=""><%= number_to_delimited(total_prompt_tokens) %><sup>*</sup></td>
+      <td class=""><%= number_to_delimited(total_cached_tokens) %><sup>*</sup></td>
+      <td class=""><%= number_to_delimited(total_reasoning_tokens) %><sup>*</sup></td>
+      <td class=""><%= number_to_delimited(total_completion_tokens) %>*</td>
+      <td class=""><%= number_to_delimited(total_tokens) %><sup>*</sup></td>
+      <td class=""><%= number_to_currency(total_costs) %><sup>**</sup></td>
     </tr>
   </tbody>
 </table>
