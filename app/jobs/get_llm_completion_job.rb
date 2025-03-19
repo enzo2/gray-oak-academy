@@ -26,6 +26,12 @@ class GetLlmCompletionJob < ApplicationJob
     Rails.logger.error "Faraday::ResourceNotFound caused by: #{e.message}"
     broadcast_error("LLM Error. Ask your teacher to try a different model. Error: #{e.message}", conversation)
     raise
+  rescue Faraday::BadRequestError => e
+    Rails.logger.debug "Faraday::BadRequestError: #{e.inspect}"
+    error_message = extract_error_message(e.response[:body])
+    Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
+    broadcast_error("LLM Error: #{e.message}: #{error_message}", conversation)
+    raise
   rescue Faraday::TimeoutError => e
     Rails.logger.error "Faraday::TimeoutError #{e.message}"
     broadcast_error("LLM did not respond in time. Ask your teacher to try a different model.", conversation)
@@ -94,5 +100,32 @@ class GetLlmCompletionJob < ApplicationJob
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
+  end
+
+  def extract_error_message(response_body)
+    return "Unknown error" unless response_body
+    Rails.logger.error "Error response body: #{response_body}"
+
+    parsed = if response_body.is_a?(String)
+      begin
+        JSON.parse(response_body)
+      rescue JSON::ParserError
+        return "Failed to parse error response: #{response_body}"
+      end
+    else
+      response_body # Already parsed
+    end
+
+    if parsed.is_a?(Array)
+      parsed = parsed.first
+    end
+
+    Rails.logger.debug "Parsed error response: #{parsed.inspect}"
+
+    if parsed.is_a?(Hash) && parsed["error"].is_a?(Hash)
+      parsed["error"]["message"] || parsed["error"]["status"] || "Unknown error"
+    else
+      "Unknown error format: #{parsed.inspect}"
+    end
   end
 end
