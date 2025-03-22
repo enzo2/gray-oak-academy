@@ -117,6 +117,13 @@ class OpenaiApiService
     end # end of begin/rescue/end block
   end
 
+  def list_models
+    response = @client.models.list
+    response["data"].map { |model| model["id"] }
+  rescue StandardError => e
+    [ "Unable to list models: #{e.message}" ]
+  end
+
   private
 
   def default_model
