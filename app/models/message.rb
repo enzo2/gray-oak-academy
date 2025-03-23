@@ -14,13 +14,15 @@ class Message < ApplicationRecord
 
   def broadcast_created
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
-    broadcast_append_to(  # docs recommend _later_to, but this causes view to render first, putting the placeholder out of order
+    # Docs recommend broadcast_append_later_to, but this causes view to render first, putting the assistant message placeholder out of order.
+    # using broadcast_append_to forces the new user message to be broadcast before we move onto the assistant message.
+    # Does not appear to cause any significant slowdown.
+    broadcast_append_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
       locals: { message: self },
       target: "#{dom_id(conversation)}"
     )
-
     # Remove any temporary new message placeholder
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
   end
@@ -48,7 +50,8 @@ class Message < ApplicationRecord
 
   # Format messages for the LLM api
   def self.for_completion_with_images(messages)
-    # Remove the latest message if it's blank, since some LLM providers don't like blank messages
+    # Some LLM providers don't like blank messages.
+    # Right now, none should be blank since we add "See image(s)" if there are images and no text.
     # if messages.last.content.empty?
     #  messages = messages[0...-1]
     # end
@@ -58,9 +61,10 @@ class Message < ApplicationRecord
   private
 
   # Some LLM providers do not accept empty messages even if an image is present.
+  # This callback ensures that if there are images but no text, we add some text.
   def ensure_text_present
     if content.blank? && images.any?
-      Rails.logger.warn "Images with empty message content. Adding some text."
+      Rails.logger.info "Images with empty message content. Adding some text."
       self.content = "See image(s)."
     end
   end

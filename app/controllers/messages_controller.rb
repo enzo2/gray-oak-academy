@@ -14,10 +14,7 @@ class MessagesController < ApplicationController
 
         if image_data["url"].present?
           # Handle URL-based images
-          @message.images.build(
-            uri: image_data["url"],
-            content_type: image_data["type"]
-          )
+          @message.images.build(uri: image_data["url"], content_type: image_data["type"])
         else
           # Handle file-based images (uploaded or pasted)
           data = image_data["data"].split(",")[1]
@@ -26,10 +23,7 @@ class MessagesController < ApplicationController
             filename: image_data["name"] || "pasted-image-#{Time.current.to_i}.#{image_data['type'].split('/')[1]}",
             content_type: image_data["type"]
           )
-          @message.images.build(
-            file: blob,
-            content_type: image_data["type"]
-          )
+          @message.images.build(file: blob, content_type: image_data["type"])
         end
       end
     end
@@ -63,9 +57,9 @@ class MessagesController < ApplicationController
     http.use_ssl = (uri.scheme == "https")
     request = Net::HTTP::Head.new(uri.request_uri)
     response = http.request(request)
-    Rails.logger.info "Proxying image: #{url}"
-    Rails.logger.info "Response code: #{response.code}"
-    Rails.logger.info "Response content-type: #{response["Content-Type"]}"
+    Rails.logger.debug "Proxying image: #{url}"
+    Rails.logger.debug "Response code: #{response.code}"
+    Rails.logger.debug "Response content-type: #{response["Content-Type"]}"
     render plain: "", status: response.code, content_type: response["Content-Type"]
   end
 
