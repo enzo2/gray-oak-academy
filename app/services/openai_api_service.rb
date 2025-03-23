@@ -57,10 +57,10 @@ class OpenaiApiService
       )
 
       # If a stream handler was provided, stop here since the response was already handled
-      # and will be blank. Handle logging token usage, cost, and refusal detection in the stream handler.
+      # and will be blank. Handle logging generation stats and refusal detection in the stream handler.
       return if @stream_handler
 
-      # If OpenRouter was used, get cost afterwards and save to DB.
+      # If OpenRouter was used, get full stats afterwards and save to DB.
       if @base_uri.include?("openrouter.ai")
         # Delayed job to get generation stats from OpenRouter
         QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: response.dig("id"), user: @user, conversation: @conversation)
