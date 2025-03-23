@@ -29,11 +29,13 @@ class Message < ApplicationRecord
 
   def broadcast_updated
     Rails.logger.debug "Broadcasting updated message: #{self.inspect}"
-    broadcast_replace_later_to(
+    html = ApplicationController.render(partial: "messages/message", locals: { message: self })
+    dom = Nokogiri::HTML.fragment(html)
+    html = dom.at_css(":root").inner_html # Remove the root element, since we don't want to replace the whole message. Allows same partial to be used for create and update.
+    broadcast_update_later_to(
       "#{dom_id(conversation)}",
-      partial: "messages/message",
-      locals: { message: self },
-      target: dom_id(self)
+      target: dom_id(self),
+      html: html
     )
   end
 
