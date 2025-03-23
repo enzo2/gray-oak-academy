@@ -81,7 +81,7 @@ class GetLlmCompletionJob < ApplicationJob
           Rails.logger.debug "Content chunk: #{chunk.inspect}"
           delta_content = chunk.dig("delta", "content")
           # Updating the message will trigger a turbo stream broadcast to update the view
-          message.update(content: message.content + delta_content)
+          message.update!(content: message.content + delta_content)
         else
           Rails.logger.debug "Non-content chunk: #{chunk.inspect}"
         end

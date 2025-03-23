@@ -1,19 +1,16 @@
-<div id="<%= dom_id(message) %>">
+<div id="<%= dom_id(message) %>"
+     <%= "data-conversation-target=user" if message.role_user? %>
+     <%= "data-conversation-target=assistant" if message.role_assistant? %>
+     >
   <% if message.role_user? %>
-    <div class="bg-moss-light dark:bg-moss-dark rounded-lg my-2 px-4 py-2 w-fit"
-      data-conversation-target="user">
+    <div class="bg-moss-light dark:bg-moss-dark rounded-lg my-2 px-4 py-2 w-fit">
       <% message.images.each do |image| %>
         <%= image_tag(image.uri || image.file.variant(resize_to_limit: [150, 150]), alt: image.description, class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
       <% end %>
       <%= simple_format(message.content, {}, wrapper_tag: "p") %>
     </div>
-  <%# handle assistant messages %>
-  <% elsif message.content.blank? # && message.images.blank? %>
-    <div class="border-stone-200 dark:border-stone-700 border rounded-lg my-2 py-2 flex justify-center items-center"
-      data-conversation-target="assistant">
-      <sl-spinner></sl-spinner>
-    </div>
-  <% else %>
+  <% elsif message.role_assistant? %>
+    <!-- override pre block bg from tailwind prose default to match the code block bg color set in rouge.monokai.css  -->
     <div class="rounded-lg my-2 py-2
                 font-serif
                 prose dark:prose-invert prose-stone max-w-none
@@ -27,12 +24,14 @@
                 [&>:not(:last-child)]:mb-3
                 [&_div.code-block-container_pre]:max-h-[350px]
                 [&_div.code-block-container_pre]:overflow-y-auto
-                prose-pre:bg-[#49483e] 
-                " 
-          data-code-executor-target="message"
-          data-conversation-target="assistant">
-          <!-- override pre block bg from tailwind prose default to match the code block bg color set in rouge.monokai.css  -->
-      <%= markdown(message.content) %>
+                prose-pre:bg-[#49483e]" 
+          id="<%= dom_id(message) %>_content"
+          data-code-executor-target="message">
+      <% if message.content.blank? # && message.images.blank? %>    
+       <sl-spinner></sl-spinner>
+      <% else %>
+        <%= markdown(message.content) %>
+      <% end %>
     </div>
   <% end %>
 </div>
