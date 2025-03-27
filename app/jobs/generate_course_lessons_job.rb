@@ -62,33 +62,38 @@ class GenerateCourseLessonsJob < ApplicationJob
       end
 
       # Broadcast the updated course with lessons
-      broadcast_success(course)
+      broadcast_success(current_user, course)
 
     rescue StandardError => e
       Rails.logger.error "Error: #{e.message}"
-      broadcast_error(course, "Failed to generate course lessons: #{e.message}")
+      broadcast_error(
+        current_user,
+        course,
+        "Failed to generate course lessons: #{e.message}"
+      )
     end
   end
 
   private
 
-  def broadcast_success(course)
+  def broadcast_success(current_user, course)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
     Turbo::StreamsChannel.broadcast_update_to(
-      "teacher-dashboard",
+      "teacher_#{current_user.id}-dashboard",
       target: "lessons-table-body",
       partial: "admin/lessons/lessons_table",
       locals: { course: course }
     )
     Turbo::StreamsChannel.broadcast_remove_to(
-      "teacher-dashboard",
+      "teacher_#{current_user.id}-dashboard",
       target: "generate-lessons"
     )
   end
 
-  def broadcast_error(course, message)
+  def broadcast_error(current_user, course, message)
     # Broadcast an error message via Turbo Streams
-    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+    Turbo::StreamsChannel.broadcast_update_to(
+      "teacher_#{current_user.id}-dashboard",
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }

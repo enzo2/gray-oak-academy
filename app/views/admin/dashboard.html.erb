@@ -36,7 +36,7 @@
   <!-- Main content -->
   <main class="flex-1 px-4 pt-4">
 
-    <%= turbo_stream_from "teacher-dashboard" %>
+    <%= turbo_stream_from "teacher_#{current_user.id}-dashboard" %>
 
     <%= turbo_frame_tag "dashboard-content" do %>
       <p class="mb-4">Select a section from the sidebar.</p>

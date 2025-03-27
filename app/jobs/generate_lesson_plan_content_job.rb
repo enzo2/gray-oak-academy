@@ -61,36 +61,44 @@ class GenerateLessonPlanContentJob < ApplicationJob
       lesson_plan.update!(content: extracted_content)
 
       # Broadcast the updated lesson plan content
-      broadcast_success(lesson_plan, lesson)
+      broadcast_success(current_user, lesson_plan, lesson)
 
     rescue StandardError => e
       Rails.logger.error "Error: #{e.message}"
-      broadcast_error(lesson_plan, "Failed to generate lesson plan content: #{e.message}")
+      broadcast_error(current_user, lesson_plan, "Failed to generate lesson plan content: #{e.message}")
     end
   end
 
   private
 
-  def broadcast_success(lesson_plan, lesson)
+  def broadcast_success(current_user, lesson_plan, lesson)
     Rails.logger.info "Broadcasting success for lesson plan: #{lesson_plan.id}"
     # Broadcast the updated lesson plan row via Turbo Streams
-    Turbo::StreamsChannel.broadcast_replace_to("teacher-dashboard",
+    Turbo::StreamsChannel.broadcast_replace_to(
+      "teacher_#{current_user.id}-dashboard",
       target: "lesson-plan-form",
       partial: "admin/lesson_plans/form",
       locals: { lesson: lesson, lesson_plan: lesson_plan })
 
     # Hide the loading indicator
-    Turbo::StreamsChannel.broadcast_remove_to("teacher-dashboard", target: "lesson-plan-loading")
+    Turbo::StreamsChannel.broadcast_remove_to(
+      "teacher_#{current_user.id}-dashboard",
+      target: "lesson-plan-loading"
+    )
   end
 
-  def broadcast_error(lesson_plan, message)
+  def broadcast_error(current_user, lesson_plan, message)
     # Broadcast an error message via Turbo Streams
-    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+    Turbo::StreamsChannel.broadcast_update_to(
+      "teacher_#{current_user.id}-dashboard",
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
     # Hide the loading indicator
-    Turbo::StreamsChannel.broadcast_remove_to("teacher-dashboard", target: "lesson-plan-loading")
+    Turbo::StreamsChannel.broadcast_remove_to(
+      "teacher_#{current_user.id}-dashboard",
+      target: "lesson-plan-loading"
+    )
   end
 end

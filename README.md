@@ -45,7 +45,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
  - No node, just importmaps
- - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini API)
+ - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini APIs)
  
 ### Planned Features
 - STT/TTS
@@ -89,10 +89,10 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
 
 ### Choosing an LLM & API:
-- Model must support images and tool use. A long context window is recommended.
+- Model must support images and tool use. A long context window is recommended. 
 - For outline/lesson generation, model must support structured outputs.
-- You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs.
-- Sonnet 3.7 seems to do best overall, whereas Gemini 2.0 Flash is adequate in most cases, plus it's cheaper & has a 1 megatoken context window. GPT-4o does not perform well. 
+- You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessively long response times for real-time teaching.
+- Sonnet 3.7 seems to do best overall, whereas Gemini 2.0 Flash is adequate in most cases (plus it has a 1 megatoken context window). GPT-4o does not seem to perform well. 
 - Providers supporting automated prompt caching are recommended to reduce costs.
 
 ## Getting Started

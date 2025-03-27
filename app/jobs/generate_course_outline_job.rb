@@ -59,7 +59,11 @@ class GenerateCourseOutlineJob < ApplicationJob
 
     rescue StandardError => e
       Rails.logger.error "Job Error: #{e.message}"
-      broadcast_error(course, "Failed to generate course outline: #{e.message}")
+      broadcast_error(
+        current_user,
+        course,
+        "Failed to generate course outline: #{e.message}"
+      )
     end
   end
 
@@ -74,20 +78,23 @@ class GenerateCourseOutlineJob < ApplicationJob
       layout: false,
       locals: { course: course }
     )
-    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+    Turbo::StreamsChannel.broadcast_update_to(
+      "teacher_#{current_user.id}-dashboard",
      target: course,
      html: html
      )
-    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+    Turbo::StreamsChannel.broadcast_update_to(
+      "teacher_#{current_user.id}-dashboard",
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { success: "Course outline generated successfully!" } }
       )
   end
 
-  def broadcast_error(course, message)
+  def broadcast_error(current_user, course, message)
     # Broadcast an error message via Turbo Streams
-    Turbo::StreamsChannel.broadcast_update_to("teacher-dashboard",
+    Turbo::StreamsChannel.broadcast_update_to(
+      "teacher_#{current_user.id}-dashboard",
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }
