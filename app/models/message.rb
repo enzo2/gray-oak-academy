@@ -9,6 +9,8 @@ class Message < ApplicationRecord
   has_many :images, dependent: :destroy # Message content field contains text. Images are kept separately.
 
   before_create :ensure_text_present
+
+  # Include broadcast logic in the model, since it's an inherent property of Messages that they will need to be viewed immediately.
   after_create_commit -> { broadcast_created; check_context_limit }
   after_update_commit -> { broadcast_updated }
 
