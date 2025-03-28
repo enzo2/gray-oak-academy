@@ -72,7 +72,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Create an account on OpenRouter and get an API key, or use another OpenAI-compatible API. (OpenRouter will allow you to avoid token limits, track exact costs, try different models easily, and track context window usage.)
 - `git clone` the repository to your machine. Docker is needed. 
 - Set up .env files. See the example files. 
-- If you're just trying it out and don't care to see detailed logs, use a production environment with docker compose, as per below. Or, for development, use the devcontainer.
+- If you're just trying it out or don't care to see detailed logs, use a production environment with docker compose, as per below. You can also use the devcontainer.
 
 ### Production:
 - Create `/.env.production`: see `.env.production.example`. 
@@ -86,7 +86,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
 - Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise it will be super slow.
 - Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
-- Run a server with: `bin/dev`. Visit http://localhost:3000. You can now modify the code without having to restart the server.
+- Run `rails server`. Visit http://localhost:3000. 
 
 ### Choosing an LLM & API:
 - Model must support images and tool use. A long context window is recommended. 
