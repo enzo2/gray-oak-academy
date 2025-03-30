@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["user", "assistant", "messages"]
+  static targets = ["messages", "user", "assistant", "assistantContent"]
 
   connect() {
     //console.log("initial scrollToBottom")
@@ -34,8 +34,13 @@ export default class extends Controller {
   }
 
   assistantTargetConnected(element) {
-    //console.log("Message target connected:", element)
+    //console.log("Assistant Message target connected:", element)
+    this.renderKatexInMessages()
     this.scrollToBottom()
+  }
+
+  assistantContentTargetConnected(element) {
+    //console.log("Assistant Content target connected:", element)
     this.renderKatexInMessages()
   }
 }

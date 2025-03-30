@@ -26,7 +26,8 @@
                 [&_div.code-block-container_pre]:overflow-y-auto
                 prose-pre:bg-[#49483e]" 
           id="<%= dom_id(message) %>_content"
-          data-code-executor-target="message">
+          data-code-executor-target="message"
+          data-conversation-target="assistantContent">
       <% if message.content.blank? # && message.images.blank? %>    
        <sl-spinner></sl-spinner>
       <% else %>
