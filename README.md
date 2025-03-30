@@ -41,7 +41,7 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Dark/Light mode
 
 ### Frameworks, Tooling, etc.
- - Rails 8.0, Ruby 3.4.1, Postgres
+ - Rails 8.0, Ruby 3.4, Postgres
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
  - No node, just importmaps
