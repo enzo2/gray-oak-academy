@@ -2,7 +2,7 @@ class QueryOpenrouterGenerationStatsJob < ApplicationJob
   queue_as :default
 
   # Job should be called after a little delay, or 404 may be returned.
-  # eg. QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id, user)
+  # eg. QueryOpenrouterGenerationStatsJob.set(wait: 10.seconds).perform_later(id, user)
   def perform(id:, user:, conversation: nil)
     begin
       stats = OpenRouterService.new(user: user).query_generation_stats(id)

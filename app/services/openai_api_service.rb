@@ -63,7 +63,7 @@ class OpenaiApiService
       # If OpenRouter was used, get full stats afterwards and save to DB.
       if @base_uri.include?("openrouter.ai")
         # Delayed job to get generation stats from OpenRouter
-        QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: response.dig("id"), user: @user, conversation: @conversation)
+        QueryOpenrouterGenerationStatsJob.set(wait: 10.seconds).perform_later(id: response.dig("id"), user: @user, conversation: @conversation)
       else # If not OpenRouter, use response stats directly
         usage = response.dig("usage")
         Completion.create(
@@ -234,7 +234,7 @@ class OpenaiApiService
 
           # If using OpenRouter, query the generation stats and saves to DB.
           if @base_uri.include?("openrouter.ai")
-            QueryOpenrouterGenerationStatsJob.set(wait: 5.seconds).perform_later(id: chunk["id"], user: @user, conversation: @conversation)
+            QueryOpenrouterGenerationStatsJob.set(wait: 10.seconds).perform_later(id: chunk["id"], user: @user, conversation: @conversation)
           else # If not using OpenRouter, just save the usage from the response
             usage = chunk["usage"]
             Completion.create(
