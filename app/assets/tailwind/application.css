@@ -21,13 +21,7 @@
   --spacing-screen: 100vh;
 }
 
-/*
-@supports (font-variation-settings: normal) {
-  :root { font-family: "InterVariable", sans-serif; font-optical-sizing: auto; }
-}
-*/
-
-/* where you can re-add styles to base elements that tailwind removed, 
+/* base: where you can re-add styles to base elements that tailwind removed, 
    or fix the default base styles that tailwind added.
    But don't add default typographic styles (h1, h2, etc), use 'prose' instead */
 @layer base {  
@@ -54,6 +48,10 @@
     transition: color calc(infinity * 1s) step-end, background-color calc(infinity * 1s) step-end;  */
 
     @apply bg-transparent text-black dark:text-white placeholder-stone-500 dark:placeholder-stone-500;
+  }
+
+  sl-input[type="text"] {
+    @apply bg-transparent border-0 focus:ring-0;
   }
 
   input[type="radio"] {
