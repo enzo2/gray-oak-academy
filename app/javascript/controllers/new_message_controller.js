@@ -74,20 +74,20 @@ export default class extends Controller {
     }
 
     try {
-      //console.log("Validating image URL through proxy")
       const proxyUrl = `/proxy/image?url=${encodeURIComponent(url)}`
       const response = await fetch(proxyUrl, { method: 'HEAD' })
-      //console.log(response.headers.get('Content-Type'))
+      if (!response.ok) {
+        alert("Failed to validate image URL. Please ensure the URL is accessible. Status: " + response.statusText + " (" + response.status + ")")
+        return
+      }
       const contentType = response.headers.get('Content-Type').split(';')[0]
-      //console.log("Content-Type:", contentType)
       if (!["image/png", "image/jpeg", "image/webp"].includes(contentType)) {
         alert("Invalid image type. Only PNG, JPEG, and WebP are allowed.")
         return
       }
       this.addImage({ url: url, type: contentType })
     } catch (error) {
-      alert("Failed to validate image URL. Please ensure the URL is accessible.")
-   
+      alert("Failed to validate image URL. Please ensure the URL is correct. Error: " + error.message)
       return
     }
 
