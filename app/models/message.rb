@@ -81,7 +81,7 @@ class Message < ApplicationRecord
     llm = conversation.llm_in_use
     return unless llm
     context_limit = llm.context_length
-    return unless context_limit
+    return unless context_limit # Skip if context limit is not set
 
     # Check the threshold (model's context limit - 64,000)
     threshold = context_limit - 64000
