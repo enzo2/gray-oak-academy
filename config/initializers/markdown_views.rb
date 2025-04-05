@@ -2,8 +2,9 @@
 MarkdownViews.strip_comments = false
 MarkdownViews.rendering_opts.merge! unsafe: true # Allow HTML in markdown
 MarkdownViews.rendering_opts.merge! github_pre_lang: false # Don't wrap code blocks in <pre><code> tags
+MarkdownViews.extensions.merge! tagfilter: false # Disable tagfilter extension that blocks certain HTML tags
 
-# Some LLMs will not follow instructions on formatting. Modify the markdown parser to fix some issues.
+# Customize the markdown helper.
 module MarkdownViewsHelper
   def markdown(source = nil)
     if block_given?
@@ -12,12 +13,70 @@ module MarkdownViewsHelper
       end.strip_heredoc
     end
 
-    processed_source = source
-      # remove triple backticks surrounding executable blocks,
-      .gsub(/```[a-zA-Z]*\s*(<pre[^>]*data-executable[^>]*>.*?\/\/EOB\s*<\/pre>)\s*```/m, '\1')
-      # remove newlines in block math
-      .gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
+    # Process executable JS blocks. We need to
+    processed_source = source.gsub(/^```(\w+)?\s*(\{.*?\})?\s*\n(.*?)\n^```\s*$/m) do |match|
+      Rails.logger.debug "Processing code block. language: #{$1}, attributes: #{$2}, code: #{$3}"
+      language = $1
+      attributes_str = $2
+      code = $3
 
-    MarkdownViews::Renderer.render(processed_source).html_safe
+      attributes = {}
+      if attributes_str
+        # Simple parsing for key="value" pairs within {}
+        attributes_str.scan(/(\w+)\s*=\s*"([^"]*)"/) do |key, value|
+          attributes[key.to_sym] = value
+        end
+      end
+
+      # Process executable
+      if attributes[:executable] == "true" && language == "javascript"
+        Rails.logger.debug "Found executable JS block. Attributes: #{attributes.inspect}"
+        # Extract config with defaults
+        hidden = attributes.fetch(:hidden, "true") == "true"
+        auto_run = attributes.fetch(:autoRun, "false") == "true"
+        render_target = attributes.fetch(:renderTarget, "chalkboard")
+
+        # Construct the new HTML structure
+        wrapper_attrs = "data-controller=\"code-executor\" " +
+                        "data-code-executor-render-target-value=\"#{render_target}\" " +
+                        "data-code-executor-auto-run-value=\"#{auto_run}\" " +
+                        "data-code-executor-hidden-value=\"#{hidden}\""
+
+        # Render the code block for display using the main renderer. This will apply syntax highlighting with Rouge.
+        highlighted_html = MarkdownViews::Renderer.render("```#{language}\n#{code}\n```")
+
+        Rails.logger.debug "Highlighted HTML: #{highlighted_html}"
+
+        # Combine into the final HTML structure for this executable block
+        # This entire string will replace the original markdown block in processed_source
+        final_html = <<~HTML
+          <div class="my-3" #{wrapper_attrs}>
+            <div class="highlighted-code-block" data-code-executor-target="highlightedCode">
+            \n<!-- extra line ensures commonmark starts a new HTML block for pre-->
+            #{highlighted_html}
+            </div>
+            \n<!-- extra line ensures commonmark starts a new HTML block for pre-->
+            <pre class="hidden" data-code-executor-target="rawCode">#{code}</pre>
+            <div class="code-actions mt-1" data-code-executor-target="actionsContainer"></div>
+          </div>
+        HTML
+        # Return the fully formed HTML for this block
+        final_html
+      else
+        # Not executable javascript; return the original match for standard processing by the final render call later
+        match
+      end
+    end
+
+    # Fix KaTeX block math newlines
+    processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
+
+    # Rails.logger.debug "Processed source: #{processed_source}"
+
+    # Render the potentially modified source.
+    # The executable blocks have already been replaced with HTML
+    # The non-executable blocks (returned as `match`) are still Markdown and will be rendered now.
+    # The final .html_safe call is still needed for the overall result.
+    MarkdownViews::Renderer.render(processed_source)
   end
 end

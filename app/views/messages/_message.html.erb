@@ -24,11 +24,11 @@
                 [&>:not(:last-child)]:mb-3
                 [&_div.code-block-container_pre]:max-h-[350px]
                 [&_div.code-block-container_pre]:overflow-y-auto
-                prose-pre:bg-[#49483e]" 
+                prose-pre:bg-[#49483e]
+                prose-pre:leading-tight"
           id="<%= dom_id(message) %>_content"
-          data-code-executor-target="message"
           data-conversation-target="assistantContent">
-      <% if message.content.blank? # && message.images.blank? %>    
+      <% if message.content.blank? # && message.images.blank? %>
        <sl-spinner></sl-spinner>
       <% else %>
         <%= markdown(message.content) %>
