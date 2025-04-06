@@ -48,30 +48,32 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
  - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini APIs)
  
 ### Planned Features
-- STT/TTS
-- Native audio support (starting with least expensive API(s), realtime vs async)
-- Support for native image generation (eg. Gemini 2.0)
+- STT/TTS, native audio model support (starting with least expensive API(s), realtime vs async)
 - Allow teacher to specify lessons as text-only vs. STT/TTS vs. realtime audio
-- Webcam capture (e.g. show the LLM what's on your desk)
-- Settings for reasoning models
+- Support for native image generation (eg. Gemini, OpenAI)
 - Resource suggestions to the teacher based on lesson goals
-- Resource archive and use tracking
-- Teacher notifications, mobile push notifications, etc.
-- Hide more advanced features under a Power User mode
-- RAG (pgvector + neighbor gem) may not be needed, thanks to long context window models
+- Resource tagging, archive, usage tracking
+- Webcam mode (e.g. point at your desk to show the LLM your work)
+- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student, etc.)
+- Settings for reasoning models
+- Incorporate student feedback form at end of lessons
+- Teacher alerts, notifications, mobile push, etc. 
+- Student analytics 
+- Hide more advanced settings/features under a Power User mode
+- Consider RAG (pgvector + neighbor gem), but might not be needed, thanks to long context window models
 - No plan for mobile support due to the need for adequate screen space
 
 ### Security
 - Devise for authentication
 - Teacher/Admin and Student roles
 - Designed for containerized use in a local secure environment
-- Not designed for hosting on the public internet by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
+- For security, not designed for hosting publically by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
 - Note: The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
 
 ## Setup Instructions
-- Create an account on OpenRouter and get an API key, or use another OpenAI-compatible API. (OpenRouter will allow you to avoid token limits, track exact costs, try different models easily, and track context window usage.)
 - `git clone` the repository to your machine. Docker is needed. 
-- Set up .env files. See the example files. 
+- Set up .env files according to the examples.
+- Decide which OpenAI-compatible LLM API you'll use. See below section 'Choosing an API & LLM'.
 - If you're just trying it out or don't care to see detailed logs, use a production environment with docker compose, as per below. You can also use the devcontainer.
 
 ### Production:
@@ -88,7 +90,8 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
 - Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
 - Run `rails server`. Visit http://localhost:3000. 
 
-### Choosing an LLM & API:
+### Choosing an API & LLM:
+- Built-in support for OpenRouter enables tracking exact costs and context window usage. It also will allow you to avoid token limits and try different providers/models easily. However, if you don't need that, any OpenAI-compatile API should work.
 - Model must support images and tool use. A long context window is recommended. 
 - For outline/lesson generation, model must support structured outputs.
 - You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessively long response times for real-time teaching.
