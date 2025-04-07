@@ -74,11 +74,11 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Run `rails server`. Visit http://localhost:3000. 
 
 ### Choosing an API & LLM:
-- Built-in support for OpenRouter enables tracking exact costs and context window usage. It also will allow you to avoid token limits and try different providers/models easily. However, if you don't need that, any OpenAI-compatile API should work.
+- Built-in support for OpenRouter enables tracking exact costs and context window usage. It also will allow you to avoid token limits and try different providers/models easily. However, if you don't need that, any OpenAI-compatible API should work. (Gemini free tier has an OpenAI-compatible endpoint.)
 - Model must support images and tool use. A long context window is recommended. 
 - For outline/lesson generation, model must support structured outputs.
 - You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessively long response times for real-time teaching.
-- Sonnet 3.7 seems to do best overall, whereas Gemini 2.0 Flash is adequate in most cases (plus it has a 1 megatoken context window). GPT-4o does not seem to perform well. 
+- Sonnet 3.7 seems to do best overall, whereas Gemini 2.0 Flash is adequate in most cases (plus it has a 1 megatoken context window). GPT-4o does not seem to perform well.
 - Providers supporting automated prompt caching are recommended to reduce costs.
 
 ## Getting Started
