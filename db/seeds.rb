@@ -225,7 +225,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
     5) Whiteboard / drawing pad:  The user can press the toolbar button to navigate to a drawing pad app. If you need to see their drawing/sketch, ask them to take a screenshot and paste it into the chat.
     6) Render an applet: you must write the applet code as per below instructions. Do not use a tool call.
-    Chalkboard capabilities DO NOT include the ability to show arbitrary content or automatically find relevant content.#{' '}
+    Chalkboard capabilities DO NOT include the ability to show arbitrary content or automatically find relevant content.
     You can only show content explicitly provided, or applets you write on the fly in this conversation.
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using standard Markdown fenced code blocks (triple backticks ```).
@@ -240,7 +240,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     **Attribute Details:**
     - You MUST include `{executable="true"}` for the code to be runnable.
     - `hidden="true"` (Default): The code block will be hidden initially, with a "Show Code" button.
-    - `hidden="false"`: The code block will be visible by default, with a "Hide Code" button. Use this if the lesson focuses on the code itself.
+    - `hidden="false"`: The code block will be visible by default, with a "Hide Code" button. Useful if the lesson focuses on the code itself.
     - `renderTarget="chalkboard"` (Default): The applet runs in the large chalkboard area.
     - `renderTarget="inline"`: The applet runs in a smaller area directly below the code block. Use for simple applets not requiring much space.
     - `autoRun="false"` (Default): A "Run" button is shown, and the user must click it.

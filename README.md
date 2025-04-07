@@ -1,26 +1,25 @@
 # Gray Oak Academy
 
-## Background
-Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. 
+## Background and Purpose
+Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. This app allows anyone to quickly construct lessons or entire courses for an LLM to teach, incorporating external learning resources and generative applets, and executes those lesson plans using an LLM of choice. 
+
+"Do my homework for me" is the status quo that has arisen in the GPT era. But with the LLM running the show, the idea of cheating or misusing LLMs is essentially excluded. Homework, if any, will shift toward exploratory learning and meaningful application. The teacher will also be freed up to consider each student's overall trajectory and incorporate more memorable experiences. Students will immediately feel satisfied that their new knowledge is practical and useful. This is possible today. Since this is a major shift in educational approach, take a moment to consider what such a system ought to look like. 
 
 For totally self-directed students, a simple LLM chat may suffice. Otherwise—and especially for K-12—we need a teacher in the loop. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
 1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity/leeway.
 2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even people and human resources. 
 3. Prompt transparency: a strong set of user-editable prompts defining the teaching methodology, principles, and values for the LLM to follow. 
-4. RAG and/or ultra-long-context prompting in order to take into account previous lessons and student performance.
-5. An LLM chat interface with interactivity comparable to a real tutor sitting across the desk, including full multimodality, generative UI, sandboxed code execution, and perhaps a webcam view of the student's desk.
-
-The system should ideally improve upon the supervising teacher's plan. This could include teaching more foundationally, adapting to the student's progress, and generating just-in-time applets and games. It could even break into the real world—for example, if "3D printer" were marked as a resource, the LLM could develop a device in concert with the student, generate an OpenSCAD file, and ask the student to print it for the next lesson. Such things may be beyond the current generation of LLMs, but there is already plenty of unexplored territory.
-
-This system should negate the arguments made in Isaac Asimov's 1951 story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. But as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated.
-
-"Do my homework for me" is the status quo that has arisen in the ChatGPT era. But with the LLM running the show, the idea of cheating or misusing LLMs is essentially excluded. "Homework", if any, would shift toward exploratory learning and meaningful application. The teacher will also be freed up to consider each student's overall trajectory. Students will immediately feel satisfied that their new knowledge is practical and useful.
+4. Prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
+5. An LLM chat interface with fully multimodal interactivity comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI, diagramming, and sandboxed code execution. 
+6. Because some lessons are better taught away from a computer, through casual conversation, should support speech-only, no-screen mode (e.g. walking outdoors).
 
 **Gray Oak Academy is a prototype of this system.**
 
-*I'm a doctor, Jim, not a software engineer.* I started this as a personal project. Please forgive any rookie errors or lack of best practices. 
+Importantly, the system should negate the arguments made in Isaac Asimov's 1951 story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This can still happen. But as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated.
 
-**App is at an early stage. Contributions welcome.** 
+Prompted well, the LLM should ideally improve upon the supervising teacher's curriculum and capabilities. This could include teaching more foundationally, adapting to the student's progress, and gamification using just-in-time applets. It will be companionable, allowing students to 'walk and talk' if they don't want to sit down. A benchmark for LLM intelligence will be their ability to creatively teach by breaking into the real world; for example, if '3D printer' were marked as a resource, the LLM could conceive of a physical demonstration, write an OpenSCAD file and have the teacher print it out in advance of the lesson. But even with the current generation of LLMs, there is plenty of unexplored territory. 
+
+*I'm a doctor, Jim, not a software engineer.* I started this as a personal project. Please overlook any rookie errors in the code. 
 
 ## Features
 - Self-hostable with docker
@@ -46,22 +45,6 @@ This system should negate the arguments made in Isaac Asimov's 1951 story ["The 
  - Tailwind CSS + Shoelace components
  - No node, just importmaps
  - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini APIs)
- 
-### Planned Features
-- STT/TTS, native audio model support (starting with least expensive API(s), realtime vs async)
-- Allow teacher to specify lessons as text-only vs. STT/TTS vs. realtime audio
-- Support for native image generation (eg. Gemini, OpenAI)
-- Resource suggestions to the teacher based on lesson goals
-- Resource tagging, archive, usage tracking
-- Webcam mode (e.g. point at your desk to show the LLM your work)
-- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student, etc.)
-- Settings for reasoning models
-- Incorporate student feedback form at end of lessons
-- Teacher alerts, notifications, mobile push, etc. 
-- Student analytics 
-- Hide more advanced settings/features under a Power User mode
-- Consider RAG (pgvector + neighbor gem), but might not be needed, thanks to long context window models
-- No plan for mobile support due to the need for adequate screen space
 
 ### Security
 - Devise for authentication
@@ -119,6 +102,22 @@ Maintain the core app principles:
 - OK to code with LLMs, but do not vibe-code, and fully review your code
 - All LLM prompts should be user-editable; use the Prompts model. 
 - Test with different LLMs.  
+
+### Planned Features
+- STT/TTS, native audio model support (starting with least expensive API(s), realtime vs async)
+- Speech-only lesson mode (e.g. phone on the table mode)
+- Allow teacher to specify lessons as text-only vs. STT/TTS vs. realtime audio
+- Support for native image generation (eg. Gemini, OpenAI)
+- Resource suggestions to the teacher based on lesson goals
+- Resource tagging, archive, usage tracking
+- Webcam mode (e.g. point at your desk to show the LLM your work)
+- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student, etc.)
+- Settings for reasoning models
+- Incorporate student feedback form at end of lessons
+- Teacher alerts, notifications, mobile push, etc. 
+- Student analytics 
+- Hide more advanced settings/features under a Power User mode
+- Consider RAG (pgvector + neighbor gem), but might not be needed, thanks to long context window models
 
 ## License
 See LICENSE.md.

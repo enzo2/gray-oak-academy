@@ -1,7 +1,7 @@
 # Configure MarkdownViews options
 MarkdownViews.strip_comments = false
 MarkdownViews.rendering_opts.merge! unsafe: true # Allow HTML in markdown
-MarkdownViews.rendering_opts.merge! github_pre_lang: false # Don't wrap code blocks in <pre><code> tags
+MarkdownViews.rendering_opts.merge! github_pre_lang: false # Don't wrap code blocks in <pre><code> tags. This is handled by markdown_views.
 MarkdownViews.extensions.merge! tagfilter: false # Disable tagfilter extension that blocks certain HTML tags
 
 # Customize the markdown helper.
@@ -13,7 +13,9 @@ module MarkdownViewsHelper
       end.strip_heredoc
     end
 
-    # Process executable JS blocks. We need to
+    # Processor for executable JS blocks.
+    # Regex finds all markdown code blocks with optional attributes.
+    # LLM is instructed on adding attributes in the prompt.
     processed_source = source.gsub(/^```(\w+)?\s*(\{.*?\})?\s*\n(.*?)\n^```\s*$/m) do |match|
       Rails.logger.debug "Processing code block. language: #{$1}, attributes: #{$2}, code: #{$3}"
       language = $1
@@ -28,7 +30,7 @@ module MarkdownViewsHelper
         end
       end
 
-      # Process executable
+      # Process executable blocks.
       if attributes[:executable] == "true" && language == "javascript"
         Rails.logger.debug "Found executable JS block. Attributes: #{attributes.inspect}"
         # Extract config with defaults
@@ -36,19 +38,21 @@ module MarkdownViewsHelper
         auto_run = attributes.fetch(:autoRun, "false") == "true"
         render_target = attributes.fetch(:renderTarget, "chalkboard")
 
-        # Construct the new HTML structure
+        # Prepare the block for the Stimulus controller.
         wrapper_attrs = "data-controller=\"code-executor\" " +
                         "data-code-executor-render-target-value=\"#{render_target}\" " +
                         "data-code-executor-auto-run-value=\"#{auto_run}\" " +
                         "data-code-executor-hidden-value=\"#{hidden}\""
 
-        # Render the code block for display using the main renderer. This will apply syntax highlighting with Rouge.
+        # Render the code block for display. MarkdownViews will apply syntax highlighting with Rouge.
         highlighted_html = MarkdownViews::Renderer.render("```#{language}\n#{code}\n```")
+        # Rails.logger.debug "Highlighted HTML: #{highlighted_html}"
 
-        Rails.logger.debug "Highlighted HTML: #{highlighted_html}"
-
-        # Combine into the final HTML structure for this executable block
-        # This entire string will replace the original markdown block in processed_source
+        # Combine into the final HTML structure for this executable block.
+        # Include the code block as a hidden <pre> for the Stimulus controller to copy.
+        # This entire string will replace the original markdown block in processed_source.
+        # Due to CommonMark specs, certain odd line breaks are needed to ensure <pre> tags
+        # are treated as a single HTML block by the markdown parser, and not given <p> tags within.
         final_html = <<~HTML
           <div class="my-3" #{wrapper_attrs}>
             <div class="highlighted-code-block" data-code-executor-target="highlightedCode">
@@ -67,8 +71,10 @@ module MarkdownViewsHelper
         match
       end
     end
+    # End of the executable block processing.
 
-    # Fix KaTeX block math newlines
+    # Any other fixes for undesired LLM formatting habits can go here.
+    # Fix KaTeX block math newlines.
     processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
 
     # Rails.logger.debug "Processed source: #{processed_source}"
