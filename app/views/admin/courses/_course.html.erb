@@ -2,22 +2,23 @@
   <td class="py-2 px-3"><%= course.title %></td>
   <td class="py-2 px-3"><%= course.summary %></td>
   <td class="py-2 px-3 text-center"><%= course.grade_level %></td>
-  <td class="py-2 px-3 text-center"><%= course.outline.blank? ? "No" : "Yes" %></td>
+  <td class="py-2 px-3 text-center">
+    <% if course.outline.empty? %>
+      <%= form_with url: generate_outline_admin_course_path(course), method: :post, 
+        data: { turbo_confirm: "This will call the LLM to generate an outline. Are you sure?" }, 
+        class: "inline-block" do |form| %>
+        <sl-button type="submit" size="small" variant="success" id="generate-outline-button-<%= course.id %>" 
+          outline>
+          <sl-icon slot="prefix" name="lightbulb"></sl-icon>
+          Generate outline
+        </sl-button>
+      <% end %>
+    <% else %>
+      Yes
+    <% end %>
+  </td>
   <td class="py-2 px-3 text-right [&_a:hover]:underline">
     <div class="flex-col justify-end justify-items-end">
-
-      <% if course.outline.empty? %>
-        <%= form_with url: generate_outline_admin_course_path(course), method: :post, 
-          data: { turbo_confirm: "This will call the LLM to generate an outline. Are you sure?" }, 
-          class: "inline-block" do |form| %>
-          <sl-button type="submit" size="small" variant="success" id="generate-outline-button-<%= course.id %>" 
-            outline>
-            <sl-icon slot="prefix" name="lightbulb"></sl-icon>
-            Generate outline
-          </sl-button>
-        <% end %>
-      <% end %>
-
       <%= link_to "View/Edit Lessons", admin_course_lessons_path(course), class: "block", data: { turbo_frame: "dashboard-content" } %>
       <%= link_to "Edit Course", edit_admin_course_path(course), class: "block", data: { turbo_stream: true } %>
       <% if course.enrollments.empty? %>
