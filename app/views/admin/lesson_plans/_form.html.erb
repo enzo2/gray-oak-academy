@@ -24,8 +24,8 @@
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :content, class: "form-label" %>
     <p class="block text-sm mb-2"><i>
-      The content will be used by the AI tutor to conduct the lesson.<br>
-      As examples, you could specify information, resources, exercises, teaching methods, or evaluation criteria for the lesson.<br>
+      The content will be used by the LLM tutor to conduct the lesson.<br>
+      As examples, you could specify knowledge, resources, exercises, teaching methods, generative applets, or evaluation criteria for the lesson.<br>
       Resources must be added and linked to the lesson plan (you can do so once the plan is saved to draft status).</i></p>
     <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
     <% content_data.each do |item| %>
