@@ -25,6 +25,7 @@ class Lesson < ApplicationRecord
     lesson_progress.completed?
   end
 
+  # LessonProgress is created when the student starts the lesson
   def find_or_create_progress(student)
     LessonProgress.find_or_create_by(student: student, lesson: self)
   end

@@ -83,8 +83,8 @@ module Admin
       # The order is preserved as it comes from the form
       content = content_keys.zip(content_values).map { |type, details| { type => details } }
 
-      # Permit lesson_plan attributes, include the content
-      params.require(:lesson_plan).permit(:status).tap do |whitelisted|
+      # Permit lesson_plan attributes, include the content and chalkboard_enabled
+      params.require(:lesson_plan).permit(:status, :chalkboard_enabled).tap do |whitelisted|
         whitelisted[:content] = content
       end
     end

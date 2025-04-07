@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_03_05_132739) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_07_190122) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -137,6 +137,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_03_05_132739) do
     t.bigint "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "chalkboard_enabled", default: true, null: false
     t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id"
     t.index ["teacher_id"], name: "index_lesson_plans_on_teacher_id"
   end

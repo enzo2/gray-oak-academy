@@ -1,11 +1,13 @@
 class LessonProgress < ApplicationRecord
-  # includes JSONB fields for :chat_history and :progress_data; should not be needed since chat is in the Conversation and progress is in the StudentReport
+  # Represents a lesson in progress for a student
 
   belongs_to :student, class_name: "User"
   belongs_to :lesson
   has_one :teacher, through: :lesson
   has_one :conversation, dependent: :destroy
   has_one :student_report, as: :reportable, dependent: :destroy
+
+  # Also includes JSONB fields for :chat_history and :progress_data; not currently needed since chat is in the Conversation and progress is in the StudentReport
 
   def find_or_create_conversation(user)
     conversation || create_conversation!(user)
@@ -19,6 +21,10 @@ class LessonProgress < ApplicationRecord
 
   def build_task_system_prompt
     base_prompt = Prompt.get_prompt(category: "lesson_tutor_session", user: teacher)
+    # The lesson task system prompt is very important.
+    # It contains all the information needed to conduct the lesson and evaluate the student.
+    # In the future it can also include student profile information gathered from other courses, or the teacher.
+    # We don't include student age for pedagogical reasons, since we want students to advance beyond their age level.
     lesson_info = <<~LESSON_INFO
       Course: #{lesson.course.title}
       Grade Level: #{lesson.course.grade_level}

@@ -15,5 +15,7 @@
   </div>
 
   <!-- Chalkboard Area - remainder of space - grow as needed -->
-  <%= render partial: "shared/chalkboard" %>
+  <% if @lesson.lesson_plan&.chalkboard_enabled? %>
+    <%= render partial: "shared/chalkboard" %>
+  <% end %>
 </div>

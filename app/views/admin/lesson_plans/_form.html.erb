@@ -53,6 +53,14 @@
   </div>
 
   <div class="mb-4">
+    <div class="flex items-center">
+      <%= f.check_box :chalkboard_enabled, class: "mr-2 checkbox-primary" %>
+      <span>Enable chalkboard for this lesson</span>
+    </div>
+    <p class="block text-sm mt-1"><i>If enabled, the chalkboard feature will be shown during the lesson.</i></p>
+  </div>
+
+  <div class="mb-4">
     <%= f.label :status, class: "form-label" %>
     <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Don't forget to add resources below.</i></p>
     <div class="[&_label]:mr-4 [&_input]:mr-2">

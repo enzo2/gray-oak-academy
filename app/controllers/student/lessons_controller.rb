@@ -3,6 +3,7 @@ module Student
     before_action :set_lesson, only: [ :show ]
 
     def show
+      # Initiate a lesson_progress and associated conversation if this is the first time the user is accessing the lesson
       @lesson_progress = @lesson.find_or_create_progress(current_user)
       @conversation = @lesson_progress.find_or_create_conversation(current_user)
     end
