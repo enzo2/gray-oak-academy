@@ -32,23 +32,31 @@
   <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100 min-h-screen">
     <header class="h-10 border-b border-stone-400">
       <nav class="flex justify-between items-center">
-        <div class="flex flex-row space-x-5 pl-5" id="nav-left-items">
-          <div class="" id="app_logotype">
-            <%= link_to root_path, class: "text-xl font-bold font-serif" do %>
-              <%= ENV["APP_NAME"] %>
+        <div class="pl-2" id="nav-left-items">
+            <%= link_to root_path, class: "flex flex-row space-x-2" do %>
+              <%= image_tag "logo_icon.svg", size: "30", class: "bg-stone-100 dark:hidden" %>
+              <%= image_tag "logo_icon_negative.svg", size: "30", class: "hidden dark:block bg-stone-800" %>
+              <span class="text-xl font-bold font-serif hidden sm:inline"><%= ENV["APP_NAME"] %></span>
             <% end %>
-          </div>
         </div>
 
-        <div class="flex items-center space-x-5 [&_a:hover]:underline" id="nav-right-items">
+        <div class="flex items-center [&_a:hover]:underline" id="nav-right-items">
           <% if user_signed_in? %>
-            <%= link_to "Dashboard", root_path, class: "" %>
-            <%= link_to "Settings", edit_user_registration_path, class: "" %>
-            <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
-          <% else %>
-            <%= link_to "Log in", new_user_session_path, class: "" %>
+            <sl-dropdown class="md:hidden pr-2" placement="bottom-end" skidding="50">
+              <sl-icon-button name="list" label="Main Menu" slot="trigger" class="text-2xl"></sl-icon-button>
+              <sl-menu>
+                <sl-menu-item onclick="this.children[0].click"><a href="<%= root_path %>">Dashboard</a></sl-menu-item>
+                <sl-menu-item onclick="this.children[0].click"><a href="<%= edit_user_registration_path %>">Settings</a></sl-menu-item>
+                <sl-menu-item onclick="this.children[0].click"><%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete } %></sl-menu-item>
+              </sl-menu>
+            </sl-dropdown>
+            <div class="space-x-4 hidden md:block pr-4">
+              <%= link_to "Dashboard", root_path, class: "" %>
+              <%= link_to "Settings", edit_user_registration_path, class: "" %>
+              <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
+            </div>
           <% end %>
-          <div class="text-2xl pr-5" id="dark_mode_switch">
+          <div class="text-2xl md:pr-4" id="dark_mode_switch">
             <sl-icon-button name="sun" class="dark-mode-toggle" onclick="toggleDarkMode();"></sl-icon-button>
           </div>
         </div>
