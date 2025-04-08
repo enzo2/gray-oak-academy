@@ -1,6 +1,6 @@
- <div class="flex min-h-[calc(100dvh-2.5rem)]">
+ <div class="flex flex-row min-h-[calc(100dvh-2.5rem)]">
   <!-- Sidebar -->
-  <aside class="w-52 border-r border-stone-400 px-4 pt-4">
+  <aside class="w-30 md:w-34 flex-none border-r border-stone-400 px-2 md:px-4 pt-2">
     <h2 class="font-semibold text-lg mb-4">Teacher Dashboard</h2>
     <nav>
       <ul>
@@ -20,7 +20,7 @@
           <%= link_to "Tools", admin_tools_path, class: "hover:underline", data: { turbo_frame: "dashboard-content" } %>
         </li>
         <li class="mb-2">
-          <%= link_to "LLM Chat", conversations_path, class: "hover:underline", data: { turbo_frame: "dashboard-content" } %>
+          <%= link_to "LLM Chat", conversations_path, class: "hover:underline", target: "_blank" %>
         </li>
         <li class="mb-2">
           <%= link_to "Applets", applets_path, class: "hover:underline", data: { turbo_frame: "dashboard-content" } %>
@@ -34,7 +34,7 @@
   </aside>
 
   <!-- Main content -->
-  <main class="flex-1 px-4 pt-4">
+  <main class="grow px-4 pt-4">
 
     <%= turbo_stream_from "teacher_#{current_user.id}-dashboard" %>
 

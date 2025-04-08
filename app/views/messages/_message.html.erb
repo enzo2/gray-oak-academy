@@ -1,4 +1,4 @@
-<div id="<%= dom_id(message) %>"
+<div id="<%= dom_id(message) %>" class="w-full"
      <%= "data-conversation-target=user" if message.role_user? %>
      <%= "data-conversation-target=assistant" if message.role_assistant? %>
      >
@@ -22,10 +22,12 @@
                 prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100
                 [&>:not(:first-child)]:mt-3
                 [&>:not(:last-child)]:mb-3
-                [&_div.code-block-container_pre]:max-h-[350px]
-                [&_div.code-block-container_pre]:overflow-y-auto
-                prose-pre:bg-[#49483e]
-                prose-pre:leading-tight"
+                [&_div.highlighted-code-block_pre]:max-h-[350px]
+                [&_div.highlighted-code-block_pre]:max-w-full
+                [&_div.highlighted-code-block_pre]:overflow-y-auto
+                [&_div.highlighted-code-block_pre]:overflow-x-auto
+                [&_div.highlighted-code-block_pre]:bg-[#49483e]
+                [&_div.highlighted-code-block_pre]:leading-tight"
           id="<%= dom_id(message) %>_content"
           data-conversation-target="assistantContent">
       <% if message.content.blank? # && message.images.blank? %>
