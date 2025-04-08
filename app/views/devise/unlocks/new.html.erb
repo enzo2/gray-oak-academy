@@ -1,22 +1,18 @@
-<main class="md:container md:mx-auto px-15 flex justify-center items-center">
-  <div class="p-8 min-h-1/2 max-w-md w-full">
+<main class="container mx-auto px-2 py-4 max-w-96">
+  <h2 class="text-2xl font-bold mb-6">Resend unlock instructions</h2>
 
-    <h2 class="text-2xl font-bold mb-6 text-stone-800 dark:text-white">Resend unlock instructions</h2>
+  <%= form_for(resource, as: resource_name, url: unlock_path(resource_name), html: { method: :post }) do |f| %>
+    <%= render "devise/shared/error_messages", resource: resource %>
 
-    <%= form_for(resource, as: resource_name, url: unlock_path(resource_name), html: { method: :post }) do |f| %>
-      <%= render "devise/shared/error_messages", resource: resource %>
+    <div class="mb-4">
+      <%= f.label :email, class: "form-label" %>
+      <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "input-primary" %>
+    </div>
 
-      <div class="mb-4">
-        <%= f.label :email, class: "form-label" %>
-        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "input-primary" %>
-      </div>
+    <div class="mb-6">
+      <%= f.submit "Resend unlock instructions", class: "btn-primary" %>
+    </div>
+  <% end %>
 
-      <div class="mb-6">
-        <%= f.submit "Resend unlock instructions", class: "btn-primary" %>
-      </div>
-    <% end %>
-
-    <%= render "devise/shared/links" %>
-
-  </div>
+  <%= render "devise/shared/links" %>
 </main>

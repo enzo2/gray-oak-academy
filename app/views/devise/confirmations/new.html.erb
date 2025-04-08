@@ -1,5 +1,5 @@
 <main class="container mx-auto px-2 py-4 max-w-96">
-  <h2 class="text-2xl font-bold mb-6 text-stone-800 dark:text-white">Resend confirmation instructions</h2>
+  <h2 class="text-2xl font-bold mb-6">Resend confirmation instructions</h2>
 
   <%= form_for(resource, as: resource_name, url: confirmation_path(resource_name), html: { method: :post }) do |f| %>
     <%= render "devise/shared/error_messages", resource: resource %>
