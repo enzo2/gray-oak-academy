@@ -10,15 +10,19 @@
 		  */
 
 /* Import Shoelace CSS for light and dark themes */
-@import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/light.css');
-@import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/themes/dark.css');
+@import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css');
+@import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css');
 
 /* Import Katex CSS for math rendering */
 @import url('https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.css');
 
 /* Import Rouge CSS theme for syntax highlighting - included in markdown_views gem */
-/* if changing theme, also change the pre block bg in _message.html.erb to match */
+/* if changing theme, also change --rouge-bg to match the theme's background color.
+   it's used to style the code block background to match the theme.  */
 @import url('rouge.monokai.css');
+:root {
+  --rouge-bg: #49483e;
+}
 
 /* fonts */
 @import url('Inter/inter.css');
