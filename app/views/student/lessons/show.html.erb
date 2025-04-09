@@ -1,6 +1,10 @@
 <div class="flex h-[calc(100dvh-2.5rem)] overflow-hidden">
   <!-- Chat Column -->
-  <div class="h-full w-[40rem] max-w-2xl px-4 pt-2 flex flex-col border-r border-stone-200 dark:border-stone-700">
+  <div class="h-full min-w-0 
+              grow xl:max-2xl:max-w-[32rem] 2xl:max-w-[40rem]
+              px-2 md:px-4 pt-2 
+              flex flex-col 
+              border-r border-stone-200 dark:border-stone-700">
     <!-- Lesson Info -->
     <h1 class="flex-none text-xl font-semibold mb-1 inline-block"><%= @lesson.title %></h1>
 
