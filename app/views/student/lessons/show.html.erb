@@ -3,10 +3,13 @@
   <div class="h-full w-[40rem] max-w-2xl px-4 pt-2 flex flex-col border-r border-stone-200 dark:border-stone-700">
     <!-- Lesson Info -->
     <h1 class="flex-none text-xl font-semibold mb-1 inline-block"><%= @lesson.title %></h1>
-    <div class="flex-none flex items-center gap-2 mb-2">
-      <sl-icon name="clock" class="text-stone-500"></sl-icon>
-      <span class="text-sm text-stone-600 dark:text-stone-400">Approx. <%= @lesson.approx_duration_min %> minutes</span>
-    </div>
+
+    <% if @conversation.messages.length < 2 %>
+      <div class="flex-none flex items-center gap-2 mb-1" id="lesson-duration">
+        <sl-icon name="clock" class="text-stone-500"></sl-icon>
+        <span class="text-sm text-stone-600 dark:text-stone-400">Approx. <%= @lesson.approx_duration_min %> minutes</span>
+      </div>
+    <% end %>
 
     <!-- Conversation -->
     <%= turbo_frame_tag "conversation-panel", class: "grow overflow-hidden" do %>   
