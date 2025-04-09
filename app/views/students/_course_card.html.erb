@@ -6,23 +6,28 @@
   </div>
 
   <div class="my-4 *:m-1">
-    <% if enrollment.has_available_lesson? %>
-      <sl-button href="<%= student_lesson_path(enrollment.next_available_lesson) %>" target="_blank">
-        <sl-icon slot="prefix" name="check-circle-fill" class="text-blue-700"></sl-icon>
-          <%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start next" %> lesson
-      </sl-button>
-      <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
-        <sl-icon slot="prefix" name="file-text" class="text-blue-700"></sl-icon>
-          View Progress
-      </sl-button>
-    <% elsif enrollment.completed? %>
+    <% if enrollment.completed? %>
       <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
         <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
           View course summary
       </sl-button>
+    <% elsif enrollment.has_available_lesson? %>
+      <sl-button href="<%= student_lesson_path(enrollment.next_available_lesson) %>" target="_blank">
+        <sl-icon slot="prefix" name="check-circle-fill" class="text-blue-700"></sl-icon>
+          <%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start next" %> lesson
+      </sl-button>
     <% else %>
-      <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
-      <span class="text-sm">No lessons available. Check with teacher.</span>
+      <div>
+        <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
+        <span class="text-sm">No lessons available. Check with teacher.</span>
+      </div>
     <% end %>
+
+    <% unless enrollment.completed? %>
+      <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
+        <sl-icon slot="prefix" name="file-text" class="text-blue-700 block"></sl-icon>
+          View Progress
+      </sl-button>
+     <% end %>
   </div>
 </div>
