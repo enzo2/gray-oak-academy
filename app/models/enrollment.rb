@@ -1,7 +1,7 @@
 class Enrollment < ApplicationRecord
   belongs_to :student, class_name: "User", inverse_of: :enrollments
   belongs_to :course
-  has_many :student_reports, as: :reportable # used for course-end reports
+  has_many :student_reports, as: :reportable, dependent: :nullify # used for course-end reports
 
   scope :completed, -> { joins(:student_reports).where(student_reports: { status: :completed }) }
   scope :in_progress, -> { where.not(

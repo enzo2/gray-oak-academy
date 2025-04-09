@@ -4,7 +4,7 @@ class Lesson < ApplicationRecord
   has_one :teacher, through: :course
   has_one :lesson_plan, dependent: :destroy
   has_many :students, through: :course, inverse_of: :lessons
-  has_many :lesson_progresses# , dependent: :destroy   #if we delete the course/lessons, keep the LessonProgress with its associated StudentReport
+  has_many :lesson_progresses, dependent: :destroy
   has_many :student_reports, through: :lesson_progresses# , source: :reportable, source_type: "StudentReport"  #?needed
 
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }

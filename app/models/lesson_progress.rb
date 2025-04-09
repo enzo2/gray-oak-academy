@@ -5,7 +5,7 @@ class LessonProgress < ApplicationRecord
   belongs_to :lesson
   has_one :teacher, through: :lesson
   has_one :conversation, dependent: :destroy
-  has_one :student_report, as: :reportable, dependent: :destroy
+  has_one :student_report, as: :reportable, dependent: :nullify # Don't destroy student reports if the lesson/course is deleted.
 
   # Also includes JSONB fields for :chat_history and :progress_data; not currently needed since chat is in the Conversation and progress is in the StudentReport
 
