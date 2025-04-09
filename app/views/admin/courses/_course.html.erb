@@ -3,7 +3,10 @@
   <td class="py-2 px-3"><%= course.summary %></td>
   <td class="py-2 px-3 text-center"><%= course.grade_level %></td>
   <td class="py-2 px-3 text-center">
-    <% if course.outline.empty? %>
+    <% if course.enrollments.any? %>
+      <% count = course.enrollments.count %>
+      <%= count %> <%= "student".pluralize(count) %> enrolled
+    <% elsif course.outline.empty? %>
       <%= form_with url: generate_outline_admin_course_path(course), method: :post, 
         data: { turbo_confirm: "This will call the LLM to generate an outline. Are you sure?" }, 
         class: "inline-block" do |form| %>
@@ -13,8 +16,10 @@
           Generate outline
         </sl-button>
       <% end %>
+    <% elsif course.lessons.empty? %>
+      No lessons added
     <% else %>
-      Yes
+      Under development
     <% end %>
   </td>
   <td class="py-2 px-3 text-right [&_a:hover]:underline">
