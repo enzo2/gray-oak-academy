@@ -48,6 +48,7 @@ class Enrollment < ApplicationRecord
 
   # Determine if enrollment is completed by checking if all lessons have been completed
   def completed?
+    return false unless course.lessons.any?
     completed_lessons_count == total_lessons_count
   end
 

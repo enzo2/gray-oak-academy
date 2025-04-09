@@ -2,12 +2,19 @@
 <div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
 
   <% enrollments.each do |enrollment| %>
-    <div id="<%= dom_id(enrollment) %>" class="p-4 rounded-sm border border-stone-300 dark:border-stone-700">
+    <div id="<%= dom_id(enrollment) %>" class="p-4 mb-2 rounded-sm border border-stone-300 dark:border-stone-700">
       <span class="font-medium mb-2 block"><%= enrollment.course.title %></span>
       <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
         <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
           View course summary
       </sl-button>
+      
+       <!-- not good to allow users to unenroll from completed courses, as it will orphan the course report.
+
+       <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
+          method: :delete,
+          data: { turbo_confirm: 'WARNING! This will delete all student progress. Are you sure?' }, class: "btn-danger text-sm my-2" %>
+       -->
     </div>
   <% end %>
 

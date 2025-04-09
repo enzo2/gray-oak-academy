@@ -21,12 +21,14 @@
         <% end %>
       </div>
 
-      <div class="mb-4">
-        <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
-          <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
-            View student progress
-        </sl-button>
-      </div>
+      <% if enrollment.completed_lessons_count > 0 %>
+        <div class="mb-4">
+          <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
+            <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
+              View student progress
+          </sl-button>
+        </div>
+      <% end %>
 
       <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
           method: :delete,
