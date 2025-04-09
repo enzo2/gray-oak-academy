@@ -3,15 +3,14 @@
      <%= "data-conversation-target=assistant" if message.role_assistant? %>
      >
   <% if message.role_user? %>
-    <div class="bg-moss-light dark:bg-moss-dark rounded-lg my-2 px-4 py-2 w-fit">
+    <div class="bg-moss-light dark:bg-moss-dark rounded-md my-2 px-4 py-2 w-fit">
       <% message.images.each do |image| %>
         <%= image_tag(image.uri || image.file.variant(resize_to_limit: [150, 150]), alt: image.description, class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
       <% end %>
       <%= simple_format(message.content, {}, wrapper_tag: "p") %>
     </div>
   <% elsif message.role_assistant? %>
-    <!-- override pre block bg from tailwind prose default to match the code block bg color set in rouge.monokai.css  -->
-    <div class="rounded-lg my-2 py-2
+    <div class="py-2
                 font-serif
                 prose dark:prose-invert prose-stone max-w-none
                 prose-h1:text-2xl
@@ -22,12 +21,13 @@
                 prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100
                 [&>:not(:first-child)]:mt-3
                 [&>:not(:last-child)]:mb-3
+                prose-pre:leading-tight
+                prose-pre:bg-[var(--rouge-bg)]
+                prose-pre:overflow-x-auto
+                [&_div.highlighted-code-block_pre]:overflow-y-auto
                 [&_div.highlighted-code-block_pre]:max-h-[350px]
                 [&_div.highlighted-code-block_pre]:max-w-full
-                [&_div.highlighted-code-block_pre]:overflow-y-auto
-                [&_div.highlighted-code-block_pre]:overflow-x-auto
-                [&_div.highlighted-code-block_pre]:bg-[var(--rouge-bg)]
-                [&_div.highlighted-code-block_pre]:leading-tight"
+                "
           id="<%= dom_id(message) %>_content"
           data-conversation-target="assistantContent">
       <% if message.content.blank? # && message.images.blank? %>
