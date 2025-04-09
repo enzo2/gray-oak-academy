@@ -23,11 +23,19 @@
       <sl-icon name="pencil"></sl-icon>
     </button>
   </div>
+  
   <sl-dialog label="Chalkboard screenshot instructions" data-chalkboard-target="screenshotDialog">
     <p class="mb-2">The easiest way to take a screenshot and show it to the LLM is to use your computer's built-in screenshot tool.</p>
     <p class="mb-2">You can paste images directly into the chat text box.</p>
     <p class="mb-2"><b>Windows:</b> Press the 'PrtSc' (Print Screen) key (or 'Win ⊞ + Shift + S'), select the area, then click the chat text box and paste (Ctrl+V).</p>
     <p class="mb-2"><b>Mac:</b> Press 'Cmd⌘ + Ctrl + Shift + 4', select the area, then click the chat text box and paste (Cmd⌘+V).</p>
   </sl-dialog>
+
+  <sl-dialog label="Screen too narrow" data-chalkboard-target="screenSizeWarning">
+    <p>Your screen is too narrow for the chalkboard. To see it, use a device with a larger screen or higher resolution.</p>
+  </sl-dialog>
+
   <div id="chalkboard" data-chalkboard-target="chalkboard" class="flex-1 pb-4 pl-4 pr-4 overflow-auto"></div>
 </div>
+
+

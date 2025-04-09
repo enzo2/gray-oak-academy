@@ -2,10 +2,15 @@ import { Controller } from "@hotwired/stimulus"
 
 
 export default class extends Controller {
-  static targets = ["chalkboard", "printButton", "screenshotButton", "screenshotDialog"]
+  static targets = ["chalkboard", "printButton", "screenshotButton", "screenshotDialog", "screenSizeWarning"]
   
   connect() {
     //console.log("Chalkboard controller connected")
+    
+    //Display the warning dialog if the user's screen is below tailwind 'xl' breakpoint.
+    if (window.innerWidth < 1280) {
+      document.body.appendChild(this.screenSizeWarningTarget).show();
+    }
   }
 
   printChalkboard() {

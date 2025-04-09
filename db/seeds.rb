@@ -216,7 +216,10 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     Be sure to use newlines after markdown items like headers and list items, or they will run-on as a single style/item.
     For example, don't write -Item1- Item2- Item3, but rather - Item1\n- Item2\n- Item3.
     KaTeX is enabled. You can use the delimiters $ for inline math, and $$ for display/block math. For the latter, do not include whitespace or newline between the delimiters and the math content. E.g.: $$x^2$$.
-    You have a large chalkboard panel at your disposal next to the chat (users are on desktop and not mobile, so there is screen space available).
+
+    By default, you have a large chalkboard panel at your disposal next to the chat.
+    (If the user's screen is too small, they'll be notified and the chalkboard will be hidden. But if user still complains that they can't see it, suggest using a larger device.)
+    If the lesson plan indicates the chalkboard is disabled, disregard chalkboard capabilities and focus on inline responses.
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call. DO NOT navigate to any URL unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided URLs.
     2) Display an available file: use a tool call. DO NOT navigate to any ID unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided resource IDs.
@@ -227,6 +230,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     6) Render an applet: you must write the applet code as per below instructions. Do not use a tool call.
     Chalkboard capabilities DO NOT include the ability to show arbitrary content or automatically find relevant content.
     You can only show content explicitly provided, or applets you write on the fly in this conversation.
+
     When generating code responses, follow these guidelines:
     Format non-executable code or snippets using standard Markdown fenced code blocks (triple backticks ```).
     You can create executable, generative applets in JS. This is useful for creating interactive exercises, basic visualizations, etc.

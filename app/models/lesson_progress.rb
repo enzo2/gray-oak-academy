@@ -35,6 +35,7 @@ class LessonProgress < ApplicationRecord
       #{lesson.lesson_plan.content}
       Resources marked as available:
       #{lesson.lesson_plan.resources.format_collection}
+      Chalkboard enabled?: #{lesson.lesson_plan.chalkboard_enabled?}
       Student's name: #{student.name}
       Student's progress in previous lessons in this course:
       #{student.enrollments.find_by(course: lesson.course)&.lesson_history_for_prompt}

@@ -1,5 +1,6 @@
 class LessonPlan < ApplicationRecord
   # Field: t.jsonb :content, default: [] # Array of hashes [{type:details}, ....]
+  # Field: t.boolean :chalkboard_enabled, default: true
 
   belongs_to :lesson
   belongs_to :teacher, class_name: "User", inverse_of: :lesson_plans
