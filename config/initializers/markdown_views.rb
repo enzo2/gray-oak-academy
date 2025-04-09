@@ -74,7 +74,7 @@ module MarkdownViewsHelper
     # End of the executable block processing.
 
     # Any other fixes for undesired LLM formatting habits can go here.
-    # Fix KaTeX block math newlines.
+    # Fix KaTeX block math when LLM adds newlines inside the delimiters.
     processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
 
     # Rails.logger.debug "Processed source: #{processed_source}"

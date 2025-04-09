@@ -20,9 +20,6 @@
 /* if changing theme, also change --rouge-bg to match the theme's background color.
    it's used to style the code block background to match the theme.  */
 @import url('rouge.monokai.css');
-:root {
-  --rouge-bg: #49483e;
-}
 
 /* fonts */
 @import url('Inter/inter.css');
@@ -35,6 +32,8 @@
 
 /* Change shoelace colors to tailwind stone theme */
 :root {
+	--rouge-bg: #49483e;
+	
   --sl-color-primary-50: oklch(0.985 0.001 106.423);
   --sl-color-primary-100: oklch(0.97 0.001 106.424);
   --sl-color-primary-200: oklch(0.923 0.003 48.717);
