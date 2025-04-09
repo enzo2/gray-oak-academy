@@ -22,6 +22,26 @@
       <% else %>
         <p class="">This student has not completed any courses.</p>
       <% end %>
+
+      <% if @orphaned_reports.presence %>
+        <br>
+        <hr class="my-2">
+        <h2 class="text-lg mb-2">Orphaned Reports</h2>
+        <p>Student Reports from previously deleted lessons were found:</p>
+          <sl-details summary="Show Orphaned Reports" class="my-1">
+            <% @orphaned_reports.each do |student_report| %>
+              <div class="bg-stone-300 dark:bg-stone-700 rounded-lg my-2 px-4 py-2 pl-4
+                            prose dark:prose-invert prose-stone
+                            max-w-none
+                            prose-p:mb-0 leading-tight
+                            prose-li:my-0  prose-ul:my-0
+                            prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100">
+                <span class="mb-3"><i>Completed <%= student_report.created_at.strftime("%B %d, %Y") %></i>:</span>
+                <%= markdown(student_report.to_markdown) %>
+              </div>
+            <% end %>
+          </sl-details>
+      <% end %>
     </sl-tab-panel>
 
     <sl-tab-panel name="enroll">

@@ -16,6 +16,8 @@ module Admin
       @completed_enrollments.each do |enrollment|
         enrollment.course_report_check
       end
+
+      @orphaned_reports = @student.student_reports.orphaned.order(created_at: :desc)
     end
 
     def adopt

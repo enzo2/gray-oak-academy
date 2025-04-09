@@ -14,6 +14,7 @@ class StudentReport < ApplicationRecord
 
   scope :lesson_reports, -> { where(reportable_type: "LessonProgress") }
   scope :course_reports, -> { where(reportable_type: "Enrollment") }
+  scope :orphaned, -> { where(reportable_id: nil) }
 
   def to_markdown
       report = progress_data
