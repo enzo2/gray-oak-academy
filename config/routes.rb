@@ -14,8 +14,6 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   root to: "application#index"
 
-  get "students/dashboard", as: :students_root
-  get "admin/dashboard", as: :admin_root
   patch "user_settings", to: "user_settings#update"
 
   resources :conversations do
@@ -32,6 +30,8 @@ Rails.application.routes.draw do
   resources :applets
 
   namespace :admin do
+    get "dashboard", as: :root, to: "admins#dashboard"
+
     resources :courses do
       post "generate_outline", on: :member
       patch "archive", on: :member
@@ -71,6 +71,7 @@ Rails.application.routes.draw do
   end
 
   namespace :student do
+    get "dashboard", as: :root, to: "students#dashboard"
     resources :lessons, only: [ :show ]
   end
 end

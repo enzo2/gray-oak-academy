@@ -1,0 +1,45 @@
+<div class="flex flex-row min-h-[calc(100dvh-2.5rem)]">
+  <!-- Sidebar -->
+  <aside class="w-30 md:w-34 flex-none border-r border-stone-400 px-2 md:px-4 pt-2">
+    <h2 class="font-semibold text-lg mb-4">Teacher Dashboard</h2>
+    <nav>
+      <ul>
+        <li class="mb-2">
+          <%= link_to "Course Manager", admin_courses_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "Resources", admin_resources_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "Students", admin_students_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "Prompts", admin_prompts_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "Tools", admin_tools_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "LLM Chat", conversations_path, class: "hover:underline", target: "_blank" %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "Applets", applets_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <li class="mb-2">
+          <%= link_to "Usage", admin_completions_path, class: "hover:underline", data: { turbo_frame: "dashboard-content", turbo_action: "advance" } %>
+        </li>
+        <!-- Add more sidebar items here -->
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="grow px-4 pt-4">
+
+    <%= turbo_stream_from "teacher_#{current_user.id}-dashboard" %>
+
+    <%= turbo_frame_tag "dashboard-content" do %>
+      <p class="mb-4">Select a section from the sidebar.</p>
+    <% end %>
+  </main>
+</div>

@@ -9,15 +9,16 @@ class ApplicationController < ActionController::Base
   def require_admin
     unless current_user.role_admin?
       flash[:alert] = "You must be an admin to access this page."
-      redirect_to students_root_path
+      redirect_to student_root_path
     end
   end
 
+  # Different dashboards for teachers and students
   def index
     if current_user.role_admin?
       redirect_to admin_root_path
     elsif current_user.role_student?
-      redirect_to students_root_path
+      redirect_to student_root_path
     else
       redirect_to new_user_session_path
     end
