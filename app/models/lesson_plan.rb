@@ -8,7 +8,7 @@ class LessonPlan < ApplicationRecord
   has_and_belongs_to_many :resources
 
   enum :status, { draft: "draft", published: "published" }, prefix: true
-  # "archived" status also available in the migration, but can't think of a use case
+  # "archived" status also available in the enum column, but can't think of a use case
 
   # Allow blank content if still new draft
   validate :validate_content_format, unless: -> { status == "draft" && content.blank? }

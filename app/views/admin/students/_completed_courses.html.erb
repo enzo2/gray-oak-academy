@@ -10,6 +10,7 @@
       </sl-button>
       
        <!-- not good to allow users to unenroll from completed courses, as it will orphan the course report.
+            There should be a record of all completed courses.
 
        <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
           method: :delete,

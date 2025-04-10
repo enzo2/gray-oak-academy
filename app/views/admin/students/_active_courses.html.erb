@@ -32,7 +32,7 @@
 
       <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
           method: :delete,
-          data: { turbo_confirm: 'WARNING! This will delete all student progress. Are you sure?' }, class: "btn-danger text-sm" %>
+          data: { turbo_confirm: 'WARNING! This will delete all student progress and cannot be reversed. Are you sure?' }, class: "btn-danger text-sm" %>
 
     </div>
   <% end %>

@@ -34,6 +34,8 @@ Rails.application.routes.draw do
   namespace :admin do
     resources :courses do
       post "generate_outline", on: :member
+      patch "archive", on: :member
+      patch "unarchive", on: :member
       resources :lessons do
         get "printable", on: :collection
         post "generate_lessons", on: :collection

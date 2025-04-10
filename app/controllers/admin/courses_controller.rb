@@ -1,10 +1,11 @@
 module Admin
   class CoursesController < ApplicationController
     before_action :require_admin
-    before_action :set_course, only: [ :edit, :update, :destroy, :generate_outline ]
+    before_action :set_course, only: [ :edit, :update, :destroy, :generate_outline, :archive, :unarchive ]
 
     def index
-      @courses = Course.where(teacher: current_user).order(created_at: :desc)
+      @active_courses =   Course.status_active.where(teacher: current_user).order(created_at: :desc)
+      @archived_courses = Course.status_archived.where(teacher: current_user).order(created_at: :desc)
     end
 
     def new
@@ -49,6 +50,18 @@ module Admin
       respond_to do |format|
         format.turbo_stream
       end
+    end
+
+    # POST /admin/courses/:id/archive
+    def archive
+      @course.update!(status: :archived)
+      redirect_to admin_courses_path
+    end
+
+    # POST /admin/courses/:id/unarchive
+    def unarchive
+      @course.update!(status: :active)
+      redirect_to admin_courses_path
     end
 
     # POST /admin/courses/:id/generate_outline

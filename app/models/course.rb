@@ -5,6 +5,10 @@ class Course < ApplicationRecord
   has_many :enrollments
   has_many :student_reports, through: :enrollments
 
+  enum :status, { active: "active", archived: "archived" }, default: "active", prefix: true
+  # scope :active, -> { where(status: "active") }
+  # scope :archived, -> { where(status: "archived") }
+
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :summary, presence: true, length: { minimum: 10, maximum: 2000 }
   validates :grade_level,
@@ -25,7 +29,7 @@ class Course < ApplicationRecord
   end
 
   def self.available_for_enrollment(student, teacher)
-    where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
+    status_active.where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
   end
 
   private
