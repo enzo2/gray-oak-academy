@@ -1,6 +1,5 @@
 module Admin
-  class PromptsController < ApplicationController
-    before_action :require_admin
+  class PromptsController < Admin::BaseController
     before_action :set_prompt, only: [ :edit, :update, :destroy ]
 
     def index

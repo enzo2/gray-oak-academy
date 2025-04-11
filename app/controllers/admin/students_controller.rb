@@ -1,6 +1,5 @@
 module Admin
-  class StudentsController < ApplicationController
-    before_action :require_admin
+  class StudentsController < Admin::BaseController
     before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll ]
 
     def index

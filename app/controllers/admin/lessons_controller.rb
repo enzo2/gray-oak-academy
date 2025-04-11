@@ -1,6 +1,5 @@
 module Admin
-  class LessonsController < ApplicationController
-    before_action :require_admin
+  class LessonsController < Admin::BaseController
     before_action :set_course
     before_action :set_lesson, only: [ :show, :edit, :update, :destroy, :move_higher, :move_lower ]
 

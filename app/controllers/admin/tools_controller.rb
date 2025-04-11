@@ -1,6 +1,5 @@
 module Admin
-  class ToolsController < AdminController
-    before_action :require_admin
+  class ToolsController < Admin::BaseController
     before_action :set_tool, only: [ :show, :edit, :update ]
 
     def index

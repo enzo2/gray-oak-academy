@@ -1,6 +1,5 @@
 module Admin
-  class LessonPlansController < ApplicationController
-    before_action :require_admin
+  class LessonPlansController < Admin::BaseController
     before_action :set_lesson
     before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :new_resource, :generate_content ]
 

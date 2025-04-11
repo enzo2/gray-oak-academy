@@ -1,6 +1,5 @@
 module Admin
-  class CoursesController < ApplicationController
-    before_action :require_admin
+  class CoursesController < Admin::BaseController
     before_action :set_course, only: [ :edit, :update, :destroy, :generate_outline, :archive, :unarchive ]
 
     def index

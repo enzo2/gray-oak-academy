@@ -1,6 +1,5 @@
 module Admin
-  class ResourcesController < ApplicationController
-    before_action :require_admin
+  class ResourcesController < Admin::BaseController
     before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file ]
 
     def index
