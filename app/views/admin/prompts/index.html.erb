@@ -1,46 +1,46 @@
-<%= turbo_frame_tag "dashboard-content" do %>
-  <h2 class="font-bold text-2xl mb-4">Prompts</h2>
 
-  <h3 class="text-xl mb-2">Your prompts</h3>
-  <p class="mb-4">
-    <i>
-      You can override the defaults for you and your students by adding your own for any category.<br>
-      <b>Warning! Power users only.</b> Some prompts include essential app functionality.
-    </i>
-  </p>
+<h2 class="font-bold text-2xl mb-4">Prompts</h2>
 
-  <div class="mb-4">
-    <%= link_to "New Prompt", new_admin_prompt_path, class: "btn-primary", data: { turbo_frame: "dashboard-content" } %>
-  </div>
+<h3 class="text-xl mb-2">Your prompts</h3>
+<p class="mb-4">
+  <i>
+    You can override the defaults for you and your students by adding your own for any category.<br>
+    <b>Warning! Power users only.</b> Some prompts include essential app functionality.
+  </i>
+</p>
+
+<div class="mb-4">
+  <%= link_to "New Prompt", new_admin_prompt_path, class: "btn-primary" %>
+</div>
 
 
-  <% if @user_prompts.any? %>
-    <div class="grid grid-cols-[1fr_1fr_4fr_1fr] auto-rows-auto gap-4 border-b font-bold py-2">
-      <div class="text-left">Category</div>
-      <div class="text-left">Title</div>
-      <div class="text-left">Prompt</div>
-      <div class="text-right">Actions</div>
-    </div>
-    <%= render @user_prompts %>
-  <% else %>
-    No user prompts.
-  <% end %>
-
-  <br><br>
-
-  <h3 class="text-xl mb-4">Default prompts</h3>
-  <p><i>
-    <b>Warning! Editing default prompts will affect all users.</b><br>
-    It is better to add your own prompt instead, which will supercede the default prompt.<br>
-    Copy and paste the default prompt for your desired category, then make your changes.
-  </i></p>
-
+<% if @user_prompts.any? %>
   <div class="grid grid-cols-[1fr_1fr_4fr_1fr] auto-rows-auto gap-4 border-b font-bold py-2">
     <div class="text-left">Category</div>
     <div class="text-left">Title</div>
     <div class="text-left">Prompt</div>
     <div class="text-right">Actions</div>
   </div>
-  <%= render @default_prompts %>
-  
+  <%= render @user_prompts %>
+<% else %>
+  No user prompts.
 <% end %>
+
+<br><br>
+
+<h3 class="text-xl mb-4">Default prompts</h3>
+<p><i>
+  <b>Warning! Editing default prompts will affect all users.</b><br>
+  It is better to add your own prompt instead, which will supercede the default prompt.<br>
+  Copy and paste the default prompt for your desired category, then make your changes.
+</i></p>
+
+<div class="grid grid-cols-[1fr_1fr_4fr_1fr] auto-rows-auto gap-4 border-b font-bold py-2">
+  <div class="text-left">Category</div>
+  <div class="text-left">Title</div>
+  <div class="text-left">Prompt</div>
+  <div class="text-right">Actions</div>
+</div>
+<%= render @default_prompts %>
+
+

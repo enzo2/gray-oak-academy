@@ -1,32 +1,28 @@
-<%= turbo_frame_tag "dashboard-content" do %>
+<div id="<%= dom_id(@lesson) %>" class="mb-4 [&_p]:mb-4">
+  <span>Course: <b><%= @lesson.course.title %></b></span>
+  <h2 class="mb-4 text-lg">Lesson: <b><%= @lesson.title %></b></h2>
 
-  <div id="<%= dom_id(@lesson) %>" class="mb-4 [&_p]:mb-4">
-    <span>Course: <b><%= @lesson.course.title %></b></span>
-    <h2 class="mb-4 text-lg">Lesson: <b><%= @lesson.title %></b></h2>
+  <p><i>Goals</i>
+    <br>
+    <%= @lesson.goals %>
+  </p>
+  
+  <p><i>Approx duration (min):</i>
+    <br>
+    <%= @lesson.approx_duration_min %>
+  </p>
 
-    <p><i>Goals</i>
-      <br>
-      <%= @lesson.goals %>
-    </p>
-    
-    <p><i>Approx duration (min):</i>
-      <br>
-      <%= @lesson.approx_duration_min %>
-    </p>
+  <p><i>Lesson plan content:</i>
+    <br>
+    <pre class="p-4 rounded-sm mb-4"><%= JSON.pretty_generate(@lesson.lesson_plan.content) %></pre>
+  </p>
 
-    <p><i>Lesson plan content:</i>
-      <br>
-      <pre class="p-4 rounded-sm mb-4"><%= JSON.pretty_generate(@lesson.lesson_plan.content) %></pre>
-    </p>
+  <p><i>Status:</i>
+    <br>
+    <%= @lesson.lesson_plan.status.capitalize %>
+  </p>
 
-    <p><i>Status:</i>
-      <br>
-      <%= @lesson.lesson_plan.status.capitalize %>
-    </p>
-
-    <div class="flex justify-between items-center mt-4">
-      <%= link_to "Edit", edit_admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), class: "btn-primary", data: { turbo_frame: "dashboard-content" } %>
-    </div>
+  <div class="flex justify-between items-center mt-4">
+    <%= link_to "Edit", edit_admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), class: "btn-primary" %>
   </div>
-
-<% end %>
+</div>

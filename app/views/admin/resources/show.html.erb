@@ -1,58 +1,62 @@
-<%= turbo_frame_tag "dashboard-content" do %>
-  <h1 class="text-2xl font-bold mb-4">Resource Details</h1>
+<h1 class="text-2xl font-bold mb-4">Resource Details</h1>
 
-  <div class="space-y-4">
-    <div>
-      <i>Category</i>
-      <br>
-      <%= @resource.category %>
-    </div>
+<div class="space-y-4">
+  <div>
+    <i>Category</i>
+    <br>
+    <%= @resource.category %>
+  </div>
 
-    <div>
-      <i>Description</i>
-      <br>
-      <%= @resource.description %>
-    </div>
+  <div>
+    <i>Description</i>
+    <br>
+    <%= @resource.description %>
+  </div>
 
-    <div>
-      <i>URI:</i>
-      <br>
-      <% if @resource.uri.present? %>
-        <%= link_to sanitize(@resource.uri), sanitize(@resource.uri, tags: []), target: "_blank", rel: "noopener noreferrer" %>
-      <% else %>
-        No URI provided.
-      <% end %>
-    </div>
-    
-    <div>
-      <i>Attached File:</i>
-      <br>
-      <% if @resource.file.attached? %>
+  <div>
+    <i>URI:</i>
+    <br>
+    <% if @resource.uri.present? %>
+      <%= link_to sanitize(@resource.uri), sanitize(@resource.uri, tags: []), target: "_blank", rel: "noopener noreferrer" %>
+    <% else %>
+      No URI provided.
+    <% end %>
+  </div>
+  
+  <div>
+    <i>Attached File:</i>
+    <br>
+    <% if @resource.file.attached? %>
+      <div class="flex items-center justify-baseline space-x-2 py-1">
         <%= link_to @resource.file.filename, rails_blob_path(@resource.file, disposition: "attachment") %>
-        <%= button_to delete_file_admin_resource_path(@resource), method: :delete, data: { confirm: "Are you sure you want to delete this file?" }, class: "inline-block" do %>
+        <%= button_to delete_file_admin_resource_path(@resource), 
+          method: :delete, 
+          data: { confirm: "Are you sure you want to delete this file?" }, 
+          class: "hover:text-red-500 flex items-center" do %>
           <sl-icon name="trash"></sl-icon>
         <% end %>
-      <% else %>
-        No attached file.
-      <% end %>
-    </div>
-
-    <div>
-      <i>Linked to Lesson Plans:</i>
-      <br>
-      <% if @resource.lesson_plans.any? %>
-        <ul class="[&_li]:pl-3">
-          <% @resource.lesson_plans.each do |lesson_plan| %>
-            <li><%= link_to lesson_plan.lesson.title, admin_course_lesson_path(lesson_plan.lesson.course, lesson_plan.lesson), data: { turbo_frame: "dashboard-content" }, class: "hover:underline" %>
-          <% end %>
-        </ul>
-      <% else %>
-        Not linked to any lesson plans.
-      <% end %>
+      </div>
+    <% else %>
+      No attached file.
+    <% end %>
   </div>
 
-  <div class="mt-6">
-    <%= link_to 'Edit', edit_admin_resource_path(@resource), class: 'btn-primary', data: { turbo_frame: "dashboard-content" } %>
-    <%= link_to 'Back', admin_resources_path, class: 'btn-primary', data: { turbo_frame: "dashboard-content" } %>
-  </div>
-<% end %>
+  <div>
+    <i>Linked to Lesson Plans:</i>
+    <br>
+    <% if @resource.lesson_plans.any? %>
+      <ul class="[&_li]:pl-3">
+        <% @resource.lesson_plans.each do |lesson_plan| %>
+          <li><%= link_to lesson_plan.lesson.title, admin_course_lesson_path(lesson_plan.lesson.course, lesson_plan.lesson), class: "hover:underline" %>
+        <% end %>
+      </ul>
+    <% else %>
+      Not linked to any lesson plans.
+    <% end %>
+</div>
+
+<div class="mt-6">
+  <%= link_to 'Edit', edit_admin_resource_path(@resource), class: 'btn-primary' %>
+  <%= link_to 'Back', admin_resources_path, class: 'btn-primary' %>
+</div>
+

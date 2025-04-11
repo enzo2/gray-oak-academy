@@ -67,7 +67,7 @@
       </div>
     </header>
 
-    <%= yield %>
+    <%= content_for?(:body) ? yield(:body) : yield %>
 
     <footer id="footer">
 

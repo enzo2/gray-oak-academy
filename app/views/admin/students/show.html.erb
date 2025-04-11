@@ -64,7 +64,7 @@
           <span class="text-red-600 mb-1 font-bold block">Danger zone </span>
           <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
             method: :delete, 
-            data: { turbo_confirm: 'This will remove the student from your list. Are you sure?', turbo_frame: "dashboard-content" }, 
+            data: { turbo_confirm: 'This will remove the student from your list. Are you sure?' }, 
             class: "btn-danger text-sm" %>
         <% end %>
     </sl-tab-panel>

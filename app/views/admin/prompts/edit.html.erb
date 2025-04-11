@@ -1,18 +1,17 @@
-<%= turbo_frame_tag "dashboard-content" do %>
-  <%= link_to 'Back', admin_prompts_path, class: "hover:underline" %>
-  <br>
-  <br>
-  <h2 class="font-bold text-2xl mb-4">Edit Prompt</h2>
-  <% if @prompt.teacher.nil? %>
-    <p class="mb-4"><i>
-      <b>Warning! Power users only.</b> Editing default prompts will affect all users.<br>
-      Instead, add your own prompt, which will supercede the default prompt.
-    </i></p>  
-  <% else %>
-    <p class="mb-4"><i>
-      <b>Note!</b> When writing your own prompts, take a look at the default prompt for that category, so that you aren't missing any important app functionality.
-    </i></p>
-  <% end %>
-
-  <%= render 'form', prompt: @prompt %>
+<%= link_to 'Back', admin_prompts_path, class: "hover:underline" %>
+<br>
+<br>
+<h2 class="font-bold text-2xl mb-4">Edit Prompt</h2>
+<% if @prompt.teacher.nil? %>
+  <p class="mb-4"><i>
+    <b>Warning! Power users only.</b> Editing default prompts will affect all users.<br>
+    Instead, add your own prompt, which will supercede the default prompt.
+  </i></p>  
+<% else %>
+  <p class="mb-4"><i>
+    <b>Note!</b> When writing your own prompts, take a look at the default prompt for that category, so that you aren't missing any important app functionality.
+  </i></p>
 <% end %>
+
+<%= render 'form', prompt: @prompt %>
+

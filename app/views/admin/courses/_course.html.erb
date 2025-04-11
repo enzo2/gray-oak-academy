@@ -27,7 +27,7 @@
   <td class="py-2 px-3 text-right [&_a:hover]:underline">
     <div class="flex-col justify-end justify-items-end">
       <% if course.status_active? %>
-        <%= link_to "View/Edit Lessons", admin_course_lessons_path(course), class: "block", data: { turbo_frame: "dashboard-content" } %>
+        <%= link_to "View/Edit Lessons", admin_course_lessons_path(course), class: "block" %>
         <%= link_to "Edit Course", edit_admin_course_path(course), class: "block", data: { turbo_stream: true } %>
         <%= button_to "Archive", archive_admin_course_path(course), method: :patch, class: "block hover:underline text-orange-800", data: { turbo_stream: true } %>
       <% else %>

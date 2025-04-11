@@ -16,7 +16,7 @@
         <% else %>
           <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
           <span class="text-sm">No lessons available for student. Please 
-            <%= link_to "publish a lesson plan", admin_course_lessons_path(enrollment.course), data: {turbo_frame: "dashboard-content"}, class: "underline" %>.
+            <%= link_to "publish a lesson plan", admin_course_lessons_path(enrollment.course), class: "underline" %>.
             </span>
         <% end %>
       </div>

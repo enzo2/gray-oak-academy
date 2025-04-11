@@ -1,19 +1,17 @@
-<%= turbo_frame_tag "dashboard-content" do %>
-  <h2 class="text-2xl font-bold mb-5">Usage</h2>
-  
-  <p>This reflects usage for the whole app across all users.</p>
+<h2 class="text-2xl font-bold mb-5">Usage</h2>
 
-  <%= form_tag admin_completions_path, method: :get, data: { turbo_frame: "dashboard-content" } do %>
-    <div class="mb-4 flex items-center gap-2">
-      <%= date_field_tag :start_date, params[:start_date], class: "" %>
-      <%= date_field_tag :end_date, params[:end_date], class: "" %>
-      <%= submit_tag "Filter by Date Range", class: "btn btn-primary" %>
-    </div>
-  <% end %>
+<p>This reflects usage for the whole app across all users.</p>
 
-  <%= render partial: "usage_table", locals: { usage_data: @usage_data } %>
-  <hr class="my-5 dark:border-stone-700">
-  <p><i>Notes:</i></p>
-  <p><sup>*</sup> Tokens are recorded according to the native tokenizer of each model, so the total across different models is not very meaningful.</p>
-  <p><sup>**</sup> Note: Actual cost is only recorded when OpenRouter is used.</p>
+<%= form_tag admin_completions_path, method: :get do %>
+  <div class="mb-4 flex items-center gap-2">
+    <%= date_field_tag :start_date, params[:start_date], class: "" %>
+    <%= date_field_tag :end_date, params[:end_date], class: "" %>
+    <%= submit_tag "Filter by Date Range", class: "btn btn-primary" %>
+  </div>
 <% end %>
+
+<%= render partial: "usage_table", locals: { usage_data: @usage_data } %>
+<hr class="my-5 dark:border-stone-700">
+<p><i>Notes:</i></p>
+<p><sup>*</sup> Tokens are recorded according to the native tokenizer of each model, so the total across different models is not very meaningful.</p>
+<p><sup>**</sup> Note: Actual cost is only recorded when OpenRouter is used.</p>

@@ -1,7 +1,10 @@
 module Admin
   class BaseController < ApplicationController
+    # Admin controllers should inherit from this one, Admin::BaseController.
+
     # Ensure all admin controllers require admin login.
-    # Other admin controllers should inherit from this one.
     before_action :require_admin
+
+    # All admin controller views will be inserted into layouts/admin/base.html.erb.
   end
 end

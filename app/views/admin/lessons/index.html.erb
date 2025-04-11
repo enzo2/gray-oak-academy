@@ -1,51 +1,49 @@
-<%= turbo_frame_tag "dashboard-content" do %>
-  <%= link_to "Back to Courses", admin_courses_path, class: "block mb-4 hover:underline" %>
+<%= link_to "Back to Courses", admin_courses_path, class: "block mb-4 hover:underline" %>
 
-  <h2 class="text-2xl mb-5 block">Lessons for: <b> <%= @course.title %></b></h2>
+<h2 class="text-2xl mb-5 block">Lessons for: <b> <%= @course.title %></b></h2>
 
-  <div class="mb-4">
-    <%= turbo_frame_tag Lesson.new do %>
-      <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary" %>
+<div class="mb-4">
+  <%= turbo_frame_tag Lesson.new do %>
+    <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary" %>
+  <% end %>
+</div>
+
+<div class="mb-4">
+  <%= turbo_frame_tag "generate-lessons" do %>
+    <% if @course.lessons.blank? && !@course.outline.blank? %>
+      <%= button_to "Generate Lessons from Course Outline", generate_lessons_admin_course_lessons_path(@course),
+        method: :post, 
+        class: "btn-primary", 
+        id: "generate-lessons-button",
+        data: { 
+          turbo_confirm: "This will call the LLM to generate lessons. Are you sure?",
+          turbo_stream: true }
+      %>
+    <% else %>
+      <i>To generate the lessons via LLM, the course outline must be filled in, and there must be no existing lessons.</i>
     <% end %>
-  </div>
+  <% end %>
+</div>
 
-  <div class="mb-4">
-    <%= turbo_frame_tag "generate-lessons" do %>
-      <% if @course.lessons.blank? && !@course.outline.blank? %>
-        <%= button_to "Generate Lessons from Course Outline", generate_lessons_admin_course_lessons_path(@course),
-          method: :post, 
-          class: "btn-primary", 
-          id: "generate-lessons-button",
-          data: { 
-            turbo_confirm: "This will call the LLM to generate lessons. Are you sure?",
-            turbo_stream: true }
-        %>
-      <% else %>
-        <i>To generate the lessons via LLM, the course outline must be filled in, and there must be no existing lessons.</i>
-      <% end %>
-    <% end %>
-  </div>
+<div class="flex justify-end mb-4">
+<sl-button href="<%= printable_admin_course_lessons_path(@course)%>" target="_blank">
+  <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
+  Printable View
+</sl-button>
+</div>
 
-  <div class="flex justify-end mb-4">
-  <sl-button href="<%= printable_admin_course_lessons_path(@course)%>" target="_blank">
-    <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
-    Printable View
-  </sl-button>
-  </div>
-
-  <table class="w-full border-collapse">
-    <thead>
-      <tr class="border-b border-stone-800 dark:border-stone-200">
-        <th class="py-2 px-3 text-left">#</th>
-        <th class="py-2 px-3 text-left">Title</th>
-        <th class="py-2 px-3 text-left">Goals</th>
-        <th class="py-2 px-3 text-center">Duration (min)</th>
-        <th class="py-2 px-3 text-center">Lesson Plan</th>
-        <th class="py-2 px-3 text-right">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="lessons-table-body">
-      <%= render "lessons_table", course: @course %>
-    </tbody>
-  </table>
-<% end %>
+<table class="w-full border-collapse">
+  <thead>
+    <tr class="border-b border-stone-800 dark:border-stone-200">
+      <th class="py-2 px-3 text-left">#</th>
+      <th class="py-2 px-3 text-left">Title</th>
+      <th class="py-2 px-3 text-left">Goals</th>
+      <th class="py-2 px-3 text-center">Duration (min)</th>
+      <th class="py-2 px-3 text-center">Lesson Plan</th>
+      <th class="py-2 px-3 text-right">Actions</th>
+    </tr>
+  </thead>
+  <tbody id="lessons-table-body">
+    <%= render "lessons_table", course: @course %>
+  </tbody>
+</table>
