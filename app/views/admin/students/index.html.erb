@@ -1,50 +1,46 @@
 <%= turbo_frame_tag "dashboard-content" do %>
   <h2 class="text-xl font-semibold">Manage Students</h2>
-  <div class="py-4 flex flex-row gap-4">
+  <div class="py-4 flex flex-row gap-2">
     <!-- Students List Column -->
     <div class="basis-48 pr-2 border-r">
-      <h3 class="text-lg mb-4">My Students</h3>
-      <div class="mb-6">
-        <ul class="divide-y divide-stone-200 dark:divide-stone-700">
+      <sl-tree class="mb-6">
+        <sl-tree-item expanded>
+          <strong>My Students</strong>
           <% @my_students.each do |student| %>
-            <li class="py-1">
-              <div class="flex justify-between items-center">
-                  <%= link_to student.name, admin_student_path(student), data: { turbo_frame: "student-control-panel" }, class: "hover:underline font-medium" %>
-              </div>
-            </li>
+            <sl-tree-item>
+              <%= link_to student.name, admin_student_path(student), 
+                  data: { turbo_frame: "student-control-panel" },
+                  class: "hover:underline" %>
+            </sl-tree-item>
           <% end.empty? and begin %>
-            <i>No students yet</i>
+            <sl-tree-item disabled>No students yet</sl-tree-item>
           <% end %>
-        </ul>
-      </div>
+        </sl-tree-item>
 
-      <hr class="mb-4">
-
-      <div class="mb-6">
-        <h2 class="text-lg mb-4">Other Students</h2>
-        <ul class="divide-y divide-stone-200 dark:divide-stone-700">
+        <sl-tree-item expanded>
+          <strong>Other Students</strong>
           <% @other_students.each do |student| %>
-            <li class="py-1">
-              <div class="flex justify-between items-center">
-                <span class="font-medium">
-                  <%= student.name %>
-                </span>
+            <sl-tree-item>
+              <div class="flex justify-between items-center w-full">
+                <span><%= student.name %></span>
                 <% if student.teacher.nil? %>
-                  <%= button_to 'Adopt', adopt_admin_student_path(student), method: :post, 
-                      data: { turbo_stream: true },
-                      class: "btn-primary" %>
+                  <%= link_to adopt_admin_student_path(student), data: { turbo_method: :post } do %>
+                   <sl-icon-button 
+                     name="person-add" label="Adopt" 
+                     class="text-green-600 text-lg [&::part(base)]:p-[4px]"></sl-icon-button>
+                  <% end %>
                 <% end %>
               </div>
-            </li>
+            </sl-tree-item>
           <% end.empty? and begin %>
-            <i>No other students</i>
+            <sl-tree-item disabled>No other students</sl-tree-item>
           <% end %>
-        </ul>
-      </div>
+        </sl-tree-item>
+      </sl-tree>
     </div>
 
     <!-- Control Panel Column -->
-    <div class="grow pl-4">
+    <div class="grow pl-4 max-w-7xl">
       <%= turbo_frame_tag "student-control-panel" do %>
         <p>Select a student to view their control panel.</p>
       <% end %>
