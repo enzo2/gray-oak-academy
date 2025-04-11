@@ -1,8 +1,8 @@
-<%= turbo_frame_tag dom_id(prompt) do %>
-<div class="grid grid-cols-[1fr_1fr_4fr_1fr] auto-rows-auto gap-4 py-2 items-center border-b">
+<div class="grid grid-cols-[1fr_1fr_4fr_1fr] auto-rows-auto gap-4 py-2 items-center border-b" id="<%= dom_id(prompt) %>">
     <div class="text-left"><%= prompt.friendly_category_name %></div>
     <div class="text-left"><%= prompt.title %></div>
-    <div class="text-left text-sm font-mono whitespace-pre-wrap" id="<%= dom_id(prompt) %>_text"><%= prompt.prompt %></div>
+    <div class="text-left text-sm font-mono whitespace-pre-wrap" ><%= truncate(prompt.prompt, length: 200) %></div>
+    <pre class="hidden" id="<%= dom_id(prompt) %>_text"><%= prompt.prompt %></pre>
     <div class="text-right">
       <div class="flex justify-end space-x-2">
         <% if prompt.teacher.present? %>
@@ -14,9 +14,8 @@
         <% else %>
           <sl-copy-button from="<%= dom_id(prompt) %>_text"></sl-copy-button>
           <%= link_to "Edit", edit_admin_prompt_path(prompt), 
-            class: "bg-red-700 hover:bg-red-800 text-white font-bold py-1 px-2 rounded-sm text-sm" %>
+            class: "bg-red-700 hover:bg-red-800 text-white font-bold px-2 rounded-sm text-sm flex items-center" %>
           <% end %>
       </div>
     </div>
 </div>
-<% end %>
