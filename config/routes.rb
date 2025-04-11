@@ -30,7 +30,7 @@ Rails.application.routes.draw do
   resources :applets
 
   namespace :admin do
-    get "dashboard", as: :root, to: "admins#dashboard"
+    get "dashboard", as: :root, to: "dashboard#dashboard"
 
     resources :courses do
       post "generate_outline", on: :member
@@ -71,7 +71,7 @@ Rails.application.routes.draw do
   end
 
   namespace :student do
-    get "dashboard", as: :root, to: "students#dashboard"
+    get "dashboard", as: :root, to: "dashboard#dashboard"
     resources :lessons, only: [ :show ]
   end
 end
