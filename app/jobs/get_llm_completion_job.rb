@@ -10,8 +10,7 @@ class GetLlmCompletionJob < ApplicationJob
     conversation = Conversation.find(conversation_id)
     user = conversation.user
 
-    # Use ruby-openai gem (also supports openrouter):
-    client = OpenaiApiService.new(
+    client = OpenaiApiService.new( # Uses ruby-openai gem (not just for OpenAI, supports any OpenAI-compatible API):
       current_user: user,
       stream_handler: stream_handler(conversation: conversation),
       task_system_prompt: conversation.task_system_prompt,
@@ -19,7 +18,8 @@ class GetLlmCompletionJob < ApplicationJob
       conversation: conversation
     )
 
-    messages = Message.for_completion_with_images(conversation.messages) # Get the array of message hashes with roles and content
+    # Get the array of message hashes with roles and content
+    messages = Message.for_completion_with_media(messages: conversation.messages)
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
   rescue OpenAiError => e

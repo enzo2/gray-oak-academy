@@ -19,6 +19,10 @@ class LessonProgress < ApplicationRecord
 
   scope :completed, -> { joins(:student_report).where(student_reports: { status: :completed }) }
 
+  def lesson_plan # For convenience
+    lesson.lesson_plan
+  end
+
   def build_task_system_prompt
     base_prompt = Prompt.get_prompt(category: "lesson_tutor_session", user: teacher)
     # The lesson task system prompt is very important.

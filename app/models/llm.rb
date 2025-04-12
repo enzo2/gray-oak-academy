@@ -11,6 +11,10 @@ class Llm < ApplicationRecord
   before_save :update_feature_flags_from_supported_parameters
   after_create_commit :update_metadata
 
+  def supports_bidirectional_speech?
+    supports_audio_input && supports_audio_output
+  end
+
   private
 
   def extract_model_provider_for_openrouter

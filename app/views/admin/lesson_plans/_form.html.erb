@@ -53,12 +53,23 @@
   </div>
 
   <div class="mb-4">
+    <%= f.label "Chalkboard", class: "form-label" %>
     <div class="flex items-center">
       <%= f.check_box :chalkboard_enabled, class: "mr-2 checkbox-primary" %>
       <span>Enable chalkboard for this lesson</span>
     </div>
     <p class="text-sm text-dim mt-1"><i>Hint: The chalkboard requires a large screen. Disable to allow for mobile device use.</i></p>
   </div>
+
+<!--
+  <div class="mb-4">
+    <%= f.label :audio, class: "form-label" %>
+    <p class="block text-sm mb-2"><i>Make sure the LLM supports audio input before enabling.</i></p>
+    <div class="[&_label]:mr-4 [&_input]:mr-2">
+      <%= f.collection_radio_buttons :audio, LessonPlan.audios.keys, :to_s, :titleize %>
+    </div>
+  </div>
+-->
 
   <div class="mb-4">
     <%= f.label :status, class: "form-label" %>

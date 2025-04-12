@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_10_124116) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_12_121528) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
+  create_enum "audio_setting", ["disabled", "enabled", "audio-only"]
   create_enum "content_type", ["image/png", "image/jpeg", "image/webp"]
   create_enum "course_status", ["active", "archived"]
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
@@ -61,6 +62,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_124116) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_applets_on_user_id"
+  end
+
+  create_table "audios", force: :cascade do |t|
+    t.bigint "message_id", null: false
+    t.string "content_type", null: false
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["message_id"], name: "index_audios_on_message_id"
   end
 
   create_table "completions", force: :cascade do |t|
@@ -140,6 +150,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_124116) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "chalkboard_enabled", default: true, null: false
+    t.enum "audio", default: "disabled", null: false, enum_type: "audio_setting"
     t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id"
     t.index ["teacher_id"], name: "index_lesson_plans_on_teacher_id"
   end
@@ -278,6 +289,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_10_124116) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "applets", "users"
+  add_foreign_key "audios", "messages"
   add_foreign_key "completions", "conversations", on_delete: :nullify
   add_foreign_key "completions", "llms"
   add_foreign_key "conversations", "lesson_progresses"

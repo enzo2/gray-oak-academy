@@ -7,6 +7,7 @@ class Message < ApplicationRecord
 
   belongs_to :conversation
   has_many :images, dependent: :destroy # Message content field contains text. Images are kept separately.
+  has_many :audios, dependent: :destroy # Audio is kept separately.
 
   before_create :ensure_text_present
 
@@ -52,14 +53,30 @@ class Message < ApplicationRecord
     content_json
   end
 
+  # Return content in JSON format with base64 images and audio for LLM APIs.
+  def content_with_media
+    return content_with_images if audios.empty?
+
+    content_json = content_with_images
+    audios.each do |audio|
+      audio_data = audio.base64_for_LLM
+      content_json << { "type": "input_audio", "input_audio": audio_data } if audio_data
+    end
+    content_json
+  end
+
   # Format messages for the LLM api
-  def self.for_completion_with_images(messages)
+  def self.for_completion_with_media(messages:, audio: false)
     # Some LLM providers don't like blank messages.
     # Right now, none should be blank since we add "See image(s)" if there are images and no text.
     # if messages.last.content.empty?
     #  messages = messages[0...-1]
     # end
-    messages.map { |message| { role: message.role, content: message.content_with_images } }
+    if audio
+      messages.map { |message| { role: message.role, content: message.content_with_media } }
+    else
+      messages.map { |message| { role: message.role, content: message.content_with_images } }
+    end
   end
 
   private
@@ -67,7 +84,7 @@ class Message < ApplicationRecord
   # Some LLM providers do not accept empty messages even if an image is present.
   # This callback ensures that if there are images but no text, we add some text.
   def ensure_text_present
-    if content.blank? && images.any?
+    if content.blank? && audios.empty? && images.any?
       Rails.logger.info "Images with empty message content. Adding some text."
       self.content = "See image(s)."
     end

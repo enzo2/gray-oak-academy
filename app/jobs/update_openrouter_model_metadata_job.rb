@@ -38,12 +38,19 @@ class UpdateOpenrouterModelMetadataJob < ApplicationJob
 
     # Get the supported_parameters
     parameter_arrays = response["data"]["endpoints"].map { |e| e["supported_parameters"] }
+    input_modalities = response["data"]["architecture"]["input_modalities"] || nil
+    output_modalities = response["data"]["architecture"]["output_modalities"] || nil
+
     # Find the intersection of all the arrays
     common_parameters = parameter_arrays.reduce(:&)
 
     llm.update!(
       context_length: context_length,
       supported_parameters: common_parameters || [],
+      supports_audio_input: input_modalities&.include?("audio"),
+      supports_image_input: input_modalities&.include?("image"),
+      supports_audio_output: output_modalities&.include?("audio"),
+      supports_image_output: output_modalities&.include?("image"),
       metadata_fetched_at: Time.current
     )
     Rails.logger.info("Updated metadata for #{llm.model}")
