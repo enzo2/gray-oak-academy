@@ -216,12 +216,21 @@ class OpenaiApiService
       raise ArgumentError, "stream_handler must be a Proc"
     end
 
+    stream_finished = false
+
     Proc.new do |chunk|
       begin
-        Rails.logger.debug chunk.inspect
+        Rails.logger.debug "Stream chunk: #{chunk.inspect}"
+
+        finish_reason = chunk.dig("choices", 0, "finish_reason")
+        if finish_reason.present?
+          Rails.logger.debug "Stream finished with finish_reason: #{finish_reason}"
+          stream_finished = true
+        end
 
         # Handle the final chunk with token usage
-        if chunk["usage"]
+        # Ensure stream is actually finished, since some API may return usage too early
+        if chunk["usage"] && stream_finished
           Rails.logger.debug("Streamed response complete: #{chunk["usage"]}")
 
           # If the model didn't follow instructions and called a tool without any text content,
