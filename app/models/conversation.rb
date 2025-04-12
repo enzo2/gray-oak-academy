@@ -20,6 +20,14 @@ class Conversation < ApplicationRecord
     completions.last&.prompt_tokens || 0
   end
 
+  def audio_setting
+    if lesson_progress # for lesson conversations
+      lesson_progress.lesson_plan.audio
+    else # for generic conversations
+      llm_in_use&.supports_audio_input ? "enabled" : "disabled"
+    end
+  end
+
   # Returns the percentage of the context limit used by the conversation.
   # Return 0 if no context length is available.
   def context_usage

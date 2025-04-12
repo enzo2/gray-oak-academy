@@ -47,6 +47,39 @@ class MessagesController < ApplicationController
     ), status: :unprocessable_entity
   end
 
+
+  # POST /conversations/:conversation_id/audio_messages
+  def create_audio_message
+    conversation = Conversation.find(params[:conversation_id])
+    audio_file = params[:audio]
+
+    unless audio_file
+      render json: { error: "No audio file provided" }, status: :bad_request
+      return
+    end
+
+    # Create new user message with audio attachment
+    message = conversation.messages.new(role: "user", content: "") # Content is empty for audio-only
+    message = Message.new(role: "user", content: "", conversation_id: params[:conversation_id])
+    audio = message.audios.build(content_type: audio_file.content_type)
+    audio.file.attach(audio_file)
+
+    if message.save
+      # Trigger LLM completion job
+      GetLlmCompletionJob.perform_later(conversation_id: conversation.id)
+      head :ok # Simple success response
+    else
+      message.destroy
+      render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_entity
+    end
+
+  rescue StandardError => e
+    Rails.logger.error "Failed to create audio message: #{e.message}"
+    # Attempt to destroy the potentially created message if an error occurred after its creation
+    message&.destroy
+    render json: { error: "Failed to process audio message", details: e.message }, status: :internal_server_error
+  end
+
   # Proxy the image content-type check, since it can't be done in the Stimulus controller due to CORS
   def proxy_image
     require "net/http"

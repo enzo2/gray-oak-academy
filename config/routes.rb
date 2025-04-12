@@ -21,6 +21,7 @@ Rails.application.routes.draw do
       delete :clear
     end
     resources :messages, only: [ :create ]
+    post "audio_messages", to: "messages#create_audio_message"
   end
 
   get "proxy/image", to: "messages#proxy_image"

@@ -55,9 +55,12 @@ class Message < ApplicationRecord
 
   # Return content in JSON format with base64 images and audio for LLM APIs.
   def content_with_media
-    return content_with_images if audios.empty?
+    base_content = content_with_images
+    return base_content if audios.empty?
 
-    content_json = content_with_images
+    # If base_content is just a string (text only or empty), convert to array format
+    content_json = base_content.is_a?(String) ? [ { "type": "text", "text": base_content } ] : base_content
+
     audios.each do |audio|
       audio_data = audio.base64_for_LLM
       content_json << { "type": "input_audio", "input_audio": audio_data } if audio_data

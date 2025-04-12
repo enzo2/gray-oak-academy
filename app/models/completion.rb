@@ -48,10 +48,10 @@ class Completion < ApplicationRecord
   private
 
   def associate_llm
-    Rails.logger.debug "Associating LLM for completion: #{self.inspect}"
     self.llm = Llm.find_or_create_by!(
       model: model,
       api_provider: api_provider
     )
+    Rails.logger.debug "Associated LLM #{self.llm.inspect} with completion #{self.inspect}"
   end
 end
