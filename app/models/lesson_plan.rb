@@ -10,7 +10,7 @@ class LessonPlan < ApplicationRecord
   enum :status, { draft: "draft", published: "published" }, prefix: true
   # "archived" status also available in the enum column, but can't think of a use case
 
-  enum :audio, { disabled: "disabled", enabled: "enabled", audio_only: "audio-only" }, prefix: true
+  enum :audio, { disabled: "disabled", enabled: "enabled", only: "audio-only" }, prefix: true
 
   # Allow blank content if still new draft
   validate :validate_content_format, unless: -> { status == "draft" && content.blank? }

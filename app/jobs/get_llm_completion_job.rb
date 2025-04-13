@@ -9,7 +9,6 @@ class GetLlmCompletionJob < ApplicationJob
   def perform(conversation_id:)
     conversation = Conversation.find(conversation_id)
     user = conversation.user
-    audio_enabled = conversation.audio_setting == "enabled" || conversation.audio_setting == "audio_only"
 
     client = OpenaiApiService.new( # Uses ruby-openai gem (not just for OpenAI, supports any OpenAI-compatible API):
       current_user: user,
@@ -20,7 +19,7 @@ class GetLlmCompletionJob < ApplicationJob
     )
 
     # Get the array of message hashes with roles and content
-    messages = Message.for_completion_with_media(messages: conversation.messages, audio: audio_enabled)
+    messages = Message.for_completion_with_media(messages: conversation.messages, audio: conversation.audio_permitted?)
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
   rescue OpenAiError => e

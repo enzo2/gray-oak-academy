@@ -51,15 +51,19 @@ class MessagesController < ApplicationController
   # POST /conversations/:conversation_id/audio_messages
   def create_audio_message
     conversation = Conversation.find(params[:conversation_id])
-    audio_file = params[:audio]
+    unless conversation.audio_permitted?
+      render json: { error: "Audio messages are not permitted for this conversation" }, status: :forbidden
+      return
+    end
 
+    audio_file = params[:audio]
     unless audio_file
       render json: { error: "No audio file provided" }, status: :bad_request
       return
     end
 
     # Create new user message with audio attachment
-    message = conversation.messages.new(role: "user", content: "") # Content is empty for audio-only
+    message = conversation.messages.new(role: "user", content: "") # Content is empty for audio-only messages
     message = Message.new(role: "user", content: "", conversation_id: params[:conversation_id])
     audio = message.audios.build(content_type: audio_file.content_type)
     audio.file.attach(audio_file)

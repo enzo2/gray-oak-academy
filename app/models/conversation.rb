@@ -22,10 +22,14 @@ class Conversation < ApplicationRecord
 
   def audio_setting
     if lesson_progress # for lesson conversations
-      lesson_progress.lesson_plan.audio
+      lesson_progress.lesson_plan.audio # Can be "disabled", "enabled", or "only"
     else # for generic conversations
       llm_in_use&.supports_audio_input ? "enabled" : "disabled"
     end
+  end
+
+  def audio_permitted?
+    audio_setting == "enabled" || audio_setting == "only"
   end
 
   # Returns the percentage of the context limit used by the conversation.
