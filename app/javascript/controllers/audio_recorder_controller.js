@@ -5,11 +5,18 @@ export default class extends Controller {
   static values = { conversationId: String }
 
   connect() {
+    // If not secure, don't bother initializing, as MediaRecorder won't work.
+    if (!window.isSecureContext) {
+      console.warn("Audio recording requires a secure context (HTTPS or localhost).");
+      this.recordButtonTarget.classList.add("hidden");
+      return; 
+    }
+    
     // Check if the browser supports the MediaRecorder API
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       this.recordButtonTarget.classList.add("hidden")
       return
-    // Check if the record button is enabled
+    // Check if audio is enabled for the conversation (button won't be hidden)
     } else if (this.recordButtonTarget.classList.contains("hidden"))  {
       return;
     } else {
