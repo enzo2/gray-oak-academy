@@ -36,6 +36,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
+  # Don't include muPDF previewer.
+  config.active_storage.previewers.delete(ActiveStorage::Previewer::MuPDFPreviewer) if defined?(ActiveStorage::Previewer::MuPDFPreviewer)
+
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 

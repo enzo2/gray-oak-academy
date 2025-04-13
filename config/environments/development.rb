@@ -31,6 +31,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
+  # Don't include muPDF previewer.
+  config.active_storage.previewers.delete(ActiveStorage::Previewer::MuPDFPreviewer) if defined?(ActiveStorage::Previewer::MuPDFPreviewer)
+
   # Be able to use mailing in development
   config.action_mailer.raise_delivery_errors = true
 
