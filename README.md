@@ -24,7 +24,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- Native LLM chat interface with image support
+- Native LLM chat interface with image and audio input
 - Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans
@@ -44,7 +44,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
  - No node, just importmaps
- - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini APIs)
+ - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini)
 
 ### Security
 - Devise for authentication
@@ -73,13 +73,16 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
 - Run `rails server`. Visit http://localhost:3000. 
 
-### Choosing an API & LLM:
-- Built-in support for OpenRouter enables tracking exact costs and context window usage. It also will allow you to avoid token limits and try different providers/models easily. However, if you don't need that, any OpenAI-compatible API should work. (Gemini free tier has an OpenAI-compatible endpoint.)
-- Model must support images and tool use. A long context window is recommended. 
+### Choosing an API:
+- Notably, Gemini API has an OpenAI-compatible endpoint, a free tier, audio input, and 1+ megatoken context windows. 
+- Built-in support for OpenRouter enables tracking actual costs and displays context window usage. OpenRouter also avoids token limits, and enables trying different providers/models easily. But no audio input. 
+- For heavy users, providers supporting automated prompt caching will reduce cost.
+
+### Choosing an LLM: 
+- For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. 
 - For outline/lesson generation, model must support structured outputs.
-- You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessively long response times for real-time teaching.
-- Sonnet 3.7 seems to do best overall, whereas Gemini 2.0 Flash is adequate in most cases (plus it has a 1 megatoken context window). GPT-4o does not seem to perform well.
-- Providers supporting automated prompt caching are recommended to reduce costs.
+- You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessive latency for real-time tutoring.
+- Sonnet 3.7 seems to do best overall, whereas Gemini 2 Flash is adequate and has a 1 megatoken context window, plus audio input. GPT-4o does not seem to perform well.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code.
@@ -104,13 +107,12 @@ Maintain the core app principles:
 - Test with different LLMs.  
 
 ### Planned Features
-- STT/TTS, native audio model support (starting with least expensive API(s), realtime vs async)
-- Speech-only lesson mode (e.g. phone on the table mode)
-- Allow teacher to specify lessons as text-only vs. STT/TTS vs. realtime audio
-- Support for native image generation (eg. Gemini, OpenAI)
+- STT/TTS; conversational/speech-only lesson plan support
+- Camera/webcam input (e.g. show the LLM your work)
+- Experiment with realtime, fully multimodal APIs - ?container for Pipecat with Gemini Live API
+- Support for native image generation (once good enough for teaching)
 - Resource suggestions to the teacher based on lesson goals
 - Resource tagging, archive, usage tracking
-- Webcam mode (e.g. point at your desk to show the LLM your work)
 - Student profile (e.g. memory tool, joint teacher-LLM understanding of the student, etc.)
 - Settings for reasoning models
 - Incorporate student feedback form at end of lessons
