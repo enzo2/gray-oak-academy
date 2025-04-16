@@ -14,22 +14,40 @@
       <p class="mb-4">
           <i>Note: If you leave these blank, the default settings from environment variables will be used.</i>
       </p>
+
+      <div class="">
+        <%= f.label :llm_api_base_uri, "LLM API base URI", class: "form-label" %>
+        <%= f.url_field :llm_api_base_uri, class: "input-primary" %>
+      </div>   
+      <p class="text-sm text-dim mb-1">
+        Should look like: https://openrouter.ai/api/v1
+      </p>
+      <sl-tree class="mb-4" selection="leaf">
+        <sl-tree-item>
+          <sl-icon name="question-square"></sl-icon>
+          &nbsp;Which should I use?
+          <sl-tree-item>
+            Any OpenAI-compatible API is supported.<br>
+            If OpenRouter is used, app will track actual costs and context window usage.<br>
+            This may be useful for heavier use or longer lessons.<br>
+            It also allows trying various models from different providers easily, and avoids tiered limits.<br>
+            However, OpenRouter doesn't support audio input.
+          </sl-tree-item>
+        </sl-tree-item>
+      </sl-tree>
+
+      <div class="">
+        <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
+        <%= f.text_field :llm_api_access_token, class: "input-primary" %>
+      </div>
+      <p class="text-sm text-dim mb-4">
+        Will be stored in the database. Encryption is not provided. Ensure the database is secure.
+      </p>
+
       <div class="mb-4">
         <%= f.label :llm_model_name, "LLM API model name", class: "form-label" %>
         <%= f.text_field :llm_model_name, class: "input-primary" %>
       </div>
-      <div class="mb-4">
-        <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
-        <%= f.text_field :llm_api_access_token, class: "input-primary" %>
-      </div>    
-      <p class="text-sm mb-1">
-        <i>OpenAI-compatible APIs are supported.<br>
-        However, using OpenRouter will avoid token limits, enable native cost tracking, and automate context limit alerts.</i>
-      </p>
-      <div class="mb-4">
-        <%= f.label :llm_api_base_uri, "LLM API base URI", class: "form-label" %>
-        <%= f.text_field :llm_api_base_uri, class: "input-primary" %>
-      </div>   
 
     <div class="mb-6">
       <%= f.submit "Update Settings", class: "btn-primary" %>
