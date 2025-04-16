@@ -5,67 +5,49 @@ source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.0.2"
-# The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use postgresql as the database for Active Record
-gem "pg"
+gem "pg" # Use postgresql as the database for Active Record
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
-# Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "< 7"
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-gem "solid_queue"
-gem "solid_cable"
-gem "solid_cache"
-gem "image_processing"
+gem "puma", "< 7" # Use the Puma web server [https://github.com/puma/puma]
+gem "bootsnap", require: false
+gem "tzinfo-data", platforms: %i[ windows jruby ]
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 # gem "kamal", require: false
 
-# Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
+# Rails adapters
+gem "solid_queue"
+gem "solid_cable"
+gem "solid_cache"
+gem "image_processing"
 gem "importmap-rails"
-# Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
 gem "turbo-rails"
-# Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
-
-## Authentication
-gem "devise"
-
-# Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails", "~> 4.0"
 
-gem "markdown_views"
+# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
+# gem "bcrypt"
 
+# Utilities
+gem "json_schemer"
+gem "json-repair"
+gem "devise"
 gem "acts_as_list"
-
-# Vector Search
-# gem "pgvector"
-# gem "neighbor"
+gem "markdown_views"
+gem "hotwire_combobox"
 
 # LLM APIs
 gem "faraday-retry"
 gem "open_router", git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
 gem "ruby-openai"
 
+# Vector Search
+# gem "pgvector"
+# gem "neighbor"
+
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
-
-# JSON Schema validation
-gem "json_schemer"
-gem "json-repair"
-
-# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
-
-# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
-
-# Reduces boot times through caching; required in config/boot.rb
-gem "bootsnap", require: false
-
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-# gem "image_processing", "~> 1.2"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
