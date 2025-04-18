@@ -15,6 +15,14 @@ class Llm < ApplicationRecord
     supports_audio_input && supports_audio_output
   end
 
+  def self.list_api_base_uris
+    Llm.pluck(:api_provider).map { |uri| uri.chomp("/") }.uniq
+  end
+
+  def self.list_models
+    Llm.pluck(:model)
+  end
+
   private
 
   def extract_model_provider_for_openrouter

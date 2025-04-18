@@ -1,7 +1,7 @@
 <main class="container mx-auto p-2 max-w-128">
   <h2 class="text-2xl">Edit <%= resource_name.to_s.humanize %> Settings</h2>
 
-  <sl-tab-group class="">
+  <sl-tab-group class="[&::part(body)]:overflow-visible">
     <sl-tab slot="nav" panel="user-settings">Settings</sl-tab>
     <sl-tab slot="nav" panel="account">Account</sl-tab>
     <sl-tab slot="nav" panel="delete-account">Delete Account</sl-tab>

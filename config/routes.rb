@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   root to: "application#index"
 
   patch "user_settings", to: "user_settings#update"
+  get "user_settings/llm_models", to: "user_settings#llm_models"
 
   resources :conversations do
     member do

@@ -11,18 +11,23 @@
   <% end %>
 
   <% if current_user.role_admin? %>
+    <div data-controller="llm-settings" data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>"> <%# Add Stimulus controller wrapper + models path %>
       <p class="mb-4">
           <i>Note: If you leave these blank, the default settings from environment variables will be used.</i>
       </p>
 
-      <div class="">
+      <div class="mb-1"> 
         <%= f.label :llm_api_base_uri, "LLM API base URI", class: "form-label" %>
-        <%= f.url_field :llm_api_base_uri, class: "input-primary" %>
-      </div>   
+        <%= f.combobox "llm_api_base_uri",
+                       Llm.list_api_base_uris,
+                       name_when_new: "setting[llm_api_base_uri]",
+                       placeholder: "Select or enter API Base URI",
+                       autocomplete: :list,
+                       data: { action: "input->llm-settings#updateModels hw-combobox:selection->llm-settings#updateModels hw-combobox:clear->llm-settings#updateModels" } %>
+      </div>
       <p class="text-sm text-dim mb-1">
         Should look like: https://openrouter.ai/api/v1
-      </p>
-      <sl-tree class="mb-4" selection="leaf">
+      </p>      <sl-tree class="mb-4" selection="leaf">
         <sl-tree-item>
           <sl-icon name="question-square"></sl-icon>
           &nbsp;Which should I use?
@@ -46,12 +51,20 @@
 
       <div class="mb-4">
         <%= f.label :llm_model_name, "LLM API model name", class: "form-label" %>
-        <%= f.text_field :llm_model_name, class: "input-primary" %>
+        <%= f.combobox "llm_model_name",
+                       "#{user_settings_llm_models_path}?api_uri=#{settings.llm_api_base_uri}",
+                       name_when_new: "setting[llm_model_name]",
+                       placeholder: "Select or enter Model Name",
+                       data: {
+                         action: "hw-combobox:selection->llm-settings#checkNewModel",
+                         llm_settings_target: "modelCombobox"
+                       } %>
       </div>
 
-    <div class="mb-6">
-      <%= f.submit "Update Settings", class: "btn-primary" %>
-    </div>
+      <div class="mb-6">
+        <%= f.submit "Update Settings", class: "btn-primary" %>
+      </div>
+    </div> 
   <% else %>
     There are no available preferences.
   <% end %>

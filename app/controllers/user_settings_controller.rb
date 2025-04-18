@@ -15,6 +15,19 @@ class UserSettingsController < ApplicationController
     end
   end
 
+  def llm_models
+    api_uri = params[:api_uri]
+    Rails.logger.debug "API URI: #{api_uri}"
+    if api_uri.present?
+      normalized = api_uri.chomp("/")
+      @models = Llm.where("api_provider = ? OR api_provider = ?", normalized, "#{normalized}/").pluck(:model)
+    else
+      @models = []
+    end
+    Rails.logger.debug "Models: #{@models}"
+    render turbo_stream: helpers.async_combobox_options(@models)
+  end
+
   private
 
   def define_settings
