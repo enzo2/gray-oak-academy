@@ -68,9 +68,17 @@ class MessagesController < ApplicationController
     audio = message.audios.build(content_type: audio_file.content_type)
     audio.file.attach(audio_file)
 
-    if message.save
-      # Trigger LLM completion job
+    if message.save # This will broadcast user message
+      # Broadcast placeholder assistant message to the conversation
+      Turbo::StreamsChannel.broadcast_append_later_to(
+        conversation,
+        target: "#{dom_id(conversation)}",
+        partial: "messages/message",
+        locals: { message: Message.new(role: :assistant, content: "") }
+      )
+      # Queue the completion
       GetLlmCompletionJob.perform_later(conversation_id: conversation.id)
+
       head :ok # Simple success response
     else
       message.destroy
