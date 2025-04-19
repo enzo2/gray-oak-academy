@@ -108,10 +108,29 @@ class OpenaiApiService
       else
         content
       end
+    rescue Faraday::BadRequestError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
+      raise OpenAiError, "Bad Reqest: #{e.message}: #{error_message}"
+    rescue Faraday::TimeoutError => e
+      Rails.logger.error "Faraday::TimeoutError #{e.message}"
+      raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
+    rescue Faraday::ServerError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ServerError #{e.message}: #{error_message}"
+      raise OpenAiError, "#{e.message}: #{error_message}"
+    rescue Faraday::ClientError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ClientError #{e.message}"
+      raise OpenAiError, "ClientError: #{e.message}: #{error_message}"
+    rescue Faraday::UnauthorizedError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::UnauthorizedError #{e.message}: #{error_message}"
+      raise OpenAiError, "The access key was unauthorized: #{error_message}"
     rescue Faraday::ResourceNotFound => e
-      # Get the actual error message from the response body.
-      error_message = extract_error_message(e)
-      raise OpenAiError, error_message
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ResourceNotFound error #{e.message}: #{error_message}"
+      raise OpenAiError, "#{e.message}: #{error_message}"
     rescue StandardError => e
       raise e
     end # end of begin/rescue/end block
@@ -283,12 +302,31 @@ class OpenaiApiService
     end
   end
 
-  def extract_error_message(exception)
-    response_body = exception.response[:body]
-    if response_body.is_a?(Hash)
-      response_body.dig("error", "message") || "#{response_body.inspect} Error"
+  def extract_faraday_error_message(exception)
+    response_body = exception.respond_to?(:response) ? exception.response[:body] : nil
+    return "Unknown error" unless response_body
+    Rails.logger.error "Error response body: #{response_body}"
+
+    parsed = if response_body.is_a?(String)
+      begin
+        JSON.parse(response_body)
+      rescue JSON::ParserError
+        return "Failed to parse error response: #{response_body}"
+      end
     else
-      "HTTP #{exception.response[:status]} Error" # Fallback if message is not found
+      response_body # Already parsed
+    end
+
+    if parsed.is_a?(Array)
+      parsed = parsed.first
+    end
+
+    Rails.logger.debug "Parsed error response: #{parsed.inspect}"
+
+    if parsed.is_a?(Hash) && parsed["error"].is_a?(Hash)
+      parsed["error"]["message"] || parsed["error"]["status"] || "Unknown error"
+    else
+      "Unknown error format: #{parsed.inspect}"
     end
   end
 end
