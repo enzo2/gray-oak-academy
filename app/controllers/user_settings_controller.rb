@@ -17,10 +17,11 @@ class UserSettingsController < ApplicationController
 
   def llm_models
     api_uri = params[:api_uri]
-    Rails.logger.debug "API URI: #{api_uri}"
+    Rails.logger.debug "API URI received: #{api_uri}"
     if api_uri.present?
-      normalized = api_uri.chomp("/")
-      @models = Llm.where("api_provider = ? OR api_provider = ?", normalized, "#{normalized}/").pluck(:model)
+      # Ensure the URI we query with has a trailing slash, matching the normalized Llm.api_provider
+      normalized_uri_with_slash = api_uri.end_with?("/") ? api_uri : "#{api_uri}/"
+      @models = Llm.where(api_provider: normalized_uri_with_slash).pluck(:model)
     else
       @models = []
     end

@@ -11,6 +11,8 @@ class Setting < ApplicationRecord
   store_accessor :settings, :llm_api_access_token
   store_accessor :settings, :llm_api_base_uri
 
+  before_validation :ensure_llm_api_base_uri_trailing_slash
+
   # Overwrite default accessors below:
 
   # for students, if adopted by a teacher, use the teacher's settings
@@ -35,6 +37,16 @@ class Setting < ApplicationRecord
       user.teacher.settings.llm_api_base_uri
     else
       super
+    end
+  end
+
+  private
+
+  def ensure_llm_api_base_uri_trailing_slash
+    # Note: We are modifying the value directly using the store_accessor method
+    # This ensures the change is saved to the JSONB column
+    if llm_api_base_uri.present? && !llm_api_base_uri.end_with?("/")
+      self.llm_api_base_uri = "#{llm_api_base_uri}/"
     end
   end
 end

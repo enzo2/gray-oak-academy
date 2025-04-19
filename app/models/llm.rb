@@ -3,6 +3,8 @@
 class Llm < ApplicationRecord
   has_many :completions
 
+  before_validation :ensure_api_provider_trailing_slash
+
   validates :model, presence: true
   validates :api_provider, presence: true
   validates :model, uniqueness: { scope: :api_provider }
@@ -16,7 +18,7 @@ class Llm < ApplicationRecord
   end
 
   def self.list_api_base_uris
-    Llm.pluck(:api_provider).map { |uri| uri.chomp("/") }.uniq
+    Llm.pluck(:api_provider).uniq
   end
 
   def self.list_models
@@ -24,6 +26,12 @@ class Llm < ApplicationRecord
   end
 
   private
+
+  def ensure_api_provider_trailing_slash
+    if api_provider.present? && !api_provider.end_with?("/")
+      self.api_provider = "#{api_provider}/"
+    end
+  end
 
   def extract_model_provider_for_openrouter
     if api_provider.include?("openrouter.ai")
