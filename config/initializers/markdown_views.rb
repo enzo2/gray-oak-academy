@@ -16,8 +16,8 @@ module MarkdownViewsHelper
     # Processor for executable JS blocks.
     # Regex finds all markdown code blocks with optional attributes.
     # LLM is instructed on adding attributes in the prompt.
-    processed_source = source.gsub(/^```(\w+)?\s*(\{.*?\})?\s*\n(.*?)\n^```\s*$/m) do |match|
-      Rails.logger.debug "Processing code block. language: #{$1}, attributes: #{$2}, code: #{$3}"
+    processed_source = source.gsub(/```(\w+)?\s*(\{.*?\})?\s*\n(.*?)\n^```\s*$/m) do |match|
+      # Rails.logger.debug "Processing code block. language: #{$1}, attributes: #{$2}, code: #{$3}"
       language = $1
       attributes_str = $2
       code = $3
