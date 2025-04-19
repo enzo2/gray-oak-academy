@@ -35,11 +35,12 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - All prompts can be customized (default set of prompts included)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
+- Remembers API URIs and model names for easy switching
 - App name can be customized via env variable
 - Snappy interface using Turbo & Stimulus
 - Dark/Light mode
 
-### Frameworks, Tooling, etc.
+### Frameworks/Tooling
  - Rails 8.0, Ruby 3.4, Postgres
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
@@ -51,12 +52,12 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Teacher/Admin and Student roles
 - Designed for containerized use in a local secure environment
 - For security, not designed for hosting publically by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
-- Note: The LLM is empowered to auto-run its own Javascript in the browser, within the limits of a sandboxed iframe. To disable this function, edit code_executor_controller.js and the generative_guidelines prompt.
+- Note: The LLM is permitted to auto-execute its own javascript within a sandboxed iframe. 
 
 ## Setup Instructions
 - `git clone` the repository to your machine. Docker is needed. 
 - Set up .env files according to the examples.
-- Decide which OpenAI-compatible LLM API you'll use. See below section 'Choosing an API & LLM'.
+- Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
 - If you're just trying it out or don't care to see detailed logs, use a production environment with docker compose, as per below. You can also use the devcontainer.
 
 ### Production:
@@ -88,8 +89,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Create a teacher account using the teacher signup code.
 - Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. 
 - Go to Prompts if you want to review your system prompts.
-- To verify your setup and try the chat interface, go to LLM Chat. (Note: If Firefox fails to maintiain the Websockets connection, try Edge.)
-- Try asking the LLM to generate an applet, e.g. "Please make an interactive applet demonstrating refraction of light."
+- To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet.
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
@@ -104,7 +104,7 @@ Maintain the core app principles:
 - Follow generally accepted Rails architecture, keep controllers light, models heavy, code easy to follow
 - OK to code with LLMs, but do not vibe-code, and fully review your code
 - All LLM prompts should be user-editable; use the Prompts model. 
-- Test with different LLMs.  
+- Test with different LLMs.
 
 ### Planned Features
 - STT/TTS; conversational/speech-only lesson plan support
