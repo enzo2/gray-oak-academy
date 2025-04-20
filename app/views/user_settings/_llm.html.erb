@@ -1,0 +1,42 @@
+<% if current_user.role_admin? %>
+  <h3 class="text-xl font-bold mb-4 mt-2">LLM Models</h3>
+  <p class="text-dim text-sm mb-4">Note: if you just added a model, chat with it first so it will be added here.</p>
+  <% grouped_llms = Llm.all.order(:api_provider, :model).group_by(&:api_provider) %>
+  <% grouped_llms.each do |api_uri, llms| %>
+    <details class="mb-4 border border-stone-300 dark:border-stone-700 rounded">
+      <summary class="cursor-pointer px-4 py-2 bg-stone-100 dark:bg-stone-800 font-semibold">
+        <span class="text-stone-700 dark:text-stone-200"><%= api_uri %></span>
+        <span class="ml-2 text-xs text-stone-500">(<%= llms.size %> model<%= "s" if llms.size != 1 %>)</span>
+      </summary>
+      <table class="table-auto w-full mb-2">
+        <thead>
+          <tr class="bg-stone-50 dark:bg-stone-900">
+            <th class="px-2 py-1 text-left">Model</th>
+            <th class="px-2 py-1 text-right">Supports <br>Audio Input</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% llms.each_with_index do |llm, idx| %>
+            <tr class="<%= idx.odd? ? 'bg-stone-200 dark:bg-stone-700' : '' %>">
+              <td class="px-2 py-1"><%= llm.model %></td>
+              <td class="px-2 py-1 text-right">
+                <%= form_with(model: llm, url: admin_llm_path(llm), method: :patch, data: { turbo_stream: true }) do |f| %>
+                  <%= f.check_box :supports_audio_input, 
+                        { 
+                          checked: llm.supports_audio_input, 
+                          data: { 
+                            controller: "llm-checkbox",
+                            action: "llm-checkbox#submit" },
+                          class: "checkbox-primary"
+                        } %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </details>
+  <% end %>
+<% else %>
+  <p>You do not have permission to edit LLM models.</p>
+<% end %>

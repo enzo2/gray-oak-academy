@@ -1,5 +1,4 @@
 import { Controller } from "@hotwired/stimulus"
-// import { get } from "hw_combobox/vendor/requestjs" // Uncomment if you use requestjs elsewhere
 
 export default class extends Controller {
   static values = { modelsPath: String }

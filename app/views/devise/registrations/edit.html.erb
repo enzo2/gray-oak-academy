@@ -3,11 +3,16 @@
 
   <sl-tab-group class="[&::part(body)]:overflow-visible">
     <sl-tab slot="nav" panel="user-settings">Settings</sl-tab>
+    <% if current_user.role_admin? %><sl-tab slot="nav" panel="llm">LLMs</sl-tab><% end %>
     <sl-tab slot="nav" panel="account">Account</sl-tab>
     <sl-tab slot="nav" panel="delete-account">Delete Account</sl-tab>
 
     <sl-tab-panel name="user-settings">
       <%= render "user_settings/form", settings: current_user.settings %>
+    </sl-tab-panel>
+
+    <sl-tab-panel name="llm">
+      <%= render "user_settings/llm" %>
     </sl-tab-panel>
     
     <sl-tab-panel name="account" active><!--set as active so that it shows up after devise form submission-->

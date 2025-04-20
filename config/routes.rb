@@ -70,6 +70,8 @@ Rails.application.routes.draw do
         delete :unenroll
       end
     end
+
+    resources :llms, only: [ :update ]
   end
 
   namespace :student do
