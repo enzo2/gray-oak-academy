@@ -11,9 +11,12 @@ class Conversation < ApplicationRecord
   # The task_system_prompt should include the task at hand, and should not include the base system prompts or generative guidelines, which are added in OpenAiApiService.
   # The base prompts and the task prompt are injected together upon the completion request.
 
-  # Returns the LLM used in the last completion.
   def llm_in_use
-    completions.last&.llm
+    model = user.setting.llm_model_name.presence ? user.setting.llm_model_name : ENV["DEFAULT_MODEL"]
+    api = user.setting.llm_api_base_uri.presence ? user.setting.llm_api_base_uri : ENV["OPENAI_API_BASE_URI"]
+    llm = Llm.find_by(model: model, api_provider: api)
+    llm ? llm : completions.last&.llm
+    # May return nil if the user's settings haven't been used yet and the conversation is blank
   end
 
   def last_prompt_tokens
