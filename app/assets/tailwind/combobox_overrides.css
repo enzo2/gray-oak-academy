@@ -1,0 +1,149 @@
+
+/* Main wrapper - Mimics input-primary look */
+.hw-combobox__main__wrapper {
+  @apply
+    !relative
+    !flex !items-center !flex-wrap /* Needed for chips */
+    !w-[31rem]
+    !rounded-none /* Match input-primary */
+    !border !border-stone-300 dark:!border-stone-600 /* Match input-primary */
+    !bg-stone-50 dark:!bg-stone-900 /* Match input-primary */
+    !pl-3 !pr-8 /* Padding L/R, leave space for handle */
+    !py-0 /* Remove default padding, handle height via input */
+    focus-within:!border-stone-400 dark:focus-within:!border-stone-500 /* Match input-primary focus */
+    focus-within:!ring-0 focus-within:!shadow-none; /* Match input-primary focus */
+}
+
+/* When chips are present, adjust wrapper min-height */
+.hw-combobox--multiple .hw-combobox__main__wrapper:has([data-hw-combobox-chip]) {
+  @apply !py-1 !min-h-[2.625rem]; /* approx py-2 height */
+}
+
+/* Input field inside the wrapper */
+.hw-combobox__input {
+  @apply
+    !flex-1 /* Allow shrinking/growing with chips */
+    !w-auto /* Allow shrinking with chips */
+    !min-w-[4rem] /* Prevent input becoming too small */
+    !p-0 /* Remove default padding */
+    !py-2 /* Vertical padding like input-primary */
+    !bg-transparent /* Inherit from wrapper */
+    !text-stone-800 dark:!text-stone-100 /* Match input-primary */
+    !border-none !outline-none focus:!ring-0 !shadow-none; /* Remove default focus/border */
+}
+
+/* Handle (Dropdown arrow/clear button) */
+.hw-combobox__handle {
+  /* Keep default positioning using CSS vars, ensure wrapper's `pr` gives enough space */
+}
+
+/* Listbox (Dropdown container) */
+.hw-combobox__listbox {
+  @apply
+    !mt-1 /* Space below input */
+    !bg-stone-50 dark:!bg-stone-900 /* Match input-primary bg */
+    !border !border-stone-300 dark:!border-stone-600 /* Match input-primary border */
+    !rounded-none !shadow-lg /* Appearance */
+    !max-h-60 !overflow-y-auto; /* Limit height and allow scroll */
+}
+
+/* Options within the listbox */
+.hw-combobox__option {
+  @apply
+    !px-3 !py-2 /* Consistent padding */
+    !cursor-pointer
+    !text-stone-800 dark:!text-stone-100 /* Standard text */
+    !bg-stone-50 dark:!bg-stone-900; /* Standard background */
+}
+
+/* Hover/Navigated state for options */
+.hw-combobox__option:hover,
+.hw-combobox__option--selected { /* Use same style for hover and selected for simplicity */
+  @apply !bg-stone-100 dark:!bg-stone-800 !text-stone-900 dark:!text-stone-50; /* Subtle highlight */
+}
+
+/* Selected state - Can be distinct if needed, but matching hover is common */
+.hw-combobox__option[aria-selected="true"] {
+  @apply !bg-stone-200 dark:!bg-stone-700 !text-stone-900 dark:!text-stone-50; /* Slightly stronger highlight for selection */
+}
+
+/* Blank option styling */
+.hw-combobox__option--blank {
+  @apply !text-stone-500 dark:!text-stone-400 !italic; /* Dimmer, italic */
+}
+
+/* Group labels within the listbox */
+.hw-combobox__group__label {
+  @apply
+    !px-3 !py-1
+    !font-semibold !sticky !top-0 /* Make group labels sticky */
+    !text-stone-500 dark:!text-stone-400
+    !bg-stone-100 dark:!bg-stone-800; /* Slightly different background */
+}
+
+/* Multiselect Chips */
+.hw-combobox__chip {
+  @apply
+    !inline-flex !items-center
+    !px-2.5 !py-0.5 /* Chip padding */
+    !rounded-full /* Fully rounded */
+    !text-xs !font-medium /* Chip text style */
+    !bg-stone-200 dark:!bg-stone-700 /* Chip background */
+    !text-stone-800 dark:!text-stone-100 /* Chip text color */
+    !mr-1 !mb-1; /* Spacing between chips */
+}
+
+/* Multiselect Chip Remover (the 'x') */
+.hw-combobox__chip__remover {
+  @apply
+    !ml-1.5 /* Space between text and 'x' */
+    !h-4 !w-4 /* Size */
+    !cursor-pointer
+    hover:!opacity-75; /* Hover effect */
+  /* Keep default SVG background */
+}
+
+/* Invalid State - Applied to wrapper for focus-within */
+.hw-combobox__main__wrapper:has(.hw-combobox__input--invalid) {
+    @apply
+      !border-red-500 dark:!border-red-400 /* Match typical invalid input border */
+      focus-within:!border-red-500 dark:focus-within:!border-red-400; /* Keep border red on focus */
+}
+/* Note: The JS adds/removes `hw-combobox__input--invalid` class to the *input*,
+    but we style the wrapper using :has() for the border/focus effect.
+    The JS also adds `aria-invalid="true"` to the input. */
+
+/* --- Dialog Styling (for mobile) --- */
+.hw-combobox__dialog {
+  @apply !bg-stone-100 dark:!bg-stone-800 !p-4 !rounded-lg; /* Basic dialog styling */
+}
+
+.hw-combobox__dialog__label {
+  @apply !text-lg !font-medium !text-stone-700 dark:!text-stone-300 !mb-2 !text-center; /* Dialog title */
+}
+
+.hw-combobox__dialog__input {
+  @apply !w-full !px-3 !py-2 !text-stone-800 dark:!text-stone-100 !bg-stone-50 dark:!bg-stone-900 !border !border-stone-300 dark:!border-stone-600 !rounded-md focus:!outline-none focus:!ring-0 focus:!border-stone-400 dark:focus:!border-stone-500; /* Match input-primary */
+}
+
+.hw-combobox__dialog__listbox {
+  @apply !mt-2 !max-h-[60vh] !overflow-y-auto; /* Adjust height/margin */
+}
+
+/* Dialog Options use same styles as regular options */
+.hw-combobox__dialog__listbox .hw-combobox__option {
+  @apply !px-3 !py-2 !cursor-pointer !text-stone-800 dark:!text-stone-100 !bg-stone-50 dark:!bg-stone-900;
+}
+
+.hw-combobox__dialog__listbox .hw-combobox__option:hover,
+.hw-combobox__dialog__listbox .hw-combobox__option[aria-selected="true"] {
+    @apply !bg-stone-200 dark:!bg-stone-700 !text-stone-900 dark:!text-stone-50;
+}
+
+.hw-combobox__dialog__listbox .hw-combobox__option--blank {
+  @apply !text-stone-500 dark:!text-stone-400 !italic;
+}
+
+.hw-combobox__dialog__listbox .hw-combobox__group__label {
+  @apply !px-3 !py-1 !font-semibold !sticky !top-0 !text-stone-500 dark:!text-stone-400 !bg-stone-100 dark:!bg-stone-800;
+}

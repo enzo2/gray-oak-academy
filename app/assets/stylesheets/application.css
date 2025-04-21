@@ -7,7 +7,7 @@
 		+ * depending on specificity.
 		  *
 		+ * Consider organizing styles into separate files for maintainability.
-		  */
+*/
 
 /* Import Shoelace CSS for light and dark themes */
 @import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css');
@@ -24,6 +24,7 @@
 /* fonts */
 @import url('Inter/inter.css');
 @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
+
 
 /* Hide custom elements until they are defined */
 :not(:defined) {
