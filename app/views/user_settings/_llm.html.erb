@@ -1,6 +1,7 @@
 <% if current_user.role_admin? %>
-  <h3 class="text-xl font-bold mb-4 mt-2">LLM Models</h3>
-  <p class="text-dim text-sm mb-4">Note: if you just added a model, chat with it first so it will be added here.</p>
+  <h3 class="text-xl font-bold mb-4 mt-2">LLM Settings</h3>
+  <p class="text-sm mb-4">This is where you can set LLM capabilities, if they could not be determined automatically. This will affect all users.</p>
+  <p class="text-dim text-sm mb-4">Note: If you just added a model, chat with it first so it will be added here.</p>
   <% grouped_llms = Llm.all.order(:api_provider, :model).group_by(&:api_provider) %>
   <% grouped_llms.each do |api_uri, llms| %>
     <details class="mb-4 border border-stone-300 dark:border-stone-700 rounded">

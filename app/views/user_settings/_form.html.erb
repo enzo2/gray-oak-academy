@@ -12,8 +12,8 @@
 
   <% if current_user.role_admin? %>
     <div data-controller="llm-settings" data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>"> <%# Add Stimulus controller wrapper + models path %>
-      <p class="mb-4">
-          <i>Note: If you leave these blank, the default settings from environment variables will be used.</i>
+      <p class="mb-4 text-sm text-dim">
+          <i>Note: If you leave any of these blank, the default settings from environment variables will be used.</i>
       </p>
 
       <div class="mb-1"> 
