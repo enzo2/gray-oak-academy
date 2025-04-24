@@ -57,7 +57,7 @@
               data-tts-target="spinner" 
               class="hidden p-0 ml-2"></sl-spinner>
           <% end.strip %>
-          <% Rails.logger.debug "TTS button HTML: #{tts_button_html.inspect}" %>
+          <%# Rails.logger.debug "TTS button HTML: #{tts_button_html.inspect}" %>
           <% content_with_tts += tts_button_html %>
         <% end %>
         <%# Render the combined content through the markdown helper %>
