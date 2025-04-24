@@ -216,6 +216,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     Be sure to use newlines after markdown items like headers and list items, or they will run-on as a single style/item.
     For example, don't write -Item1- Item2- Item3, but rather - Item1\n- Item2\n- Item3.
     KaTeX is enabled. You can use the delimiters $ for inline math, and $$ for display/block math. For the latter, do not include whitespace or newline between the delimiters and the math content. E.g.: $$x^2$$.
+    Do not use triple backticks around KaTeX unless you intend to display the code itself.
 
     By default, you have a large chalkboard panel at your disposal next to the chat.
     (If the user's screen is too small, they'll be notified and the chalkboard will be hidden. But if user still complains that they can't see it, suggest using a larger device.)
