@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["recordButton", "helpText", "textarea"]
-  static values = { conversationId: String }
+  static values = { conversationId: String, audioPermitted: Boolean }
 
   connect() {
     // If not secure, don't bother initializing, as MediaRecorder won't work.
@@ -111,8 +111,13 @@ export default class extends Controller {
     const formData = new FormData()
     formData.append('audio', audioBlob, `recording-${Date.now()}.webm`)
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+
+    // Choose endpoint based on audioPermitted value
+    const endpoint = this.audioPermittedValue
+      ? `/conversations/${this.conversationIdValue}/audio_messages`
+      : `/conversations/${this.conversationIdValue}/transcribed_messages`;
     try {
-      const response = await fetch(`/conversations/${this.conversationIdValue}/audio_messages`, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'X-CSRF-Token': csrfToken,
@@ -121,11 +126,9 @@ export default class extends Controller {
         },
         body: formData
       })
-
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`)
       }
-
     } catch (error) {
       console.error('Error uploading audio:', error)
     }

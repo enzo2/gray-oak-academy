@@ -23,6 +23,7 @@ Rails.application.routes.draw do
     end
     resources :messages, only: [ :create ]
     post "audio_messages", to: "messages#create_audio_message"
+    post "transcribed_messages", to: "messages#create_transcribed_message"
   end
 
   get "proxy/image", to: "messages#proxy_image"

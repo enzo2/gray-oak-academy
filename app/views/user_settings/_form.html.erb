@@ -87,19 +87,25 @@
         </div>
 
         <div class="mb-4">
-          <%= f.label :tts_model_name, "Speech model name", class: "form-label" %>
+          <%= f.label :tts_model_name, "TTS model name", class: "form-label" %>
           <%= f.text_field :tts_model_name, class: "input-primary", placeholder: "gpt-4o-mini-tts" %>
         </div>
 
         <div class="mb-4">
-          <%= f.label :tts_voice_name, "Voice name", class: "form-label" %>
+          <%= f.label :tts_voice_name, "TTS voice name", class: "form-label" %>
           <%= f.text_field :tts_voice_name, class: "input-primary", placeholder: "verse" %>
         </div>
 
         <div class="mb-4">
           <%= f.label :tts_instructions, "TTS instructions", class: "form-label" %>
           <%= f.text_area :tts_instructions, class: "input-primary", 
-              placeholder: "Don't be too enthusiastic. Speak in a calm and friendly tone." %>
+                placeholder: "Don't be too enthusiastic. Speak in a calm and friendly tone." %>
+        </div>
+
+        <div class="mb-4">
+          <%= f.label :stt_model_name, "STT model name", class: "form-label" %>
+          <%= f.text_field :stt_model_name, class: "input-primary", 
+                placeholder: "gpt-4o-mini-transcribe" %>
         </div>
       </details>
 

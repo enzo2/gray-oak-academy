@@ -15,6 +15,7 @@ class Setting < ApplicationRecord
   store_accessor :settings, :tts_model_name
   store_accessor :settings, :tts_voice_name
   store_accessor :settings, :tts_instructions
+  store_accessor :settings, :stt_model_name
 
   # keys that should be inherited from the teacher's settings for students:
   INHERITED_SETTING_KEYS = %i[
@@ -26,6 +27,7 @@ class Setting < ApplicationRecord
     tts_model_name
     tts_voice_name
     tts_instructions
+    stt_model_name
   ].freeze
 
   INHERITED_SETTING_KEYS.each do |key|

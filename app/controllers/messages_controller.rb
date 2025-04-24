@@ -81,6 +81,34 @@ class MessagesController < ApplicationController
     render json: { error: "Failed to process audio message", details: e.message }, status: :internal_server_error
   end
 
+  # POST /conversations/:conversation_id/transcribed_messages
+  def create_transcribed_message
+    conversation = Conversation.find(params[:conversation_id])
+    unless params[:audio]
+      render json: { error: "No audio file provided" }, status: :bad_request
+      return
+    end
+
+    # Run STT using SpeechService
+    begin
+      speech_service = SpeechService.new(current_user: current_user)
+      transcription = speech_service.transcribe(params[:audio].tempfile)
+    rescue SpeechService::SpeechServiceError => e
+      Rails.logger.error "STT failed: #{e.message}"
+      render json: { error: "Transcription failed", details: e.message }, status: :unprocessable_entity
+      return
+    end
+
+    # Create a user message with the transcribed text
+    @message = conversation.messages.new(role: "user", content: transcription)
+    if @message.save
+      render :create
+      GetLlmCompletionJob.perform_later(conversation: conversation)
+    else
+      render json: { error: "Failed to save message", details: @message.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   # Proxy the image content-type check, since it can't be done in the Stimulus controller due to CORS
   def proxy_image
     require "net/http"

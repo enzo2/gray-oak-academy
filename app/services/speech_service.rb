@@ -17,7 +17,7 @@ class SpeechService
     @tts_model = @user.settings.tts_model_name.presence || "gpt-4o-mini-tts"
     @tts_voice = @user.settings.tts_voice_name.presence || "verse"
     @tts_instructions = @user.settings.tts_instructions.presence || "Don't be too enthusiastic. Speak in a calm and friendly tone."
-
+    @stt_model = @user.settings.stt_model_name.presence || "gpt-4o-mini-transcribe"
     @client = create_speech_client
   end
 
@@ -60,6 +60,46 @@ class SpeechService
       raise SpeechServiceError, "Resource not found in TTS generation: #{e.message}: #{error_message}"
     rescue StandardError => e
       Rails.logger.error "StandardError in TTS generation: #{e.message}"
+      raise e # Re-raise other standard errors
+    end
+  end
+
+  # Speech-to-Text (transcription) method
+  def transcribe(audio_file)
+    begin
+      response = @client.audio.transcribe(
+        parameters: {
+          model: @stt_model,
+          file: audio_file,
+          response_format: "text"
+        }
+      )
+      response # Should be the transcribed text
+    rescue Faraday::BadRequestError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "BadRequestError in STT transcription: #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Bad Request in STT transcription: #{e.message}: #{error_message}"
+    rescue Faraday::TimeoutError => e
+      Rails.logger.error "Faraday::TimeoutError in STT transcription: #{e.message}"
+      raise SpeechServiceError, "Speech API did not respond in time for STT."
+    rescue Faraday::ServerError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ServerError in STT transcription: #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Server Error in STT transcription: #{e.message}: #{error_message}"
+    rescue Faraday::ClientError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ClientError in STT transcription: #{e.message}"
+      raise SpeechServiceError, "ClientError in STT transcription: #{e.message}: #{error_message}"
+    rescue Faraday::UnauthorizedError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::UnauthorizedError in STT transcription: #{e.message}: #{error_message}"
+      raise SpeechServiceError, "The access key was unauthorized for STT transcription: #{error_message}"
+    rescue Faraday::ResourceNotFound => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ResourceNotFound error in STT transcription: #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Resource not found in STT transcription: #{e.message}: #{error_message}"
+    rescue StandardError => e
+      Rails.logger.error "StandardError in STT transcription: #{e.message}"
       raise e # Re-raise other standard errors
     end
   end

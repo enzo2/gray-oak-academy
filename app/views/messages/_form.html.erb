@@ -4,7 +4,8 @@
       class: "",
       data: { 
         controller: "new-message audio-recorder",
-        audio_recorder_conversation_id_value: conversation.id  }
+        audio_recorder_conversation_id_value: conversation.id,
+        audio_recorder_audio_permitted_value: conversation.audio_permitted?  }
     ) do |form| %>
 
   <% if local_assigns[:error].present? %>
@@ -73,7 +74,7 @@
       </sl-dropdown>
 
       <sl-icon-button 
-        class="<%= 'hidden' unless conversation.audio_permitted? %>"
+        class=""
         name="mic" id="recordButton"
         data-audio-recorder-target="recordButton"
         data-action="click->audio-recorder#toggleRecording">
