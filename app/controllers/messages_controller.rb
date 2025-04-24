@@ -32,7 +32,7 @@ class MessagesController < ApplicationController
     @message.save!
 
     # Get completion and stream the response to the conversation view
-    GetLlmCompletionJob.perform_later(conversation_id: @message.conversation_id)
+    GetLlmCompletionJob.perform_later(conversation: @message.conversation)
 
     # The view is then rendered with a placeholder for the assistant message while the above job runs.
     respond_to do |format|
@@ -63,32 +63,21 @@ class MessagesController < ApplicationController
     end
 
     # Create new user message with audio attachment
-    message = conversation.messages.new(role: "user", content: "") # Content is empty for audio-only messages
-    message = Message.new(role: "user", content: "", conversation_id: params[:conversation_id])
-    audio = message.audios.build(content_type: audio_file.content_type)
+    @message = conversation.messages.new(role: "user", content: "") # Content is empty for audio-only messages
+    audio = @message.audios.build(content_type: audio_file.content_type)
     audio.file.attach(audio_file)
 
-    if message.save # This will broadcast user message
-      # Broadcast placeholder assistant message to the conversation
-      Turbo::StreamsChannel.broadcast_append_later_to(
-        conversation,
-        target: "#{dom_id(conversation)}",
-        partial: "messages/message",
-        locals: { message: Message.new(role: :assistant, content: "") }
-      )
-      # Queue the completion
-      GetLlmCompletionJob.perform_later(conversation_id: conversation.id)
-
-      head :ok # Simple success response
+    if @message.save # This will broadcast user message
+      render :create  # Render the turbo_stream view to show a placeholder for the assistant reply
+      GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message
     else
-      message.destroy
+      @message.destroy
       render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_entity
     end
-
   rescue StandardError => e
     Rails.logger.error "Failed to create audio message: #{e.message}"
     # Attempt to destroy the potentially created message if an error occurred after its creation
-    message&.destroy
+    @message&.destroy
     render json: { error: "Failed to process audio message", details: e.message }, status: :internal_server_error
   end
 
@@ -138,6 +127,56 @@ class MessagesController < ApplicationController
   rescue StandardError => e
     Rails.logger.error "Image proxy error: #{e.message}"
     head :bad_request
+  end
+
+  # GET /messages/:id/tts
+  def tts
+    message = Message.find(params[:id])
+
+    # Ensure it's an assistant message and has content
+    unless message.role_assistant? && message.content.present?
+      return head :not_found
+    end
+
+    # Ensure the user has access to this message's conversation
+    unless message.conversation.user == current_user || current_user.role_admin?
+      return head :forbidden
+    end
+
+    # Check if speech is configured for the user
+    unless current_user.settings.speech_configured?
+      Rails.logger.warn "Speech generation requested but not configured for user #{current_user.id}"
+      return head :not_implemented
+    end
+
+    begin
+      # Initialize the SpeechService
+      speech_service = SpeechService.new(current_user: current_user)
+
+      # Get the audio data using the new service (requests "opus" format, which openAI wraps in OGG)
+      audio_data = speech_service.tts(message.content)
+
+      # Send the audio data with the correct content type
+      send_data audio_data, type: "audio/ogg", disposition: "inline"
+    rescue SpeechService::SpeechServiceError => e # Catch specific service error
+      Rails.logger.error "Speech generation failed for message #{message.id}: #{e.message}"
+      # Return appropriate status based on error (e.g., 503 if API unavailable, 400 for bad request)
+      # For simplicity, returning 500 for now. Consider more specific error codes.
+      status_code = case e.message
+      when /unauthorized/i
+                      :unauthorized
+      when /Bad Request/i
+                      :bad_request
+      when /not configured/i
+                      :not_implemented
+      else
+                      :internal_server_error
+      end
+      head status_code
+    rescue StandardError => e
+      Rails.logger.error "Unexpected error during speech generation for message #{message.id}: #{e.message}"
+      head :internal_server_error
+    end
   end
 
   private

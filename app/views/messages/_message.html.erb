@@ -38,7 +38,27 @@
       <% if message.content.blank? # && message.images.blank? %>
        <sl-spinner></sl-spinner>
       <% else %>
-        <%= markdown(message.content) %>
+        <%# Prepare content, potentially adding the inline TTS button %>
+        <% content_with_tts = message.content %>
+        <%# Add TTS button only if message has content AND speech is configured for the user %>
+        <% if message.content.present? && current_user.settings.speech_configured? %>
+          <% tts_button_html = capture do %>
+            <sl-icon-button
+              name="volume-up"
+              label="Read aloud"
+              data-action="click->conversation#playTTS"
+              data-message-id-param="<%= message.id %>"
+              data-conversation-target="ttsButton"
+              data-tts-state="idle"
+              class="text-base [&::part(base)]:p-0
+                     text-stone-500 hover:text-stone-700 dark:text-stone-400 
+                     dark:hover:text-stone-200 ml-1 cursor-pointer">
+            </sl-icon-button>
+          <% end %>
+          <% content_with_tts += " " + tts_button_html %>
+        <% end %>
+        <%# Render the combined content through the markdown helper %>
+        <%= markdown(content_with_tts) %>
       <% end %>
     </div>
   <% end %>

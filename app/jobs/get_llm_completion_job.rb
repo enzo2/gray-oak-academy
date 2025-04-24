@@ -6,8 +6,7 @@ class GetLlmCompletionJob < ApplicationJob
   # Add a task_system_prompt to the conversation, and it will be appended to the base system prompts.
   # Otherwise, the default system prompt will be used without any further instructions.
 
-  def perform(conversation_id:)
-    conversation = Conversation.find(conversation_id)
+  def perform(conversation:)
     user = conversation.user
 
     client = OpenaiApiService.new( # Uses ruby-openai gem (not just for OpenAI, supports any OpenAI-compatible API):

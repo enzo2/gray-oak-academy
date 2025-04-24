@@ -27,7 +27,7 @@ class Message < ApplicationRecord
       target: "#{dom_id(conversation)}"
     )
     # Remove any temporary new message placeholder
-    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
+    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
   end
 
   def broadcast_updated

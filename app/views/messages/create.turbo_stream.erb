@@ -3,6 +3,7 @@
 <%# Then, this view is rendered, adding a placeholder for the assistant reply. %>
 
 <%# Placeholder for the assistant reply. Empty content will be rendered as a spinner. %>
+<%# This will have an id of "new_message" and is removed via callback when the real message is broadcast. %>
 <%= turbo_stream.append "#{dom_id(@message.conversation)}" do %>
   <%= render "message", message: Message.new(role: :assistant, content: "") %>
 <% end %>

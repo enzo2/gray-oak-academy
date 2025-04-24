@@ -115,7 +115,8 @@ export default class extends Controller {
       const response = await fetch(`/conversations/${this.conversationIdValue}/audio_messages`, {
         method: 'POST',
         headers: {
-          'X-CSRF-Token': csrfToken
+          'X-CSRF-Token': csrfToken,
+          'Accept': 'text/vnd.turbo-stream.html'
           // 'Content-Type' is automatically set by fetch for FormData
         },
         body: formData

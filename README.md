@@ -24,7 +24,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- Native LLM chat interface with image and audio input
+- Native LLM chat interface with image and audio input, TTS
 - Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans
@@ -32,24 +32,23 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - LLM-generated student reports are fed into the next session, allowing the whole course to be personalized.
 
 ### More cool stuff
-- All prompts can be customized (default set of prompts included)
+- All system prompts can be customized (opinionated defaults included)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
 - Remembers API URIs and model names for easy switching
 - App name can be customized via env variable
-- Snappy interface using Turbo & Stimulus
 - Dark/Light mode
 
 ### Frameworks/Tooling
  - Rails 8.0, Ruby 3.4, Postgres
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
- - No node, just importmaps
+ - No npm, just importmaps
  - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini)
 
 ### Security
 - Devise for authentication
-- Teacher/Admin and Student roles
+- Teacher (Admin) and Student roles
 - Designed for containerized use in a local secure environment
 - For security, not designed for hosting publically by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
 - Note: The LLM is permitted to auto-execute its own javascript within a sandboxed iframe. 
@@ -58,7 +57,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - `git clone` the repository to your machine. Docker is needed. 
 - Set up .env files according to the examples.
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
-- If you're just trying it out or don't care to see detailed logs, use a production environment with docker compose, as per below. You can also use the devcontainer.
+- If you're just trying it out or don't care to see detailed logs, follow 'Production' instructions below. Or, you can use the devcontainer.
 
 ### Production:
 - Create `/.env.production`: see `.env.production.example`. 
@@ -89,7 +88,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Create a teacher account using the teacher signup code.
 - Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. 
 - Go to Prompts if you want to review your system prompts.
-- To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet.
+- To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. You can also add resources.
@@ -106,11 +105,11 @@ Maintain the core app principles:
 - All LLM prompts should be user-editable; use the Prompts model. 
 - Test with different LLMs.
 
-### Planned Features
-- STT/TTS; conversational/speech-only lesson plan support
+### Future feature ideas:
+- Conversational/speech-only lesson plan support (STT or audio in, TTS out)
+- If not cost-prohibitive, experiment with realtime, fully multimodal APIs - ?container for Pipecat with Gemini Live API
 - Camera/webcam input (e.g. show the LLM your work)
-- Experiment with realtime, fully multimodal APIs - ?container for Pipecat with Gemini Live API
-- Support for native image generation (once good enough for teaching)
+- OpenAI Images API support for generative diagrams, infographics, student inspiration, etc. 
 - Resource suggestions to the teacher based on lesson goals
 - Resource tagging, archive, usage tracking
 - Student profile (e.g. memory tool, joint teacher-LLM understanding of the student, etc.)
