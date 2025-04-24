@@ -158,13 +158,7 @@ class OpenaiApiService
   end
 
   def create_client
-    retry_options = {
-      max: 2,
-      interval: 0.05,
-      interval_randomness: 0.5,
-      backoff_factor: 2
-    }
-
+    retry_options = { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
     OpenAI::Client.new(access_token: @access_token, uri_base: @base_uri) do |faraday|
       faraday.request :retry, retry_options
       faraday.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|

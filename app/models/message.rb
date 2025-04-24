@@ -32,9 +32,11 @@ class Message < ApplicationRecord
 
   def broadcast_updated
     Rails.logger.debug "Broadcasting updated message: #{self.inspect}"
-    html = ApplicationController.render(partial: "messages/message", locals: { message: self })
+    # Due to https://github.com/hotwired/turbo-rails/issues/644, we need extract the inner_html of the message partial.
+    # This allows same partial to be used for create and update.
+    html = ApplicationController.renderer_with_signed_in_user(conversation.user).render(partial: "messages/message", locals: { message: self })
     dom = Nokogiri::HTML.fragment(html)
-    html = dom.at_css(":root").inner_html # Remove the root element, since we don't want to replace the whole message. Allows same partial to be used for create and update.
+    html = dom.at_css(":root").inner_html
     broadcast_update_later_to(
       "#{dom_id(conversation)}",
       target: dom_id(self),
