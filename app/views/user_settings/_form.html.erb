@@ -27,19 +27,20 @@
       </div>
       <p class="text-sm text-dim mb-1">
         Should look like: https://openrouter.ai/api/v1/
-      </p>      <sl-tree class="mb-4" selection="leaf">
-        <sl-tree-item>
-          <sl-icon name="question-square"></sl-icon>
-          &nbsp;Which should I use?
-          <sl-tree-item>
+      </p>      
+
+      <details class="mb-4">
+        <summary class="text-sm text-dim cursor-pointer mb-2">
+          Which should I use?
+        </summary>
+          <p class="text-sm text-dim pl-2">
             Any OpenAI-compatible API is supported.<br>
             If OpenRouter is used, app will track actual costs and context window usage.<br>
             This may be useful for heavier use or longer lessons.<br>
             It also allows trying various models from different providers easily, and avoids tiered limits.<br>
             However, OpenRouter doesn't support audio input.
-          </sl-tree-item>
-        </sl-tree-item>
-      </sl-tree>
+          </p>
+      </details>
 
       <div class="">
         <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
@@ -60,6 +61,47 @@
                          llm_settings_target: "modelCombobox"
                        } %>
       </div>
+
+      <hr class="my-6 border-stone-300 dark:border-stone-700">
+
+      <h4 class="text-lg font-semibold mb-2">Speech API Settings (Optional)</h4>
+      <p class="mb-4 text-sm text-dim">
+          To enable text-to-speech, add OpenAI-compatible Speech API credentials here.<br>
+          To use defaults, add your OpenAI access token and leave the other fields empty.
+      </p>
+
+      <details class="mb-6">
+        <summary class="cursor-pointer text-sm text-dim mb-2">Show settings</summary>
+
+        <div class="mb-4">
+          <%= f.label :speech_api_base_uri, "Speech API base URI", class: "form-label" %>
+          <%= f.url_field :speech_api_base_uri, class: "input-primary", placeholder: "https://api.openai.com/v1/" %>
+        </div>
+
+        <div class="mb-4">
+          <%= f.label :speech_api_access_token, "Speech API access token", class: "form-label" %>
+          <%= f.text_field :speech_api_access_token, class: "input-primary" %>
+          <p class="text-sm text-dim mt-1">
+            Will be stored in the database. Encryption is not provided.
+          </p>
+        </div>
+
+        <div class="mb-4">
+          <%= f.label :tts_model_name, "Speech model name", class: "form-label" %>
+          <%= f.text_field :tts_model_name, class: "input-primary", placeholder: "gpt-4o-mini-tts" %>
+        </div>
+
+        <div class="mb-4">
+          <%= f.label :tts_voice_name, "Voice name", class: "form-label" %>
+          <%= f.text_field :tts_voice_name, class: "input-primary", placeholder: "verse" %>
+        </div>
+
+        <div class="mb-4">
+          <%= f.label :tts_instructions, "TTS instructions", class: "form-label" %>
+          <%= f.text_area :tts_instructions, class: "input-primary", 
+              placeholder: "Don't be too enthusiastic. Speak in a calm and friendly tone." %>
+        </div>
+      </details>
 
       <div class="mb-6">
         <%= f.submit "Update Settings", class: "btn-primary" %>

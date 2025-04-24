@@ -26,6 +26,7 @@ Rails.application.routes.draw do
   end
 
   get "proxy/image", to: "messages#proxy_image"
+  get "messages/:id/tts", to: "messages#tts"
 
   resources :enrollments, only: [ :show ]
 

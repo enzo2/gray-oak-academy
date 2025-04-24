@@ -36,6 +36,10 @@ class UserSettingsController < ApplicationController
   end
 
   def user_settings_params
-    params.require(:setting).permit(:llm_model_name, :llm_api_access_token, :llm_api_base_uri)
+    params.require(:setting).permit(
+      :llm_model_name, :llm_api_access_token, :llm_api_base_uri,
+      :speech_api_base_uri, :speech_api_access_token, :tts_model_name,
+      :tts_voice_name, :tts_instructions
+    )
   end
 end

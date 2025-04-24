@@ -10,34 +10,39 @@ class Setting < ApplicationRecord
   store_accessor :settings, :llm_model_name
   store_accessor :settings, :llm_api_access_token
   store_accessor :settings, :llm_api_base_uri
+  store_accessor :settings, :speech_api_base_uri
+  store_accessor :settings, :speech_api_access_token
+  store_accessor :settings, :tts_model_name
+  store_accessor :settings, :tts_voice_name
+  store_accessor :settings, :tts_instructions
+
+  # keys that should be inherited from the teacher's settings for students:
+  INHERITED_SETTING_KEYS = %i[
+    llm_model_name
+    llm_api_access_token
+    llm_api_base_uri
+    speech_api_base_uri
+    speech_api_access_token
+    tts_model_name
+    tts_voice_name
+    tts_instructions
+  ].freeze
+
+  INHERITED_SETTING_KEYS.each do |key|
+    define_method(key) do
+      if user.role_student? && user.teacher
+        user.teacher.settings.public_send(key)
+      else
+        super()
+      end
+    end
+  end
 
   before_validation :ensure_llm_api_base_uri_trailing_slash
+  before_validation :ensure_speech_api_base_uri_trailing_slash
 
-  # Overwrite default accessors below:
-
-  # for students, if adopted by a teacher, use the teacher's settings
-  def llm_model_name
-    if user.role_student? && user.teacher
-      user.teacher.settings.llm_model_name
-    else
-      super
-    end
-  end
-
-  def llm_api_access_token
-    if user.role_student? && user.teacher
-      user.teacher.settings.llm_api_access_token
-    else
-      super
-    end
-  end
-
-  def llm_api_base_uri
-    if user.role_student? && user.teacher
-      user.teacher.settings.llm_api_base_uri
-    else
-      super
-    end
+  def speech_configured?
+    speech_api_base_uri.present? && speech_api_access_token.present?
   end
 
   private
@@ -47,6 +52,12 @@ class Setting < ApplicationRecord
     # This ensures the change is saved to the JSONB column
     if llm_api_base_uri.present? && !llm_api_base_uri.end_with?("/")
       self.llm_api_base_uri = "#{llm_api_base_uri}/"
+    end
+  end
+
+  def ensure_speech_api_base_uri_trailing_slash
+    if speech_api_base_uri.present? && !speech_api_base_uri.end_with?("/")
+      self.speech_api_base_uri = "#{speech_api_base_uri}/"
     end
   end
 end
