@@ -74,6 +74,11 @@ export default class extends Controller {
         URL.revokeObjectURL(this.audioPlayer.src);
       }
     }
+    if (this.audioPlayer) {
+      this.audioPlayer.oncanplaythrough = null;
+      this.audioPlayer.onended = null;
+      this.audioPlayer.onerror = null;
+    }
     this.audioPlayer = null;
     this.currentPlayingButton = null;
   }
