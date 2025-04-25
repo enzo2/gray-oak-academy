@@ -75,9 +75,10 @@ class MessagesController < ApplicationController
       render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_entity
     end
   rescue StandardError => e
-    Rails.logger.error "Failed to create audio message: #{e.message}"
     # Attempt to destroy the potentially created message if an error occurred after its creation
     @message&.destroy
+    Rails.logger.error "Failed to create audio message: #{e.message}"
+    broadcast_flash(conversation, "Failed to create audio message: #{e.message}")
     render json: { error: "Failed to process audio message", details: e.message }, status: :internal_server_error
   end
 
@@ -95,6 +96,7 @@ class MessagesController < ApplicationController
       transcription = speech_service.transcribe(params[:audio].tempfile)
     rescue SpeechService::SpeechServiceError => e
       Rails.logger.error "STT failed: #{e.message}"
+      broadcast_flash(conversation, "Transcription failed: #{e.message}")
       render json: { error: "Transcription failed", details: e.message }, status: :unprocessable_entity
       return
     end
@@ -178,18 +180,11 @@ class MessagesController < ApplicationController
     end
 
     begin
-      # Initialize the SpeechService
       speech_service = SpeechService.new(current_user: current_user)
-
-      # Get the audio data using the new service (requests "opus" format, which openAI wraps in OGG)
-      audio_data = speech_service.tts(message.content)
-
-      # Send the audio data with the correct content type
+      audio_data = speech_service.tts(message.content) # requests Opus format, which OpenAI wraps in Ogg
       send_data audio_data, type: "audio/ogg", disposition: "inline"
     rescue SpeechService::SpeechServiceError => e # Catch specific service error
       Rails.logger.error "Speech generation failed for message #{message.id}: #{e.message}"
-      # Return appropriate status based on error (e.g., 503 if API unavailable, 400 for bad request)
-      # For simplicity, returning 500 for now. Consider more specific error codes.
       status_code = case e.message
       when /unauthorized/i
                       :unauthorized
@@ -200,6 +195,7 @@ class MessagesController < ApplicationController
       else
                       :internal_server_error
       end
+      broadcast_flash(message.conversation, e.message)
       head status_code
     rescue StandardError => e
       Rails.logger.error "Unexpected error during speech generation for message #{message.id}: #{e.message}"
@@ -211,5 +207,14 @@ class MessagesController < ApplicationController
 
   def message_params
     params.require(:message).except(:images).permit(:content, :images_data)
+  end
+
+  def broadcast_flash(conversation, error_msg)  # Update the flash bar
+    Turbo::StreamsChannel.broadcast_update_later_to(
+      "#{dom_id(conversation)}",
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { error: error_msg } }
+    )
   end
 end

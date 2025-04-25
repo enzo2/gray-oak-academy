@@ -111,7 +111,7 @@ class OpenaiApiService
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
-      raise OpenAiError, "Bad Reqest: #{e.message}: #{error_message}"
+      raise OpenAiError, "Bad Request: #{e.message}: #{error_message}"
     rescue Faraday::TimeoutError => e
       Rails.logger.error "Faraday::TimeoutError #{e.message}"
       raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
