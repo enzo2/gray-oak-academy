@@ -2,20 +2,15 @@
   <% flash.each do |message_type, message| %>
     <% Rails.logger.debug "Flash message: #{message_type} - #{message}" %>
     <% unless message.blank? %>
-      <sl-alert 
-        <% if message_type == "success" %>
-          variant="success"
-        <% elsif message_type == "error" %>
-          variant="danger"
-        <% elsif message_type == "warning" %>
-          variant="warning"
-        <% elsif message_type == "alert" %>
-          variant="warning"
-        <% elsif message_type == "neutral" %>
-          variant="neutral"
-        <% else %>
-          variant="primary"
-        <% end %>
+      <sl-alert variant="<%=
+          case message_type.to_s
+          when 'success' then 'success'
+          when 'error' then 'danger'
+          when 'warning', 'alert' then 'warning'
+          when 'neutral' then 'neutral'
+          else 'primary'
+          end
+        %>"
         data-alert-target="alert" 
         closable data-turbo-temporary>
         <sl-icon slot="icon" name="info-circle"></sl-icon>
