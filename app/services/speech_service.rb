@@ -19,7 +19,8 @@ class SpeechService
     @client = create_speech_client
   end
 
-  # Text-to-Speech method - Streaming
+  # There is no point using ruby-openai client for TTS, as the response time is so slow without chunked transfer encoding
+  # Use Faraday directly for streaming
   def tts_stream(text, &block)
     # Use Faraday directly for streaming
     conn = Faraday.new(url: @speech_base_uri) do |faraday|
@@ -29,26 +30,29 @@ class SpeechService
       faraday.adapter Faraday.default_adapter
     end
 
+    # Remove any code blocks from the text
+    text = text.gsub(/```.*?```/m, "")
+
     endpoint = "audio/speech"
     payload = {
       model: @tts_model,
       input: text,
       voice: @tts_voice,
-      response_format: "aac", # Request AAC format
+      response_format: "aac", # Request AAC format; as opus compatibility varies
       instructions: @tts_instructions
     }.to_json
 
     begin
       response = conn.post(endpoint) do |req|
         req.headers["Content-Type"] = "application/json"
-        req.headers["Accept"] = "audio/aac" # Accept AAC format
+        req.headers["Transfer-Encoding"] = "chunked"
+        req.headers["Accept"] = "audio/aac"
         req.body = payload
         req.options.timeout = 120 # Timeout for the entire request
         req.options.open_timeout = 10 # Timeout for connection
 
         # Faraday block for streaming response
         req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
-          # Removed chunk logging
           yield chunk # Yield each chunk to the controller
         end
       end
