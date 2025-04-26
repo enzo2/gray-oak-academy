@@ -5,7 +5,7 @@
       data: { 
         controller: "new-message audio-recorder",
         audio_recorder_conversation_id_value: conversation.id,
-        audio_recorder_audio_permitted_value: conversation.audio_permitted?  }
+        audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?  }
     ) do |form| %>
 
   <% if local_assigns[:error].present? %>

@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["recordButton", "helpText", "textarea"]
-  static values = { conversationId: String, audioPermitted: Boolean }
+  static values = { conversationId: String, audioInputPermitted: Boolean }
 
   connect() {
     // If not secure, don't bother initializing, as MediaRecorder won't work.
@@ -113,7 +113,7 @@ export default class extends Controller {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
 
     // Choose endpoint based on audioPermitted value
-    const endpoint = this.audioPermittedValue
+    const endpoint = this.audioInputPermittedValue
       ? `/conversations/${this.conversationIdValue}/audio_messages`
       : `/conversations/${this.conversationIdValue}/transcribed_messages`;
     try {

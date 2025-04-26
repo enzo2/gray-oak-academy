@@ -11,28 +11,35 @@ class Conversation < ApplicationRecord
   # The task_system_prompt should include the task at hand, and should not include the base system prompts or generative guidelines, which are added in OpenAiApiService.
   # The base prompts and the task prompt are injected together upon the completion request.
 
+  def last_prompt_tokens
+    completions.last&.prompt_tokens || 0
+  end
+
   def llm_in_use
     model = user.setting.llm_model_name.presence ? user.setting.llm_model_name : ENV["DEFAULT_MODEL"]
     api = user.setting.llm_api_base_uri.presence ? user.setting.llm_api_base_uri : ENV["OPENAI_API_BASE_URI"]
     llm = Llm.find_by(model: model, api_provider: api)
     llm ? llm : completions.last&.llm
-    # May return nil if the user's settings haven't been used yet and the conversation is blank
+    # May return nil if the set LLM has never been used, as Llm is created only after the first completion.
   end
 
-  def last_prompt_tokens
-    completions.last&.prompt_tokens || 0
+  def audio_input_supported?
+    llm_in_use&.supports_audio_input?
   end
 
+  # The teacher sets whether audio input is disabled, enabled, or forced.
+  # In the event the LLM does not support audio input, we fall back to transcription at later stages.
   def audio_setting
     if lesson_progress # for lesson conversations
       lesson_progress.lesson_plan.audio # Can be "disabled", "enabled", or "only"
     else # for generic conversations
-      llm_in_use&.supports_audio_input ? "enabled" : "disabled"
+      audio_input_supported? ? "enabled" : "disabled"
     end
   end
 
-  def audio_permitted?
-    audio_setting == "enabled" || audio_setting == "only"
+  # Check if the current LLM supports audio input, and the conversation is set to allow it.
+  def audio_input_permitted?
+    audio_input_supported? && audio_setting != "disabled"
   end
 
   # Returns the percentage of the context limit used by the conversation.

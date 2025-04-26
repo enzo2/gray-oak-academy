@@ -14,6 +14,7 @@ class Message < ApplicationRecord
   # Include broadcast logic in the model, since it's an inherent property of Messages that they will need to be viewed immediately.
   after_create_commit -> { broadcast_created; check_context_limit }
   after_update_commit -> { broadcast_updated }
+  after_destroy_commit -> { broadcast_destroyed }
 
   def broadcast_created
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
@@ -42,6 +43,11 @@ class Message < ApplicationRecord
       target: dom_id(self),
       html: html
     )
+  end
+
+  def broadcast_destroyed
+    Rails.logger.debug "Broadcasting destroyed message: #{self.inspect}"
+    broadcast_remove_to("#{dom_id(conversation)}", target: dom_id(self))
   end
 
   # Return content in JSON format with base64 images for LLM APIs.

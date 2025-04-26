@@ -24,7 +24,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- Native LLM chat interface with image and audio input, TTS
+- Native LLM chat interface with image and audio input (fallback to STT), TTS
 - Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans

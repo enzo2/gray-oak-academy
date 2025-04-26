@@ -52,8 +52,10 @@ class MessagesController < ApplicationController
   # POST /conversations/:conversation_id/audio_messages
   def create_audio_message
     conversation = Conversation.find(params[:conversation_id])
-    unless conversation.audio_permitted?
-      render json: { error: "Audio messages are not permitted for this conversation" }, status: :forbidden
+    unless conversation.audio_input_permitted?
+      render json: {
+        error: "Audio messages are not permitted for this conversation. Use transcription instead."
+        }, status: :forbidden
       return
     end
 
@@ -91,24 +93,35 @@ class MessagesController < ApplicationController
       return
     end
 
+    # Create a new user message with empty content
+    # This will be broadcast to the conversation view
+    # If STT fails, we will destroy it.
+    @message = conversation.messages.create!(role: "user", content: "")
+
     # Run STT using SpeechService
     begin
       speech_service = SpeechService.new(current_user: current_user)
       transcription = speech_service.transcribe(params[:audio].tempfile)
+      @message.content = transcription
+      if @message.save # This will broadcast the updated message
+        render :create # Render the turbo_stream view to show a placeholder for the assistant reply
+        GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the completion
+      else
+        @message.destroy
+        broadcast_flash(conversation, "Failed to save message: #{@message.errors.full_messages.join(', ')}")
+        Rails.logger.error "Failed to save message: #{@message.errors.full_messages.join(', ')}"
+        render json: { error: "Failed to save message", details: @message.errors.full_messages }, status: :unprocessable_entity
+      end
     rescue SpeechService::SpeechServiceError => e
+      @message.destroy
       Rails.logger.error "STT failed: #{e.message}"
       broadcast_flash(conversation, "Transcription failed: #{e.message}")
       render json: { error: "Transcription failed", details: e.message }, status: :unprocessable_entity
-      return
-    end
-
-    # Create a user message with the transcribed text
-    @message = conversation.messages.new(role: "user", content: transcription)
-    if @message.save
-      render :create
-      GetLlmCompletionJob.perform_later(conversation: conversation)
-    else
-      render json: { error: "Failed to save message", details: @message.errors.full_messages }, status: :unprocessable_entity
+    rescue StandardError => e
+      @message.destroy
+      Rails.logger.error "Unexpected error during STT: #{e.message}"
+      broadcast_flash(conversation, "An unexpected error occurred: #{e.message}")
+      render json: { error: "An unexpected error occurred", details: e.message }, status: :internal_server_error
     end
   end
 

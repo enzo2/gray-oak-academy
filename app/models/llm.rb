@@ -25,6 +25,10 @@ class Llm < ApplicationRecord
     Llm.pluck(:model)
   end
 
+  def supports_audio_input?
+    supports_audio_input
+  end
+
   private
 
   def ensure_api_provider_trailing_slash

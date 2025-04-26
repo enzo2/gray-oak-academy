@@ -18,7 +18,7 @@ class GetLlmCompletionJob < ApplicationJob
     )
 
     # Get the array of message hashes with roles and content
-    messages = Message.for_completion_with_media(messages: conversation.messages, audio: conversation.audio_permitted?)
+    messages = Message.for_completion_with_media(messages: conversation.messages, audio: conversation.audio_input_permitted?)
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
   rescue OpenAiError => e

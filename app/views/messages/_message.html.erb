@@ -4,15 +4,19 @@
      >
   <% if message.role_user? %>
     <div class="bg-moss-light dark:bg-moss-dark rounded-md my-2 px-4 py-2 w-fit">
-      <% message.images.each do |image| %>
-        <%= image_tag(image.uri || image.file.variant(resize_to_limit: [150, 150]), alt: image.description, class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
+      <% if message.content.blank? && message.images.empty? && message.audios.empty? %>
+        <sl-spinner></sl-spinner>
+      <% else %>
+        <% message.images.each do |image| %>
+          <%= image_tag(image.uri || image.file.variant(resize_to_limit: [150, 150]), alt: image.description, class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
+        <% end %>
+        <% message.audios.each do |audio| %>
+          <div class="my-2">
+            <%= audio_tag(audio.file, autoplay: false, controls: true) %>
+          </div>
+        <% end %>
+        <%= simple_format(message.content, {}, wrapper_tag: "p") %>
       <% end %>
-      <% message.audios.each do |audio| %>
-        <div class="my-2">
-          <%= audio_tag(audio.file, autoplay: false, controls: true) %>
-        </div>
-      <% end %>
-      <%= simple_format(message.content, {}, wrapper_tag: "p") %>
     </div>
   <% elsif message.role_assistant? %>
     <div class="py-2
