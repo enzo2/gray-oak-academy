@@ -1,5 +1,16 @@
 import { Controller } from "@hotwired/stimulus";
 
+function getMediaSourceClass() {
+  if ('ManagedMediaSource' in window) return window.ManagedMediaSource;
+  if ('MediaSource' in window) return window.MediaSource;
+  return null;
+}
+
+// quick utility to check support, also handles feature-detect
+function hasMediaSourceSupport() {
+  return !!getMediaSourceClass();
+}
+
 export default class extends Controller {
   static targets = ["button", "spinner"];
 
@@ -16,9 +27,10 @@ export default class extends Controller {
     this.messageId = null; // Store message ID for context if needed
     this.audioWaitingHandler = null; // For removing listener
     this.audioProgressHandler = null; // For removing listener
+    this.mediaSourceClass = getMediaSourceClass();
     // console.log("TTS Stream Controller (MSE) connected");
 
-    if (!window.MediaSource) {
+    if (!this.mediaSourceClass) {
       console.error("Media Source Extensions are not supported in this browser.");
       this.targets.findAllElements('[data-tts-stream-target="button"]').forEach(btn => {
         btn.disabled = true;
@@ -41,8 +53,8 @@ export default class extends Controller {
 
     // console.log(`Play clicked: msgId=${messageId}, state=${currentState}`);
 
-    if (!window.MediaSource) {
-      console.error("MSE not supported.");
+    if (!this.mediaSourceClass) {
+      console.error("MediaSource not supported.");
       return;
     }
 
@@ -82,7 +94,7 @@ export default class extends Controller {
       // console.log("Fetch successful, got stream body.");
 
       this.streamReader = response.body.getReader();
-      this.mediaSource = new MediaSource();
+      this.mediaSource = new this.mediaSourceClass();
       this.audioPlayer = new Audio();
       this.audioPlayer.src = URL.createObjectURL(this.mediaSource);
       // console.log(`MediaSource created, Audio src set: ${this.audioPlayer.src}`);
@@ -92,6 +104,21 @@ export default class extends Controller {
       this.mediaSource.addEventListener('sourceended', this.handleSourceEnded.bind(this));
       this.mediaSource.addEventListener('sourceclose', this.handleSourceClose.bind(this));
 
+      // Event listeners for ManagedMediaSource (optional, logs only)
+      if ('startstreaming' in this.mediaSource) {
+        this.mediaSource.addEventListener('startstreaming', () => {
+          //console.log('ManagedMediaSource startstreaming event');
+        });
+        this.mediaSource.addEventListener('endstreaming', () => {
+          //console.log('ManagedMediaSource endstreaming event');
+        });
+        this.mediaSource.addEventListener('qualitychange', () => {
+          //console.log('ManagedMediaSource qualitychange:', this.mediaSource.quality);
+        });
+        this.mediaSource.addEventListener('bufferedchange', () => {
+          //console.log('ManagedMediaSource bufferedchange:', this.mediaSource.buffered);
+        });
+      }
       this.audioPlayer.addEventListener('error', this.handleAudioError.bind(this));
       this.audioPlayer.addEventListener('ended', this.handleAudioEnded.bind(this));
       this.audioPlayer.addEventListener('playing', this.handleAudioPlaying.bind(this));
