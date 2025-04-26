@@ -1,7 +1,6 @@
 # Wrapper for OpenAI (or compatible) Speech API calls
 class SpeechService
-  require "faraday/retry"
-
+  require "faraday/retry" # needed?
   class SpeechServiceError < StandardError; end
 
   def initialize(current_user:)
@@ -20,20 +19,47 @@ class SpeechService
     @client = create_speech_client
   end
 
-  # Text-to-Speech method
-  def tts(text)
+  # Text-to-Speech method - Streaming
+  def tts_stream(text, &block)
+    # Use Faraday directly for streaming
+    conn = Faraday.new(url: @speech_base_uri) do |faraday|
+      faraday.request :authorization, "Bearer", @speech_access_token
+      faraday.request :retry, { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
+      faraday.response :raise_error # Raise errors for 4xx/5xx responses
+      faraday.adapter Faraday.default_adapter
+    end
+
+    endpoint = "audio/speech"
+    payload = {
+      model: @tts_model,
+      input: text,
+      voice: @tts_voice,
+      response_format: "aac", # Request AAC format
+      instructions: @tts_instructions
+    }.to_json
+
     begin
-      response = @client.audio.speech(
-        parameters: {
-          model: @tts_model,
-          input: text,
-          voice: @tts_voice,
-          response_format: "opus",
-          instructions: @tts_instructions
-        }
-      )
-      # Return the raw audio data
-      response
+      response = conn.post(endpoint) do |req|
+        req.headers["Content-Type"] = "application/json"
+        req.headers["Accept"] = "audio/aac" # Accept AAC format
+        req.body = payload
+        req.options.timeout = 120 # Timeout for the entire request
+        req.options.open_timeout = 10 # Timeout for connection
+
+        # Faraday block for streaming response
+        req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
+          # Removed chunk logging
+          yield chunk # Yield each chunk to the controller
+        end
+      end
+
+      # Check status after streaming is complete
+      unless response.success?
+        error_body = response.body
+        Rails.logger.error "TTS Streaming failed with status #{response.status}: #{error_body}"
+        raise SpeechServiceError, "TTS Streaming failed with status #{response.status}: #{error_body}"
+      end
+
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError in TTS generation: #{e.message}: #{error_message}"

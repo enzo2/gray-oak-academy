@@ -35,7 +35,7 @@
                 "
           id="<%= dom_id(message) %>_content"
           data-conversation-target="assistantContent"
-          <% if message.content.present? && current_user.settings.speech_configured? %>data-controller="tts"<% end %>>
+          <% if message.content.present? && current_user.settings.speech_configured? %>data-controller="tts-stream"<% end %>>
       <% if message.content.blank? %>
        <sl-spinner></sl-spinner>
       <% else %>
@@ -46,15 +46,15 @@
             <sl-icon-button 
               name="volume-up" 
               label="Read aloud" 
-              data-tts-target="button" 
-              data-action="click->tts#play"
+              data-tts-stream-target="button" 
+              data-action="click->tts-stream#play"
               data-message-id-param="<%= message.id %>" 
-              data-tts-state="idle" 
+              data-tts-stream-state="idle" 
               class="[&::part(base)]:p-0 [&::part(base)]:pb-1
                      text-stone-500 hover:text-stone-700 
                      dark:text-stone-400 dark:hover:text-stone-200 
                      ml-2 align-middle"></sl-icon-button><sl-spinner 
-              data-tts-target="spinner" 
+              data-tts-stream-target="spinner"
               class="hidden p-0 ml-2"></sl-spinner>
           <% end.strip %>
           <%# Rails.logger.debug "TTS button HTML: #{tts_button_html.inspect}" %>

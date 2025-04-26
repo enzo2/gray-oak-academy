@@ -1,5 +1,6 @@
 class MessagesController < ApplicationController
   include ActionView::RecordIdentifier
+  include ActionController::Live
 
   def create
     @message = Message.new(message_params.except(:images_data).merge(conversation_id: params[:conversation_id], role: "user"))
@@ -159,47 +160,47 @@ class MessagesController < ApplicationController
     head :bad_request
   end
 
-  # GET /messages/:id/tts
-  def tts
+  # GET /messages/:id/tts_stream
+  def tts_stream
     message = Message.find(params[:id])
 
-    # Ensure it's an assistant message and has content
     unless message.role_assistant? && message.content.present?
       return head :not_found
     end
 
-    # Ensure the user has access to this message's conversation
     unless message.conversation.user == current_user || current_user.role_admin?
       return head :forbidden
     end
 
-    # Check if speech is configured for the user
     unless current_user.settings.speech_configured?
-      Rails.logger.warn "Speech generation requested but not configured for user #{current_user.id}"
+      Rails.logger.warn "Streaming speech requested but not configured for user #{current_user.id}"
       return head :not_implemented
     end
 
+    # Set headers for streaming
+    response.headers["Content-Type"] = "audio/aac" # Match the format requested in SpeechService
+    response.headers["Cache-Control"] = "no-cache" # Prevent caching
+    response.headers.delete("ETag") # Disable Rack::ETag buffering
+    response.headers.delete("Content-Length") # Required for streaming
+    response.headers["Last-Modified"] = Time.now.httpdate # Helps prevent some middleware buffering
+
+    # Use response.stream to send data as it arrives
     begin
       speech_service = SpeechService.new(current_user: current_user)
-      audio_data = speech_service.tts(message.content) # requests Opus format, which OpenAI wraps in Ogg
-      send_data audio_data, type: "audio/ogg", disposition: "inline"
-    rescue SpeechService::SpeechServiceError => e # Catch specific service error
-      Rails.logger.error "Speech generation failed for message #{message.id}: #{e.message}"
-      status_code = case e.message
-      when /unauthorized/i
-                      :unauthorized
-      when /Bad Request/i
-                      :bad_request
-      when /not configured/i
-                      :not_implemented
-      else
-                      :internal_server_error
+      speech_service.tts_stream(message.content) do |chunk|
+        response.stream.write chunk
+        # Rails.logger.debug "Sent chunk of size #{chunk.bytesize} for message #{message.id}"
       end
+    rescue SpeechService::SpeechServiceError => e
+      Rails.logger.error "Speech generation failed for message #{message.id}: #{e.message}"
       broadcast_flash(message.conversation, e.message)
-      head status_code
-    rescue StandardError => e
-      Rails.logger.error "Unexpected error during speech generation for message #{message.id}: #{e.message}"
       head :internal_server_error
+    rescue ActionController::Live::ClientDisconnected
+      Rails.logger.info "Client disconnected during TTS stream for message #{message.id}"
+    rescue StandardError => e
+      Rails.logger.error "Unexpected error during TTS streaming for message #{message.id}: #{e.message}"
+    ensure
+      response.stream.close # Ensure the stream is closed
     end
   end
 
