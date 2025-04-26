@@ -105,15 +105,13 @@ export default class extends Controller {
       this.mediaSource.addEventListener('sourceclose', this.handleSourceClose.bind(this));
 
       // Event listeners for ManagedMediaSource (optional, logs only)
+      // Should not be necessary to use, we are only streaming a small audio file
       if ('startstreaming' in this.mediaSource) {
         this.mediaSource.addEventListener('startstreaming', () => {
           //console.log('ManagedMediaSource startstreaming event');
         });
         this.mediaSource.addEventListener('endstreaming', () => {
           //console.log('ManagedMediaSource endstreaming event');
-        });
-        this.mediaSource.addEventListener('qualitychange', () => {
-          //console.log('ManagedMediaSource qualitychange:', this.mediaSource.quality);
         });
         this.mediaSource.addEventListener('bufferedchange', () => {
           //console.log('ManagedMediaSource bufferedchange:', this.mediaSource.buffered);
@@ -219,6 +217,7 @@ export default class extends Controller {
     }
   }
 
+  // Pump function to read from the stream and append to the buffer
   pump() {
     if (!this.streamReader) {
         // console.log("Pump called but no streamReader.");
@@ -258,6 +257,7 @@ export default class extends Controller {
     });
   }
 
+  // Append a chunk to the SourceBuffer
   appendChunk(chunk) {
     if (!this.sourceBuffer || this.sourceBuffer.updating || !this.mediaSource || this.mediaSource.readyState !== 'open') {
         if (chunk) this.chunksQueue.unshift(chunk);
