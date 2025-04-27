@@ -28,7 +28,7 @@ class Conversation < ApplicationRecord
   end
 
   # The teacher sets whether audio input is disabled, enabled, or forced.
-  # In the event the LLM does not support audio input, we fall back to transcription at later stages.
+  # In the event the LLM does not support audio input, the audio recorder will fall back to transcription.
   def audio_setting
     if lesson_progress # for lesson conversations
       lesson_progress.lesson_plan.audio # Can be "disabled", "enabled", or "only"

@@ -7,6 +7,7 @@ export default class extends Controller {
   static MAX_IMAGES = 4;
 
   connect() {
+    //console.log("New message controller connected")
     this.images = []
     this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
     this.toggleSubmitButton() // Initial check

@@ -83,7 +83,7 @@ module Admin
       content = content_keys.zip(content_values).map { |type, details| { type => details } }
 
       # Permit lesson_plan attributes, include the content and chalkboard_enabled
-      params.require(:lesson_plan).permit(:status, :chalkboard_enabled).tap do |whitelisted|
+      params.require(:lesson_plan).permit(:status, :chalkboard_enabled, :audio).tap do |whitelisted|
         whitelisted[:content] = content
       end
     end

@@ -6,28 +6,7 @@ class MessagesController < ApplicationController
     @message = Message.new(message_params.except(:images_data).merge(conversation_id: params[:conversation_id], role: "user"))
 
     # Handle images
-    if params[:message][:images_data].present?
-      images_data = JSON.parse(params[:message][:images_data])
-      images_data.each do |image_data|
-        unless [ "image/png", "image/jpeg", "image/webp" ].include?(image_data["type"])
-          raise StandardError, "Invalid image type. Only PNG, JPEG, and WebP are allowed."
-        end
-
-        if image_data["url"].present?
-          # Handle URL-based images
-          @message.images.build(uri: image_data["url"], content_type: image_data["type"])
-        else
-          # Handle file-based images (uploaded or pasted)
-          data = image_data["data"].split(",")[1]
-          blob = ActiveStorage::Blob.create_and_upload!(
-            io: StringIO.new(Base64.decode64(data)),
-            filename: image_data["name"] || "pasted-image-#{Time.current.to_i}.#{image_data['type'].split('/')[1]}",
-            content_type: image_data["type"]
-          )
-          @message.images.build(file: blob, content_type: image_data["type"])
-        end
-      end
-    end
+    process_images_param(@message, params[:message][:images_data]) if params[:message][:images_data].present?
 
     # This will trigger the model callback to broadcast the user message synchronously, before the turbo_stream view below is rendered.
     @message.save!
@@ -70,8 +49,13 @@ class MessagesController < ApplicationController
     audio = @message.audios.build(content_type: audio_file.content_type)
     audio.file.attach(audio_file)
 
+    # Handle images if present
+    process_images_param(@message, params[:images_data]) if params[:images_data].present?
+
     if @message.save # This will broadcast user message
-      render :create  # Render the turbo_stream view to show a placeholder for the assistant reply
+      respond_to do |format|
+        format.turbo_stream { render :create } # Render the turbo_stream view to show a placeholder for the assistant reply
+      end
       GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message
     else
       @message.destroy
@@ -98,13 +82,18 @@ class MessagesController < ApplicationController
     # If STT fails, we will destroy it.
     @message = conversation.messages.create!(role: "user", content: "")
 
+    # Handle images if present
+    process_images_param(@message, params[:images_data]) if params[:images_data].present?
+
     # Run STT using SpeechService
     begin
       speech_service = SpeechService.new(current_user: current_user)
       transcription = speech_service.transcribe(params[:audio].tempfile)
       @message.content = transcription
       if @message.save # This will broadcast the updated message
-        render :create # Render the turbo_stream view to show a placeholder for the assistant reply
+        respond_to do |format|
+          format.turbo_stream { render :create } # Render the turbo_stream view to show a placeholder for the assistant reply
+        end
         GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the completion
       else
         @message.destroy
@@ -230,5 +219,25 @@ class MessagesController < ApplicationController
       partial: "shared/flash",
       locals: { flash: { error: error_msg } }
     )
+  end
+
+  def process_images_param(message, images_data_param)
+    images_data = JSON.parse(images_data_param)
+    images_data.each do |image_data|
+      unless [ "image/png", "image/jpeg", "image/webp" ].include?(image_data["type"])
+        raise StandardError, "Invalid image type. Only PNG, JPEG, and WebP are allowed."
+      end
+      if image_data["url"].present?
+        message.images.build(uri: image_data["url"], content_type: image_data["type"])
+      else
+        data = image_data["data"].split(",")[1]
+        blob = ActiveStorage::Blob.create_and_upload!(
+          io: StringIO.new(Base64.decode64(data)),
+          filename: image_data["name"] || "pasted-image-#{Time.current.to_i}.#{image_data['type'].split('/')[1]}",
+          content_type: image_data["type"]
+        )
+        message.images.build(file: blob, content_type: image_data["type"])
+      end
+    end
   end
 end

@@ -13,7 +13,7 @@
 <% end %>
 
 <%= turbo_stream.update "context-usage-bar" do %>
-  <% Rails.logger.debug "Updating context usage bar: #{@message.conversation.context_usage.inspect}" %>
+  <%# Rails.logger.debug "Updating context usage bar: #{@message.conversation.context_usage.inspect}" %>
   <%= render "conversations/context_usage_bar", context_usage: @message.conversation.context_usage %>
 <% end %>
 

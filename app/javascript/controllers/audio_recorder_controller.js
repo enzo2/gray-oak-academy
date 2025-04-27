@@ -8,21 +8,17 @@ export default class extends Controller {
     // If not secure, don't bother initializing, as MediaRecorder won't work.
     if (!window.isSecureContext) {
       console.warn("Audio recording requires a secure context (HTTPS or localhost).");
-      this.recordButtonTarget.classList.add("hidden");
+      this.textareaTarget.placeholder = "Type your message...";
       return; 
-    }
-    
+    } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     // Check if the browser supports the MediaRecorder API
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      this.recordButtonTarget.classList.add("hidden")
-      return
-    // Check if audio is enabled for the conversation (button won't be hidden)
-    } else if (this.recordButtonTarget.classList.contains("hidden"))  {
+      console.warn("MediaRecorder API is not supported in this browser.");
+      this.textareaTarget.placeholder = "Type your message...";
       return;
-    } else {
-      this.textareaTarget.placeholder = "Type your message or record audio..."
     }
 
+    //Proceed with initialization
+    this.recordButtonTarget.classList.remove("hidden");
     this.isRecording = false
     this.mediaRecorder = null
     this.audioChunks = []
@@ -62,7 +58,6 @@ export default class extends Controller {
       } else {
          this.mediaRecorder = new MediaRecorder(stream, options);
       }
-
 
       this.mediaRecorder.ondataavailable = (event) => {
         this.audioChunks.push(event.data)
@@ -110,6 +105,13 @@ export default class extends Controller {
   async uploadAudio(audioBlob) {
     const formData = new FormData()
     formData.append('audio', audioBlob, `recording-${Date.now()}.webm`)
+
+    // Also send images_data if present
+    const imagesDataField = this.element.querySelector('[data-new-message-target="imagesData"]');
+    if (imagesDataField && imagesDataField.value) {
+      formData.append('images_data', imagesDataField.value);
+    }
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
 
     // Choose endpoint based on audioPermitted value
@@ -122,13 +124,14 @@ export default class extends Controller {
         headers: {
           'X-CSRF-Token': csrfToken,
           'Accept': 'text/vnd.turbo-stream.html'
-          // 'Content-Type' is automatically set by fetch for FormData
         },
         body: formData
       })
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`)
       }
+      const html = await response.text()
+      Turbo.renderStreamMessage(html)
     } catch (error) {
       console.error('Error uploading audio:', error)
     }

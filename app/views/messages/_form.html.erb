@@ -1,3 +1,5 @@
+<% audio_setting = conversation.audio_setting %>
+
 <%= form_with(model: Message.new, 
       url: conversation_messages_path(conversation), 
       id: "#{dom_id(conversation)}_message_form",
@@ -5,8 +7,9 @@
       data: { 
         controller: "new-message audio-recorder",
         audio_recorder_conversation_id_value: conversation.id,
-        audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?  }
-    ) do |form| %>
+        audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?
+      }
+  ) do |form| %>
 
   <% if local_assigns[:error].present? %>
     <div class="mb-4 p-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-md">
@@ -24,7 +27,7 @@
         resize="auto"
         rows="1"
         name="message[content]"
-        placeholder="Type your message..."
+        placeholder="<%= audio_setting == 'only' ? 'Record your message...' : 'Type or record your message...' %>"
         class="w-full
               [&::part(base)]:min-h-[80px]
               [&::part(base)]:pl-1
@@ -47,12 +50,18 @@
         data-action="
           input->new-message#toggleSubmitButton
           keydown.enter->new-message#submit:prevent
-          paste->new-message#paste"></sl-textarea>
+          paste->new-message#paste"
+        <% if audio_setting == "only" %>disabled<% end %>
+      ></sl-textarea>
 
       <div data-new-message-target="helpText" data-audio-recorder-target="helpText"
            data-default-value="Shift+Enter for new line"
            class="text-xs text-neutral-500 hidden absolute bottom-1 left-4">
-        Shift+Enter for new line
+        <% if audio_setting == "only" %>
+          Audio-only mode: use the microphone to send a message.
+        <% else %>
+          Shift+Enter for new line
+        <% end %>
       </div>
     </div>
 
@@ -72,13 +81,14 @@
           </sl-menu-item>
         </sl-menu>
       </sl-dropdown>
-
+      
       <sl-icon-button 
-        class=""
+        class="hidden" <%# hidden by default, shown if audio recording is supported %>
         name="mic" id="recordButton"
         data-audio-recorder-target="recordButton"
         data-action="click->audio-recorder#toggleRecording">
       </sl-icon-button>
+      
     </div>
     <div class="absolute right-[6px] top-[36px] flex items-center">
       <button type="submit" class="text-xl" data-new-message-target="submitButton" data-action="click->new-message#submit">
