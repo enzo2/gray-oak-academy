@@ -2,28 +2,32 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["recordButton", "helpText", "textarea"]
-  static values = { conversationId: String, audioInputPermitted: Boolean }
+  static values = { conversationId: String, audioInputPermitted: Boolean, sttAvailable: Boolean, audioSetting: String }
 
   connect() {
-    // If not secure, don't bother initializing, as MediaRecorder won't work.
+    // By default, the recordButton is hidden. Check a series of requirements before initializing.
     if (!window.isSecureContext) {
+      // If not secure, don't bother initializing, as MediaRecorder won't work.
       console.warn("Audio recording requires a secure context (HTTPS or localhost).");
-      this.textareaTarget.placeholder = "Type your message...";
-      return; 
+      if (this.audioSettingValue == "only") { alert("Please connect using https for audio-only lessons.") }
     } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    // Check if the browser supports the MediaRecorder API
+      // Check if the browser supports the MediaRecorder API
       console.warn("MediaRecorder API is not supported in this browser.");
-      this.textareaTarget.placeholder = "Type your message...";
-      return;
+      if (this.audioSettingValue == "only") { alert("The lesson is set to audio-only, but your browser does not support audio input.") }
+    } else if (!this.audioInputPermittedValue && !this.sttAvailableValue) {
+      // If audio input is not permitted and STT is not available, don't initialize.
+      console.warn("Speech input is not available for this conversation.");
+      if (this.audioSettingValue == "only") { alert("The lesson is set to audio-only, but speech input was not set up. Please notify your teacher.")}
+    } else { 
+      //Proceed with initialization
+      this.textareaTarget.placeholder = (this.audioSettingValue == "only") ? "Record your message..." : "Type or record your message...";
+      this.recordButtonTarget.classList.remove("hidden");
+      this.isRecording = false
+      this.mediaRecorder = null
+      this.audioChunks = []
+      this.recordingTimer = null
+      this.MAX_RECORDING_TIME = 40000 // 40 seconds in milliseconds
     }
-
-    //Proceed with initialization
-    this.recordButtonTarget.classList.remove("hidden");
-    this.isRecording = false
-    this.mediaRecorder = null
-    this.audioChunks = []
-    this.recordingTimer = null
-    this.MAX_RECORDING_TIME = 30000 // 30 seconds in milliseconds
   }
 
   async toggleRecording() {
@@ -39,7 +43,7 @@ export default class extends Controller {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       this.recordButtonTarget.classList.add("text-red-500")
       this.recordButtonTarget.name = "stop-circle" // Change icon to stop
-      this.helpTextTarget.textContent = "Recording..."
+      this.helpTextTarget.textContent = "Recording...press stop to send message."
       this.helpTextTarget.classList.remove("hidden")
       this.isRecording = true
       this.audioChunks = []
@@ -91,7 +95,6 @@ export default class extends Controller {
       this.recordButtonTarget.name = "mic"
       this.recordButtonTarget.classList.remove("text-red-500")
       this.helpTextTarget.innerText = this.helpTextTarget.dataset.defaultValue
-      this.helpTextTarget.classList.remove("hidden")
     }
   }
 

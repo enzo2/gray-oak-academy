@@ -7,7 +7,9 @@
       data: { 
         controller: "new-message audio-recorder",
         audio_recorder_conversation_id_value: conversation.id,
-        audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?
+        audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?,
+        audio_recorder_stt_available_value: conversation.stt_available?,
+        audio_recorder_audio_setting_value: audio_setting
       }
   ) do |form| %>
 
@@ -27,7 +29,7 @@
         resize="auto"
         rows="1"
         name="message[content]"
-        placeholder="<%= audio_setting == 'only' ? 'Record your message...' : 'Type or record your message...' %>"
+        placeholder="Type your message..." <%# Default value—will be changed by audio_recorder_controller if audio/stt is possible %>
         class="w-full
               [&::part(base)]:min-h-[80px]
               [&::part(base)]:pl-1
@@ -55,7 +57,7 @@
       ></sl-textarea>
 
       <div data-new-message-target="helpText" data-audio-recorder-target="helpText"
-           data-default-value="Shift+Enter for new line"
+           data-default-value="<%= audio_setting == "only" ? "Audio-only mode: use the microphone to send a message" : "Shift+Enter for new line" %>"
            class="text-xs text-neutral-500 hidden absolute bottom-1 left-4">
         <% if audio_setting == "only" %>
           Audio-only mode: use the microphone to send a message.
@@ -83,7 +85,7 @@
       </sl-dropdown>
       
       <sl-icon-button 
-        class="hidden" <%# hidden by default, shown if audio recording is supported %>
+        class="hidden" <%# hidden by default; shown if audio recording is supported (llm supports audio & audio permitted, or transcription configured) %>
         name="mic" id="recordButton"
         data-audio-recorder-target="recordButton"
         data-action="click->audio-recorder#toggleRecording">

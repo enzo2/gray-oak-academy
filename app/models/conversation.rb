@@ -42,6 +42,10 @@ class Conversation < ApplicationRecord
     audio_input_supported? && audio_setting != "disabled"
   end
 
+  def stt_available?
+    user.setting.speech_configured?
+  end
+
   # Returns the percentage of the context limit used by the conversation.
   # Return 0 if no context length is available.
   def context_usage
