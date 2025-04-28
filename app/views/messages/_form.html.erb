@@ -67,7 +67,7 @@
       </div>
     </div>
 
-    <div class="absolute right-[8px] top-[6px] flex items-center">
+    <div class="absolute right-[8px] <%= audio_setting == "only" ? "bottom-[6px]" : "" %> top-[6px] flex items-center">
       <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "new-message#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
 
       <sl-dropdown placement="top-end">
@@ -85,7 +85,8 @@
       </sl-dropdown>
       
       <sl-icon-button 
-        class="hidden" <%# hidden by default; shown if audio recording is supported (llm supports audio & audio permitted, or transcription configured) %>
+        <%# hidden by default; shown if audio recording is supported (llm supports audio & audio permitted, or transcription configured) %>
+        class="hidden <%= 'text-4xl' if audio_setting == "only" %>" 
         name="mic" id="recordButton"
         data-audio-recorder-target="recordButton"
         data-action="click->audio-recorder#toggleRecording">
