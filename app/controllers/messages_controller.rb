@@ -180,7 +180,7 @@ class MessagesController < ApplicationController
     end
 
     # Set headers for streaming
-    response.headers["Content-Type"] = "audio/aac" # Match the format requested in SpeechService
+    response.headers["Content-Type"] = "audio/webm" # SpeechService transmuxes to webm
     response.headers["Cache-Control"] = "no-cache" # Prevent caching
     response.headers.delete("ETag") # Disable Rack::ETag buffering
     response.headers.delete("Content-Length") # Required for streaming
@@ -196,7 +196,7 @@ class MessagesController < ApplicationController
     rescue SpeechService::SpeechServiceError => e
       Rails.logger.error "Speech generation failed for message #{message.id}: #{e.message}"
       broadcast_flash(message.conversation, e.message)
-      head :internal_server_error
+      head :internal_server_error unless response.committed?
     rescue ActionController::Live::ClientDisconnected
       Rails.logger.info "Client disconnected during TTS stream for message #{message.id}"
     rescue StandardError => e

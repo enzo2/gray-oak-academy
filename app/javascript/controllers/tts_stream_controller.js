@@ -6,10 +6,7 @@ function getMediaSourceClass() {
   return null;
 }
 
-// quick utility to check support, also handles feature-detect
-function hasMediaSourceSupport() {
-  return !!getMediaSourceClass();
-}
+const mimeType = 'audio/webm;codecs=opus';
 
 export default class extends Controller {
   static targets = ["button", "spinner"];
@@ -28,13 +25,19 @@ export default class extends Controller {
     this.audioWaitingHandler = null; // For removing listener
     this.audioProgressHandler = null; // For removing listener
     this.mediaSourceClass = getMediaSourceClass();
-    // console.log("TTS Stream Controller (MSE) connected");
+    
 
     if (!this.mediaSourceClass) {
       console.error("Media Source Extensions are not supported in this browser.");
-      this.targets.findAllElements('[data-tts-stream-target="button"]').forEach(btn => {
-        btn.disabled = true;
-        btn.title = "Streaming not supported by browser";
+      return;
+    }
+
+    if (!this.mediaSourceClass.isTypeSupported(mimeType)) {
+      console.error(`MIME type ${mimeType} not supported`);
+    } else {
+      this.buttonTargets.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('hidden');
       });
     }
   }
@@ -52,11 +55,6 @@ export default class extends Controller {
     this.messageId = messageId; // Store for context during playback
 
     // console.log(`Play clicked: msgId=${messageId}, state=${currentState}`);
-
-    if (!this.mediaSourceClass) {
-      console.error("MediaSource not supported.");
-      return;
-    }
 
     if (currentState === 'playing' && button === this.currentPlayingButton) {
       // console.log("Stopping currently playing stream");
@@ -151,15 +149,6 @@ export default class extends Controller {
   }
 
   handleSourceOpen() {
-    // console.log("MediaSource opened");
-    const mimeType = 'audio/aac'; //firefox does not support ogg with Opus
-    if (!MediaSource.isTypeSupported(mimeType)) {
-        console.error(`MIME type ${mimeType} not supported`);
-        this.stopPlayback();
-        return;
-    }
-    // console.log(`Using MIME type: ${mimeType}`);
-
     try {
         this.sourceBuffer = this.mediaSource.addSourceBuffer(mimeType);
         // console.log("SourceBuffer added.");

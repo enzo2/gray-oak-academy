@@ -1,6 +1,7 @@
 # Wrapper for OpenAI (or compatible) Speech API calls
 class SpeechService
   require "faraday/retry" # needed?
+  require "open3"
   class SpeechServiceError < StandardError; end
 
   def initialize(current_user:)
@@ -38,32 +39,82 @@ class SpeechService
       model: @tts_model,
       input: text,
       voice: @tts_voice,
-      response_format: "aac", # Request AAC format; as opus compatibility varies
+      response_format: "opus", # OpenAI returns Opus in Ogg container.
       instructions: @tts_instructions
     }.to_json
 
+    # Convert the response to WebM format using ffmpeg to allow use of Opus codec with MSE on all browsers
+    # ffmpeg: read from stdin, write to stdout
+    ffmpeg_command = [ "ffmpeg", "-i", "pipe:0", "-vn", "-c:a", "copy", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ]
+    ffmpeg_stderr_output = "" # Variable to capture ffmpeg errors
+
     begin
-      response = conn.post(endpoint) do |req|
-        req.headers["Content-Type"] = "application/json"
-        req.headers["Transfer-Encoding"] = "chunked"
-        req.headers["Accept"] = "audio/aac"
-        req.body = payload
-        req.options.timeout = 120 # Timeout for the entire request
-        req.options.open_timeout = 10 # Timeout for connection
+      # Use Open3 to manage ffmpeg process and its pipes
+      Open3.popen3(*ffmpeg_command) do |ffmpeg_stdin, ffmpeg_stdout, ffmpeg_stderr, wait_thr|
+        ffmpeg_stdin.binmode # Ensure binary mode for pipes
+        ffmpeg_stdout.binmode
 
-        # Faraday block for streaming response
-        req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
-          yield chunk # Yield each chunk to the controller
+        # Thread to read ffmpeg stderr to capture errors
+        stderr_thread = Thread.new do
+          begin
+            ffmpeg_stderr_output = ffmpeg_stderr.read
+          ensure
+            ffmpeg_stderr.close # Close stderr pipe when done reading
+          end
         end
-      end
 
-      # Check status after streaming is complete
-      unless response.success?
-        error_body = response.body
-        Rails.logger.error "TTS Streaming failed with status #{response.status}: #{error_body}"
-        raise SpeechServiceError, "TTS Streaming failed with status #{response.status}: #{error_body}"
-      end
+        # Thread to read from ffmpeg's stdout and yield chunks to the controller
+        stdout_thread = Thread.new do
+          begin
+            while (chunk = ffmpeg_stdout.read(8192)) # Read in chunks
+              yield chunk # Yield the transcoded chunk
+            end
+          rescue IOError => e
+            # Ignore "stream closed" errors which can happen during cleanup
+            Rails.logger.debug "IOError reading ffmpeg stdout (expected on close): #{e.message}"
+          ensure
+            ffmpeg_stdout.close # Close stdout pipe when done reading
+          end
+        end
 
+        # Make the API request with streaming response handling
+        response = conn.post(endpoint) do |req|
+          req.headers["Content-Type"] = "application/json"
+          req.headers["Transfer-Encoding"] = "chunked" # Not needed, but included for clarity
+          req.body = payload
+          req.options.timeout = 120 # Timeout for the entire request
+          req.options.open_timeout = 10 # Timeout for connection
+
+          # Use Faraday's on_data callback to stream response body directly to ffmpeg
+          req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
+            begin
+              ffmpeg_stdin.write(chunk)
+            rescue Errno::EPIPE
+              # ffmpeg likely exited early, stop writing
+              Rails.logger.warn "ffmpeg stdin pipe closed prematurely."
+            end
+          end
+        end
+
+        ffmpeg_stdin.close # After API response finishes, close ffmpeg's stdin to signal EOF
+        ffmpeg_status = wait_thr.value # Wait for ffmpeg process to finish
+        stdout_thread.join # Wait for reader threads to finish
+        stderr_thread.join
+
+        # Check ffmpeg exit status
+        unless ffmpeg_status.success?
+          Rails.logger.error "ffmpeg failed with status: #{ffmpeg_status.exitstatus}. Stderr: #{ffmpeg_stderr_output}"
+          raise SpeechServiceError, "Audio processing failed (ffmpeg exited with status #{ffmpeg_status.exitstatus}). Error: #{ffmpeg_stderr_output.lines.last || 'Unknown ffmpeg error'}"
+        end
+
+        # Also check the original API response status *after* streaming attempt
+        unless response.success?
+          Rails.logger.error "TTS API request failed post-stream with status #{response.status}"
+          Rails.logger.error "Error details: #{response.body}" if response.body.present?
+          # Prefer ffmpeg error if it exists, otherwise raise API error
+          raise SpeechServiceError, "TTS API request failed with status #{response.status}" unless ffmpeg_status.success?
+        end
+      end # Open3.popen3
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError in TTS generation: #{e.message}: #{error_message}"
@@ -87,9 +138,15 @@ class SpeechService
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ResourceNotFound error in TTS generation: #{e.message}: #{error_message}"
       raise SpeechServiceError, "Resource not found: #{e.message}: #{error_message}"
+    rescue Errno::ENOENT => e
+      # Handle case where ffmpeg command is not found
+      Rails.logger.error "ffmpeg command not found: #{e.message}"
+      raise SpeechServiceError, "ffmpeg command failed. Please ensure it's installed and in the PATH."
+    rescue SpeechServiceError => e
+      raise e # Re-raise our specific errors
     rescue StandardError => e
-      Rails.logger.error "StandardError in TTS generation: #{e.message}"
-      raise e # Re-raise other standard errors
+      Rails.logger.error "StandardError in TTS streaming/processing: #{e.message}"
+      raise SpeechServiceError, "An unexpected error occurred during TTS streaming/processing: #{e.message}" # Re-raise other standard errors
     end
   end
 

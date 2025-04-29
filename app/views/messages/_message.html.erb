@@ -45,16 +45,19 @@
       <% else %>
         <% content_with_tts = message.content.strip %>
         <%# Add TTS button only if message has content AND speech is configured for the user %>
+        <%# Hidden by default; will be shown if Stimulus controller initializes %>
         <% if message.content.present? && current_user.settings.speech_configured? %>
           <% tts_button_html = capture do %>
             <sl-icon-button 
+              disabled
               name="volume-up" 
               label="Read aloud" 
               data-tts-stream-target="button" 
               data-action="click->tts-stream#play"
               data-message-id-param="<%= message.id %>" 
               data-tts-stream-state="idle" 
-              class="[&::part(base)]:p-0 [&::part(base)]:pb-1
+              class="hidden
+                     [&::part(base)]:p-0 [&::part(base)]:pb-1
                      text-stone-500 hover:text-stone-700 
                      dark:text-stone-400 dark:hover:text-stone-200 
                      ml-2 align-middle"></sl-icon-button><sl-spinner 
