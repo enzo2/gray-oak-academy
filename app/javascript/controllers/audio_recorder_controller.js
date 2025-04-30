@@ -2,7 +2,12 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["recordButton", "helpText", "textarea"]
-  static values = { conversationId: String, audioInputPermitted: Boolean, sttAvailable: Boolean, audioSetting: String }
+  static values = { 
+    conversationId: String, 
+    audioInputPermitted: Boolean, 
+    sttAvailable: Boolean, 
+    audioSetting: String 
+  }
 
   connect() {
     // By default, the recordButton is hidden. Check a series of requirements before initializing.

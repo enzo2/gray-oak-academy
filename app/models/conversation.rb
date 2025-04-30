@@ -27,7 +27,8 @@ class Conversation < ApplicationRecord
     llm_in_use&.supports_audio_input?
   end
 
-  # The teacher sets whether audio input is disabled, enabled, or forced.
+  # The teacher sets whether raw audio message input is disabled, enabled, or "only" (audio forced, whether raw or STT).
+  # This does not affect transcription, which is always available if the user has configured speech-to-text.
   # In the event the LLM does not support audio input, the audio recorder will fall back to transcription.
   def audio_setting
     if lesson_progress # for lesson conversations

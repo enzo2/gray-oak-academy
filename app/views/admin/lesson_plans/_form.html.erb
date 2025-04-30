@@ -58,15 +58,21 @@
       <%= f.check_box :chalkboard_enabled, class: "mr-2 checkbox-primary" %>
       <span>Enable chalkboard for this lesson</span>
     </div>
-    <p class="text-sm text-dim mt-1"><i>Hint: The chalkboard requires a large screen. Disable to allow for mobile device use.</i></p>
+    <p class="text-sm text-dim mt-1"><i>Hint: The chalkboard requires a wide screen. Disable to allow for mobile device use.</i></p>
   </div>
 
   <div class="mb-4">
     <%= f.label :audio, class: "form-label" %>
-    <p class="block text-sm mb-2"><i>Allow speech input. For true audio input, make sure the LLM supports audio input. Otherwise, TTS will be used.</i></p>
+    <p class="block text-sm mb-1">Control how students interact with the LLM:</p>
     <div class="[&_label]:mr-4 [&_input]:mr-2">
       <%= f.collection_radio_buttons :audio, LessonPlan.audios.keys, :to_s, :titleize %>
     </div>
+    <p class="block text-sm mt-1">
+      Disabled: <i>Raw audio input disabled. Transcription allowed if set up.</i><br>
+      Enabled: <i>Raw audio input used if supported by the LLM.</i><br>
+      Audio Only: <i>Text entry disabled. Raw audio used if supported, otherwise transcription. (Great for mobile device use, outdoors lessons, etc.)</i><br>
+    <%= link_to "Set up Speech API to ensure transcription is available.", edit_user_registration_path(), class: "link-primary", target: "_blank" unless current_user.setting.speech_configured? %>
+    </p>
   </div>
 
   <div class="mb-4">
