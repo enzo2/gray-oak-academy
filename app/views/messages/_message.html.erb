@@ -7,7 +7,7 @@
       <% if message.content.blank? && message.images.empty? && message.audios.empty? %>
         <sl-spinner></sl-spinner>
       <% elsif message.content.blank? && message.images.empty? && message.audios.any? %>
-        <i class="text-dim text-sm">Transcribing...<i>&nbsp;<sl-spinner></sl-spinner>
+        <i class="text-dim text-sm">Transcribing...</i>&nbsp;<sl-spinner></sl-spinner>
       <% else %>
         <% message.images.each do |image| %>
           <%= image_tag(image.uri || image.file.variant(resize_to_limit: [150, 150]), alt: image.description, class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
@@ -41,8 +41,7 @@
                 [&_div.highlighted-code-block_pre]:max-w-full
                 "
           id="<%= dom_id(message) %>_content"
-          data-conversation-target="assistantContent"
-          <% if message.content.present? && current_user.settings.speech_configured? %>data-controller="tts-stream"<% end %>>
+          data-conversation-target="assistantContent">
       <% if message.content.blank? %>
        <sl-spinner></sl-spinner>
       <% else %>

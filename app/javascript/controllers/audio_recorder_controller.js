@@ -16,7 +16,7 @@ export default class extends Controller {
       if (this.audioSettingValue == "only") { alert("The lesson is set to audio-only, but your browser does not support audio input.") }
     } else if (!this.audioInputPermittedValue && !this.sttAvailableValue) {
       // If audio input is not permitted and STT is not available, don't initialize.
-      console.warn("Speech input is not available for this conversation.");
+      console.info("Speech input is not available for this conversation.");
       if (this.audioSettingValue == "only") { alert("The lesson is set to audio-only, but speech input was not set up. Please notify your teacher.")}
     } else { 
       //Proceed with initialization

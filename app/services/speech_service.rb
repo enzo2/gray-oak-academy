@@ -15,7 +15,7 @@ class SpeechService
     @speech_base_uri = @user.settings.speech_api_base_uri.presence || "https://api.openai.com/v1/"
     @tts_model = @user.settings.tts_model_name.presence || "gpt-4o-mini-tts"
     @tts_voice = @user.settings.tts_voice_name.presence || "verse"
-    @tts_instructions = @user.settings.tts_instructions.presence || "Don't be too enthusiastic. Speak in a calm and friendly tone."
+    @tts_instructions = @user.settings.tts_instructions.presence || "Speak in a calm and friendly tone."
     @stt_model = @user.settings.stt_model_name.presence || "gpt-4o-mini-transcribe"
     @client = create_speech_client
   end
@@ -116,7 +116,7 @@ class SpeechService
         end
       end # Open3.popen3
 
-      Rails.logger.info("TTS request completed", user_id: current_user.id, message_id: message.id)
+      Rails.logger.info("TTS request completed")
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError in TTS generation: #{e.message}: #{error_message}"

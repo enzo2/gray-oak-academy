@@ -10,6 +10,7 @@ const mimeType = 'audio/webm;codecs=opus';
 
 export default class extends Controller {
   static targets = ["button", "spinner"];
+  static values = { speechConfigured: Boolean };
 
   connect() {
     this.audioPlayer = null;
@@ -25,16 +26,18 @@ export default class extends Controller {
     this.audioWaitingHandler = null; // For removing listener
     this.audioProgressHandler = null; // For removing listener
     this.mediaSourceClass = getMediaSourceClass();
-    
 
-    if (!this.mediaSourceClass) {
-      console.error("Media Source Extensions are not supported in this browser.");
+    if (!this.speechConfiguredValue) {
+      console.info("TTS is not configured for the current user.");
       return;
     }
 
-    if (!this.mediaSourceClass.isTypeSupported(mimeType)) {
+    if (!this.mediaSourceClass) {
+      console.error("Media Source Extensions are not supported in this browser.");
+    } else if (!this.mediaSourceClass.isTypeSupported(mimeType)) {
       console.error(`MIME type ${mimeType} not supported`);
     } else {
+      // Enable TTS buttons
       this.buttonTargets.forEach(btn => {
         btn.disabled = false;
         btn.classList.remove('hidden');
