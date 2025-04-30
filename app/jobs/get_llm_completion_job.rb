@@ -22,8 +22,8 @@ class GetLlmCompletionJob < ApplicationJob
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
 
-    # After done, see if we need to transcribe any audio.
-    conversation.messages.role_user.where.not(audios: nil).each do |msg|
+    # After done, see if we need to transcribe any audio messages.
+    conversation.messages.role_user.joins(:audios).distinct.each do |msg|
       Rails.logger.info "Enqueueing transcription jobs for audio attachments on Message ID #{msg.id}."
       TranscribeAudioJob.perform_later(audio: msg.audios.first)
     end
