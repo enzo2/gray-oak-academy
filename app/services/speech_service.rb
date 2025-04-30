@@ -47,7 +47,9 @@ class SpeechService
     # ffmpeg: read from stdin, write to stdout
     ffmpeg_command = [ "ffmpeg", "-i", "pipe:0", "-vn", "-c:a", "copy", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ]
     ffmpeg_stderr_output = "" # Variable to capture ffmpeg errors
+    @client_disconnected = false # Flag to track client disconnection
 
+    # Start ffmpeg process
     begin
       # Use Open3 to manage ffmpeg process and its pipes
       Open3.popen3(*ffmpeg_command) do |ffmpeg_stdin, ffmpeg_stdout, ffmpeg_stderr, wait_thr|
@@ -67,13 +69,22 @@ class SpeechService
         stdout_thread = Thread.new do
           begin
             while (chunk = ffmpeg_stdout.read(8192)) # Read in chunks
-              yield chunk # Yield the transcoded chunk
+              begin
+                yield chunk # Yield the transcoded chunk
+              rescue ActionController::Live::ClientDisconnected
+                # Client disconnected during yield, likely due to user stopping/starting another stream.
+                # This is expected, log and break the loop to allow cleanup.
+                @client_disconnected = true
+                Rails.logger.info "Client disconnected during yield in SpeechService stdout_thread. Stopping stream."
+                break # Exit the while loop
+              end
             end
           rescue IOError => e
             # Ignore "stream closed" errors which can happen during cleanup
             Rails.logger.warn "IOError reading ffmpeg stdout (expected on close): #{e.message}"
           ensure
-            ffmpeg_stdout.close # Close stdout pipe when done reading
+            # Ensure the pipe is closed even if an error occurred before the loop finished
+            ffmpeg_stdout.close unless ffmpeg_stdout.closed?
           end
         end
 
@@ -87,11 +98,13 @@ class SpeechService
 
           # Use Faraday's on_data callback to stream response body directly to ffmpeg
           req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
+            # Skip writing if client disconnected or pipe closed
+            next if @client_disconnected || ffmpeg_stdin.closed?
+
             begin
               ffmpeg_stdin.write(chunk)
             rescue Errno::EPIPE
-              # ffmpeg likely exited early, stop writing
-              Rails.logger.warn "ffmpeg stdin pipe closed prematurely."
+              Rails.logger.debug "ffmpeg stdin pipe closed prematurely."
             end
           end
         end
@@ -102,7 +115,7 @@ class SpeechService
         stderr_thread.join
 
         # Check ffmpeg exit status
-        unless ffmpeg_status.success?
+        unless ffmpeg_status.success? || @client_disconnected
           Rails.logger.error "ffmpeg failed with status: #{ffmpeg_status.exitstatus}. Stderr: #{ffmpeg_stderr_output}"
           raise SpeechServiceError, "Audio processing failed (ffmpeg exited with status #{ffmpeg_status.exitstatus}). Error: #{ffmpeg_stderr_output.lines.last || 'Unknown ffmpeg error'}"
         end
@@ -116,7 +129,7 @@ class SpeechService
         end
       end # Open3.popen3
 
-      Rails.logger.info("TTS request completed")
+      Rails.logger.info("TTS request finished")
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError in TTS generation: #{e.message}: #{error_message}"
