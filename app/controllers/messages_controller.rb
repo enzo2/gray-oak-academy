@@ -77,9 +77,7 @@ class MessagesController < ApplicationController
       return
     end
 
-    # Create a new user message with empty content
-    # This will be broadcast to the conversation view
-    # If STT fails, we will destroy it.
+    # Create a new user message with empty content. Will be broadcast to the conversation view.
     @message = conversation.messages.create!(role: "user", content: "")
 
     # Handle images if present
@@ -94,7 +92,8 @@ class MessagesController < ApplicationController
         respond_to do |format|
           format.turbo_stream { render :create } # Render the turbo_stream view to show a placeholder for the assistant reply
         end
-        GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the completion
+        # Enqueue the completion once we are sure the user message has been transcribed and saved
+        GetLlmCompletionJob.perform_later(conversation: conversation)
       else
         @message.destroy
         broadcast_flash(conversation, "Failed to save message: #{@message.errors.full_messages.join(', ')}")

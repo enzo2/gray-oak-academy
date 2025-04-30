@@ -21,6 +21,13 @@ class GetLlmCompletionJob < ApplicationJob
     messages = Message.for_completion_with_media(messages: conversation.messages, audio: conversation.audio_input_permitted?)
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
+
+    # After done, see if we need to transcribe any audio.
+    conversation.messages.role_user.where.not(audios: nil).each do |msg|
+      Rails.logger.info "Enqueueing transcription jobs for audio attachments on Message ID #{msg.id}."
+      TranscribeAudioJob.perform_later(audio: msg.audios.first)
+    end
+
   rescue OpenAiError => e
     Rails.logger.error "OpenAiService: #{e.message}"
     broadcast_error("#{e.message}", conversation)

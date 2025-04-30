@@ -19,12 +19,12 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 Prompted well, the LLM should ideally improve upon the supervising teacher's curriculum and capabilities. This could include teaching more foundationally, adapting to the student's progress, and gamification using just-in-time applets. It will be companionable, allowing students to 'walk and talk' if they don't want to sit down. A benchmark for LLM intelligence will be their ability to creatively teach by breaking into the real world; for example, if '3D printer' were marked as a resource, the LLM could conceive of a physical demonstration, write an OpenSCAD file and have the teacher print it out in advance of the lesson. But even with the current generation of LLMs, there is plenty of unexplored territory. 
 
-*I'm a doctor, Jim, not a software engineer.* I started this as a personal project. Please overlook any rookie errors in the code. 
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project. I hope you'll find the code logical and understandable.
 
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- Native LLM chat interface with image and audio input (fallback to STT), TTS
+- Native LLM chat interface supporting image and raw audio input, STT, TTS
 - Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans
@@ -36,6 +36,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
 - Remembers API URIs and model names for easy switching
+- If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions
 - App name can be customized via env variable
 - Dark/Light mode
 
@@ -100,8 +101,8 @@ Maintain the core app principles:
 - The goal is to meet or exceed the level of a private tutor 
 - Self-hostable, and ideally improve in this respect
 - Suitable for all ages
-- Follow generally accepted Rails architecture, keep controllers light, models heavy, code easy to follow
-- OK to code with LLMs, but do not vibe-code, and fully review your code
+- Follow generally accepted Rails architecture, keep models heavy, controllers light, code easy to follow.
+- Do not vibe-code without fully reviewing and iterating on your code. Suggest using Repomix and prompt with the full codebase (repomix.config.json is included).
 - All LLM prompts should be user-editable; use the Prompts model. 
 - Test with different LLMs.
 

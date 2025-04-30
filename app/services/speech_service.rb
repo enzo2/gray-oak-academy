@@ -71,7 +71,7 @@ class SpeechService
             end
           rescue IOError => e
             # Ignore "stream closed" errors which can happen during cleanup
-            Rails.logger.debug "IOError reading ffmpeg stdout (expected on close): #{e.message}"
+            Rails.logger.warn "IOError reading ffmpeg stdout (expected on close): #{e.message}"
           ensure
             ffmpeg_stdout.close # Close stdout pipe when done reading
           end
@@ -115,6 +115,8 @@ class SpeechService
           raise SpeechServiceError, "TTS API request failed with status #{response.status}" unless ffmpeg_status.success?
         end
       end # Open3.popen3
+
+      Rails.logger.info("TTS request completed", user_id: current_user.id, message_id: message.id)
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError in TTS generation: #{e.message}: #{error_message}"
