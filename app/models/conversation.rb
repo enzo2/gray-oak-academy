@@ -47,6 +47,11 @@ class Conversation < ApplicationRecord
     user.setting.speech_configured?
   end
 
+  # Auto-read TTS function enabled by default for "only" audio setting
+  def auto_read_default
+    audio_setting == "only" && user.setting.speech_configured? ? true : false
+  end
+
   # Returns the percentage of the context limit used by the conversation.
   # Return 0 if no context length is available.
   def context_usage

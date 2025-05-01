@@ -1,4 +1,7 @@
-<div class="flex h-[calc(100dvh-2.5rem)] overflow-hidden">
+<div class="flex h-[calc(100dvh-2.5rem)] overflow-hidden"
+     data-controller="tts-stream"
+     data-tts-stream-auto-read-value="<%= @conversation.auto_read_default %>"
+     data-tts-stream-speech-configured-value="<%= current_user.settings.speech_configured? %>">
   <!-- Conversation Column -->
   <div class="h-full min-w-0 
               grow xl:max-2xl:max-w-[32rem] 2xl:max-w-[40rem]
@@ -6,7 +9,19 @@
               flex flex-col 
               border-r border-stone-200 dark:border-stone-700">
     <!-- Lesson Info -->
-    <h1 class="flex-none text-xl font-semibold mb-1 inline-block"><%= @lesson.title %></h1>
+    <div class="flex items-center justify-between space-x-2">
+      <h1 class="text-xl font-semibold mb-1"><%= @lesson.title %></h1>
+      <% if current_user.setting.speech_configured? %>
+        <div id="auto-read-toggle" class="">
+          <sl-icon-button 
+            name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+            label="Auto-read" 
+            class="text-xl [&::part(base)]:pt-2" 
+            data-action="click->tts-stream#toggleAutoRead">
+          </sl-icon-button>
+        </div>
+      <% end %>
+    </div>
 
     <% if @conversation.messages.length < 2 %>
       <div class="flex-none flex items-center gap-2 mb-1" id="lesson-duration">

@@ -10,7 +10,7 @@ const mimeType = 'audio/webm;codecs=opus';
 
 export default class extends Controller {
   static targets = ["button", "spinner"];
-  static values = { speechConfigured: Boolean };
+  static values = { speechConfigured: Boolean, autoRead: Boolean };
 
   connect() {
     this.audioPlayer = null;
@@ -26,6 +26,7 @@ export default class extends Controller {
     this.audioWaitingHandler = null; // For removing listener
     this.audioProgressHandler = null; // For removing listener
     this.mediaSourceClass = getMediaSourceClass();
+    this.initialized = false;
 
     if (!this.speechConfiguredValue) {
       console.info("TTS is not configured for the current user.");
@@ -37,12 +38,21 @@ export default class extends Controller {
     } else if (!this.mediaSourceClass.isTypeSupported(mimeType)) {
       console.error(`MIME type ${mimeType} not supported`);
     } else {
+      this.initialized = true;
       // Enable TTS buttons
       this.buttonTargets.forEach(btn => {
         btn.disabled = false;
         btn.classList.remove('hidden');
       });
+      if (this.autoReadValue) this.autoReadLatestMessage(); 
     }
+  }
+
+  // Enable buttons for newly added messages
+  buttonTargetConnected(button) {
+    if (!this.initialized) return;
+    button.disabled = false;
+    button.classList.remove('hidden');
   }
 
   async play(event) {
@@ -50,6 +60,11 @@ export default class extends Controller {
     const messageId = button.dataset.messageIdParam;
     const currentState = button.dataset.ttsStreamState || 'idle';
     const originalIconName = button.name;
+
+    if (!this.initialized) {
+      console.error("TTS Stream Controller not initialized, cannot play audio.");
+      return;
+    }
 
     if (!messageId) {
       console.error("Play clicked, but messageId is missing from button dataset:", button);
@@ -399,6 +414,29 @@ export default class extends Controller {
      } catch (e) {
         return null;
      }
+  }
+
+  // Handle user toggle for auto-read
+  toggleAutoRead(event) {
+    this.autoReadValue = !this.autoReadValue;
+
+    const iconButton = event?.currentTarget;
+    if (iconButton) {
+      iconButton.name = this.autoReadValue ? 'volume-up' : 'volume-mute';
+    }
+    if (this.autoReadValue) {
+      this.autoReadLatestMessage();
+    }
+  }
+
+  autoReadLatestMessage() {
+    // Find all TTS buttons, pick the last one (latest message)
+    if (!this.buttonTargets.length) return;
+    const lastButton = this.buttonTargets[this.buttonTargets.length - 1];
+    // Only auto-play if not already playing
+    if (lastButton.dataset.ttsStreamState !== 'playing') {
+      lastButton.click();
+    }
   }
 
   disconnect() {

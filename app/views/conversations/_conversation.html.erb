@@ -12,6 +12,16 @@
             turbo_confirm: 'Are you sure you want to clear this conversation?'
           }, 
           class: "btn-danger" %>
+        <% if current_user.setting.speech_configured? %>
+          <div id="auto-read-toggle" class="">
+            <sl-icon-button 
+              name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+              label="Auto-read" 
+              class="text-xl [&::part(base)]:pt-2"
+              data-action="click->tts-stream#toggleAutoRead">
+            </sl-icon-button>
+          </div>
+        <% end %>
         <div class="xl:hidden text-dim text-xs italic leading-none text-right max-w-36">Screen too narrow for chalkboard.</div>
       </div>
     <% end %>
@@ -25,9 +35,8 @@
 
   <div class="grow overflow-y-auto overflow-x-hidden pr-4" 
        id="<%= dom_id(conversation) %>"
-       data-controller="conversation tts-stream"
-       data-conversation-target="messages"
-       data-tts-stream-speech-configured-value="<%= current_user.settings.speech_configured? %>">
+       data-controller="conversation"
+       data-conversation-target="messages">
       <% conversation.messages.each do |message| %>
         <%= render partial: "messages/message", locals: { message: message } %>
       <% end %>
