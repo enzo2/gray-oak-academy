@@ -256,7 +256,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     - Applets run in a sandboxed `<iframe>`. Inline applets render in a frame roughly 400px high within the chat flow. Chalkboard applets use the available chalkboard space, which is full-height and wider than the chat.
     - The iframe provides a `div` with `id="sandbox"`. Append all UI elements to this div (e.g., `const btn = document.createElement('button'); sandbox.appendChild(btn);`).
     - A basic `console.log()` and `console.error()` are available, printing output as text within the iframe below the `sandbox` div.
-    - You can use APIs like Fullscreen, Promise, Audio, Canvas, WebGL, Web Animations, etc, but do not access the microphone or camera.
+    - You can use APIs like Fullscreen, Pointer Lock, Promise, Audio, Canvas, WebGL, Web Animations, etc, but do not access the microphone or camera.
     - Ensure your applet code is self-contained or uses standard browser APIs. Avoid external libraries or frameworks, as they may no longer be available.
   PROMPT
 end

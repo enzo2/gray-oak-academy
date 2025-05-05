@@ -45,7 +45,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
  - No npm, just importmaps
- - OpenAI-compatible API support (tested with OpenRouter, OpenAI, and Gemini)
+ - OpenAI-compatible API support (tested with OpenRouter, OpenAI, Gemini, and LM Studio)
 
 ### Security
 - Devise for authentication
@@ -56,6 +56,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 
 ## Setup Instructions
 - `git clone` the repository to your machine. Docker is needed. 
+- Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise it will be super slow.
 - Set up .env files according to the examples.
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
 - If you're just trying it out or don't care to see detailed logs, follow 'Production' instructions below. Or, you can use the devcontainer.
@@ -70,9 +71,9 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 ### Development: 
 - Create `/config/credentials/development.key` and add a random 32-character string.
 - Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
-- Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise it will be super slow.
 - Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
-- Run `rails server`. Visit http://localhost:3000. 
+- Optionally, add the automatically generated `/config/certs/root-ca.crt` to your browser's trusted certificates.
+- Run `rails server`. Visit https://localhost:3000. 
 
 ### Choosing an API:
 - Notably, Gemini API has an OpenAI-compatible endpoint, a free tier, audio input, and 1+ megatoken context windows. 

@@ -45,6 +45,8 @@
 *.enc
 /config/*.enc
 
+/config/certs
+
 /app/assets/builds/*
 !/app/assets/builds/.keep
 .aider*

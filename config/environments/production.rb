@@ -9,11 +9,13 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 3001 }
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = false
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
+  # Redirect all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = false
+
+  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
+  # Specifically, sets HTTP_X_FORWARDED_PROTO to "https" and HTTP_X_FORWARDED_PORT to "443".
+  # This is useful if you're terminating SSL at the load balancer or proxy level.
+  config.assume_ssl = false
 
   # Code is not reloaded between requests.
   config.enable_reloading = false

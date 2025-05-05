@@ -14,8 +14,8 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log("Code Executor connected", this.element);
-    console.log("Config:", this.renderTargetValue, this.autoRunValue, this.hiddenValue);
+    //console.log("Code Executor connected", this.element);
+    //console.log("Config:", this.renderTargetValue, this.autoRunValue, this.hiddenValue);
 
     const rawCode = this.rawCodeTarget.textContent;
     const actionsContainer = this.actionsContainerTarget;
@@ -131,8 +131,20 @@ export default class extends Controller {
 
   createSandboxedIframe(renderTarget) {
     const iframe = document.createElement('iframe');
-    iframe.sandbox = 'allow-scripts allow-modals allow-pointer-lock allow-popups allow-presentation';
-    iframe.allow = 'fullscreen'; // Allow fullscreen requests from within the iframe
+    iframe.sandbox = 'allow-scripts allow-modals allow-pointer-lock allow-popups allow-presentation allow-forms allow-downloads';
+    iframe.allow = [
+      'fullscreen',
+      'accelerometer *',
+      'ambient-light-sensor *',
+      'encrypted-media *',
+      'gyroscope *',
+      'gamepad *',
+      'midi *',
+      'clipboard-write *',
+      'web-share *',
+      'local-fonts *',
+      'xr-spatial-tracking *'
+    ].join('; ');
     iframe.style.width = '100%';
     iframe.style.height = renderTarget === 'chalkboard' ? '100%' : '400px'; // Use 100% height for chalkboard
     iframe.style.border = '1px solid #ccc'; // Basic border
