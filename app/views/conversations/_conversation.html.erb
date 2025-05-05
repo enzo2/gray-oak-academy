@@ -4,25 +4,27 @@
 <div class="flex flex-col h-full max-w-full">
   <div id="conversation-header">
     <% if conversation.lesson_progress.nil? %>
-      <div class="mb-2 flex items-center justify-between space-x-2">
+      <div class="mb-2 flex justify-between space-x-2">
         <%= link_to 'Clear Conversation', clear_conversation_path(conversation), 
           method: :delete, 
+          class: "btn-danger",
           data: { 
             turbo_method: :delete,
             turbo_confirm: 'Are you sure you want to clear this conversation?'
-          }, 
-          class: "btn-danger" %>
-        <% if current_user.setting.speech_configured? %>
-          <div id="auto-read-toggle" class="">
-            <sl-icon-button 
-              name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-              label="Auto-read" 
-              class="text-xl [&::part(base)]:pt-2"
-              data-action="click->tts-stream#toggleAutoRead">
-            </sl-icon-button>
-          </div>
-        <% end %>
-        <div class="xl:hidden text-dim text-xs italic leading-none text-right max-w-36">Screen too narrow for chalkboard.</div>
+          } %>
+        <div class="flex space-x-2">
+          <% if current_user.setting.speech_configured? %>
+            <div id="auto-read-toggle" class="">
+              <sl-icon-button 
+                name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+                label="Auto-read" 
+                class="text-xl [&::part(base)]:pt-2"
+                data-action="click->tts-stream#toggleAutoRead">
+              </sl-icon-button>
+            </div>
+          <% end %>
+          <div class="xl:hidden text-dim text-xs italic leading-none text-right max-w-36">Screen too narrow for chalkboard.</div>
+        </div>
       </div>
     <% end %>
 
