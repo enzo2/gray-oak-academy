@@ -74,31 +74,28 @@ class GenerateLessonPlanContentJob < ApplicationJob
   def broadcast_success(current_user, lesson_plan, lesson)
     Rails.logger.info "Broadcasting success for lesson plan: #{lesson_plan.id}"
     # Broadcast the updated lesson plan row via Turbo Streams
-    Turbo::StreamsChannel.broadcast_replace_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "lesson-plan-form",
+    channel = "teacher_#{current_user.id}-dashboard"
+    renderer = ApplicationController.renderer_with_signed_in_user(current_user)
+    html = renderer.render(
       partial: "admin/lesson_plans/form",
-      locals: { lesson: lesson, lesson_plan: lesson_plan })
-
-    # Hide the loading indicator
-    Turbo::StreamsChannel.broadcast_remove_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "lesson-plan-loading"
+      locals: { lesson: lesson, lesson_plan: lesson_plan }
     )
+    Turbo::StreamsChannel.broadcast_replace_to(
+      channel, target: "lesson-plan-form", html: html)
+    # Hide the loading indicator
+    Turbo::StreamsChannel.broadcast_remove_to(channel, target: "lesson-plan-loading")
   end
 
   def broadcast_error(current_user, lesson_plan, message)
+    channel = "teacher_#{current_user.id}-dashboard"
     # Broadcast an error message via Turbo Streams
     Turbo::StreamsChannel.broadcast_update_to(
-      "teacher_#{current_user.id}-dashboard",
+      channel,
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
     # Hide the loading indicator
-    Turbo::StreamsChannel.broadcast_remove_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "lesson-plan-loading"
-    )
+    Turbo::StreamsChannel.broadcast_remove_to(channel, target: "lesson-plan-loading")
   end
 end

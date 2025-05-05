@@ -78,16 +78,18 @@ class GenerateCourseLessonsJob < ApplicationJob
 
   def broadcast_success(current_user, course)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
-    Turbo::StreamsChannel.broadcast_update_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "lessons-table-body",
+    channel = "teacher_#{current_user.id}-dashboard"
+    renderer = ApplicationController.renderer_with_signed_in_user(current_user)
+    html = renderer.render(
       partial: "admin/lessons/lessons_table",
       locals: { course: course }
     )
+    Turbo::StreamsChannel.broadcast_update_to(
+      channel,
+      target: "lessons-table-body",
+      html: html)
     Turbo::StreamsChannel.broadcast_remove_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "generate-lessons"
-    )
+      channel, target: "generate-lessons")
   end
 
   def broadcast_error(current_user, course, message)
