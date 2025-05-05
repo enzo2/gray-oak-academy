@@ -58,7 +58,7 @@
         <td><%= data.api_provider || 'N/A' %></td>
         <td><%= number_to_delimited(data.total_prompt_tokens) %></td>
         <td><%= number_to_delimited(data.total_cached_tokens) %></td>
-        <td><%= data.total_reasoning_tokens.positive? ? number_to_delimited(data.total_reasoning_tokens) : "" %></td>
+        <td><%= data.total_reasoning_tokens&.positive? ? number_to_delimited(data.total_reasoning_tokens) : "" %></td>
         <td><%= number_to_delimited(data.total_completion_tokens) %></td>
         <td><%= number_to_delimited(data.total_tokens) %></td>
         <td><%= number_to_currency(data.total_cost) %></td>

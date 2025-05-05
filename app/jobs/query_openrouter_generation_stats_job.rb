@@ -1,3 +1,4 @@
+# No longer needed because OpenRouter supports returning the stats with the response.
 class QueryOpenrouterGenerationStatsJob < ApplicationJob
   queue_as :default
 

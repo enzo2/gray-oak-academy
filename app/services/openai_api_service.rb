@@ -3,9 +3,8 @@ class OpenaiApiService
   require "json/repair"
   require "faraday/retry"
 
-  # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives.
-  # Each chunk delta will be passed to the Proc as a JSON object.
-  # eg. { "role"=>"assistant", "content"=>"or not to be??" }
+  # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives, including tool calls and content.
+  # Each chunk's choices[0] will be passed to the Proc as a JSON object.
 
   # System prompts are handled as follows:
   # If a custom system prompt is present in the completion messages array, it will be used as the system prompt.
@@ -50,36 +49,35 @@ class OpenaiApiService
           **(@tools.present? ? { tools: @tools } : {}),
           **(response_format.present? ? { response_format: response_format } : {}),
           stream: @stream_handler,
-          # Don't need to include usage stats for OpenRouter, as they will be queried afterwards
+          # Request usage stats from OpenRouter
+          **(@base_uri.include?("openrouter.ai") ? { usage: { include: true } } : {}),
+          # Request usage stats from OpenAI when streaming
           **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
           # **(@base_uri.include?("openrouter.ai") ? { reasoning: { .... } } : {})  future reasoning support
         }
+      ) # Response will be empty if a stream handler was provided, as the response is handled while streaming.
+
+      # Store the Completion record. Handle streaming and non-streaming cases.
+      @usage = @stream_handler ? @usage_chunk : response.dig("usage")
+      Completion.create(
+        conversation: @conversation,
+        model: @finish_chunk&.dig("model") || response.dig("model"),
+        api_provider: @base_uri,
+        # model_provider: @usage.dig["provider_name"],
+        prompt_tokens: @usage.dig("prompt_tokens")&.to_i,
+        prompt_audio_tokens: @usage.dig("prompt_tokens_details", "audio_tokens")&.to_i,
+        cached_tokens: @usage.dig("prompt_tokens_details", "cached_tokens")&.to_i,
+        completion_tokens: @usage.dig("completion_tokens")&.to_i,
+        completion_audio_tokens: @usage.dig("completion_tokens_details", "audio_tokens")&.to_i,
+        reasoning_tokens: @usage.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
+        total_tokens: @usage.dig("total_tokens")&.to_i,
+        total_cost: @usage.dig("cost")&.to_f,
+        cache_discount: @usage.dig("cache_discount")&.to_f
       )
 
       # If a stream handler was provided, stop here since the response was already handled
-      # and will be blank. Handle logging generation stats and refusal detection in the stream handler.
+      # and will be blank. All processing should be done in the stream handler.
       return if @stream_handler
-
-      # If OpenRouter was used, get full stats afterwards and save to DB.
-      if @base_uri.include?("openrouter.ai")
-        # Delayed job to get generation stats from OpenRouter
-        QueryOpenrouterGenerationStatsJob.set(wait: 10.seconds).perform_later(id: response.dig("id"), user: @user, conversation: @conversation)
-      else # If not OpenRouter, use response stats directly
-        usage = response.dig("usage")
-        Completion.create(
-          conversation: @conversation,
-          model: response.dig("model"),
-          api_provider: @base_uri,
-          # model_provider:
-          prompt_tokens: usage.dig("prompt_tokens").to_i,
-          completion_tokens: usage.dig("completion_tokens").to_i,
-          total_tokens: usage.dig("total_tokens").to_i,
-          prompt_audio_tokens: usage.dig("prompt_tokens_details", "audio_tokens").to_i,
-          cached_tokens: usage.dig("prompt_tokens_details", "cached_tokens").to_i,
-          reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i,
-          completion_audio_tokens: usage.dig("completion_tokens_details", "audio_tokens").to_i,
-        )
-      end
 
       # If no stream handler was provided, process the response.
       check_for_refusal(response)
@@ -132,6 +130,8 @@ class OpenaiApiService
       Rails.logger.error "Faraday::ResourceNotFound error #{e.message}: #{error_message}"
       raise OpenAiError, "#{e.message}: #{error_message}"
     rescue StandardError => e
+      Rails.logger.error "StandardError #{e.inspect}"
+      Rails.logger.error "Trace: #{e.backtrace.join("\n")}"
       raise e
     end # end of begin/rescue/end block
   end
@@ -221,6 +221,9 @@ class OpenaiApiService
     end
   end
 
+  # This outer Proc will wrap the provided inner Proc.
+  # The outer Proc will handle API-level concerns like checking for refusal, watching for the finish_reason, and logging the Completion.
+  # The inner Proc provided should handle application-specic concerns like tool calls and extracting the completion content.
   def wrap_stream_handler(handler)
     # Return if no stream handler is provided, so streaming will be disabled
     return false unless handler
@@ -230,21 +233,18 @@ class OpenaiApiService
     end
 
     stream_finished = false
+    @usage_chunk = {}
 
     Proc.new do |chunk|
       begin
         Rails.logger.debug "Stream chunk: #{chunk.inspect}"
 
+        # Handle end of stream (but may still have a usage chunk afterward)
         finish_reason = chunk.dig("choices", 0, "finish_reason")
         if finish_reason.present?
-          Rails.logger.debug "Stream finished with finish_reason: #{finish_reason}"
+          Rails.logger.debug "Streamed response finished with finish_reason: #{finish_reason}"
           stream_finished = true
-        end
-
-        # Handle the final chunk with token usage
-        # Ensure stream is actually finished, since some API may return usage too early
-        if chunk["usage"] && stream_finished
-          Rails.logger.debug("Streamed response complete: #{chunk["usage"]}")
+          @finish_chunk = chunk
 
           # If the model didn't follow instructions and called a tool without any text content,
           # then we need to add some text to the message to avoid confusion.
@@ -253,28 +253,14 @@ class OpenaiApiService
             Rails.logger.debug "Completion message was empty. Adding blank message placeholder."
             last_assistant_message.update(content: last_assistant_message.content + "*LLM did not include any text.*")
           end
+        end
 
-          # If using OpenRouter, query the generation stats and saves to DB.
-          if @base_uri.include?("openrouter.ai")
-            QueryOpenrouterGenerationStatsJob.set(wait: 10.seconds).perform_later(id: chunk["id"], user: @user, conversation: @conversation)
-          else # If not using OpenRouter, just save the usage from the response
-            usage = chunk["usage"]
-            Completion.create(
-              conversation: @conversation,
-              model: @model,
-              api_provider: @base_uri,
-              # model_provider:
-              prompt_tokens: usage.dig("prompt_tokens").to_i,
-              completion_tokens: usage.dig("completion_tokens").to_i,
-              total_tokens: usage.dig("total_tokens").to_i,
-              prompt_audio_tokens: usage.dig("prompt_tokens_details", "audio_tokens").to_i,
-              cached_tokens: usage.dig("prompt_tokens_details", "cached_tokens").to_i,
-              reasoning_tokens: usage.dig("completion_tokens_details", "reasoning_tokens").to_i,
-              completion_audio_tokens: usage.dig("completion_tokens_details", "audio_tokens").to_i,
-              # latency:
-              # generation_time:
-            )
-          end
+        # Handle the final chunk with token usage
+        # (Ensure stream is actually finished, since some API may return usage too early)
+        # Don't include any essential cleanup logic here, since API may omit 'usage' key (eg. LM Studio)
+        if chunk["usage"] && stream_finished
+          Rails.logger.debug("Streamed response complete. Usage: #{chunk["usage"]}")
+          @usage_chunk = chunk["usage"] # Completion will be created later in the complete method
         end
 
         choices = chunk&.dig("choices")

@@ -47,6 +47,7 @@ class Completion < ApplicationRecord
 
   private
 
+  # The Llm model is generated here, if it doesn't exist already.
   def associate_llm
     self.llm = Llm.find_or_create_by!(
       model: model,
