@@ -36,7 +36,8 @@
   <div class="grow overflow-y-auto overflow-x-hidden pr-4" 
        id="<%= dom_id(conversation) %>"
        data-controller="conversation"
-       data-conversation-target="messages">
+       data-conversation-target="messages"
+       data-action="llm-completion-finished->tts-stream#autoReadOnCompletionFinished">
       <% conversation.messages.each do |message| %>
         <%= render partial: "messages/message", locals: { message: message } %>
       <% end %>

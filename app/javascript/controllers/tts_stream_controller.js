@@ -38,13 +38,18 @@ export default class extends Controller {
     } else if (!this.mediaSourceClass.isTypeSupported(mimeType)) {
       console.error(`MIME type ${mimeType} not supported`);
     } else {
+      // Proceed with initialization
       this.initialized = true;
       // Enable TTS buttons
       this.buttonTargets.forEach(btn => {
         btn.disabled = false;
         btn.classList.remove('hidden');
       });
+
+      // Read the last message if auto-read is enabled
       if (this.autoReadValue) this.autoReadLatestMessage(); 
+      // Later auto-reads will be triggered by the custom Turbo.StreamActions.dispatch_event 'llm-completion-finished'.
+      // The listener is defined on the conversation div id="<%= dom_id(conversation) %>"
     }
   }
 
@@ -72,7 +77,7 @@ export default class extends Controller {
     }
     this.messageId = messageId; // Store for context during playback
 
-    // console.log(`Play clicked: msgId=${messageId}, state=${currentState}`);
+    console.log(`Play clicked: msgId=${messageId}, state=${currentState}`);
 
     if (currentState === 'playing' && button === this.currentPlayingButton) {
       // console.log("Stopping currently playing stream");
@@ -430,6 +435,8 @@ export default class extends Controller {
   }
 
   autoReadLatestMessage() {
+    if (!this.autoReadValue || !this.initialized) return;
+    console.log("Auto-read latest message");
     // Find all TTS buttons, pick the last one (latest message)
     if (!this.buttonTargets.length) return;
     const lastButton = this.buttonTargets[this.buttonTargets.length - 1];
@@ -437,6 +444,30 @@ export default class extends Controller {
     if (lastButton.dataset.ttsStreamState !== 'playing') {
       lastButton.click();
     }
+  }
+
+  // Handles the 'llm-completion-finished' event dispatched from the server
+  autoReadOnCompletionFinished(event) {
+    if (!this.autoReadValue || !this.initialized) return;
+    const messageId = event.detail?.message_id;
+    if (!messageId) return; 
+    //console.log(`Auto-read triggered by event for message ID: ${messageId}`);
+
+    const findAndClickButton = (retryCount = 0) => {
+      const targetButton = this.buttonTargets.find(btn => btn.dataset.messageIdParam === messageId.toString());
+      if (targetButton) {
+        const currentState = targetButton.dataset.ttsStreamState || 'idle';
+        console.log(`Found button for message ${messageId} (retry ${retryCount}), state: ${currentState}`);
+        targetButton.click();
+      } else if (retryCount < 20) { // Retry up to 4 seconds
+        console.warn(`Button target for message ID ${messageId} not found. Retrying (${retryCount + 1}/5)...`);
+        setTimeout(() => findAndClickButton(retryCount + 1), 200); // Wait 200ms before retrying
+      } else {
+        console.error(`Could not find button target for completed message ID: ${messageId} after ${retryCount} retries. Was it rendered?`);
+      }
+    };
+    // Start the process
+    findAndClickButton();
   }
 
   disconnect() {

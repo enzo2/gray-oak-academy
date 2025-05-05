@@ -53,7 +53,7 @@ class GetLlmCompletionJob < ApplicationJob
         # Create the empty message if it doesn't exist yet. This will broadcast the message.
         message ||= conversation.messages.create!(role: "assistant", content: "")
 
-        # Check if the chunk contains tool calls
+        # Check if the chunk contains tool calls, and accumulate them
         if chunk.dig("delta", "tool_calls").present?
           Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
           # Buffer the tool call arguments as they are streamed in
@@ -82,6 +82,10 @@ class GetLlmCompletionJob < ApplicationJob
           Rails.logger.debug "Non-content chunk: #{chunk.inspect}"
         end
 
+        # When finished, broadcast the completion event to the client
+        if chunk["finish_reason"].present? && chunk["finish_reason"].length > 0
+          broadcast_completion_finished(conversation, message.id)
+        end
       rescue StandardError => e
         Rails.logger.error "Error processing stream chunk: #{e.message}"
       end
@@ -95,6 +99,19 @@ class GetLlmCompletionJob < ApplicationJob
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }
+    )
+  end
+
+  def broadcast_completion_finished(conversation, message_id)
+    Rails.logger.debug("Broadcasting completion finished event to conversation: #{conversation.id}")
+    Turbo::StreamsChannel.broadcast_action_to(
+      "#{dom_id(conversation)}",
+      action: :dispatch_event,
+      attributes: {
+        "event-name": "llm-completion-finished",
+        "target-selector": "##{dom_id(conversation)}"
+      },
+      content: { message_id: message_id }.to_json
     )
   end
 end
