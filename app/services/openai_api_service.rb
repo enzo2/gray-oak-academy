@@ -61,7 +61,7 @@ class OpenaiApiService
       @usage = @stream_handler ? @usage_chunk : response.dig("usage")
       Completion.create(
         conversation: @conversation,
-        model: @finish_chunk&.dig("model") || response.dig("model"),
+        model: @finish_chunk&.dig("model") || response.dig("model") || @model,
         api_provider: @base_uri,
         # model_provider: @usage.dig["provider_name"],
         prompt_tokens: @usage.dig("prompt_tokens")&.to_i,
