@@ -53,20 +53,21 @@ export default class extends Controller {
       this.isRecording = true
       this.audioChunks = []
 
-      const options = {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 32000 // Adjust bitrate as needed
-        // We can't set the sample rate and bit depth, so just convert these on the server.
-      }
-
+      // Browsers should support webm & opus
+      const options = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 32000 }
+      // Safari only supports mp4
+      const options_fallback = { mimeType: 'audio/mp4', audioBitsPerSecond: 32000 }
       // Check if the preferred mimeType is supported
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-         console.warn(`${options.mimeType} is not supported. Falling back to default.`);
-         // Fallback to default or another supported type if necessary
-         this.mediaRecorder = new MediaRecorder(stream);
-      } else {
+      if (MediaRecorder.isTypeSupported(options.mimeType)) {
          this.mediaRecorder = new MediaRecorder(stream, options);
-      }
+      } else if (MediaRecorder.isTypeSupported(options_fallback.mimeType)) { 
+         this.mediaRecorder = new MediaRecorder(stream, options_fallback);
+         alert(`${options.mimeType} is not supported. Falling back to ${options_fallback.mimeType}.`);
+      } else {
+        console.warn(`${options_fallback.mimeType} is not supported. Falling back to default.`);
+        alert(`${options.mimeType} and ${options_fallback.mimeType} are not supported. Falling back to default.`);
+        this.mediaRecorder = new MediaRecorder(stream);
+      } 
 
       this.mediaRecorder.ondataavailable = (event) => {
         this.audioChunks.push(event.data)
@@ -112,7 +113,22 @@ export default class extends Controller {
 
   async uploadAudio(audioBlob) {
     const formData = new FormData()
-    formData.append('audio', audioBlob, `recording-${Date.now()}.webm`)
+    // Determine file extension based on the blob's mime type
+    let fileExtension = 'webm'; // Default
+    //console.log(`${audioBlob.type}`);
+    if (audioBlob.type.includes('mp4')) {
+      fileExtension = 'mp4';
+    } else if (audioBlob.type.includes('webm')) {
+      fileExtension = 'webm';
+    } else {
+      // Fallback for other potential types, extracting subtype
+      const subtype = audioBlob.type.split('/')[1];
+      if (subtype) {
+        fileExtension = subtype.split(';')[0]; // Remove potential codecs info
+      }
+      console.warn(`Unexpected mime type: ${audioBlob.type}, using extension: ${fileExtension}`);
+    }
+    formData.append('audio', audioBlob, `recording-${Date.now()}.${fileExtension}`)
 
     // Also send images_data if present
     const imagesDataField = this.element.querySelector('[data-new-message-target="imagesData"]');
