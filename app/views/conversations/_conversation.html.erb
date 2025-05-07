@@ -1,7 +1,10 @@
-<%# It will suffice to identify the stream by the conversation ID, since different users will have different conversations. %>
 <%= turbo_stream_from "#{dom_id(conversation)}" %>
 
-<div class="flex flex-col h-full max-w-full">
+<div class="flex flex-col h-full max-w-full"
+     data-controller="tts-stream"
+     data-tts-stream-auto-read-value="<%= conversation.auto_read_default %>"
+     data-tts-stream-speech-configured-value="<%= current_user.settings.speech_configured? %>"
+     data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
   <div id="conversation-header">
     <% if conversation.lesson_progress.nil? %>
       <div class="mb-2 flex justify-between space-x-2">
@@ -14,14 +17,14 @@
           } %>
         <div class="flex space-x-2">
           <% if current_user.setting.speech_configured? %>
-            <div id="auto-read-toggle" class="">
               <sl-icon-button 
+                id="auto-read-toggle"
                 name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
                 label="Auto-read" 
                 class="text-xl [&::part(base)]:pt-2"
-                data-action="click->tts-stream#toggleAutoRead">
+                data-action="click->tts-stream#toggleAutoRead"
+                >
               </sl-icon-button>
-            </div>
           <% end %>
           <div class="xl:hidden text-dim text-xs italic leading-none text-right max-w-36">Screen too narrow for chalkboard.</div>
         </div>
@@ -39,7 +42,7 @@
        id="<%= dom_id(conversation) %>"
        data-controller="conversation"
        data-conversation-target="messages"
-       data-action="llm-completion-finished->tts-stream#autoReadOnCompletionFinished">
+       data-action="llm-completion-finished->tts-stream#handleNewAssistantMessageFinished">
       <% conversation.messages.each do |message| %>
         <%= render partial: "messages/message", locals: { message: message } %>
       <% end %>

@@ -1,0 +1,26 @@
+<div id="<%= dom_id(message) %>_buttons"
+     class="message-buttons-wrapper
+            mb-2 
+            flex justify-start gap-2">
+  <% if message.role_assistant? && message.conversation.tts_available? %>
+    <%# TTS button will be hidden by default and enabled by the TTS controller  %>
+    <sl-icon-button 
+      disabled
+      name="volume-up" 
+      label="Read aloud" 
+      data-tts-stream-target="button" 
+      data-action="click->tts-stream#play"
+      data-message-id-param="<%= message.id %>" 
+      data-tts-stream-state="idle" 
+      class="hidden
+            [&::part(base)]:p-0 [&::part(base)]:pb-1
+            text-stone-500 hover:text-stone-700 
+            dark:text-stone-400 dark:hover:text-stone-200 
+            align-middle">
+    </sl-icon-button>
+    <sl-spinner 
+      data-tts-stream-target="spinner"
+      class="hidden p-0">
+    </sl-spinner>
+  <% end %>
+</div>

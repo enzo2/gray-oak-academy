@@ -47,6 +47,10 @@ class Conversation < ApplicationRecord
     user.setting.speech_configured?
   end
 
+  def tts_available?
+    user.setting.speech_configured?
+  end
+
   # Auto-read TTS function enabled by default for "only" audio setting
   def auto_read_default
     audio_setting == "only" && user.setting.speech_configured? ? true : false

@@ -21,10 +21,7 @@
     </div>
 
     <!-- Conversation Column -->
-    <div class="min-w-0 grow max-w-[40rem] xl:max-2xl:max-w-[32rem] h-full"
-         data-controller="tts-stream"
-         data-tts-stream-auto-read-value="<%= @conversation.auto_read_default %>"
-         data-tts-stream-speech-configured-value="<%= current_user.settings.speech_configured? %>">
+    <div class="min-w-0 grow max-w-[40rem] xl:max-2xl:max-w-[32rem] h-full">
       <%= turbo_frame_tag "conversation-panel" do %>
         <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
       <% end %>

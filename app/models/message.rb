@@ -24,8 +24,8 @@ class Message < ApplicationRecord
     broadcast_append_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
-      locals: { message: self },
-      target: "#{dom_id(conversation)}"
+      target: "#{dom_id(conversation)}",
+      locals: { message: self }
     )
     # Remove any temporary new message placeholder
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
@@ -33,14 +33,14 @@ class Message < ApplicationRecord
 
   def broadcast_updated
     Rails.logger.debug "Broadcasting updated message: #{self.inspect}"
-    # Due to https://github.com/hotwired/turbo-rails/issues/644, we need extract the inner_html of the message partial.
-    # This allows same partial to be used for create and update.
-    html = ApplicationController.renderer_with_signed_in_user(conversation.user).render(partial: "messages/message", locals: { message: self })
+    # See https://github.com/hotwired/turbo-rails/issues/644
+    # Replace only the message content using the inner_html of the rendered partial.
+    html = ApplicationController.renderer_with_signed_in_user(conversation.user).render(partial: "messages/message_content", locals: { message: self })
     dom = Nokogiri::HTML.fragment(html)
     html = dom.at_css(":root").inner_html
     broadcast_update_later_to(
       "#{dom_id(conversation)}",
-      target: dom_id(self),
+      target: "#{dom_id(self)}_content",
       html: html
     )
   end
@@ -48,6 +48,7 @@ class Message < ApplicationRecord
   def broadcast_destroyed
     Rails.logger.debug "Broadcasting destroyed message: #{self.inspect}"
     broadcast_remove_to("#{dom_id(conversation)}", target: dom_id(self))
+    broadcast_remove_to("#{dom_id(conversation)}", target: "#{dom_id(self)}_buttons")
   end
 
   # Return content in JSON format with base64 images for LLM APIs.

@@ -1,5 +1,7 @@
 import { Controller } from "@hotwired/stimulus";
 
+// Support for ManagedMediaSource (Safari) and MediaSource 
+// Since we're only using audio, not video, nothing special seems to be needed for ManagedMediaSource
 function getMediaSourceClass() {
   if ('ManagedMediaSource' in window) return window.ManagedMediaSource;
   if ('MediaSource' in window) return window.MediaSource;
@@ -9,10 +11,11 @@ function getMediaSourceClass() {
 const mimeType = 'audio/webm;codecs=opus';
 
 export default class extends Controller {
-  static targets = ["button", "spinner"];
+  static targets = ["assistantMessage", "button", "spinner"];
   static values = { speechConfigured: Boolean, autoRead: Boolean };
 
-  connect() {
+  // Perform checks and initialize the controller
+  initialize() {
     this.audioPlayer = null;
     this.mediaSource = null;
     this.sourceBuffer = null;
@@ -29,7 +32,7 @@ export default class extends Controller {
     this.initialized = false;
 
     if (!this.speechConfiguredValue) {
-      console.info("TTS is not configured for the current user.");
+      //console.info("TTS is not configured for the current user.");
       return;
     }
 
@@ -40,24 +43,21 @@ export default class extends Controller {
     } else {
       // Proceed with initialization
       this.initialized = true;
-      // Enable TTS buttons
-      this.buttonTargets.forEach(btn => {
-        btn.disabled = false;
-        btn.classList.remove('hidden');
-      });
-
-      // Read the last message if auto-read is enabled
-      if (this.autoReadValue) this.autoReadLatestMessage(); 
-      // Later auto-reads will be triggered by the custom Turbo.StreamActions.dispatch_event 'llm-completion-finished'.
-      // The listener is defined on the conversation div id="<%= dom_id(conversation) %>"
     }
   }
+  
+  connect() {
+      if (!this.initialized) return;
 
-  // Enable buttons for newly added messages
-  buttonTargetConnected(button) {
-    if (!this.initialized) return;
-    button.disabled = false;
-    button.classList.remove('hidden');
+      // Enable existing buttons
+      this.buttonTargets.forEach(button => {
+        button.disabled = false;
+        button.classList.remove('hidden');
+      });
+
+      // Don't auto-read the latest message initially, to avoid startling the user. 
+      // Auto-reads will be triggered by the custom Turbo.StreamActions.dispatch_event 'llm-completion-finished'.
+      // The listener is defined on the conversation div id="<%= dom_id(conversation) %>"
   }
 
   async play(event) {
@@ -424,8 +424,8 @@ export default class extends Controller {
   // Handle user toggle for auto-read
   toggleAutoRead(event) {
     this.autoReadValue = !this.autoReadValue;
-
-    const iconButton = event?.currentTarget;
+    
+    const iconButton = document.getElementById('auto-read-toggle');
     if (iconButton) {
       iconButton.name = this.autoReadValue ? 'volume-up' : 'volume-mute';
     }
@@ -436,38 +436,46 @@ export default class extends Controller {
 
   autoReadLatestMessage() {
     if (!this.autoReadValue || !this.initialized) return;
-    console.log("Auto-read latest message");
+    if (!this.hasButtonTarget) return;
+    console.log("Auto-read latest message triggered");
+
     // Find all TTS buttons, pick the last one (latest message)
-    if (!this.buttonTargets.length) return;
     const lastButton = this.buttonTargets[this.buttonTargets.length - 1];
+    
     // Only auto-play if not already playing
-    if (lastButton.dataset.ttsStreamState !== 'playing') {
+    if (lastButton && !lastButton.disabled && lastButton.dataset.ttsStreamState !== 'playing') {
       lastButton.click();
     }
   }
 
   // Handles the 'llm-completion-finished' event dispatched from the server
-  autoReadOnCompletionFinished(event) {
-    if (!this.autoReadValue || !this.initialized) return;
-    const messageId = event.detail?.message_id;
-    if (!messageId) return; 
-    //console.log(`Auto-read triggered by event for message ID: ${messageId}`);
+  // as soon as the completion is finished while the message continues to stream to the client
+  // Enable TTS button for the message, and auto-read if enabled
+  handleNewAssistantMessageFinished(event) {
+    if (!this.initialized) return;
 
-    const findAndClickButton = (retryCount = 0) => {
-      const targetButton = this.buttonTargets.find(btn => btn.dataset.messageIdParam === messageId.toString());
+    const messageIdFromEvent = event.detail?.message_id;
+    console.log(`handleNewAssistantMessageFinished: Received event for message ID: ${messageIdFromEvent}`);
+
+    // In case new message has not rendered yet, wait for it
+    const processButton = (retryCount = 0) => {
+      const targetButton = this.buttonTargets.find(btn => btn.dataset.messageIdParam === messageIdFromEvent.toString());
       if (targetButton) {
-        const currentState = targetButton.dataset.ttsStreamState || 'idle';
-        console.log(`Found button for message ${messageId} (retry ${retryCount}), state: ${currentState}`);
-        targetButton.click();
-      } else if (retryCount < 20) { // Retry up to 4 seconds
-        console.warn(`Button target for message ID ${messageId} not found. Retrying (${retryCount + 1}/5)...`);
-        setTimeout(() => findAndClickButton(retryCount + 1), 200); // Wait 200ms before retrying
+        console.log(`Found button for message ${messageIdFromEvent} (retry ${retryCount})`);
+        targetButton.disabled = false;
+        targetButton.classList.remove('hidden');
+        // Auto-read if enabled
+        if (this.autoReadValue) this.play({ currentTarget: targetButton })
+        
+      } else if (retryCount < 10) { // Retry up to 1 seconds
+        console.log(`Button target for message ID ${messageIdFromEvent} not found. Retrying (${retryCount + 1})/10...`);
+        setTimeout(() => processButton(retryCount + 1), 100); // Wait 100ms before retrying
       } else {
-        console.error(`Could not find button target for completed message ID: ${messageId} after ${retryCount} retries. Was it rendered?`);
+        console.error(`Could not find button target for completed message ID: ${messageIdFromEvent} after ${retryCount} retries. Was it rendered?`);
       }
     };
     // Start the process
-    findAndClickButton();
+    processButton();
   }
 
   disconnect() {

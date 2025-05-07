@@ -1,9 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["messages", "user", "assistant", "assistantContent"];
+  static targets = ["messages", "userMessage", "assistantMessage", "assistantMessageContent"];
 
   connect() {
+    // Scroll to bottom upon initialization
     this.scrollToBottom();
   }
 
@@ -14,7 +15,7 @@ export default class extends Controller {
   }
 
   renderKatexInMessages() {
-    this.assistantTargets.forEach(message => {
+    this.assistantMessageTargets.forEach(message => {
       renderMathInElement(message, {
         delimiters: [
           { left: "$$", right: "$$", display: true },
@@ -26,16 +27,19 @@ export default class extends Controller {
     });
   }
 
-  userTargetConnected(element) {
+  // Setup for new user messages
+  userMessageTargetConnected(element) {
     this.scrollToBottom();
   }
 
-  assistantTargetConnected(element) {
-    this.renderKatexInMessages();
+  // Setup for new assistant messages
+  assistantMessageTargetConnected(element) {
+    this.renderKatexInMessages(); 
     this.scrollToBottom();
   }
 
-  assistantContentTargetConnected(element) {
+  // Setup for new assistant message content
+  assistantMessageContentTargetConnected(element) {
     this.renderKatexInMessages();
   }
 
