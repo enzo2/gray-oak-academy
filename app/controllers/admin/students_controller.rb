@@ -1,10 +1,9 @@
 module Admin
   class StudentsController < Admin::BaseController
     before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll ]
+    before_action :set_students_nav, only: [:index, :show]
 
     def index
-      @my_students = current_user.students.order(last_name: :asc)
-      @other_students = User.role_student.where.not(id: @my_students.pluck(:id))
     end
 
     def show
@@ -25,9 +24,7 @@ module Admin
         redirect_to admin_students_path
       else
         flash.now[:error] = "Student already has a teacher."
-        respond_to do |format|
-          format.turbo_stream
-        end
+        render :adopt, status: :unprocessable_entity
       end
     end
 
@@ -52,6 +49,11 @@ module Admin
 
     def set_student
       @student = User.find(params[:id])
+    end
+
+    def set_students_nav
+      @my_students = current_user.students.order(last_name: :asc)
+      @other_students = User.role_student.where.not(id: @my_students.pluck(:id))
     end
   end
 end
