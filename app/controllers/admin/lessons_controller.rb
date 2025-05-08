@@ -48,9 +48,7 @@ module Admin
 
     def destroy
       @lesson.destroy
-      respond_to do |format|
-        format.turbo_stream
-      end
+      redirect_to admin_course_lessons_path(@course), status: :see_other
     end
 
     def generate_lessons

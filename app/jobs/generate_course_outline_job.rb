@@ -99,5 +99,12 @@ class GenerateCourseOutlineJob < ApplicationJob
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
+    # Re-render the course row to reset the button state
+    Turbo::StreamsChannel.broadcast_replace_to(
+      "teacher_#{current_user.id}-dashboard",
+      target: course,
+      partial: "admin/courses/course",
+      locals: { course: course }
+    )
   end
 end

@@ -216,7 +216,7 @@ export default class extends Controller {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken
       },
-      body: JSON.stringify({ applet: { title: title, code: rawCode, archived: true } })
+      body: JSON.stringify({ applet: { title: title, code: rawCode } })
     })
     .then(response => {
       if (response.ok) {

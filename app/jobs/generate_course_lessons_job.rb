@@ -100,5 +100,11 @@ class GenerateCourseLessonsJob < ApplicationJob
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
+    Turbo::StreamsChannel.broadcast_update_to(
+      "teacher_#{current_user.id}-dashboard",
+      target: "generate-lessons",
+      partial: "admin/lessons/generate_lessons_button",
+      locals: { course: course }
+    )
   end
 end

@@ -109,26 +109,26 @@ class OpenaiApiService
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
-      raise OpenAiError, "Bad Request: #{e.message}: #{error_message}"
+      raise OpenAiError, "The server rejected the request. Details: #{error_message}"
     rescue Faraday::TimeoutError => e
       Rails.logger.error "Faraday::TimeoutError #{e.message}"
       raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
     rescue Faraday::ServerError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ServerError #{e.message}: #{error_message}"
-      raise OpenAiError, "#{e.message}: #{error_message}"
+      raise OpenAiError, "The server encountered an error. Details: #{error_message}"
     rescue Faraday::ClientError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ClientError #{e.message}"
-      raise OpenAiError, "ClientError: #{e.message}: #{error_message}"
+      raise OpenAiError, "The client encountered an error. Details: #{error_message}"
     rescue Faraday::UnauthorizedError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::UnauthorizedError #{e.message}: #{error_message}"
-      raise OpenAiError, "The access key was unauthorized: #{error_message}"
+      raise OpenAiError, "The access key was unauthorized. Ask teacher to check it."
     rescue Faraday::ResourceNotFound => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ResourceNotFound error #{e.message}: #{error_message}"
-      raise OpenAiError, "#{e.message}: #{error_message}"
+      raise OpenAiError, "The requested service was not found. Details: #{error_message}"
     rescue StandardError => e
       Rails.logger.error "StandardError #{e.inspect}"
       Rails.logger.error "Trace: #{e.backtrace.join("\n")}"

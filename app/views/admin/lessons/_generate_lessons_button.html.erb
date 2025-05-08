@@ -1,0 +1,8 @@
+<%= button_to "Generate Lessons from Course Outline", generate_lessons_admin_course_lessons_path(course),
+  method: :post, 
+  class: "btn-primary", 
+  id: "generate-lessons-button",
+  data: { 
+    turbo_confirm: "This will call the LLM to generate lessons. Are you sure?",
+    turbo_stream: true }
+%>

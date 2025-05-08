@@ -8,20 +8,11 @@
   <% end %>
 </div>
 
-<div class="mb-4">
-  <%= turbo_frame_tag "generate-lessons" do %>
-    <% if @course.lessons.blank? && !@course.outline.blank? %>
-      <%= button_to "Generate Lessons from Course Outline", generate_lessons_admin_course_lessons_path(@course),
-        method: :post, 
-        class: "btn-primary", 
-        id: "generate-lessons-button",
-        data: { 
-          turbo_confirm: "This will call the LLM to generate lessons. Are you sure?",
-          turbo_stream: true }
-      %>
-    <% else %>
-      <i>To generate the lessons via LLM, the course outline must be filled in, and there must be no existing lessons.</i>
-    <% end %>
+<div class="mb-4" id="generate-lessons">
+  <% if @course.lessons.blank? && !@course.outline.blank? %>
+    <%= render "admin/lessons/generate_lessons_button", course: @course %>
+  <% else %>
+    <i>To generate the lessons via LLM, the course outline must be filled in, and there must be no existing lessons.</i>
   <% end %>
 </div>
 
