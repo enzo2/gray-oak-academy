@@ -53,19 +53,18 @@ export default class extends Controller {
       this.isRecording = true
       this.audioChunks = []
 
-      // Browsers should support webm & opus
+      // Browsers should support webm & opus...
       const options = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 32000 }
-      // Safari only supports mp4
+      // ...but Safari only supports mp4
       const options_fallback = { mimeType: 'audio/mp4', audioBitsPerSecond: 32000 }
       // Check if the preferred mimeType is supported
       if (MediaRecorder.isTypeSupported(options.mimeType)) {
          this.mediaRecorder = new MediaRecorder(stream, options);
       } else if (MediaRecorder.isTypeSupported(options_fallback.mimeType)) { 
          this.mediaRecorder = new MediaRecorder(stream, options_fallback);
-         alert(`${options.mimeType} is not supported. Falling back to ${options_fallback.mimeType}.`);
+         //console.log(`${options.mimeType} is not supported. Falling back to ${options_fallback.mimeType}.`);
       } else {
-        console.warn(`${options_fallback.mimeType} is not supported. Falling back to default.`);
-        alert(`${options.mimeType} and ${options_fallback.mimeType} are not supported. Falling back to default.`);
+        console.warn(`${options.mimeType} and ${options_fallback.mimeType} are not supported. Falling back to default MediaRecorder options.`);
         this.mediaRecorder = new MediaRecorder(stream);
       } 
 

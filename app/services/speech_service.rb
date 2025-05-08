@@ -172,7 +172,7 @@ class SpeechService
       response = @client.audio.transcribe(
         parameters: {
           model: @stt_model,
-          file: audio_file,
+          file: audio_file,  # No need to transcode first, API should handle webm or mp4.
           response_format: "text"
         }
       )
