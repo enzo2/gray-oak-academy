@@ -55,7 +55,7 @@ export default class extends Controller {
 
       // Browsers should support webm & opus...
       const options = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 32000 }
-      // ...but Safari only supports mp4
+      // ...but Safari only supports mp4 (before 18.4, apparently)
       const options_fallback = { mimeType: 'audio/mp4', audioBitsPerSecond: 32000 }
       // Check if the preferred mimeType is supported
       if (MediaRecorder.isTypeSupported(options.mimeType)) {

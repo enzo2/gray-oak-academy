@@ -135,7 +135,6 @@ export default class extends Controller {
     iframe.allow = [
       'fullscreen',
       'accelerometer *',
-      'ambient-light-sensor *',
       'encrypted-media *',
       'gyroscope *',
       'gamepad *',

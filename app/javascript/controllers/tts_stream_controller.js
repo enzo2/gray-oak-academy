@@ -77,16 +77,16 @@ export default class extends Controller {
     }
     this.messageId = messageId; // Store for context during playback
 
-    console.log(`Play clicked: msgId=${messageId}, state=${currentState}`);
+    //console.log(`Play clicked: msgId=${messageId}, state=${currentState}`);
 
     if (currentState === 'playing' && button === this.currentPlayingButton) {
-      // console.log("Stopping currently playing stream");
+      //console.log("Stopping currently playing stream");
       this.stopPlayback();
       return;
     }
 
     if (currentState === 'loading' || this.mediaSource?.readyState === 'open') {
-       // console.log("Already loading or playing, ignoring click");
+       //console.log("Already loading or playing, ignoring click");
        return;
     }
 
@@ -100,7 +100,7 @@ export default class extends Controller {
     this.isStreamEnded = false;
 
     try {
-      // console.log(`Fetching audio stream for message ${messageId}...`);
+      //console.log(`Fetching audio stream for message ${messageId}...`);
       const response = await fetch(`/messages/${messageId}/tts_stream`, {
         signal: this.fetchController.signal
       });
@@ -112,13 +112,24 @@ export default class extends Controller {
       if (!response.body) {
         throw new Error("Response has no body stream");
       }
-      // console.log("Fetch successful, got stream body.");
+      //console.log("Fetch successful, got stream body.");
 
       this.streamReader = response.body.getReader();
       this.mediaSource = new this.mediaSourceClass();
       this.audioPlayer = new Audio();
+
+      // For ManagedMediaSource on iOS, disableRemotePlayback is required for the source to transition from 'closed'.
+      if (typeof window.ManagedMediaSource === 'function' && this.mediaSource instanceof window.ManagedMediaSource) {
+        if (this.audioPlayer.disableRemotePlayback !== undefined) {
+            this.audioPlayer.disableRemotePlayback = true;
+            // //console.log("ManagedMediaSource: Set audioPlayer.disableRemotePlayback = true");
+        } else {
+            // console.warn("ManagedMediaSource: audioPlayer.disableRemotePlayback property not available.");
+        }
+      }
+
       this.audioPlayer.src = URL.createObjectURL(this.mediaSource);
-      // console.log(`MediaSource created, Audio src set: ${this.audioPlayer.src}`);
+      //console.log(`MediaSource created, Audio src set: ${this.audioPlayer.src}`);
 
       // --- Event Listeners ---
       this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen.bind(this), { once: true });
@@ -143,17 +154,17 @@ export default class extends Controller {
       this.audioPlayer.addEventListener('playing', this.handleAudioPlaying.bind(this));
 
       // Optional: Listen for waiting/progress for debugging buffering issues
-      // this.audioWaitingHandler = () => console.log(`Audio waiting for data...`);
+      // this.audioWaitingHandler = () => //console.log(`Audio waiting for data...`);
       // this.audioPlayer.addEventListener('waiting', this.audioWaitingHandler);
       // this.audioProgressHandler = () => {
       //     if (this.audioPlayer && this.audioPlayer.buffered.length > 0) {
-      //         console.log(`Audio progress: Buffered ${this.audioPlayer.buffered.start(0)} - ${this.audioPlayer.buffered.end(0)}`);
+      //         //console.log(`Audio progress: Buffered ${this.audioPlayer.buffered.start(0)} - ${this.audioPlayer.buffered.end(0)}`);
       //     }
       // };
       // this.audioPlayer.addEventListener('progress', this.audioProgressHandler);
 
       // Attempt to play - browser might block until enough data or user interaction
-      // console.log("Attempting initial play()");
+      //console.log("Attempting initial play()");
       this.audioPlayer.play().catch(e => {
          console.warn(`Initial play() failed (may be due to browser policy): ${e.message}`);
       });
@@ -161,7 +172,7 @@ export default class extends Controller {
     } catch (error) {
       const logMsgId = messageId || 'N/A';
       if (error.name === 'AbortError') {
-        // console.log(`Fetch aborted for message ${logMsgId}.`);
+        //console.log(`Fetch aborted for message ${logMsgId}.`);
       } else {
         console.error(`Error fetching or setting up audio stream for message ${logMsgId}:`, error);
       }
@@ -174,14 +185,14 @@ export default class extends Controller {
   handleSourceOpen() {
     try {
         this.sourceBuffer = this.mediaSource.addSourceBuffer(mimeType);
-        // console.log("SourceBuffer added.");
+        //console.log("SourceBuffer added.");
         this.sourceBuffer.mode = 'sequence';
 
         this.sourceBuffer.addEventListener('updateend', this.handleUpdateEnd.bind(this));
         this.sourceBuffer.addEventListener('error', this.handleBufferError.bind(this));
 
         // Start pumping data
-        // console.log("Starting stream pump.");
+        //console.log("Starting stream pump.");
         this.pump();
     } catch (e) {
         console.error("Error creating SourceBuffer:", e);
@@ -190,22 +201,22 @@ export default class extends Controller {
   }
 
   handleSourceEnded() {
-    // console.log(`MediaSource ended. State: ${this.mediaSource?.readyState}`);
+    //console.log(`MediaSource ended. State: ${this.mediaSource?.readyState}`);
   }
 
   handleSourceClose() {
-    // console.log(`MediaSource closed. State: ${this.mediaSource?.readyState}`);
+    //console.log(`MediaSource closed. State: ${this.mediaSource?.readyState}`);
   }
 
   handleAudioPlaying() {
-    // console.log("Audio playback started (onplaying event).");
+    //console.log("Audio playback started (onplaying event).");
     if (this.currentPlayingButton) {
         this.setButtonState(this.currentPlayingButton, 'playing', this.currentPlayingButton.dataset.originalIconName);
     }
   }
 
   handleAudioEnded() {
-    // console.log("Audio playback finished (ended event).");
+    //console.log("Audio playback finished (ended event).");
     this.stopPlayback(); // Clean up everything once playback is done
   }
 
@@ -221,7 +232,7 @@ export default class extends Controller {
 
   handleUpdateEnd() {
     this.isAppending = false;
-    // console.log(`SourceBuffer update ended. Queue size: ${this.chunksQueue.length}. Stream ended? ${this.isStreamEnded}`);
+    //console.log(`SourceBuffer update ended. Queue size: ${this.chunksQueue.length}. Stream ended? ${this.isStreamEnded}`);
     if (this.chunksQueue.length > 0) {
       this.appendChunk(this.chunksQueue.shift());
     } else if (this.isStreamEnded) {
@@ -232,36 +243,36 @@ export default class extends Controller {
   // Pump function to read from the stream and append to the buffer
   pump() {
     if (!this.streamReader) {
-        // console.log("Pump called but no streamReader.");
+        //console.log("Pump called but no streamReader.");
         return;
     }
 
     this.streamReader.read().then(({ done, value }) => {
       if (done) {
-        // console.log("Stream finished (reader.read done).");
+        //console.log("Stream finished (reader.read done).");
         this.isStreamEnded = true;
         if (!this.isAppending) {
-          // console.log("Stream done and not appending, calling endMediaSource.");
+          //console.log("Stream done and not appending, calling endMediaSource.");
           this.endMediaSource();
         } else {
-          // console.log("Stream done but still appending, waiting for updateend.");
+          //console.log("Stream done but still appending, waiting for updateend.");
         }
         return;
       }
 
-      // console.log(`Received chunk from stream: ${value.byteLength} bytes.`);
+      //console.log(`Received chunk from stream: ${value.byteLength} bytes.`);
       this.chunksQueue.push(value);
       if (!this.isAppending) {
-          // console.log("Not appending, attempting to append chunk immediately.");
+          //console.log("Not appending, attempting to append chunk immediately.");
           this.appendChunk(this.chunksQueue.shift());
       } else {
-          // console.log(`Currently appending, chunk queued. Queue size: ${this.chunksQueue.length}`);
+          //console.log(`Currently appending, chunk queued. Queue size: ${this.chunksQueue.length}`);
       }
       this.pump(); // Continue pumping
 
     }).catch(error => {
       if (error.name === 'AbortError') {
-          // console.log("Stream reader aborted.");
+          //console.log("Stream reader aborted.");
       } else {
           console.error("Error reading stream:", error);
       }
@@ -279,7 +290,7 @@ export default class extends Controller {
 
     try {
         this.isAppending = true;
-        // console.log(`Appending chunk of size ${chunk.byteLength} to SourceBuffer.`);
+        //console.log(`Appending chunk of size ${chunk.byteLength} to SourceBuffer.`);
         this.sourceBuffer.appendBuffer(chunk);
     } catch (error) {
         console.error("Error appending buffer:", error);
@@ -291,7 +302,7 @@ export default class extends Controller {
   endMediaSource() {
       if (this.mediaSource && this.mediaSource.readyState === 'open') {
           if (this.sourceBuffer && !this.sourceBuffer.updating) {
-              // console.log("Ending MediaSource stream.");
+              //console.log("Ending MediaSource stream.");
               try {
                   this.mediaSource.endOfStream();
               } catch (e) {
@@ -299,17 +310,17 @@ export default class extends Controller {
                   this.stopPlayback();
               }
           } else {
-              // console.log(`Cannot end MediaSource yet, buffer updating: ${this.sourceBuffer?.updating}. Will retry on updateend.`);
+              //console.log(`Cannot end MediaSource yet, buffer updating: ${this.sourceBuffer?.updating}. Will retry on updateend.`);
           }
       } else if (this.mediaSource && this.mediaSource.readyState === 'ended') {
-          // console.log("MediaSource already ended.");
+          //console.log("MediaSource already ended.");
       } else {
-          // console.log(`Cannot end MediaSource, state: ${this.mediaSource?.readyState}, Buffer updating: ${this.sourceBuffer?.updating}`);
+          //console.log(`Cannot end MediaSource, state: ${this.mediaSource?.readyState}, Buffer updating: ${this.sourceBuffer?.updating}`);
       }
   }
 
   stopPlayback() {
-    // console.log("Stopping playback and cleaning up MSE...");
+    //console.log("Stopping playback and cleaning up MSE...");
 
     if (this.fetchController) {
       this.fetchController.abort();
@@ -383,7 +394,7 @@ export default class extends Controller {
 
     const spinner = this.findSpinnerForButton(button);
     button.dataset.ttsStreamState = state;
-    // console.log(`Setting button ${button.dataset.messageIdParam} state to: ${state}`);
+    //console.log(`Setting button ${button.dataset.messageIdParam} state to: ${state}`);
 
     if (state === 'loading') {
       button.classList.add('hidden');
@@ -437,7 +448,7 @@ export default class extends Controller {
   autoReadLatestMessage() {
     if (!this.autoReadValue || !this.initialized) return;
     if (!this.hasButtonTarget) return;
-    console.log("Auto-read latest message triggered");
+    //console.log("Auto-read latest message triggered");
 
     // Find all TTS buttons, pick the last one (latest message)
     const lastButton = this.buttonTargets[this.buttonTargets.length - 1];
@@ -455,20 +466,20 @@ export default class extends Controller {
     if (!this.initialized) return;
 
     const messageIdFromEvent = event.detail?.message_id;
-    console.log(`handleNewAssistantMessageFinished: Received event for message ID: ${messageIdFromEvent}`);
+    //console.log(`handleNewAssistantMessageFinished: Received event for message ID: ${messageIdFromEvent}`);
 
     // In case new message has not rendered yet, wait for it
     const processButton = (retryCount = 0) => {
       const targetButton = this.buttonTargets.find(btn => btn.dataset.messageIdParam === messageIdFromEvent.toString());
       if (targetButton) {
-        console.log(`Found button for message ${messageIdFromEvent} (retry ${retryCount})`);
+        //console.log(`Found button for message ${messageIdFromEvent} (retry ${retryCount})`);
         targetButton.disabled = false;
         targetButton.classList.remove('hidden');
         // Auto-read if enabled
         if (this.autoReadValue) this.play({ currentTarget: targetButton })
         
       } else if (retryCount < 10) { // Retry up to 1 seconds
-        console.log(`Button target for message ID ${messageIdFromEvent} not found. Retrying (${retryCount + 1})/10...`);
+        //console.log(`Button target for message ID ${messageIdFromEvent} not found. Retrying (${retryCount + 1})/10...`);
         setTimeout(() => processButton(retryCount + 1), 100); // Wait 100ms before retrying
       } else {
         console.error(`Could not find button target for completed message ID: ${messageIdFromEvent} after ${retryCount} retries. Was it rendered?`);
@@ -479,7 +490,7 @@ export default class extends Controller {
   }
 
   disconnect() {
-    // console.log("TTS Stream Controller (MSE) disconnected, stopping playback");
+    //console.log("TTS Stream Controller (MSE) disconnected, stopping playback");
     this.stopPlayback();
   }
 }
