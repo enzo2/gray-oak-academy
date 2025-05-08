@@ -8,8 +8,9 @@ export default class extends Controller {
     //console.log("Chalkboard controller connected")
     
     //Display the warning dialog if the user's screen is below tailwind 'xl' breakpoint.
+    // Disabled for now as it could be annoying. 
     if (window.innerWidth < 1280) {
-      document.body.appendChild(this.screenSizeWarningTarget).show();
+      //document.body.appendChild(this.screenSizeWarningTarget).show();
     }
   }
 
