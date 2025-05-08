@@ -4,6 +4,7 @@ import "@hotwired/turbo-rails";
 import "controllers"; //pin of all from app/javascript/controllers
 import "channels"; //pin of all from app/javascript/channels
 import "turbo_stream_actions"; 
+import "sl-tab-group_handler";
 
 //shoelace
 import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path';

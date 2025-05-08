@@ -51,19 +51,4 @@
 
   <% end %>
 
-  <script> // Allow closing tabs.
-    const tabGroup = document.getElementById('student-dashboard-tabs');
-    tabGroup.addEventListener('sl-close', async event => {
-      const tab = event.target;
-      const panel = tabGroup.querySelector(`sl-tab-panel[name="${tab.panel}"]`);
-      // Show the previous tab if the tab is currently active
-      if (tab.active) {
-        tabGroup.show(tab.previousElementSibling.panel);
-      }
-      // Remove the tab + panel
-      tab.remove();
-      panel.remove();
-    });
-  </script>
-
 </main>

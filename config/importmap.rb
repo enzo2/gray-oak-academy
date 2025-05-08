@@ -8,6 +8,7 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 pin_all_from "app/javascript/channels", under: "channels"
 pin "turbo_stream_actions"
 pin "darkModeManager"
+pin "sl-tab-group_handler"
 
 pin "@shoelace-style/shoelace/dist/utilities/base-path", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/utilities/base-path.js"
 pin "@shoelace-style/shoelace/icon", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/icon/icon.js"
