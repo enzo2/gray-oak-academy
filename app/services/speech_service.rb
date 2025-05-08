@@ -55,6 +55,7 @@ class SpeechService
       Open3.popen3(*ffmpeg_command) do |ffmpeg_stdin, ffmpeg_stdout, ffmpeg_stderr, wait_thr|
         ffmpeg_stdin.binmode # Ensure binary mode for pipes
         ffmpeg_stdout.binmode
+        Rails.logger.info "SpeechService: Started ffmpeg process with PID #{wait_thr.pid}"
 
         # Thread to read ffmpeg stderr to capture errors
         stderr_thread = Thread.new do
