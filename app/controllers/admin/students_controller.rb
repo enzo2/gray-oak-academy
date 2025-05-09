@@ -1,7 +1,7 @@
 module Admin
   class StudentsController < Admin::BaseController
     before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll ]
-    before_action :set_students_nav, only: [:index, :show]
+    before_action :set_students_nav, only: [ :index, :show ]
 
     def index
     end
@@ -21,7 +21,8 @@ module Admin
     def adopt
       if @student.teacher.nil?
         @student.update(teacher: current_user)
-        redirect_to admin_students_path
+        flash[:success] = "Student adopted successfully."
+        redirect_to admin_students_path, status: :see_other
       else
         flash.now[:error] = "Student already has a teacher."
         render :adopt, status: :unprocessable_entity
@@ -30,7 +31,8 @@ module Admin
 
     def unadopt
       @student.update(teacher: nil)
-      redirect_to admin_students_path
+      flash[:success] = "Student unadopted successfully."
+      redirect_to admin_students_path, status: :see_other
     end
 
     def enroll

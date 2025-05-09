@@ -23,10 +23,15 @@
 
       <% if enrollment.completed_lessons_count > 0 %>
         <div class="mb-4">
-          <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
-            <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
-              View student progress
-          </sl-button>
+          <%= button_to enrollment_path(enrollment), 
+                method: :get, 
+                data: { turbo_stream: true },
+                class: "btn-primary text-sm" do %>
+            <div class="flex items-center">
+              <sl-icon name="file-text" class="text-blue-700"></sl-icon>
+              <span>&nbsp;View student progress</span>
+            </div>
+          <% end %>
         </div>
       <% end %>
 

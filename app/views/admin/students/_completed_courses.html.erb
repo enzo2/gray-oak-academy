@@ -4,10 +4,15 @@
   <% enrollments.each do |enrollment| %>
     <div id="<%= dom_id(enrollment) %>" class="p-4 mb-2 rounded-sm border border-stone-300 dark:border-stone-700">
       <span class="font-medium mb-2 block"><%= enrollment.course.title %></span>
-      <sl-button href="<%= enrollment_path(enrollment) %>" data-turbo-stream="true">
-        <sl-icon slot="prefix" name="file-text" class="text-green-500"></sl-icon>
-          View course summary
-      </sl-button>
+      <%= button_to enrollment_path(enrollment), 
+            method: :get, 
+            data: { turbo_stream: true },
+            class: "btn-primary mb-2 text-sm" do %>
+        <div class="flex items-center">
+          <sl-icon name="file-text" class="text-green-500"></sl-icon>
+          <span>&nbsp;View course summary</span>
+        </div>
+      <% end %>
       
        <!-- not good to allow users to unenroll from completed courses, as it will orphan the course report.
             There should be a record of all completed courses.

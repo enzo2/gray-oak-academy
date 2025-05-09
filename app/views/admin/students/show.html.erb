@@ -1,8 +1,5 @@
 <h2 class="text-xl font-semibold">Manage Students</h2>
 
-<%# Adding a useless turbo_frame_tag, because otherwise turbo ignores data-turbo-stream attribute on GET request buttons. %>
-<%= turbo_frame_tag "student-dashboard" do %>
-
   <div class="py-4 flex flex-row gap-2">
     <!-- Students List Column -->
     <div class="basis-48 pr-2 border-r">
@@ -98,5 +95,3 @@
       
     </div>
   </div>
-
-<% end %>
