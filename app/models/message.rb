@@ -53,7 +53,7 @@ class Message < ApplicationRecord
 
   # Return content in JSON format with base64 images for LLM APIs.
   def content_with_images
-    return content if images.empty?
+    return content if images.empty? # Just return the text string if that's the only content.
 
     content_json = [ { "type": "text", "text": content } ]
     images.each do |image|
@@ -67,8 +67,16 @@ class Message < ApplicationRecord
     base_content = content_with_images
     return base_content if audios.empty?
 
-    # If base_content is just a string (text only or empty), convert to array format
-    content_json = base_content.is_a?(String) ? [ { "type": "text", "text": base_content } ] : base_content
+    if base_content.empty?
+      # If base_content is empty, start with an empty array.
+      content_json = []
+    elsif base_content.is_a?(String)
+      # If base_content is just a string (text only or empty), convert to array format since we'll be adding audio.
+      content_json = [ { "type": "text", "text": base_content } ]
+    else
+      # Otherwise, it's already in the correct format.
+      content_json = base_content
+    end
 
     audios.each do |audio|
       audio_data = audio.base64_for_LLM
@@ -94,7 +102,7 @@ class Message < ApplicationRecord
   private
 
   # Some LLM providers do not accept empty messages even if an image is present.
-  # This callback ensures that if there are images but no text, we add some text.
+  # Ensure that if there are images but no text or audio, we add some text.
   def ensure_text_present
     if content.blank? && audios.empty? && images.any?
       Rails.logger.info "Images with empty message content. Adding some text."
