@@ -5,7 +5,7 @@ namespace :certs do
   desc "Generate self-signed SSL certificate and keys for the provided hostname (defaults to localhost)"
   task :generate, [ :hostname ] do |_t, args|
     hostname = args[:hostname] || "localhost"
-    puts "\n== Generating SSL certificate for #{hostname} =="
+    puts "Generating SSL certificate for #{hostname}"
 
     cert_path = Rails.root.join("config", "certs")
     FileUtils.mkdir_p(cert_path)

@@ -57,19 +57,16 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 ## Setup Instructions
 - `git clone` the repository to your machine. Docker is needed. 
 - Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise it will be super slow.
-- Set up .env files according to the examples.
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
-- If you're just trying it out or don't care to see detailed logs, follow 'Production' instructions below. Or, you can use the devcontainer.
+- If you're just trying it out or don't care to see detailed logs, follow 'Production' instructions below. Or, you can use the devcontainer; follow 'Development' instructions below.
 
 ### Production:
 - Create `/.env.production`: see `.env.production.example`. 
 - Also create `/.env`: see `.env.example`. 
-- Create `/config/credentials/production.key` and add a random 32-character string.
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
 - *The default setup is not secure and is meant for local use only. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 
 ### Development: 
-- Create `/config/credentials/development.key` and add a random 32-character string.
 - Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
 - Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
 - Optionally, add the automatically generated `/config/certs/root-ca.crt` to your browser's trusted certificates.

@@ -64,7 +64,7 @@ RUN useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
 RUN chown -R -v rails:rails db log storage tmp 
 USER 1000:1000
 
-# Entrypoint prepares the database.
+# Entrypoint contains setup commands
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 #For Puma server

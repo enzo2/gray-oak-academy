@@ -2,7 +2,7 @@
 require "fileutils"
 
 APP_ROOT = File.expand_path("..", __dir__)
-HOSTNAME = "localhost" # Define the hostname
+HOSTNAME = "localhost" # Define the hostname. 
 
 def system!(*args)
   system(*args, exception: true)
@@ -26,9 +26,12 @@ FileUtils.chdir APP_ROOT do
   # unless File.exist?("config/database.yml")
   #   FileUtils.cp "config/database.yml.sample", "config/database.yml"
   # end
-  
+  # 
+  puts "\n== Setting up encryption keys =="
+  system! "bin/rails encryption:setup"
+
   puts "\n== Generating SSL Certificates =="
-  system! "bin/rails certs:generate[#{HOSTNAME}]" # Call the rake task
+  system! "bin/rails certs:generate[#{HOSTNAME}]" 
 
   puts "\n== Preparing database =="
   system! "bin/rails db:prepare"
