@@ -5,7 +5,7 @@ class Resource < ApplicationRecord
 
   validate :single_presence_of_file_or_uri
 
-
+  # For a collection of Resources, format the data as JSON so it can be provided to the LLM
   def self.format_collection
     resources_data = all.map do |resource|
       resource_info = {

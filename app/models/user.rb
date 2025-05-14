@@ -12,7 +12,7 @@ class User < ApplicationRecord
 
   validates :first_name, presence: true
   validates :last_name, presence: true
-  validate :validate_admin_signup_code, if: :role_admin?
+  validate :validate_signup_code
 
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
@@ -33,6 +33,7 @@ class User < ApplicationRecord
   has_many :conversations
   has_many :applets
 
+  # Allow submission of the signup_code on registration
   attr_accessor :signup_code
 
   def name
@@ -54,6 +55,7 @@ class User < ApplicationRecord
     create_setting! if setting.nil?
   end
 
+  # Add seed data for teachers upon account creation
   def seed_admin_data
     yaml_file = Rails.root.join("config", "admin_user_seed_data.yml")
     data = YAML.load_file(yaml_file)
@@ -67,10 +69,15 @@ class User < ApplicationRecord
     end
   end
 
-  def validate_admin_signup_code
-    return unless role_admin? && new_record?
-    unless signup_code.present? && signup_code == ENV["TEACHER_SIGNUP_CODE"]
-      errors.add(:signup_code, "is invalid")
+  def validate_signup_code
+    return unless new_record?
+    errors.add :signup_code, "is required" unless signup_code.present?
+
+    case role
+    when "admin"
+      errors.add(:signup_code, "is invalid") unless signup_code == ENV["TEACHER_SIGNUP_CODE"]
+    when "student"
+      errors.add(:signup_code, "is invalid") unless signup_code == ENV["STUDENT_SIGNUP_CODE"]
     end
   end
 end
