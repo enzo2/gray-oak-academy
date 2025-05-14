@@ -5,9 +5,11 @@
 # `$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`
 #################################################################
 
+# For any private or local files.
 /private
 
-###################
+.aider*
+
 # Ignore bundler config.
 /.bundle
 
@@ -35,18 +37,23 @@
 !/tmp/storage/
 !/tmp/storage/.keep
 
+# Ignore build artifacts
 /public/assets
+/app/assets/builds/*
+!/app/assets/builds/.keep
 
-# Ignore master keys for decrypting credentials and more.
+# Ignore self-signed SSL certificates, these are auto-generated
+/config/certs
+
+# Ignore master keys
+# For production, you should use the `RAILS_MASTER_KEY` environment variable
+# For development, key is created by `bin/setup` and should not be checked in
 /config/master.key
 /config/credentials/*.key
 
-#Ignore .enc
+# Ignore encrypted credentials
+# You might want to include them in your own repository, since they are encrypted.
+# If so, comment these lines.
 *.enc
 /config/*.enc
-
-/config/certs
-
-/app/assets/builds/*
-!/app/assets/builds/.keep
-.aider*
+/config/credentials/*.enc

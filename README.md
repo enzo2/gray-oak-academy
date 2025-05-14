@@ -50,27 +50,27 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 ### Security
 - Devise for authentication
 - Teacher (Admin) and Student roles
-- Designed for containerized use in a local secure environment
 - For security, not designed for hosting publically by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
 - Note: The LLM is permitted to auto-execute its own javascript within a sandboxed iframe. 
 
 ## Setup Instructions
-- `git clone` the repository to your machine. Docker is needed. 
-- Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise it will be super slow.
+- `git clone` the repository to your machine. 
+- Docker is needed. (Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise the app will be super slow.)
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
-- If you're just trying it out or don't care to see detailed logs, follow 'Production' instructions below. Or, you can use the devcontainer; follow 'Development' instructions below.
-
-### Production:
-- Create `/.env.production`: see `.env.production.example`. 
-- Also create `/.env`: see `.env.example`. 
-- Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
-- *The default setup is not secure and is meant for local use only. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
+- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Note: The development environment sets up a self-signed certificate for SSL access, so if you want to try STT/voice input using your phone over the same LAN, choose the Devcontainer.) 
 
 ### Development: 
 - Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
-- Open with VSCode, etc, and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
+- Open with VSCode, etc., and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
 - Optionally, add the automatically generated `/config/certs/root-ca.crt` to your browser's trusted certificates.
 - Run `rails server`. Visit https://localhost:3000. 
+
+### Production:
+- Create `/.env.production`: see `.env.production.example`. Include a random 32-character `RAILS_MASTER_KEY`, and keep it secure. 
+- Also create `/.env`: see `.env.example`. (This is for Postgres.)
+- Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
+- *The default setup is not secure. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
+- For actual production use, retrieve the generated `/config/credentials/production.yml.enc` from the container's ephemeral filesystem and add it to your repository, so it will persist across restarts.
 
 ### Choosing an API:
 - Notably, Gemini API has an OpenAI-compatible endpoint, a free tier, audio input, and 1+ megatoken context windows. 
@@ -81,7 +81,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. 
 - For outline/lesson generation, model must support structured outputs.
 - You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessive latency for real-time tutoring.
-- Sonnet 3.7 seems to do best overall, whereas Gemini 2 Flash is adequate and has a 1 megatoken context window, plus audio input. GPT-4o does not seem to perform well.
+- Sonnet 3.7 seems to do best overall, whereas Gemini Flash is adequate and has a 1 megatoken context window, plus audio input. GPT-4o does not seem to perform well.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code.

@@ -11,21 +11,18 @@
 /.env*
 .env*
 
-# Ignore all default key files.
+# Ignore all key files so that the Docker image is not considered sensitive. 
+# You must provide the RAILS_MASTER_KEY in production.
 /config/master.key
 /config/credentials/*.key
-#Include production key
-!/config/credentials/production.key
+
+# Include the production credentials (since the key to decode them is not in the image).
+/config/credentials/*.enc
+!/config/credentials/production.yml.enc
 
 # Ignore Kamal files.
 /config/deploy*.yml
 /.kamal
-
-#Ignore encoded credentials
-/config/*.enc
-/config/credentials/*.enc
-#Include production credentials
-!/config/credentials/production.yml.enc
 
 # Ignore all logfiles and tempfiles.
 /log/*
@@ -58,3 +55,7 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Ignore self-signed SSL certificates, these are auto-generated in development
+# For production, you should use a proper certificate authority
+/config/certs/*

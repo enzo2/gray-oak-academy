@@ -6,8 +6,11 @@ if [ -z "${LD_PRELOAD+x}" ]; then
     export LD_PRELOAD
 fi
 
+# Automatically set up the credentials file, if it doesn't exist.
+# This will add the secret_key_base and ActiveRecord encryption keys to the credentials file.
+bundle exec rake credentials:setup
+
 prepare_database() {
-  ./bin/rails encryption:setup
   ./bin/rails db:prepare
 }
 
