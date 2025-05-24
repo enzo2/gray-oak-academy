@@ -32,6 +32,7 @@ gem "tailwindcss-rails", "~> 4.0"
 # Utilities
 gem "json_schemer"
 gem "json-repair"
+gem "rack-attack", github: "rack/rack-attack", branch: "main" # Use main branch since last version is from 2023
 gem "devise"
 gem "acts_as_list"
 gem "markdown_views"

@@ -8,6 +8,14 @@ GIT
       faraday (>= 1)
       faraday-multipart (>= 1)
 
+GIT
+  remote: https://github.com/rack/rack-attack.git
+  revision: 467770882daa6f3865cc207c8b5dfdbc4028d7cb
+  branch: main
+  specs:
+    rack-attack (6.7.0)
+      rack (>= 1.0, < 4)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -435,6 +443,7 @@ DEPENDENCIES
   pg
   propshaft
   puma (< 7)
+  rack-attack!
   rails (~> 8.0.2)
   rubocop-rails-omakase
   ruby-openai
