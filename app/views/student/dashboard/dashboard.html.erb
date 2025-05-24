@@ -19,15 +19,21 @@
       </sl-tab-panel>
 
       <sl-tab-panel name="chat">
-        <p>
-          You can chat with the LLM without working on a specific lesson.<br>
-          Ask about anything you want to learn.
-        </p>
-        <br>
-        <sl-button href="<%= conversations_path %>" target="_blank">
-          <sl-icon slot="prefix" name="chat-right-dots"></sl-icon>
-          Open LLM Chat
-        </sl-button>
+        <% if current_user.teacher.present? %>
+          <p>
+            You can chat with the LLM without working on a specific lesson.<br>
+            Ask about anything you want to learn.
+          </p>
+          <br>
+          <sl-button href="<%= conversations_path %>" target="_blank">
+            <sl-icon slot="prefix" name="chat-right-dots"></sl-icon>
+            Open LLM Chat
+          </sl-button>
+        <% else %>
+          <%# Prevent use of the default LLM by a student with no teacher. %>
+          <%# This could be allowed by an admin setting in the future. %>
+          <p class="">Before you can chat, the teacher needs to adopt you.</p>
+        <% end %>
       </sl-tab-panel>
       <sl-tab-panel name="applets">
         <h2 class="text-lg mb-4">Applets</h2>
