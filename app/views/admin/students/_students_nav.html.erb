@@ -1,8 +1,8 @@
-<sl-tree class="mb-6">
+<sl-tree class="mb-6" id="students-nav-tree">
   <sl-tree-item expanded>
     <strong>My Students</strong>
     <% my_students.each do |student| %>
-      <sl-tree-item>
+      <sl-tree-item <%= 'selected' if @student&.id == student.id %>>
         <%= link_to student.name, admin_student_path(student), class: "hover:underline" %>
       </sl-tree-item>
     <% end.empty? and begin %>
@@ -17,7 +17,10 @@
         <div class="flex justify-between items-center w-full">
           <span><%= student.name %></span>
           <% if student.teacher.nil? %>
-            <%= link_to adopt_admin_student_path(student), data: { turbo_method: :post } do %>
+            <%= link_to adopt_admin_student_path(student), data: { 
+                  turbo_method: :post, 
+                  turbo_stream: true
+                  } do %>
               <sl-icon-button 
                 name="person-add" label="Adopt" 
                 class="text-green-600 text-lg [&::part(base)]:p-[4px]"></sl-icon-button>

@@ -1,1 +1,2 @@
 <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
+<%= turbo_stream.replace "students-nav-tree", partial: "admin/students/students_nav", locals: { my_students: @my_students, other_students: @other_students } %>

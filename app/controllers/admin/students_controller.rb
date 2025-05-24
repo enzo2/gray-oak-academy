@@ -4,6 +4,7 @@ module Admin
     before_action :set_students_nav, only: [ :index, :show ]
 
     def index
+      @student = nil
     end
 
     def show
@@ -21,8 +22,12 @@ module Admin
     def adopt
       if @student.teacher.nil?
         @student.update(teacher: current_user)
+        set_students_nav
         flash[:success] = "Student adopted successfully."
-        redirect_to admin_students_path, status: :see_other
+        respond_to do |format|
+          format.turbo_stream
+          format.html { redirect_to admin_students_path, status: :see_other }
+        end
       else
         flash.now[:error] = "Student already has a teacher."
         render :adopt, status: :unprocessable_entity
