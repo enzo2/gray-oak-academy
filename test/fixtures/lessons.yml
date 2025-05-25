@@ -1,15 +1,19 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  title: MyString
-  approx_duration: 1
-  goals: MyText
-  content: 
+  title: Lesson 1
+  approx_duration_min: 30
+  goals: Learn addition
   course: one
+  position: 1
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
-  title: MyString
-  approx_duration: 1
-  goals: MyText
-  content: 
+  title: Lesson 2
+  approx_duration_min: 45
+  goals: Learn subtraction
   course: two
+  position: 2
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

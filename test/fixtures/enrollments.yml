@@ -4,8 +4,12 @@ one:
   student: one
   course: one
   completed: false
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
   student: two
   course: two
-  completed: false
+  completed: true
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

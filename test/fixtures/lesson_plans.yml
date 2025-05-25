@@ -1,13 +1,21 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  content: 
-  status: 1
+  content: {}
+  status: draft
   lesson: one
   teacher: one
+  chalkboard_enabled: true
+  audio: disabled
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
-  content: 
-  status: 1
+  content: {}
+  status: draft
   lesson: two
   teacher: two
+  chalkboard_enabled: true
+  audio: disabled
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

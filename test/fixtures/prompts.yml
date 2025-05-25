@@ -1,7 +1,17 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  prompt: MyText
+  title: Outline Prompt
+  category: generate_course_outline
+  prompt: Please generate a course outline for Math 101.
+  teacher: one
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
-  prompt: MyText
+  title: Lesson Plan Prompt
+  category: generate_lesson_plan
+  prompt: Please generate a lesson plan for Lesson 1.
+  teacher: two
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

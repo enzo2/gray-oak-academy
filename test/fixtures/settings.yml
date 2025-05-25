@@ -1,9 +1,13 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
+  settings: {}
   user: one
-  settings: 
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
+  settings: {}
   user: two
-  settings: 
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

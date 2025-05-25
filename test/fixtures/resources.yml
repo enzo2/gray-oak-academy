@@ -1,13 +1,17 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  category: MyString
-  description: MyText
-  uri: MyString
-  utilized: MyString
+  category: book
+  description: Math textbook
+  uri: http://example.com/book1
+  teacher: one
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
-  category: MyString
-  description: MyText
-  uri: MyString
-  utilized: MyString
+  category: video
+  description: Science video
+  uri: http://example.com/video1
+  teacher: two
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

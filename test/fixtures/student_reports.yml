@@ -1,27 +1,25 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  reportable: one
-  reportable_type: Reportable
+  reportable_type: Lesson
+  reportable_id: 1
   student: one
   teacher: one
-  lesson: one
-  enrollment: one
-  course: one
-  author_type: MyString
-  status: MyString
-  progress_data: 
-  report: MyText
+  author_type: ai_generated
+  status: completed
+  progress_data: {}
+  report: Good progress
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 two:
-  reportable: two
-  reportable_type: Reportable
+  reportable_type: Lesson
+  reportable_id: 2
   student: two
   teacher: two
-  lesson: two
-  enrollment: two
-  course: two
-  author_type: MyString
-  status: MyString
-  progress_data: 
-  report: MyText
+  author_type: teacher_written
+  status: in_progress
+  progress_data: {}
+  report: Needs improvement
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
