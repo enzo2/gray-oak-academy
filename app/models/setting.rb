@@ -1,7 +1,9 @@
 class Setting < ApplicationRecord
   belongs_to :user
-  # Setting is a JSONB column; so it is not necessary to perform a DB migration to change the settings fields
+  # Settings is a JSONB column; so it is not necessary to perform a DB migration to change the settings fields
   # t.jsonb :settings, null: false, default: {}
+
+  encrypts :settings
 
   # user.settings is alias for user.setting
 

@@ -13,6 +13,9 @@ Rails.application.configure do
   # Do not eager load code on boot.
   config.eager_load = false
 
+  # Don't enforce Active Record encryption
+  config.active_record.encryption.support_unencrypted_data = true
+
   # Show full error reports.
   config.consider_all_requests_local = true
 
