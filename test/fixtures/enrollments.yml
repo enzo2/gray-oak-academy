@@ -1,14 +1,14 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  student: one
+  student: student
   course: one
   completed: false
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
 two:
-  student: two
+  student: student2
   course: two
   completed: true
   created_at: <%= Time.now %>

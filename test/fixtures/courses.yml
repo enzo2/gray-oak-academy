@@ -5,7 +5,7 @@ one:
   summary: Basic Math Course
   outline: []
   grade_level: 1
-  teacher: one
+  teacher: admin
   status: active
 
 two:
@@ -13,5 +13,5 @@ two:
   summary: Basic Science Course
   outline: []
   grade_level: 1
-  teacher: two
+  teacher: admin2
   status: active

@@ -4,20 +4,38 @@
 # model remove the "{}" from the fixture names and add the columns immediately
 # below each fixture, per the syntax in the comments below
 #
-one:
-  email: user1@example.com
-  encrypted_password: <%= Devise::Encryptor.digest(User, 'password1') %>
-  role: student
-  first_name: John
-  last_name: Doe
-  sign_in_count: 0
-  teacher: 
 
-two:
-  email: user2@example.com
-  encrypted_password: <%= Devise::Encryptor.digest(User, 'password2') %>
+admin:
+  email: admin@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
   role: admin
-  first_name: Jane
-  last_name: Smith
-  sign_in_count: 0
-  teacher: 
+  first_name: Admin
+  last_name: User
+
+admin2:
+  email: admin2@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
+  role: admin
+  first_name: Admin2
+  last_name: User
+
+student:
+  email: student@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
+  role: student
+  first_name: Student
+  last_name: User
+
+student2:
+  email: student2@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
+  role: student
+  first_name: Student2
+  last_name: User
+
+student3:
+  email: student3@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
+  role: student
+  first_name: Student3
+  last_name: User

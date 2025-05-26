@@ -19,6 +19,13 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 
+module IntegrationTestAuthenticationHelpers
+  def sign_in(user)
+    post user_session_path, params: { user: { email: user.email, password: user.password } }
+    follow_redirect! if response.redirect?
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
@@ -29,4 +36,8 @@ module ActiveSupport
 
     # Add more helper methods to be used by all tests here...
   end
+end
+
+class ActionDispatch::IntegrationTest
+  include IntegrationTestAuthenticationHelpers
 end

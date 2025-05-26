@@ -1,3 +1,7 @@
 one:
-  user: one
-  title: Test Conversation
+  user: student
+  title: Generic Test Conversation (Student)
+
+one:
+  user: admin
+  title: Generic Test Conversation (Admin)

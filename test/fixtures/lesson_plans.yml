@@ -4,7 +4,7 @@ one:
   content: {}
   status: draft
   lesson: one
-  teacher: one
+  teacher: admin
   chalkboard_enabled: true
   audio: disabled
   created_at: <%= Time.now %>
@@ -14,7 +14,7 @@ two:
   content: {}
   status: draft
   lesson: two
-  teacher: two
+  teacher: admin2
   chalkboard_enabled: true
   audio: disabled
   created_at: <%= Time.now %>

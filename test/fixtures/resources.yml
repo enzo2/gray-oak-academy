@@ -4,7 +4,7 @@ one:
   category: book
   description: Math textbook
   uri: http://example.com/book1
-  teacher: one
+  teacher: admin
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
@@ -12,6 +12,6 @@ two:
   category: video
   description: Science video
   uri: http://example.com/video1
-  teacher: two
+  teacher: admin2
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>

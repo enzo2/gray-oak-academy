@@ -3,8 +3,8 @@ require "test_helper"
 class CourseTest < ActiveSupport::TestCase
   def setup
     @course = courses(:one)
-    @student = users(:one)
-    @teacher = users(:two)
+    @student = users(:student)
+    @teacher = users(:admin)
   end
 
   test "should be valid with valid attributes" do

@@ -3,7 +3,7 @@ require "test_helper"
 class EnrollmentTest < ActiveSupport::TestCase
   def setup
     @enrollment = enrollments(:one)
-    @student = users(:one)
+    @student = users(:student)
     @course = courses(:one)
   end
 

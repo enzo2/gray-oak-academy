@@ -4,7 +4,7 @@ one:
   title: Outline Prompt
   category: generate_course_outline
   prompt: Please generate a course outline for Math 101.
-  teacher: one
+  teacher: admin
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
@@ -12,6 +12,6 @@ two:
   title: Lesson Plan Prompt
   category: generate_lesson_plan
   prompt: Please generate a lesson plan for Lesson 1.
-  teacher: two
+  teacher: admin2
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>

@@ -3,8 +3,8 @@
 one:
   reportable_type: Lesson
   reportable_id: 1
-  student: one
-  teacher: one
+  student: student
+  teacher: admin
   author_type: ai_generated
   status: completed
   progress_data: {}
@@ -15,8 +15,8 @@ one:
 two:
   reportable_type: Lesson
   reportable_id: 2
-  student: two
-  teacher: two
+  student: student2
+  teacher: admin2
   author_type: teacher_written
   status: in_progress
   progress_data: {}

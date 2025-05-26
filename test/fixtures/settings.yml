@@ -2,12 +2,12 @@
 
 one:
   settings: {}
-  user: one
+  user: admin
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
 two:
   settings: {}
-  user: two
+  user: student
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
