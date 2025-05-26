@@ -22,7 +22,19 @@ namespace :credentials do
     # We'll use the environment-specific credentials file.
     prod_credentials_path = File.expand_path("../../config/credentials/production.yml.enc", __dir__)
     dev_credentials_path = File.expand_path("../../config/credentials/development.yml.enc", __dir__)
-    credentials_path = ENV["RAILS_ENV"] == "production" ? prod_credentials_path : dev_credentials_path
+    test_credentials_path = File.expand_path("../../config/credentials/test.yml.enc", __dir__)
+
+    # Determine which credentials file to use based on environment
+    credentials_path = case ENV["RAILS_ENV"]
+    when "production"
+      prod_credentials_path
+    when "test"
+      test_credentials_path
+    when "development"
+      dev_credentials_path
+    else
+      raise "Unknown environment: #{ENV["RAILS_ENV"]}"
+    end
 
     if !File.exist?(credentials_path)
       puts "Credentials file missing. Attempting to initialize..."
