@@ -2,10 +2,11 @@ require "test_helper"
 
 class ContextLimitMailerTest < ActionMailer::TestCase
   test "notify_admin" do
-    mail = ContextLimitMailer.notify_admin
-    assert_equal "Notify admin", mail.subject
-    assert_equal [ "to@example.org" ], mail.to
-    assert_equal [ "from@example.com" ], mail.from
-    assert_match "Hi", mail.body.encoded
+    conversation = conversations(:one) # Use a fixture
+    mail = ContextLimitMailer.notify_admin(conversation)
+    assert_equal "Context Limit Warning", mail.subject
+    assert_equal [ "user1@example.com" ], mail.to
+    assert_equal [ "webmaster@example.com" ], mail.from
+    assert_match "Context Limit Warning", mail.body.encoded
   end
 end
