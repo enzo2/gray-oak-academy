@@ -25,17 +25,11 @@ student:
   role: student
   first_name: Student
   last_name: User
+  teacher: admin
 
 student2:
   email: student2@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
   role: student
   first_name: Student2
-  last_name: User
-
-student3:
-  email: student3@example.com
-  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
-  role: student
-  first_name: Student3
   last_name: User

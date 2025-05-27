@@ -3,7 +3,7 @@ require "application_system_test_case"
 class AdminStudentsTest < ApplicationSystemTestCase
   setup do
     @admin = users(:admin)
-    @student = users(:student)
+    @student = users(:student2)
   end
 
   test "admin can view students index" do
@@ -17,12 +17,12 @@ class AdminStudentsTest < ApplicationSystemTestCase
     sign_in @admin
     visit admin_students_path
     assert_text @student.name
-    # Click the adopt icon button for the student (disambiguate by matching the correct tree item and student name)
-    student_tree_items = all("sl-tree-item").select do |item|
-      item.has_selector?("span", text: @student.name)
+    # Find the sl-tree-item containing the student's name
+    student_tree_item = all("sl-tree-item").find do |item|
+      item.has_text?(@student.name)
     end
-    # Find the adopt button within the correct tree item by looking for the span with the student name and then the button in the same div
-    adopt_button = student_tree_items.first.find(:xpath, ".//div[span[text()='#{@student.name}']]/a/sl-icon-button[@label='Adopt']", visible: true)
+    # Within that tree item, find the adopt button by label
+    adopt_button = student_tree_item.find('[label="Adopt"]', visible: true)
     adopt_button.click
     assert_text "Student adopted successfully."
     # After adoption, go to the settings tab and click the unadopt button

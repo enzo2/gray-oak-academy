@@ -1,7 +1,7 @@
-one:
+student_conversation:
   user: student
   title: Generic Test Conversation (Student)
 
-one:
+admin_conversation:
   user: admin
   title: Generic Test Conversation (Admin)
