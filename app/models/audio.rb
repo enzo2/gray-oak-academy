@@ -14,9 +14,7 @@ class Audio < ApplicationRecord
         # Use ffmpeg to convert webm (opus) to wav
         # `-ac 1` forces mono channel
         # `-ar 24000` sets the sample rate
-        command = "ffmpeg -i #{temp_webm.path} -ar 24000 -ac 1 -y #{temp_wav.path}"
-        Rails.logger.debug "Running ffmpeg command: #{command}"
-        system(command)
+        system("ffmpeg", "-i", temp_webm.path, "-ar", "24000", "-ac", "1", "-y", temp_wav.path)
 
         unless File.exist?(temp_wav.path) && File.size(temp_wav.path) > 0
            Rails.logger.error "FFmpeg conversion failed or produced an empty file."

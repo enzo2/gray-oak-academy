@@ -16,8 +16,10 @@
   <div>
     <i>URI:</i>
     <br>
-    <% if @resource.uri.present? %>
-      <%= link_to sanitize(@resource.uri), sanitize(@resource.uri, tags: []), target: "_blank", rel: "noopener noreferrer" %>
+    <% if @resource.uri.present? && @resource.uri =~ /\Ahttps?:\/\//i %>
+      <%= link_to @resource.uri, @resource.uri, target: "_blank", rel: "noopener noreferrer" %>
+    <% elsif @resource.uri.present? %>
+      <span class="text-red-600">Invalid or unsafe URI</span>
     <% else %>
       No URI provided.
     <% end %>

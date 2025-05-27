@@ -19,7 +19,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 Prompted well, the LLM should ideally improve upon the supervising teacher's curriculum and capabilities. This could include teaching more foundationally, adapting to the student's progress, and gamification using just-in-time applets. It should be companionable, being neither demanding nor sycophantic. A benchmark for LLM intelligence will be their ability to creatively teach by breaking into the real world; as a futuristic example, if '3D printer' were marked as a resource, the LLM could conceive of a physical demonstration, write an OpenSCAD file, and ask the teacher to print it out in advance of the lesson. But even with the current generation of LLMs, there is plenty of unexplored territory. 
 
-*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project. 
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project. It's still a prototype and doesn't have much test coverage.
 
 ## Features
 - Self-hostable with docker

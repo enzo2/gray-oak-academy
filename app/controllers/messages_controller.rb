@@ -121,7 +121,11 @@ class MessagesController < ApplicationController
     url = params[:url]
 
     # Validate URL
-    uri = URI.parse(url)
+    begin
+      uri = URI.parse(url)
+    rescue URI::InvalidURIError
+      return head :bad_request
+    end
     unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
       return head :forbidden
     end
