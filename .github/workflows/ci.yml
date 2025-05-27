@@ -78,6 +78,9 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Setup Rails credentials
+        run: bin/rake credentials:setup
+
       - name: Run tests
         env:
           RAILS_ENV: test
