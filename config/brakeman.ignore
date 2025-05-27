@@ -1,0 +1,62 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 4,
+      "fingerprint": "319a1a54f00eea861b8e97c376e8e4dbad099e415ca22476dd09f443dc7607f6",
+      "check_name": "LinkToHref",
+      "message": "Potentially unsafe model attribute in `link_to` href",
+      "file": "app/views/admin/resources/show.html.erb",
+      "line": 21,
+      "link": "https://brakemanscanner.org/docs/warning_types/link_to_href",
+      "code": "link_to(sanitize(Resource.find(params[:id]).uri), sanitize(Resource.find(params[:id]).uri, :tags => ([])), :target => \"_blank\", :rel => \"noopener noreferrer\")",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "Admin::ResourcesController",
+          "method": "show",
+          "line": 11,
+          "file": "app/controllers/admin/resources_controller.rb",
+          "rendered": {
+            "name": "admin/resources/show",
+            "file": "app/views/admin/resources/show.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "admin/resources/show"
+      },
+      "user_input": "Resource.find(params[:id]).uri",
+      "confidence": "Weak",
+      "cwe_id": [
+        79
+      ],
+      "note": ""
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "d20bf83c2ab429ca2988a80ab720f6a609919ce08ab09b2f9ad3ef075db4f784",
+      "check_name": "FileAccess",
+      "message": "Parameter value used in file name",
+      "file": "app/controllers/messages_controller.rb",
+      "line": 142,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "Net::HTTP.new(URI.parse(params[:url]).host, URI.parse(params[:url]).port)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "MessagesController",
+        "method": "proxy_image"
+      },
+      "user_input": "params[:url]",
+      "confidence": "Weak",
+      "cwe_id": [
+        22
+      ],
+      "note": ""
+    }
+  ],
+  "brakeman_version": "7.0.2"
+}
