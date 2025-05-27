@@ -79,6 +79,8 @@ jobs:
           bundler-cache: true
 
       - name: Setup Rails credentials
+        env:
+          RAILS_ENV: test
         run: bin/rake credentials:setup
 
       - name: Run tests
