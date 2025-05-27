@@ -23,7 +23,7 @@ module Admin
       if @student.teacher.nil?
         @student.update(teacher: current_user)
         set_students_nav
-        flash[:success] = "Student adopted successfully."
+        flash.now[:success] = "Student adopted successfully."
         respond_to do |format|
           format.turbo_stream
           format.html { redirect_to admin_students_path, status: :see_other }

@@ -20,8 +20,8 @@ require_relative "../config/environment"
 require "rails/test_help"
 
 module IntegrationTestAuthenticationHelpers
-  def sign_in(user)
-    post user_session_path, params: { user: { email: user.email, password: user.password } }
+  def sign_in(user, password: "password")
+    post user_session_path, params: { user: { email: user.email, password: password } }
     follow_redirect! if response.redirect?
   end
 end

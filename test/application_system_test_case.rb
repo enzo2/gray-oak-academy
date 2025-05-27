@@ -1,6 +1,21 @@
 require "test_helper"
 
+module SystemTestAuthenticationHelpers
+  def sign_in(user, password: "password")
+    visit new_user_session_path
+    fill_in "Email", with: user.email
+    fill_in "Password", with: password
+    click_on "Log in"
+    # If login fails, print the page for debugging
+    unless page.has_no_text?("Invalid Email or password.")
+      puts page.body
+    end
+  end
+end
+
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
+  include SystemTestAuthenticationHelpers
+
   if ENV["CAPYBARA_SERVER_PORT"]
     served_by host: "rails-app", port: ENV["CAPYBARA_SERVER_PORT"]
 
