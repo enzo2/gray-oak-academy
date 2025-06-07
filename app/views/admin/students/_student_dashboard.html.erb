@@ -1,0 +1,82 @@
+<h2 class="text-xl font-semibold mb-4"><%= @student.name %></h2>
+
+<sl-tab-group id="student-dashboard-tabs" class="">
+  <sl-tab slot="nav" panel="active_courses">Active Courses</sl-tab>
+  <sl-tab slot="nav" panel="past_courses">Past Courses</sl-tab>
+  <sl-tab slot="nav" panel="enroll">Add Course</sl-tab>
+  <sl-tab slot="nav" panel="settings">Settings</sl-tab>
+  <sl-tab slot="nav" panel="applets">Applets</sl-tab>
+
+  <sl-tab-panel name="active_courses">
+    <% if @active_enrollments.presence %>
+      <%= render 'active_courses', enrollments: @active_enrollments %>
+    <% else %>
+      <p class="">This student is not currently enrolled in any courses.</p>
+    <% end %>
+  </sl-tab-panel>
+  
+  <sl-tab-panel name="past_courses">
+    <% if @completed_enrollments.presence %>
+      <%= render 'completed_courses', enrollments: @completed_enrollments %>
+    <% else %>
+      <p class="">This student has not completed any courses.</p>
+    <% end %>
+
+    <% if @orphaned_reports.presence %>
+      <br>
+      <hr class="my-2">
+      <h2 class="text-lg mb-2">Orphaned Reports</h2>
+      <p>Student Reports from previously deleted lessons were found:</p>
+        <sl-details summary="Show Orphaned Reports" class="my-1 max-w-3xl">
+          <% @orphaned_reports.each do |student_report| %>
+            <div class="bg-stone-300 dark:bg-stone-700 rounded-lg my-2 px-4 py-2 pl-4
+                          prose dark:prose-invert prose-stone
+                          max-w-2xl
+                          prose-p:mb-0 leading-tight
+                          prose-li:my-0  prose-ul:my-0
+                          prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100">
+              <span class="mb-3"><i>Completed <%= student_report.created_at.strftime("%B %d, %Y") %></i>:</span>
+              <%= markdown(student_report.to_markdown) %>
+            </div>
+          <% end %>
+        </sl-details>
+    <% end %>
+  </sl-tab-panel>
+
+  <sl-tab-panel name="enroll">
+    <h3 class="text-lg">Enroll in a New Course</h3>
+    <% available_courses = Course.available_for_enrollment(@student, current_user) %>
+    <% if available_courses.any? %>
+      <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex", data: { turbo_stream: true } do |form| %>
+        <%= form.collection_select :course_id, available_courses, :id, :title,
+          { prompt: "Select Course" }, { class: "form-select-primary" } %>
+        <%= form.submit 'Enroll', class: "btn-primary ml-2" %>
+      <% end %>
+    <% else %>
+      <p class="text-sm">No courses available for enrollment.</p>
+    <% end %>
+  </sl-tab-panel>
+
+  <sl-tab-panel name="settings">
+    <h3 class="text-lg mb-4">Settings</h3>
+      <% if @student.teacher == current_user %>
+        <span class="text-red-600 mb-1 font-bold block">Danger zone</span>
+        <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
+          method: :delete, 
+          data: { turbo_confirm: 'This will remove the student from your list. Are you sure?' }, 
+          class: "btn-danger text-sm" %>
+      <% end %>
+  </sl-tab-panel>
+
+  <sl-tab-panel name="applets">
+    <h2 class="text-lg mb-4">Applets</h2>
+    <p class="mb-4 block">These are applets the student has archieved.<br>
+      Since they're made for this app, you may need some help running them again. You can:
+      <ol class="prose dark:prose-invert prose-stone list-decimal list-inside">
+        <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
+        <li>Ask any LLM to modify the code for you and help you run it in a playground, for example, on jsfiddle.net.</li>
+      </ol>        
+    </p>
+    <%= render "applets/applets_table", applets: @student.applets %>
+  </sl-tab-panel>
+</sl-tab-group>
