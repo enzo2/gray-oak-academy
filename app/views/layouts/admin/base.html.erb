@@ -1,5 +1,5 @@
 <% content_for :body do %>
-  <div class="flex flex-row min-h-[calc(100dvh-2.5rem)]">
+  <div class="flex flex-row min-h-[calc(100dvh-2.5rem)]"> <%# Fill the viewport, minus the header height. %>
     <!-- Sidebar -->
     <aside class="w-30 md:w-34 flex-none border-r border-stone-400 px-2 md:px-4 pt-2">
       <h2 class="font-semibold text-lg mb-4">Teacher Dashboard</h2>
@@ -42,4 +42,5 @@
   </div>
 <% end %>
 
+<%# Need to explicitly render the application layout for some reason, even though class BaseController inherits from ApplicationController %>
 <%= render template: "layouts/application" %>

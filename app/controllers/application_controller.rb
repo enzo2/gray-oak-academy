@@ -13,7 +13,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # Different dashboards for teachers and students
+  # Root path for all users, redirects to appropriate dashboard
   def index
     if current_user.role_admin?
       redirect_to admin_root_path

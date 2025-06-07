@@ -1,6 +1,6 @@
 <div id="<%= dom_id(message) %>_buttons"
      class="message-buttons-wrapper
-            mb-2 
+            my-2 
             flex justify-start gap-2">
   <% if message.role_assistant? && message.conversation.tts_available? %>
     <%# TTS button will be hidden by default and enabled by the TTS controller  %>
