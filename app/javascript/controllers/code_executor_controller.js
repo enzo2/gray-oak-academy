@@ -154,20 +154,36 @@ export default class extends Controller {
   prepareIframeContent(code) {
     // Basic HTML structure for the iframe content
     // Includes a simple console override to display logs/errors within the iframe
+    const codeLiteral = JSON.stringify(code);
     return `
       <!DOCTYPE html>
       <html>
       <head>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
         <style>
-          body { margin: 0; padding: 10px; font-family: "Segoe UI", Optima, Futura, "Gill Sans MT", "Gill Sans", sans-serif; color: #333; }
+          @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
+          body { margin: 0; padding: 10px; font-family: "Inter", "Segoe UI", Optima, Futura, "Gill Sans MT", "Gill Sans", sans-serif; color: #333; }
           .error { color: red; font-weight: bold; }
           #sandbox { min-height: 50px; } /* Ensure sandbox div has some height */
         </style>
+        <style type="text/tailwindcss">      
+          @theme { --font-sans: "InterVariable", sans-serif; --font-serif: "Merriweather", serif; }    
+        </style>
+        <script type="importmap">
+          {
+            "imports": {
+              "react": "https://esm.sh/react",
+              "react/": "https://esm.sh/react/",
+              "react-dom/": "https://esm.sh/react-dom/",
+              "p5": "https://esm.sh/p5?standalone",  
+              "three": "https://esm.sh/three"
+            }
+          }
+        </script>
       </head>
       <body>
         <div id="sandbox"></div>
-        <script>
-          const sandbox = document.getElementById('sandbox');
+        <script type="module">
           // Simple console override
           const console = {
             log: (...args) => {
@@ -183,15 +199,15 @@ export default class extends Controller {
             }
           };
 
-          // Execute the provided code within a try-catch block
-          try {
-            // Use Function constructor for slightly better isolation than eval
-            // new Function(code)();
-            // Or simply execute directly if Function constructor causes issues with scope/closures needed by applets
-             ${code}
-          } catch (error) {
+          const code = ${codeLiteral};
+          const moduleCode = JSON.stringify(code);
+          const blob = new Blob([JSON.parse(moduleCode)], { type: 'text/javascript' });
+          const moduleUrl = URL.createObjectURL(blob);
+          await import(moduleUrl).catch(error => {
             console.error(error);
-          }
+          }).finally(() => {
+            URL.revokeObjectURL(moduleUrl);
+          });
         </script>
       </body>
       </html>

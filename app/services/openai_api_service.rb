@@ -283,6 +283,7 @@ class OpenaiApiService
   end
 
   def extract_faraday_error_message(exception)
+    # Rails.logger.debug "#{exception.inspect}, #{exception.message}, #{exception.response[:body]}"
     response_body = exception.respond_to?(:response) ? exception.response[:body] : nil
     return "Unknown error" unless response_body
     Rails.logger.error "Error response body: #{response_body}"
