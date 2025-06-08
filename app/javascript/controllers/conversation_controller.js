@@ -34,11 +34,10 @@ export default class extends Controller {
 
   // Setup for new assistant messages
   assistantMessageTargetConnected(element) {
-    this.renderKatexInMessages(); 
     this.scrollToBottom();
   }
 
-  // Setup for new assistant message content
+  // Render KaTeX initially and upon new messages
   assistantMessageContentTargetConnected(element) {
     this.renderKatexInMessages();
   }
