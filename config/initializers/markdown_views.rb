@@ -78,10 +78,19 @@ module MarkdownViewsHelper
     ##################
     # Any other fixes for undesired LLM formatting habits can go here.
     ##################
-    # Fix KaTeX block math when LLM adds newlines inside the delimiters.
-    processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
-    # Actual KaTeX rendering is handled client-side.
-    # Could be done server-side as well, but the existing gem is not maintained.
+    # Fix LLM adding newlines inside the KaTeX delimiters.
+    # Uncomment if needed.
+    # processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
+
+    # Disable markdown inside KaTeX block math, so we don't need to escape characters.
+    processed_source = processed_source.gsub(/\$\$([^\$]*?)\$\$/) do |match|
+      # The ProcessingInstruction tags will prevent markdown processing.
+      # Then, the browser will comment out or ignore the ProcessingInstruction since they are not HTML, while leaving the KaTeX.
+      # Finally, actual KaTeX rendering is handled client-side.
+      # (Could be done server-side as well, but the existing gem is not maintained.)
+      "<?katex>#{match}</katex?>"
+    end
+
     #
     ###################
     # End of post-processing

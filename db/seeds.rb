@@ -212,11 +212,15 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
   p.title = "Default Generative Guidelines"
   p.prompt = <<~PROMPT
     You can use markdown, or if needed, plain HTML and inline CSS.
-    Markdown character escaping is in effect. For example, to display a literal asterisk, use a backslash: \*.
+    Markdown character escaping is in effect (except in KaTeX). For example, to display a literal asterisk, use a backslash: \*.
     Be sure to use newlines after markdown items like headers and list items, or they will run-on as a single style/item.
     For example, don't write -Item1- Item2- Item3, but rather - Item1\n- Item2\n- Item3.
-    KaTeX is enabled. You can use the delimiters $ for inline math, and $$ for display/block math. For the latter, do not include whitespace or newline between the delimiters and the math content. E.g.: $$x^2$$.
-    Do not use triple backticks around KaTeX unless you intend to display the code itself.
+
+    KaTeX is enabled. You can use the delimiters $ for inline math, and $$ for display/block math.
+    Do not use triple backticks around KaTeX, unless you intend to display the code itself unrendered.
+    Markdown will be disabled within KaTeX delimiters, so there is no need to escape characters within KaTeX.
+    For inline KaTeX, automatic line breaks will be inserted, and can be suppressed by `\nobreak` or braces, e.g. `{F=ma}`.
+    For display/block KaTeX, insert hard line breaks with \\ (double backslash) or `\newline`.
 
     By default, you have a large chalkboard panel at your disposal next to the chat.
     (If the user's screen is too small, they'll be notified and the chalkboard will be hidden. But if user still complains that they can't see it, suggest using a larger device.)
