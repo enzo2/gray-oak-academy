@@ -83,7 +83,7 @@ module MarkdownViewsHelper
     # processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
 
     # Disable markdown inside KaTeX block math, so we don't need to escape characters.
-    processed_source = processed_source.gsub(/\$\$([^\$]*?)\$\$/) do |match|
+    processed_source = processed_source.gsub(/\$\$([\s\S]+?)\$\$/m) do |match|
       # The ProcessingInstruction tags will prevent markdown processing.
       # Then, the browser will comment out or ignore the ProcessingInstruction since they are not HTML, while leaving the KaTeX.
       # Finally, actual KaTeX rendering is handled client-side.
