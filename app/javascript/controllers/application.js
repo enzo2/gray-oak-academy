@@ -13,12 +13,16 @@ document.addEventListener("turbo:before-stream-render", function() {
   document.body.querySelector("div.sl-toast-stack")?.remove();
 });
 
-//add turbo:after-stream-render event to trigger after render
-//const afterRenderEvent = new Event("turbo:after-stream-render");
-//addEventListener("turbo:before-stream-render", (event) => {
-//  const originalRender = event.detail.render
-//  event.detail.render = function (streamElement) {
-//    originalRender(streamElement)
-//    document.dispatchEvent(afterRenderEvent);
-//  }
-//})
+
+//https://discuss.hotwired.dev/t/event-to-know-a-turbo-stream-has-been-rendered/1554/25
+//add turbo:after-stream-render event
+//see https://github.com/hotwired/turbo/issues/1289
+const afterRenderEvent = new Event("turbo:after-stream-render");
+addEventListener("turbo:before-stream-render", (event) => {
+  const originalRender = event.detail.render
+  event.detail.render = function (streamElement) {
+    originalRender(streamElement)
+    document.dispatchEvent(afterRenderEvent);
+    //console.log("turbo:after-stream-render event dispatched")
+  }
+});

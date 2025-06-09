@@ -31,8 +31,8 @@ pin "@shoelace-style/shoelace/copy-button", to: "https://cdn.jsdelivr.net/npm/@s
 pin "@shoelace-style/shoelace/tree", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree/tree.js"
 pin "@shoelace-style/shoelace/tree-item", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree-item/tree-item.js"
 
-pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.js"
-pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js"
+pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.js"
+pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"
 
 # Try adding Excalidraw to the chalkboard? Requires React....
 # pin "@excalidraw/excalidraw", to: "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"

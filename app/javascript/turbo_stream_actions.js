@@ -1,3 +1,9 @@
+// Adds dispatch_event as a custom Turbo Stream action.
+// This allows custom events to be dispatched from the server via turbo stream,
+// over the existing websocket connection (turbo_stream_from helper)
+// A target-selector can be specified to limit the scope of the event, otherwise 
+// the event will be dispatched to the document.
+
 import { Turbo } from "@hotwired/turbo-rails"
 
 // Define the 'dispatch_event' custom action
