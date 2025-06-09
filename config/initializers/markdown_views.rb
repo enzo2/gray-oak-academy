@@ -1,10 +1,12 @@
 # Configure MarkdownViews options
 MarkdownViews.strip_comments = false
+MarkdownViews.parsing_opts.merge! smart: false
 MarkdownViews.rendering_opts.merge! unsafe: true # Allow HTML in markdown
 MarkdownViews.rendering_opts.merge! github_pre_lang: false # Don't wrap code blocks in <pre><code> tags. This is handled by markdown_views.
 MarkdownViews.extensions.merge! tagfilter: false # Disable tagfilter extension that blocks certain HTML tags
 
 # Customize the markdown helper.
+# Here, add processors for other content requiring formatting, like executable code blocks, chalkboard content, KaTeX.
 module MarkdownViewsHelper
   def markdown(source = nil)
     if block_given?
@@ -12,7 +14,7 @@ module MarkdownViewsHelper
         yield
       end.strip_heredoc
     end
-
+    ###################################
     # Processor for executable JS blocks.
     # Regex finds all markdown code blocks with optional attributes.
     # LLM is instructed on adding attributes in the prompt.
@@ -72,17 +74,21 @@ module MarkdownViewsHelper
       end
     end
     # End of the executable block processing.
-
+    #
+    ##################
     # Any other fixes for undesired LLM formatting habits can go here.
+    ##################
     # Fix KaTeX block math when LLM adds newlines inside the delimiters.
     processed_source = processed_source.gsub(/\$\$[\s\n]*([^\$]*?)[\s\n]*\$\$/, '$$\1$$')
-
+    # Actual KaTeX rendering is handled client-side.
+    # Could be done server-side as well, but the existing gem is not maintained.
+    #
+    ###################
+    # End of post-processing
+    #
     # Rails.logger.debug "Processed source: #{processed_source}"
 
-    # Render the potentially modified source.
-    # The executable blocks have already been replaced with HTML
-    # The non-executable blocks (returned as `match`) are still Markdown and will be rendered now.
-    # The final .html_safe call is still needed for the overall result.
+    # Render the modified source and take care of all remaining markdown
     MarkdownViews::Renderer.render(processed_source)
   end
 end
