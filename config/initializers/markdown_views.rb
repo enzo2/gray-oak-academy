@@ -69,11 +69,10 @@ module MarkdownViewsHelper
         # Return the fully formed HTML for this block
         final_html
       else
-        # Not executable javascript; return the original match for standard processing by the final render call later
+        # Not executable; return the original match for standard processing by the final render call later.
         match
       end
-    end
-    # End of the executable block processing.
+    end # End of the executable block processing.
     #
     ##################
     # Any other fixes for undesired LLM formatting habits can go here.

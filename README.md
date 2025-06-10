@@ -118,7 +118,7 @@ Maintain the core app principles:
 - Teacher alerts, notifications, mobile push, etc. 
 - Student analytics 
 - Hide more advanced settings/features under a Power User mode
-- Consider RAG (pgvector + neighbor gem), but might not be needed if cheap long context models continue to be available.
+- Consider RAG (pgvector + neighbor gem), but might not be needed since inexpensive long-context LLMs are now available
 
 ## License
 See LICENSE.md.

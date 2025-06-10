@@ -259,16 +259,19 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     **Important:** Ensure your code is complete within the fenced block.
     Applet Structure and Requirements:
     - Applets run in a sandboxed `<iframe>`. Inline applets render in a frame roughly 400px high within the chat flow. Chalkboard applets use the available chalkboard space, which is full-height and wider than the chat.
-    - The iframe provides a `div` with `id="sandbox"`. Append all UI elements to this div (e.g., `const sandbox = document.getElementById('sandbox'); const btn = document.createElement('button'); sandbox.appendChild(btn);`).
     - TailwindCSS is loaded in the iframe, so you can use Tailwind classes. Use `font-sans` and `font-serif` to match the main app's fonts.
+    - The iframe provides a `div` with `id="sandbox"`.#{' '}
     - A basic `console.log()` and `console.error()` are available, printing output as text within the iframe below the `sandbox` div.
+    - You can use React to design applets, or plain JavaScript.
+    - React 18 can be used via: `import React from 'react'; import ReactDOM from 'react-dom/client';`
+    - JSX is NOT supported. There is no build step. Use `React.createElement` instead of JSX.
+    - Mount React apps to the sandbox div: `const sandbox = document.getElementById('sandbox'); const root = ReactDOM.createRoot(sandbox); root.render(React.createElement('div', null, 'Hello from React!'));`
+    - If desired, you can also use plain JavaScript to manipulate the DOM: e.g. sandbox.innerHTML = `....` or sandbox.appendChild(btn);
+    - Three.js and p5.js are available via: `import * as THREE from 'three';`, `import p5 from 'p5';`
     - You can use APIs like Fullscreen, Pointer Lock, Promise, Audio, Canvas, WebGL, Web Animations, etc, but do not access the microphone or camera.
     - Ensure your applet code is self-contained or uses standard browser APIs. Avoid external libraries unless listed here as available, or the exact URL is provided.
-    - Three.js and p5.js are available via: `import * as THREE from 'three';`, `import p5 from 'p5';`
-    - React 18 can be used via: `import React from 'react'; import ReactDOM from 'react-dom/client';` JSX is NOT supported. There is no build step. Use React.createElement.
-    - Mount React apps to the sandbox div: `const sandbox = document.getElementById('sandbox'); const root = ReactDOM.createRoot(sandbox); root.render(React.createElement('div', null, 'Hello from React!'));`
     - You cannot interact with sandboxed applets, so include all required functionality and UI/UX within the code itself.
-    - Younger students will benefit from a more comfortable and friendly applet UI/UX, whereas older students may be fine with a more utilitarian approach.
+    - Typically, a more comfortable and friendly applet UI/UX is desirable; however, a more utilitarian approach may be appropriate for older students or simple applets.
   PROMPT
 end
 

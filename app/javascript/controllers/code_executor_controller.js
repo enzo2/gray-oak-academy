@@ -137,6 +137,7 @@ export default class extends Controller {
       'accelerometer *',
       'encrypted-media *',
       'gyroscope *',
+      'magnetometer *',
       'gamepad *',
       'midi *',
       'clipboard-write *',
