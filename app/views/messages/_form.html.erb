@@ -52,7 +52,9 @@
         data-action="
           input->new-message#toggleSubmitButton
           keydown.enter->new-message#submit:prevent
-          paste->new-message#paste"
+          paste->new-message#paste
+          chalkboard:screenshot@window->new-message#addScreenshotFromEvent
+          "
         <% if audio_setting == "only" %>disabled<% end %>
       ></sl-textarea>
 

@@ -1,8 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
+// For future use, if can get it to work
+//import * as htmlToImage from 'html-to-image';
+//import { toJpeg, toBlob } from 'html-to-image';
 
 export default class extends Controller {
-  static targets = ["chalkboard", "printButton", "screenshotButton", "screenshotDialog", "screenSizeWarning"]
+  static targets = ["chalkboard", "screenshotDialog", "screenSizeWarning"]
   
   connect() {
     //console.log("Chalkboard controller connected")
@@ -22,13 +25,23 @@ export default class extends Controller {
     document.body.classList.remove("invisible")
   }
 
-  sendScreenshot() {
+  screenshotInstructions() {
     //Available options aren't better than showing the user how to use their OS native screen capture.
-    //Screen Capture API requires https.
-    //html2canvas project is unmaintained and html2canvas-pro is possible malware.
     //If this can be worked out, then an LLM tool can also be added to retrieve a screenshot.
     //For now, just show the user instructions on taking a screenshot.
     this.screenshotDialogTarget.show();
+  }
+
+  // Image comes out blank, but keep here for future attempts:
+  // Take a screenshot of the chalkboard using html-to-image
+  takeScreenshot() {
+    htmlToImage.toBlob(this.chalkboardTarget).then((blob) => {
+      if (!blob) { alert("Failed to capture screenshot."); return; }
+      // Event dispatched with the screenshot blob
+      // This can be handled by the new-message-controller to add the image to the message input
+      this.dispatch("screenshot", { detail: { blob } });
+      console.log("Screenshot taken and dispatched", blob);
+    });
   }
 
   openWhiteboard() {
@@ -38,4 +51,3 @@ export default class extends Controller {
   }
 
 }
-

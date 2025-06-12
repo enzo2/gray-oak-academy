@@ -10,6 +10,7 @@ pin "turbo_stream_actions"
 pin "darkModeManager"
 pin "sl-tab-group_handler"
 
+# Import shoelace components individually
 pin "@shoelace-style/shoelace/dist/utilities/base-path", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/utilities/base-path.js"
 pin "@shoelace-style/shoelace/icon", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/icon/icon.js"
 pin "@shoelace-style/shoelace/icon-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/icon-button/icon-button.js"
@@ -33,6 +34,8 @@ pin "@shoelace-style/shoelace/tree-item", to: "https://cdn.jsdelivr.net/npm/@sho
 
 pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.js"
 pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"
+
+# pin "html-to-image", to: "https://cdn.jsdelivr.net/npm/html-to-image/+esm"
 
 # Try adding Excalidraw to the chalkboard? Requires React....
 # pin "@excalidraw/excalidraw", to: "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"

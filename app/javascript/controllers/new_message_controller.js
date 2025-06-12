@@ -108,6 +108,8 @@ export default class extends Controller {
     return true
   }
 
+  // Adds an image to the images array and updates the preview
+  // Supports both URL images and file uploads
   addImage(image) {
     //console.log("Adding image", image)
     if (image.url) {
@@ -115,6 +117,7 @@ export default class extends Controller {
       this.updateImagesData()
       this.updatePreview()
     } else {
+      if (!this.validateImage(image)) return;
       const reader = new FileReader()
       reader.onload = (e) => {
         this.images.push({
@@ -126,6 +129,17 @@ export default class extends Controller {
         this.updatePreview()
       }
       reader.readAsDataURL(image)
+    }
+  }
+
+  // Handles screenshot event from chalkboard_controller
+  addScreenshotFromEvent(event) {
+    console.log("Adding screenshot from event", event);
+    if (event && event.detail && event.detail.blob) {
+      if (!this.canAddMoreImages()) return;
+      const blob = event.detail.blob;
+      const file = new File([blob], 'chalkboard.png', { type: blob.type || 'image/png' });
+      this.addImage(file);
     }
   }
 
