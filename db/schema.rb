@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_12_121528) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_18_124627) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,7 +22,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_12_121528) do
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
   create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
-  create_enum "role_name", ["system", "user", "assistant"]
+  create_enum "role_name", ["system", "user", "assistant", "tool"]
   create_enum "student_report_status", ["in_progress", "completed"]
   create_enum "user_role", ["student", "admin"]
 
@@ -207,6 +207,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_12_121528) do
     t.string "content", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "tool_call_id"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
   end
 
