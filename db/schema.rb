@@ -207,7 +207,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_124627) do
     t.string "content", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "tool_call_id"
+    t.jsonb "tool_calls"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
   end
 

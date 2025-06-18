@@ -3,7 +3,7 @@ class Message < ApplicationRecord
 
   self.implicit_order_column = "created_at" # just in case IDs get out of order somehow
 
-  enum :role, { system: "system", assistant: "assistant", user: "user" }, prefix: true
+  enum :role, { system: "system", assistant: "assistant", user: "user", tool: "tool" }, prefix: true
 
   belongs_to :conversation
   has_many :images, dependent: :destroy # Message content field contains text. Images are kept separately.
