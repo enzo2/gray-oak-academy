@@ -61,7 +61,7 @@ class OpenaiApiService
       @usage = @stream_handler ? @usage_chunk : response.dig("usage")
       Completion.create(
         conversation: @conversation,
-        model: @finish_chunk&.dig("model") || response.dig("model") || @model,
+        model: @stream_handler ? (@finish_chunk&.dig("model") || @model) : (response.dig("model") || @model),
         api_provider: @base_uri,
         # model_provider: @usage.dig["provider_name"],
         prompt_tokens: @usage.dig("prompt_tokens")&.to_i,
@@ -246,7 +246,7 @@ class OpenaiApiService
           stream_finished = true
           @finish_chunk = chunk
 
-          # If the model didn't follow instructions and called a tool without any text content,
+          # If the LLM called a tool without any text content,
           # then we need to add some text to the message to avoid confusion.
           last_assistant_message = @conversation.messages.where(role: "assistant").last
           if last_assistant_message && last_assistant_message.content.blank?

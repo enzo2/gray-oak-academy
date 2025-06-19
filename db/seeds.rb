@@ -68,6 +68,23 @@ Tool.find_or_create_by!(name: 'Complete_Lesson') do |tool|
   }
 end
 
+Tool.find_or_create_by!(name: 'python') do |tool|
+  tool.specifications = {
+    name: "python",
+    description: "Executes Python code in a secure sandbox and returns the result. Use for any mathematical or data processing task beyond simple arithmetic. std_out and std_err are returned. File/image access is not available.",
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description: "Python code to execute. Available packages are: numpy, pandas, sympy, beautifulsoup4, python-sat, scikit-learn, scipy. Make sure to print the result to std_out, or it won't be returned."
+        }
+      },
+      required: [ "code" ]
+    }
+  }
+end
+
 Prompt.find_or_create_by!(category: 'base_system_prompt') do |p|
   p.title = "Default Base System Prompt"
   p.prompt = <<~PROMPT
@@ -228,7 +245,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     Chalkboard capabilities include:
     1) Navigate to a URL: use a tool call. DO NOT navigate to any URL unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided URLs.
     2) Display an available file: use a tool call. DO NOT navigate to any ID unless it is specifically provided in the lesson plan or resources. Only use the tool for explicitly provided resource IDs.
-    **When calling any tool, don't just respond with the tool call, but say something to the user--include some text so the user can follow along.**
+    **When calling any tool for the chalkboard, don't just respond with the tool call, but say something to the user--include some text so the user can follow along. Don't wait for a tool call result, as there won't be any.**
     3) Print: Student can print whatever's on the chalkboard. You can suggest this to the student.
     4) Screenshot: There's no way to take a screenshot programatically, but you can just ask the student to take a screenshot and paste it into the chat.
     5) Whiteboard / drawing pad:  The user can press the toolbar button to navigate to a drawing pad app. If you need to see their drawing/sketch, ask them to take a screenshot and paste it into the chat.
@@ -237,8 +254,11 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     You can only show content explicitly provided, or applets you write on-the-fly in this conversation.
     You cannot see the chalkboard without a screenshot, and you cannot point to things on the screen.
 
-    When generating code responses, follow these guidelines:
+    Use the python tool to execute code privately in a sandbox. The std_out and std_err will be returned to you, and then you can respond to the user.
+    Use this for any mathematical operations beyond simple approximation or 1-2 digit number operations, or anything requiring precision analysis.
+
     Format non-executable code or snippets using standard Markdown fenced code blocks (triple backticks ```).
+
     You can create executable, generative applets in JS. This is useful for creating interactive exercises, basic visualizations, etc.
     Use an applet when it will add significant value to the lesson. They aren't needed for basic things that could be formatted in markdown, like listing information.
     To mark JavaScript as executable, use a standard Markdown fenced code block, followed by attributes enclosed in curly braces `{}` on the same line as the opening backticks and language identifier.

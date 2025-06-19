@@ -16,6 +16,7 @@ class ToolHandlerService
 
       # Validate arguments against tool specifications
       args = validate_and_parse_arguments(tool, tool_call[:arguments])
+      tool_call_id = tool_call[:id]
 
     # Execute the tool based on its name
     case tool.name
@@ -25,6 +26,8 @@ class ToolHandlerService
       execute_chalkboard_file(args)
     when "Complete_Lesson"
       execute_complete_lesson(args)
+    when "python"
+      execute_python_code_executor(args, tool_call_id)
     else
       raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented"
     end
@@ -147,6 +150,25 @@ class ToolHandlerService
     )
 
     Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
+  end
+
+  def execute_python_code_executor(args, tool_call_id)
+    code = args["code"]
+    result = PythonCodeExecutorService.execute(code)
+    if result["error"]
+      content = "Python execution failed: #{result["error"]}"
+      Rails.logger.error("PythonCodeExecutorService error: #{result["error"]}")
+    else
+      content = result.to_s
+      Rails.logger.debug "PythonCodeExecutorService output: #{content}"
+    end
+    Message.create!(
+      conversation: @conversation,
+      role: "tool",
+      content: content,
+      tool_call_id: tool_call_id
+    )
+    GetLlmCompletionJob.perform_later(conversation: @conversation) # Concurrency control is in place, so the original job will finish first.
   end
 
   def broadcast_error(message, conversation)

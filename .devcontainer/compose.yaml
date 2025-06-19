@@ -24,6 +24,7 @@ services:
     depends_on:
     - selenium
     - postgres
+    - terrarium
 
   selenium:
     image: selenium/standalone-chromium
@@ -39,6 +40,14 @@ services:
     environment:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres
+
+  terrarium:
+    image: ghcr.io/khoj-ai/terrarium:latest
+    networks:
+    - default
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
 
 volumes:
   postgres-data:

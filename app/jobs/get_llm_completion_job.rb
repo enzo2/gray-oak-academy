@@ -2,6 +2,7 @@
 class GetLlmCompletionJob < ApplicationJob
   include ActionView::RecordIdentifier
   queue_as :default
+  limits_concurrency to: 1, key: ->(conversation:) { conversation }, duration: 1.minutes
 
   # Add a task_system_prompt to the conversation, and it will be appended to the base system prompts.
   # Otherwise, the default system prompt will be used without any further instructions.
@@ -44,8 +45,8 @@ class GetLlmCompletionJob < ApplicationJob
     # Initialize the message variable. Don't save to DB yet since the request might fail.
     message = nil
 
-    # Initialize a buffer to accumulate chunks of tool calls
-    tool_call_buffer = { "name": nil, "arguments": "" }
+    # Buffer for accumulating tool calls by index
+    tool_calls_buffer = {}
 
     # Return a proc that handles the streamed response
     Proc.new do |chunk|
@@ -53,26 +54,43 @@ class GetLlmCompletionJob < ApplicationJob
         # Create the empty message if it doesn't exist yet. This will broadcast the message.
         message ||= conversation.messages.create!(role: "assistant", content: "")
 
-        # Check if the chunk contains tool calls, and accumulate them
+        # Check if the chunk contains tool calls, and accumulate them by index
         if chunk.dig("delta", "tool_calls").present?
           Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
-          # Buffer the tool call arguments as they are streamed in
           chunk.dig("delta", "tool_calls").each do |tool_call|
-            name = tool_call.dig("function", "name")
-            arguments = tool_call.dig("function", "arguments")
-            Rails.logger.debug "Processing tool call chunk: name=#{name}, arguments=#{arguments}"
-            tool_call_buffer[:name] ||= name if name.present?
-            tool_call_buffer[:arguments] += arguments if arguments.present?
+            idx = tool_call["index"] || 0
+            tool_calls_buffer[idx] ||= {
+              type: tool_call["type"] || "function",
+              id: tool_call["id"],
+              function: {
+                name: tool_call.dig("function", "name"),
+                arguments: ""
+              }
+            }
+            # Only set id/name/type if present and not already set
+            tool_calls_buffer[idx][:id] ||= tool_call["id"] if tool_call["id"]
+            tool_calls_buffer[idx][:type] ||= tool_call["type"] if tool_call["type"]
+            tool_calls_buffer[idx][:function][:name] ||= tool_call.dig("function", "name") if tool_call.dig("function", "name")
+            # Always append arguments
+            tool_calls_buffer[idx][:function][:arguments] += tool_call.dig("function", "arguments") if tool_call.dig("function", "arguments")
           end
         end
 
+        # Finalize and execute tool calls when finish reason indicates tool call completion
         if chunk["finish_reason"] == "tool_calls"
-          # Finalize and execute tool call when finish reason indicates tool call completion
-          Rails.logger.debug "Calling tool with arguments: #{tool_call_buffer.inspect}"
-          tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
-          tool_handler.execute_tool_call(tool_call_buffer)
-          tool_call_buffer = { "name": nil, "arguments": "" } # Clear buffer for subsequent tool calls
-        elsif chunk.dig("delta", "content").present?
+          final_tool_calls = tool_calls_buffer.values.sort_by { |tc| tc[:id].to_s }
+          message.update!(tool_calls: final_tool_calls)
+          Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
+          final_tool_calls.each do |tool_call|
+            tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
+            tool_handler.execute_tool_call({
+              name: tool_call[:function][:name],
+              arguments: tool_call[:function][:arguments],
+              id: tool_call[:id]
+            })
+          end
+          tool_calls_buffer.clear # Clear buffer for subsequent tool calls
+        elsif chunk.dig("delta", "content")&.length&. > 0
           # For standard content, append the new chunk to the message's content
           Rails.logger.debug "Content chunk: #{chunk.inspect}"
           delta_content = chunk.dig("delta", "content")
@@ -83,6 +101,7 @@ class GetLlmCompletionJob < ApplicationJob
         end
 
         # When finished, broadcast the completion event to the client
+        # (e.g. to trigger TTS)
         if chunk["finish_reason"].present? && chunk["finish_reason"].length > 0
           broadcast_completion_finished(conversation, message.id)
         end

@@ -87,21 +87,17 @@ class Message < ApplicationRecord
 
   # Format messages for the LLM api
   def self.for_completion_with_media(messages:, audio: false)
-    # Some LLM providers don't like blank messages.
-    # Right now, none should be blank since we add "See image(s)" if there are images and no text.
-    # if messages.last.content.empty?
-    #  messages = messages[0...-1]
-    # end
-    if audio
-      messages.map { |message| { role: message.role, content: message.content_with_media } }
-    else
-      messages.map { |message| { role: message.role, content: message.content_with_images } }
+    messages.map do |message|
+      msg_hash = { role: message.role, content: audio ? message.content_with_media : message.content_with_images }
+      msg_hash[:tool_call_id] = message.tool_call_id if message.role == "tool" && message.respond_to?(:tool_call_id) && message.tool_call_id.present?
+      msg_hash[:tool_calls] = message.tool_calls if message.role == "assistant" && message.respond_to?(:tool_calls) && message.tool_calls.present?
+      msg_hash
     end
   end
 
   private
 
-  # Some LLM providers do not accept empty messages even if an image is present.
+  # Some LLM providers may not accept image-only messages.
   # Ensure that if there are images but no text or audio, we add some text.
   def ensure_text_present
     if content.blank? && audios.empty? && images.any?
