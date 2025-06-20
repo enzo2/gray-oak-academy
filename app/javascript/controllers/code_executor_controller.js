@@ -50,32 +50,42 @@ export default class extends Controller {
     }
   }
 
+  _createButton(text, className, onClick) {
+    const button = document.createElement("button");
+    button.textContent = text;
+    button.className = className;
+    button.addEventListener("click", onClick);
+    return button;
+  }
+
   createToggleButton() {
-    const toggleBtn = document.createElement("button");
-    // Initial text content is set in connect() based on hiddenValue
-    toggleBtn.className = "px-3 py-1 text-sm font-sans text-gray-900 dark:text-gray-100 bg-sky-200 dark:bg-sky-800 border border-sky-300 dark:border-sky-600 hover:border-sky-500 dark:hover:border-sky-400 rounded"; // Added rounded
-    toggleBtn.addEventListener("click", () => {
-      const isHidden = this.highlightedCodeTarget.style.display === 'none';
-      this.highlightedCodeTarget.style.display = isHidden ? 'block' : 'none';
-      toggleBtn.textContent = isHidden ? "Hide Code" : "Show Code";
-    });
-    return toggleBtn;
+    const btn = this._createButton(
+      // Initial text is set in connect()
+      "",
+      "px-3 py-1 text-sm font-sans text-gray-900 dark:text-gray-100 bg-sky-200 dark:bg-sky-800 border border-sky-300 dark:border-sky-600 hover:border-sky-500 dark:hover:border-sky-400 rounded",
+      () => {
+        const isHidden = this.highlightedCodeTarget.style.display === 'none';
+        this.highlightedCodeTarget.style.display = isHidden ? 'block' : 'none';
+        btn.textContent = isHidden ? "Hide Code" : "Show Code";
+      }
+    );
+    return btn;
   }
 
   createRunButton(rawCode) {
-    const button = document.createElement("button");
-    button.textContent = "Run";
-    button.className = "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-green-200 dark:bg-green-800 border border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 rounded"; // Added rounded
-    button.addEventListener("click", () => this.executeCode(rawCode, this.renderTargetValue));
-    return button;
+    return this._createButton(
+      "Run",
+      "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-green-200 dark:bg-green-800 border border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 rounded",
+      () => this.executeCode(rawCode, this.renderTargetValue)
+    );
   }
 
   createArchiveButton(rawCode) {
-    const button = document.createElement("button");
-    button.textContent = "Archive";
-    button.className = "px-3 py-1 text-sm font-sans ml-2 text-gray-900 dark:text-gray-100 bg-stone-300 dark:bg-stone-700 border border-stone-400 dark:border-stone-500 hover:border-stone-600 dark:hover:border-stone-400 rounded"; // Added rounded
-    button.addEventListener("click", () => this.archiveApplet(rawCode));
-    return button;
+    return this._createButton(
+      "Archive",
+      "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-stone-300 dark:bg-stone-700 border border-stone-400 dark:border-stone-500 hover:border-stone-600 dark:hover:border-stone-400 rounded",
+      () => this.archiveApplet(rawCode)
+    );
   }
 
   createOutputDiv() {
@@ -152,10 +162,13 @@ export default class extends Controller {
     return iframe;
   }
 
+  // Basic HTML structure for the iframe content, including an importmap, and the code to be executed
+  // Includes a simple console override to display logs/errors within the iframe
   prepareIframeContent(code) {
-    // Basic HTML structure for the iframe content
-    // Includes a simple console override to display logs/errors within the iframe
-    const codeLiteral = JSON.stringify(code);
+
+    // Escape any </script> tags in the code to prevent terminating the script early
+    const codeLiteral = JSON.stringify(code).replace(/<\/script>/g, '<\\/script>');
+
     return `
       <!DOCTYPE html>
       <html>
@@ -190,23 +203,24 @@ export default class extends Controller {
             log: (...args) => {
               const logElement = document.createElement('div');
               logElement.textContent = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-              sandbox.appendChild(logElement);
+              document.getElementById('sandbox').appendChild(logElement);
             },
             error: (...args) => {
               const errorElement = document.createElement('div');
               errorElement.textContent = 'Error: ' + args.map(arg => arg instanceof Error ? arg.message : (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
               errorElement.className = 'error';
-              sandbox.appendChild(errorElement);
+              document.getElementById('sandbox').appendChild(errorElement);
             }
           };
 
-          const code = ${codeLiteral};
-          const moduleCode = JSON.stringify(code);
-          const blob = new Blob([JSON.parse(moduleCode)], { type: 'text/javascript' });
+          const codeToExecute = ${codeLiteral};
+          const blob = new Blob([codeToExecute], { type: 'text/javascript' });
           const moduleUrl = URL.createObjectURL(blob);
-          await import(moduleUrl).catch(error => {
+
+          import(moduleUrl).catch(error => {
             console.error(error);
           }).finally(() => {
+            // Clean up the object URL to prevent memory leaks.
             URL.revokeObjectURL(moduleUrl);
           });
         </script>

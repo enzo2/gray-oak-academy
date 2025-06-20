@@ -62,7 +62,7 @@ module MarkdownViewsHelper
             #{highlighted_html}
             </div>
             \n<!-- extra line ensures commonmark starts a new HTML block for pre-->
-            <pre class="hidden" data-code-executor-target="rawCode">#{code}</pre>
+            <pre class="hidden" data-code-executor-target="rawCode">#{h(code)}</pre>
             <div class="code-actions mt-1" data-code-executor-target="actionsContainer"></div>
           </div>
         HTML

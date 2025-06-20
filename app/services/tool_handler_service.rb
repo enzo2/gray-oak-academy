@@ -94,8 +94,6 @@ class ToolHandlerService
       partial: "shared/chalkboard_iframe",
       locals: { url: args["url"] }
     )
-
-    Rails.logger.debug("Chalkboard updated with URL: #{args['url']}")
   end
 
   def execute_complete_lesson(args)
