@@ -2,6 +2,7 @@
 class SpeechService
   require "faraday/retry" # needed?
   require "open3"
+  include ActionView::Helpers::SanitizeHelper
   class SpeechServiceError < StandardError; end
 
   def initialize(current_user:)
@@ -33,6 +34,8 @@ class SpeechService
 
     # Remove any code blocks from the text
     text = text.gsub(/```.*?```/m, "")
+    # Remove any HTML tags
+    text = strip_tags(text)
 
     endpoint = "audio/speech"
     payload = {
