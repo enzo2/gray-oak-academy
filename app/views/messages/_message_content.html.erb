@@ -39,10 +39,17 @@
               "
         id="<%= dom_id(message) %>_content"
         data-conversation-target="assistantMessageContent">
-    <% if message.content.blank? %>
+    <% if message.content.blank? && message.tool_calls.nil? %>
       <sl-spinner></sl-spinner>
     <% else %>
       <%= markdown(message.content) %>
+
+      <% if message.tool_calls.present? %> 
+        <span class="mt-2 font-sans text-stone-500 dark:text-stone-400">
+          Used <%= "tool".pluralize(message.tool_calls.count) %>: <%= message.tool_calls.map { |tool_call| tool_call.dig("function","name") }.join(", ") %>
+        </span>
+      <% end %>
     <% end %>
   </div>
 <% end %>
+<%# Tool result messages will not be shown to the user %>

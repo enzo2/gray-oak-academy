@@ -80,6 +80,7 @@ class GetLlmCompletionJob < ApplicationJob
         if chunk["finish_reason"] == "tool_calls"
           final_tool_calls = tool_calls_buffer.values.sort_by { |tc| tc[:id].to_s }
           message.update!(tool_calls: final_tool_calls)
+          broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
           Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
           final_tool_calls.each do |tool_call|
             tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
@@ -100,9 +101,9 @@ class GetLlmCompletionJob < ApplicationJob
           Rails.logger.debug "Non-content chunk: #{chunk.inspect}"
         end
 
-        # When finished, broadcast the completion event to the client
-        # (e.g. to trigger TTS)
-        if chunk["finish_reason"].present? && chunk["finish_reason"].length > 0
+        # When finished, broadcast the completion event to the client (e.g. to trigger TTS)
+        # (Already done for tool_calls)
+        if chunk["finish_reason"].present? && chunk["finish_reason"].length > 0 && chunk["finish_reason"] != "tool_calls"
           broadcast_completion_finished(conversation, message.id)
         end
       rescue StandardError => e

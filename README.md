@@ -10,7 +10,7 @@ Since this is a major shift in educational approach, take a moment to consider w
 2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even people and human resources. 
 3. Prompt transparency: a strong set of user-editable prompts defining the teaching methodology, principles, and values for the LLM to follow. 
 4. Prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
-5. An LLM chat interface with fully multimodal interactivity comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI, diagramming, and sandboxed code execution. 
+5. An LLM chat interface with fully multimodal interactivity, comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI, diagramming, and sandboxed code execution. 
 6. Because some lessons are better taught away from a computer, through casual conversation, or even outdoors, it should support speech-only mode for mobile phone use (i.e. "walk and talk").
 
 **Gray Oak Academy is a prototype of this system.**
@@ -25,11 +25,11 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
 - Native LLM chat interface supporting images, raw audio input and STT, TTS with auto-read
-- Student lesson view with LLM tool use, and "chalkboard", a multipurpose frame accessible to the LLM
+- Student lesson view with "chalkboard" (multipurpose canvas accessible by the LLM)
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, and lesson plans
 - LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
-- LLM-generated student reports are fed into the next session, allowing the whole course to be personalized.
+- LLM-generated student reports are fed into the next session, ensuring continuity and personalization
 
 ### More cool stuff
 - All system prompts can be customized (opinionated defaults included)
@@ -37,6 +37,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Cost/token usage tracking
 - Remembers API URIs and model names for easy switching
 - If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions (in anticipation of improvements in audio understanding models)
+- Python code execution tool
 - App name can be customized via env variable
 - Dark/Light mode
 

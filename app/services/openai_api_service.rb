@@ -245,14 +245,6 @@ class OpenaiApiService
           Rails.logger.debug "Streamed response finished with finish_reason: #{finish_reason}"
           stream_finished = true
           @finish_chunk = chunk
-
-          # If the LLM called a tool without any text content,
-          # then we need to add some text to the message to avoid confusion.
-          last_assistant_message = @conversation.messages.where(role: "assistant").last
-          if last_assistant_message && last_assistant_message.content.blank?
-            Rails.logger.debug "Completion message was empty. Adding blank message placeholder."
-            last_assistant_message.update(content: last_assistant_message.content + "*LLM did not include any text.*")
-          end
         end
 
         # Handle the final chunk with token usage

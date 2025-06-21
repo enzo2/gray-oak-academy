@@ -170,7 +170,7 @@ class MessagesController < ApplicationController
   def tts_stream
     message = Message.find(params[:id])
 
-    unless message.role_assistant? && message.content.present?
+    unless message.role_assistant? && (message.content.present? || message.tool_calls.present?)
       return head :not_found
     end
 
@@ -193,7 +193,14 @@ class MessagesController < ApplicationController
     # Use response.stream to send data as it arrives
     begin
       speech_service = SpeechService.new(current_user: current_user)
-      speech_service.tts_stream(message.content) do |chunk|
+      text_to_speak = if message.content.present?
+                        message.content
+      elsif message.tool_calls.present? # If there's no content, read the tool call so the user knows something happened
+                        "Used #{"tool".pluralize(message.tool_calls.count)}: #{message.tool_calls.map { |tool_call| tool_call.dig("function", "name") }.join(", ")}"
+      else
+                        ""
+      end
+      speech_service.tts_stream(text_to_speak) do |chunk|
         response.stream.write chunk
         # Rails.logger.debug "Sent chunk of size #{chunk.bytesize} for message #{message.id}"
       end

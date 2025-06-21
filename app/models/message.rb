@@ -26,7 +26,7 @@ class Message < ApplicationRecord
       partial: "messages/message",
       target: "#{dom_id(conversation)}",
       locals: { message: self }
-    )
+    ) unless role_tool?
     # Remove any temporary new message placeholder
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
   end

@@ -2,6 +2,7 @@ require "json/repair"
 
 class ToolHandlerService
   class ToolExecutionError < StandardError; end  # Should be moved outside ToolHandlerService?
+  include ActionView::RecordIdentifier
 
   def initialize(conversation:, message:)
     @conversation = conversation
@@ -33,7 +34,10 @@ class ToolHandlerService
     end
     rescue ToolExecutionError => e
       Rails.logger.error("ToolExecutionError: #{e.message}")
-      broadcast_error(e.message, @conversation)
+      broadcast_error("Error using tool: #{e.message}")
+    rescue => e
+      Rails.logger.error("Unexpected error: #{e.message}")
+      broadcast_error("Unexpected error: #{e.message}")
     end
   end
 
@@ -151,11 +155,15 @@ class ToolHandlerService
   end
 
   def execute_python_code_executor(args, tool_call_id)
+    # May take a while, so broadcast a temporary message which will render a spinner
+    # Will be removed once the actual response is broadcast
+    broadcast_placeholder
     code = args["code"]
     result = PythonCodeExecutorService.execute(code)
     if result["error"]
       content = "Python execution failed: #{result["error"]}"
       Rails.logger.error("PythonCodeExecutorService error: #{result["error"]}")
+      raise ToolExecutionError, "Python execution failed: #{result["error"]}"
     else
       content = result.to_s
       Rails.logger.debug "PythonCodeExecutorService output: #{content}"
@@ -169,12 +177,21 @@ class ToolHandlerService
     GetLlmCompletionJob.perform_later(conversation: @conversation) # Concurrency control is in place, so the original job will finish first.
   end
 
-  def broadcast_error(message, conversation)
-    Turbo::StreamsChannel.broadcast_update_to(
-      "conversation_#{@conversation.id}",
+  def broadcast_error(message)
+    Turbo::StreamsChannel.broadcast_append_to(
+      "#{dom_id(@conversation)}",
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }
+    )
+  end
+
+  def broadcast_placeholder
+    Turbo::StreamsChannel.broadcast_append_to(
+      "#{dom_id(@conversation)}",
+      target: "#{dom_id(@conversation)}",
+      partial: "messages/message",
+      locals: { message: Message.new(role: :assistant, content: "") }
     )
   end
 end
