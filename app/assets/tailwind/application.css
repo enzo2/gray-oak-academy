@@ -1,7 +1,9 @@
 @import 'tailwindcss';
 
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
+@plugin "@tailwindcss/forms" {
+  strategy: "base";  /* provides form reset; add further styles using @utility classes */
+}
+@plugin "@tailwindcss/typography";
 
 /* Applies dark mode when the `dark` class is added to the `html` element */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -21,9 +23,16 @@
   --spacing-screen: 100vh;
 }
 
+
+/* custom overrides for hotwire-combobox */
+@import '../tailwind/combobox_overrides.css';
+
+
 /* base: where you can re-add styles to base elements that tailwind removed, 
    or fix the default base styles that tailwind added.
-   But don't add default typographic styles (h1, h2, etc), use 'prose' instead */
+   Keep in mind that tailwind forms plugin already does a form reset. 
+   Don't add default typographic styles (h1, h2, etc), use 'prose' instead .
+   */
 @layer base {  
   /*
     The default border color has changed to `currentColor` in Tailwind CSS v4,
@@ -55,7 +64,9 @@
   }
 
   input[type="radio"] {
-    @apply bg-transparent border-2 focus:ring-offset-0 focus:ring-0;
+    @apply bg-transparent border-2
+           focus:!ring-0 focus:!ring-offset-0
+           cursor-pointer;
   }
 
   input[type="file"] {
@@ -66,10 +77,21 @@
     @apply bg-transparent;
   }
 
+  .field_with_errors input,
+  .field_with_errors textarea,
+  .field_with_errors select,
+  .field_with_errors  {
+    @apply !border-red-400 dark:!border-red-800;
+  }
+
 }
 
+/* @utility: re-usable styles for small elements. 
+   (for complex re-usable components, better to use use partials, viewcomponents, etc)
 
-/* @utility: re-usable styles for small elements. for complex re-usable components, use partials, viewcomponents, etc */
+    Don't use form-input, form-textarea, form-select, form-multiselect, form-checkbox, form-radio 
+    because they are the classes for tailwindcss-forms plugin.
+*/
 
 @utility btn-primary {
   @apply bg-white dark:bg-neutral-900
@@ -77,7 +99,7 @@
          border-1 border-stone-300 dark:border-stone-600 
          text-base text-stone-800 dark:text-stone-200
          py-2 px-4 
-         focus:outline-hidden transition duration-150 ease-in-out;
+         focus:outline-hidden;
 }
 
 @utility btn-danger {
@@ -85,12 +107,12 @@
          hover:bg-red-300 dark:hover:bg-red-800
          border-1 border-stone-300 dark:border-stone-600  hover:border-red-700 dark:hover:border-red-400
          text-base text-stone-800 dark:text-stone-200
-         focus:outline-hidden transition duration-150 ease-in-out
+         focus:outline-hidden
          py-1 px-2;
 }
 
 @utility form-label {
-  @apply block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1;
+  @apply block text-sm font-medium text-stone-700 dark:text-stone-300;
 }
 
 @utility input-primary {
@@ -101,11 +123,17 @@
          focus:outline-hidden focus:ring-0 focus:border-stone-400 dark:focus:border-stone-500;
 }
 
+@utility radio-primary {
+  @apply text-stone-500 
+         border-stone-500;
+}
+
 @utility checkbox-primary {
   @apply w-4 h-4 border border-stone-300 dark:border-stone-500 bg-white dark:bg-stone-800 
          text-stone-700 dark:text-stone-500 
          focus:outline-hidden focus:ring-0 focus:ring-offset-0 
-         checked:bg-stone-700 dark:checked:bg-stone-500 checked:border-stone-700 dark:checked:border-stone-500 cursor-pointer;
+         checked:bg-stone-700 dark:checked:bg-stone-500 checked:border-stone-700 dark:checked:border-stone-500 
+         cursor-pointer;
 }
 
 @utility form-select-primary {
@@ -123,6 +151,3 @@
   @apply text-stone-700 dark:text-stone-300;
 }
 
-
-/* custom overrides for hotwire-combobox */
-@import '../tailwind/combobox_overrides.css';

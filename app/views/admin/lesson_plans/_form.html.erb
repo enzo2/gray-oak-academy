@@ -62,13 +62,14 @@
   </div>
 
   <div class="mb-4">
-    <%= f.label :audio, class: "form-label" %>
-    <p class="block text-sm mb-1">Control how students interact with the LLM:</p>
+    <%= f.label :audio, "Audio Input", class: "form-label" %>
     <div class="[&_label]:mr-4 [&_input]:mr-2">
-      <%= f.collection_radio_buttons :audio, LessonPlan.audios.keys, :to_s, :titleize %>
+      <%= f.collection_radio_buttons :audio, LessonPlan.audios.keys, :to_s, :titleize do |b| %>
+       <%= b.label(:"data-value" => b.value) { b.radio_button(class: "radio-primary") + b.text } %>
+      <% end %>
     </div>
     <p class="block text-sm mt-1">
-      Disabled: <i>Raw audio input disabled. Transcription allowed if set up.</i><br>
+      Disabled: <i>Raw audio input disabled, but transcription allowed (if set up).</i><br>
       Enabled: <i>Raw audio input used if supported by the LLM.</i><br>
       Audio Only: <i>Text entry disabled. Raw audio used if supported, otherwise transcription. (Great for mobile device use, outdoors lessons, etc.)</i><br>
     <%= link_to "Set up Speech API to ensure transcription is available.", edit_user_registration_path(), class: "link-primary", target: "_blank" unless current_user.setting.speech_configured? %>
@@ -79,7 +80,9 @@
     <%= f.label :status, class: "form-label" %>
     <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Don't forget to add resources below.</i></p>
     <div class="[&_label]:mr-4 [&_input]:mr-2">
-      <%= f.collection_radio_buttons :status, LessonPlan.statuses.keys, :to_s, :titleize %>
+      <%= f.collection_radio_buttons :status, LessonPlan.statuses.keys, :to_s, :titleize do |b| %>
+        <%= b.label(:"data-value" => b.value) { b.radio_button(class: "radio-primary") + b.text } %>
+      <% end %>
     </div>
   </div>
 
