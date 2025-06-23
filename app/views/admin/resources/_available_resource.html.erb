@@ -1,8 +1,8 @@
-<div id="available-<%= dom_id(resource) %>" class="flex items-center justify-between p-2 mb-2 bg-stone-100 dark:bg-stone-700 rounded-sm">
-  <span><%= resource.category %> - <%= resource.description %></span>
+<div id="available-<%= dom_id(resource) %>" class="flex space-x-2 my-1 p-1 bg-stone-200 dark:bg-stone-700">
   <%= link_to link_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
               data: { turbo_method: :post },
-              class: "text-green-600 hover:text-green-800" do %>
+              class: "text-green-600 hover:text-green-800 ml-1 flex items-center" do %>
     <sl-icon name="link"></sl-icon>
   <% end %>
+  <span><%= resource.category %> - <%= resource.description %></span>
 </div>
