@@ -189,14 +189,14 @@ end
 Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
   p.title = "Default Lesson Plan Content Generator"
   p.prompt = <<~PROMPT
-    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.#{' '}
-    The lesson goals are: "{goals}".#{' '}
-    The lesson is to be roughly {approx_duration_min} min long.#{' '}
-    Now, content for the lesson plan is needed.#{' '}
-    The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.#{' '}
-    Please generate a detailed lesson plan content outline in JSON format as a "lesson_plan" object containing an array of objects, each with a type key and a details key.#{' '}
-    - Type should describe the type of content (e.g., "Introduction", "Activity", "Discussion", "Practice", etc.).#{' '}
-    - Details should elaborate on the content.#{' '}
+    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
+    The lesson goals are: "{goals}".
+    The lesson is to be roughly {approx_duration_min} min long.
+    Now, content for the lesson plan is needed.
+    The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.
+    Please generate a detailed lesson plan content outline in JSON format as a "lesson_plan" object containing an array of objects, each with a type key and a details key.
+    - Type should describe the type of content (e.g., "Introduction", "Activity", "Discussion", "Practice", "Gamification", etc.).
+    - Details should elaborate on the content.
     Format example:#{' '}
     { "lesson_plan":#{' '}
       [
@@ -206,21 +206,24 @@ Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
         ...
       ]
     }
-    You are not restricted to the aforementioned content types. Creative planning will lead to superior lessons.#{' '}
-    Content may include specific knowledge or data, as well as other moieties that can help specify a high-quality lesson, such as:
-      - Generative resources (e.g. tutor may generate just-in-time web component or javascript applet)
+    You are not restricted to the aforementioned content types. Creative planning will lead to superior lessons.
+    Content may include specific knowledge or data, as well as other elements that can help specify a high-quality lesson, such as:
+      - Generative resources (e.g. tutor may generate just-in-time HTML component or Javascript applet)
       - Digital resources (e.g., website/video/audio, files, software)
       - Theoretical components (e.g., teaching methods, learning theories, questioning techniques)
       - Student evaluation criteria
-    Actual resource references, e.g. URL, file, will be referenced separately, so for the lesson plan, merely the use of it can be planned. Avoid suggesting a resource unless it is#{' '}
-    known to be generally available, e.g. Encyclopædia Britannica article, well-known lecture, famous photo, household materials, open-source software.#{' '}
+    The teacher has already marked the following resources as validated and available for the lesson (may or may not be pertinent to the lesson):
+    {linked_resources}
+    (Linked resource lookup information, e.g. URL, filename/ID, will be included during the lesson, so there is no need to include those identifiers now; just refer to them by name.)
+    You may also include external resources known to be generally and freely available, e.g. Encyclopædia Britannica article, well-known lecture, famous photo, household materials, open-source software.
+    (Do not include or invent your own URLs, as they may no longer be accessible or compatible. Just refer to internet resources by name, if you expect it to be readily available via search.)
     Once you have generated the content, the teacher will be able to add further content like:
       - Referenced resources
       - Materials (e.g., specific textbooks, physical tools or demonstrations to obtain for the lesson)
       - Human resources
-    Adhere to any previously specified requirements.#{' '}
-    Ensure the content is appropriate for the grade level.#{' '}
-    Other lessons in this course, which do not need to overlap with this one, include:#{' '}
+    Adhere to any previously specified requirements.
+    Ensure the content is appropriate for the grade level.
+    Other lessons in this course, which do not need to overlap with this one, include:
       {other_lessons}
   PROMPT
 end
@@ -315,7 +318,7 @@ end
 Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|
   p.title = "Default Teacher Assistant Chat"
   p.prompt = <<~PROMPT
-    You are now assisting the teacher in a chat format, outside of any specific lesson.#{' '}
+    You are now assisting the teacher (or sysadmin) in a chat format, outside of any specific lesson.#{' '}
     There is no lesson plan or resource list available, so do not attempt to navigate to any URLs or resources.\n
   PROMPT
 end

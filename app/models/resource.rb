@@ -21,6 +21,7 @@ class Resource < ApplicationRecord
       end
       resource_info
     end
+    resources_data << { "No Resources" => "No resources are yet linked to this lesson." } if resources_data.empty?
     JSON.pretty_generate(resources_data)
   end
 

@@ -35,6 +35,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
       .gsub("{approx_duration_min}", lesson.approx_duration_min.to_s)
       .gsub("{grade_level}", course.grade_level)
       .gsub("{course_title}", course.title)
+      .gsub("{linked_resources}", lesson.lesson_plan.resources.format_collection)
       .gsub("{other_lessons}", lesson.course.lessons.where.not(id: lesson.id).map(&:title).join(", "))
 
     # Prepare messages for the LLM
