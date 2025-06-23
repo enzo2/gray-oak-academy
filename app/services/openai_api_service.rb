@@ -12,6 +12,9 @@ class OpenaiApiService
   # If neither a system prompt message, nor a task system prompt is provided, the default system prompt will be used (base system prompt + teaching principles).
 
   def initialize(current_user:, conversation: nil, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
+    # Don't initialize for orphaned students.
+    raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
+
     @user = current_user
     @conversation = conversation
     @model = model.presence || default_model
