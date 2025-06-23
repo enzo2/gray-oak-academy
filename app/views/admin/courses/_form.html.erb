@@ -29,17 +29,18 @@
 
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :outline, "Course Outline", class: "form-label" %>
-    <p class="block text-sm mb-2">      
-      <i>The outline will be used to generate the list of lessons. Include any desired content.<br>
-      <% if course.outline.empty? %>Or, you can have the LLM generate it for you. (First, complete the course summary and save.)<% end %>
+    <p class="block text-sm mb-2">   
+      <i>
+        <% if course.outline.empty? %>To have the LLM draft the course outline, leave it blank for now.<br><% end %>   
+        The outline will be used by the LLM to generate the list of lessons. Include any desired content.
       </i>
     </p>
 
     <% if course.outline.any? %>
       <% course.outline.each do |item| %>
         <div class="flex items-center mb-2 space-x-2">
-          <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "input-primary w-1/4" %>
-          <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "input-primary w-3/4" %>
+          <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "input-primary w-1/4 py-1" %>
+          <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "input-primary w-3/4 py-1" %>
           <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
           <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
           <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
@@ -52,8 +53,8 @@
     </sl-button>
     <template>
       <div class="flex items-center mb-2 space-x-2">
-        <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "input-primary w-1/4", required: true %>
-        <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "input-primary w-3/4", required: true %>
+        <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "input-primary w-1/4 py-1", required: true %>
+        <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "input-primary w-3/4 py-1", required: true %>
         <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
         <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
         <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
