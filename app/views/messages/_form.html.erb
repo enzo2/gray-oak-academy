@@ -32,7 +32,7 @@
         placeholder="Type your message..." <%# Default value—will be changed by audio_recorder_controller if audio/stt is possible %>
         class="w-full
               [&::part(base)]:min-h-[80px]
-              [&::part(base)]:pl-1
+              [&::part(base)]:pl-0
               [&::part(base)]:pr-[4.75rem]
               [&::part(base)]:pb-6
               [&::part(base)]:pt-2
@@ -59,10 +59,10 @@
       ></sl-textarea>
 
       <div data-new-message-target="helpText" data-audio-recorder-target="helpText"
-           data-default-value="<%= audio_setting == "only" ? "Audio-only mode: use the microphone to send a message" : "Shift+Enter for new line" %>"
-           class="text-xs text-neutral-500 hidden absolute bottom-1 left-4">
+           data-default-value="<%= audio_setting == "only" ? "Audio-only lesson: press spacebar to start recording" : "Shift+Enter for new line" %>"
+           class="text-xs text-neutral-500 absolute bottom-1 left-4 <%= "hidden" unless audio_setting == "only" %>">
         <% if audio_setting == "only" %>
-          Audio-only mode: use the microphone to send a message.
+          Audio-only lesson: press spacebar to start recording
         <% else %>
           Shift+Enter for new line
         <% end %>
@@ -91,7 +91,8 @@
         class="hidden <%= 'text-4xl' if audio_setting == "only" %>" 
         name="mic" id="recordButton"
         data-audio-recorder-target="recordButton"
-        data-action="click->audio-recorder#toggleRecording">
+        data-action="click->audio-recorder#toggleRecording
+                     <%= "keydown.space@window->audio-recorder#toggleRecording:prevent" if audio_setting == "only" %>">
       </sl-icon-button>
       
     </div>

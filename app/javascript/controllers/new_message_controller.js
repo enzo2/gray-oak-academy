@@ -10,7 +10,6 @@ export default class extends Controller {
     //console.log("New message controller connected")
     this.images = []
     this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
-    this.toggleSubmitButton() // Initial check
   }
 
   async contentFieldTargetConnected() {
