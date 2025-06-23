@@ -28,7 +28,7 @@ class ToolHandlerService
       execute_chalkboard_file
     when "Complete_Lesson"
       execute_complete_lesson
-    when "python"
+    when "python_sandbox"
       execute_python_code_executor
     else
       raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented"

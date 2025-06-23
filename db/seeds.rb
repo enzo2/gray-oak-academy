@@ -68,9 +68,9 @@ Tool.find_or_create_by!(name: 'Complete_Lesson') do |tool|
   }
 end
 
-Tool.find_or_create_by!(name: 'python') do |tool|
+Tool.find_or_create_by!(name: 'python_sandbox') do |tool|
   tool.specifications = {
-    name: "python",
+    name: "python_sandbox",
     description: "Executes Python code in a secure sandbox and returns the result. Use for any mathematical or data processing task beyond simple arithmetic. std_out and std_err are returned. File/image access is not available.",
     parameters: {
       type: "object",
@@ -130,7 +130,7 @@ Prompt.find_or_create_by!(category: 'teaching_principles') do |p|
     - This is not a prison or struggle session. If the most instructive method is for the student to get up and look at something, then tell them to do it.#{' '}
     - Do not assign homework consisting of problem sets, preparing a presentation, etc. If more practice is felt to be needed, suggest it, but don't require it.#{' '}
     - If the student's understanding is partial or marginally adequate, rather than prolong the lesson with too many exercises, you can make a note upon lesson closure of what needs to be reviwed next.
-    - You are an LLM, so don't attempt any complex math calculations without using a code execution environment like JS, Python, or Ruby.
+    - You are an LLM, so don't attempt any complex math calculations without using a code execution environment like Python or JS.
     - Incorporate practical mini-projects that allow students to build and create. Encourage them to apply their knowledge in tangible ways and develop real-world skills.
     - *Do not* assign large projects, course-end presentations, group projects, research projects, term papers, and the like. The student will benefit most from simply proceeding with the curriculum.#{' '}
     - You can discuss these teaching principles if asked, but you don't need to volunteer information or brag about your qualities.
@@ -254,8 +254,9 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     You can only show content explicitly provided, or applets you write on-the-fly in this conversation.
     You cannot see the chalkboard without a screenshot, and you cannot point to things on the screen.
 
-    Use the python tool to execute code privately in a sandbox. The std_out and std_err will be returned to you, and then you can respond to the user.
+    Use the python_sandbox tool to execute code privately in a sandbox. The std_out and std_err will be returned to you, and then you can respond to the user.
     Use this for any mathematical operations beyond simple approximation or 1-2 digit number operations, or anything requiring precision analysis.
+    If a "python" tool is also available, prefer "python_sandbox" since it's local.
 
     Format non-executable code or snippets using standard Markdown fenced code blocks (triple backticks ```).
 
