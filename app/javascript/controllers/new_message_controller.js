@@ -4,6 +4,7 @@ import { Controller } from "@hotwired/stimulus"
 // Enables image uploads, URL image previews, pasting images, shift+enter for new lines, and form submission
 export default class extends Controller {
   static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "imagesMenuButton", "imagesMenu", "urlDialog", "submitButton", "submitSpinner", "submitIcon", "helpText"];
+  static values = { audioSetting: String };
   static MAX_IMAGES = 4;
 
   connect() {
@@ -23,7 +24,7 @@ export default class extends Controller {
   toggleSubmitButton() {
     //console.log("toggleSubmitButton")
     const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0;
-    if (hasContent) {
+    if (hasContent && this.audioSettingValue != 'only') { // Don't toggle if audio_only set, since the record button is always shown; there's no submit button
       this.submitIconTarget.classList.remove("hidden");
       this.helpTextTarget.classList.remove("hidden");
     } else {

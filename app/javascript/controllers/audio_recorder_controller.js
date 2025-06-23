@@ -4,9 +4,9 @@ export default class extends Controller {
   static targets = ["recordButton", "helpText", "textarea"]
   static values = { 
     conversationId: String, 
-    audioInputPermitted: Boolean, 
-    sttAvailable: Boolean, 
-    audioSetting: String 
+    audioSetting: String,  //Refers to whether audio input is disabled/enabled/enforced for the conversation/lesson.
+    audioInputPermitted: Boolean, // Refers to whether the LLM supports raw audio input, and audio_setting is not disabled.
+    sttAvailable: Boolean // Refers to whether the user has STT set up
   }
 
   connect() {
@@ -22,6 +22,7 @@ export default class extends Controller {
     } else if (!this.audioInputPermittedValue && !this.sttAvailableValue) {
       // If audio input is not permitted and STT is not available, don't initialize.
       console.info("Speech input is not available for this conversation.");
+      // Show error to the user if there is a setup error (audio-only, but no audio or STT available)
       if (this.audioSettingValue == "only") { alert("The lesson is set to audio-only, but speech input was not set up. Please notify your teacher.")}
     } else { 
       //Proceed with initialization
