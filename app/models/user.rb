@@ -6,13 +6,15 @@ class User < ApplicationRecord
          :trackable
 
   enum :role, { student: "student", admin: "admin" }, prefix: true
-  before_create :set_default_role
-  after_create :ensure_setting
-  after_create :seed_admin_data, if: :role_admin?
 
   validates :first_name, presence: true
   validates :last_name, presence: true
+  validate :validate_first_user_must_be_admin
   validate :validate_signup_code
+  attr_accessor :signup_code # Allow submission of the signup_code on registration
+
+  after_create :ensure_setting
+  after_create :seed_admin_data, if: :role_admin?
 
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
@@ -33,9 +35,6 @@ class User < ApplicationRecord
   has_many :conversations
   has_many :applets
 
-  # Allow submission of the signup_code on registration
-  attr_accessor :signup_code
-
   def name
     "#{first_name} #{last_name}"
   end
@@ -46,10 +45,6 @@ class User < ApplicationRecord
   end
 
   private
-
-  def set_default_role
-    self.role = :admin if User.count.zero?
-  end
 
   def ensure_setting
     create_setting! if setting.nil?
@@ -67,6 +62,12 @@ class User < ApplicationRecord
       # add the resource to db, with user set to current user
       Resource.create!(resource.merge(teacher: self))
     end
+  end
+
+  def validate_first_user_must_be_admin
+    return unless new_record?
+    return unless User.count.zero?
+    errors.add(:role, "must be teacher for the first user.") unless role_admin?
   end
 
   def validate_signup_code
