@@ -1,8 +1,10 @@
-<%= button_to "Generate Lessons from Course Outline", generate_lessons_admin_course_lessons_path(course),
-  method: :post, 
-  class: "btn-primary", 
-  id: "generate-lessons-button",
+<%= form_with url: generate_lessons_admin_course_lessons_path(course), method: :post, 
   data: { 
-    turbo_confirm: "This will call the LLM to generate lessons. Are you sure?",
-    turbo_stream: true }
-%>
+    turbo_confirm: "This will call the LLM to generate lessons based on the course outline. You may want to switch to a thinking LLM. Proceed?",
+    controller: "shoelace-button-loading" }, 
+  class: "inline-block" do |form| %>
+  <sl-button type="submit" variant="success" outline id="generate-lessons-button">
+    <sl-icon slot="prefix" name="lightbulb"></sl-icon>
+    Generate Lessons
+  </sl-button>
+<% end %>

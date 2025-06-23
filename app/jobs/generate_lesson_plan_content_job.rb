@@ -75,15 +75,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
     Rails.logger.info "Broadcasting success for lesson plan: #{lesson_plan.id}"
     # Broadcast the updated lesson plan via Turbo Streams
     channel = "teacher_#{current_user.id}-dashboard"
-    renderer = ApplicationController.renderer_with_signed_in_user(current_user)
-    html = renderer.render(
-      partial: "admin/lesson_plans/form",
-      locals: { lesson: lesson, lesson_plan: lesson_plan }
-    )
-    Turbo::StreamsChannel.broadcast_replace_to(
-      channel, target: "lesson-plan-form", html: html)
-    # Hide the loading indicator
-    Turbo::StreamsChannel.broadcast_remove_to(channel, target: "lesson-plan-loading")
+    Turbo::StreamsChannel.broadcast_refresh_to(channel)
   end
 
   def broadcast_error(current_user, lesson_plan, message)

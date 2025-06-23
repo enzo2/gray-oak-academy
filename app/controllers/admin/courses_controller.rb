@@ -67,10 +67,7 @@ module Admin
     def generate_outline
       # Enqueue the background job
       GenerateCourseOutlineJob.perform_later(@course, current_user)
-
-      respond_to do |format|
-        format.turbo_stream # renders a spinner
-      end
+      head :accepted # No view needed. The Job will broadcast when done.
     end
 
     private

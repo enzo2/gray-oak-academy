@@ -53,9 +53,7 @@ module Admin
 
     def generate_lessons
       GenerateCourseLessonsJob.perform_later(@course, current_user)
-      respond_to do |format|
-        format.turbo_stream # renders a spinner
-      end
+      head :accepted  # No view needed. The Job will broadcast when done.
     end
 
     def move_higher

@@ -55,12 +55,10 @@ module Admin
     end
 
     def generate_content
-      # Persist the lesson plan before generating content
+      # Persist the lesson plan before generating content, since it may be new
       @lesson_plan.save!
       GenerateLessonPlanContentJob.perform_later(@lesson_plan, current_user)
-      respond_to do |format|
-        format.turbo_stream
-      end
+      head :accepted # No view needed; the Job will broadcast on completion
     end
 
     private
