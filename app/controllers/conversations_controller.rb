@@ -1,8 +1,11 @@
 # For generic LLM chats, not lessons.
 class ConversationsController < ApplicationController
   before_action :set_conversation, only: [ :show, :clear, :destroy ]
-  def show
-  end
+
+  # def show
+  # Show template exists, but only for use as a turbo frame.
+  # Users are not meant to navigate to /conversation/:id directly.
+  # end
 
   def index
     # Create a default conversation if none exist
@@ -49,7 +52,13 @@ class ConversationsController < ApplicationController
   private
 
   def set_conversation
-    @conversation = Conversation.find(params[:id])
+    conversation = Conversation.find(params[:id])
+    # Ensure the conversation belongs to the current user, or one of his students if a teacher
+    if conversation.user == current_user || current_user.students.include?(conversation.user)
+      @conversation = conversation
+    else
+      redirect_to conversations_path, alert: "That conversation does not belong to you."
+    end
   end
 
   def set_conversations
