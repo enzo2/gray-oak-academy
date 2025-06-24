@@ -7,10 +7,10 @@
       <%= button_to enrollment_path(enrollment), 
             method: :get, 
             data: { turbo_stream: true },
-            class: "btn-primary mb-2 text-sm" do %>
+            class: "btn-primary mb-2 " do %>
         <div class="flex items-center">
           <sl-icon name="file-text" class="text-green-500"></sl-icon>
-          <span>&nbsp;View course summary</span>
+          <span class="text-sm">&nbsp;View course summary</span>
         </div>
       <% end %>
       
