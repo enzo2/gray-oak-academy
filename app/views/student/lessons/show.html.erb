@@ -28,9 +28,9 @@
     <% end %>
 
     <!-- Conversation -->
-    <%= turbo_frame_tag "conversation-panel", class: "grow overflow-hidden" do %>   
+    <div class="grow overflow-hidden">   
       <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
-    <% end %>
+    </div>
   </div>
 
   <!-- Chalkboard Area - remainder of space - grow as needed -->

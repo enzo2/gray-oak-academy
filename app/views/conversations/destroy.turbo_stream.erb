@@ -1,4 +1,5 @@
 <%= turbo_stream.update "conversation-list" do %>
+  <%# current_conversation is left undefined since it was deleted %>
   <%= render partial: "conversations/list", locals: { conversations: @conversations } %>
 <% end %>
 

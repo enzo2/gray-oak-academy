@@ -7,27 +7,18 @@
      data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
   <div id="conversation-header">
     <% if conversation.lesson_progress.nil? %>
-      <div class="mb-2 flex justify-between space-x-2">
-        <%= link_to 'Clear Conversation', clear_conversation_path(conversation), 
-          method: :delete, 
-          class: "btn-danger",
-          data: { 
-            turbo_method: :delete,
-            turbo_confirm: 'Are you sure you want to clear this conversation?'
-          } %>
-        <div class="flex space-x-2">
-          <% if current_user.setting.speech_configured? %>
-              <sl-icon-button 
-                id="auto-read-toggle"
-                name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-                label="Auto-read" 
-                class="text-xl [&::part(base)]:pt-2"
-                data-action="click->tts-stream#toggleAutoRead"
-                >
-              </sl-icon-button>
-          <% end %>
-          <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
-        </div>
+      <div class="flex justify-end items-center space-x-2">
+        <% if current_user.setting.speech_configured? %>
+            <sl-icon-button 
+              id="auto-read-toggle"
+              name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+              label="Auto-read" 
+              class="text-xl [&::part(base)]:pt-2"
+              data-action="click->tts-stream#toggleAutoRead"
+              >
+            </sl-icon-button>
+        <% end %>
+        <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
       </div>
     <% end %>
 

@@ -1,3 +1,29 @@
-<%= turbo_frame_tag "conversation-panel" do %>   
-  <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
-<% end %>
+<div class="flex flex-row gap-4 px-2 md:px-4 pt-2 h-[calc(100dvh-2.5rem)]">
+  <!-- Chats Column (Collapsible Sidebar) -->
+  <div class="not-any-pointer-fine:hidden flex-none border-r border-stone-500 transition-all duration-150 ease-in-out w-8 hover:w-32 group">
+    <!-- Sidebar header with icon -->
+    <div class="flex items-center justify-left h-12 group-hover:justify-between">
+      <sl-icon name="list" class="group-hover:hidden"></sl-icon>
+      <h3 class="text-lg hidden group-hover:block">Chats</h3>
+      <div class="hidden group-hover:block">
+        <%= link_to conversations_path,
+            data: { turbo_method: :post },
+            class: "" do %>
+          <sl-icon-button name="plus-circle"></sl-icon-button>
+        <% end %>
+      </div>
+    </div>
+    <!-- Chat list (hidden when collapsed) -->
+    <div class="mb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-2 overflow-hidden" id="conversation-list">
+      <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
+    </div>
+  </div>
+
+  <!-- Conversation Column -->
+  <div class="min-w-0 grow max-w-[40rem] xl:max-2xl:max-w-[32rem] h-full" id="conversation-panel">
+    <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
+  </div>
+
+  <!-- Chalkboard Column -->
+  <%= render partial: "shared/chalkboard" %>
+</div>

@@ -1,22 +1,21 @@
 # For generic LLM chats, not lessons.
 class ConversationsController < ApplicationController
-  before_action :set_conversation, only: [ :show, :clear, :destroy ]
-
-  # def show
-  # Show template exists, but only for use as a turbo frame.
-  # Users are not meant to navigate to /conversation/:id directly.
-  # end
+  before_action :set_conversation, only: [ :show, :destroy ]
 
   def index
-    # Create a default conversation if none exist
-    unless current_user.conversations.generic.any?
-      Conversation.create!(user: current_user, title: "Chat 1", task_system_prompt: get_task_system_prompt)
+    # For now, redirect to the most recent generic conversation
+    conversation = current_user.conversations.generic.order(created_at: :desc).first
+    if conversation
+      redirect_to conversation_path(conversation)
+    else
+      # If no conversation exists, create one and redirect
+      conversation = Conversation.create!(user: current_user, title: "Chat 1", task_system_prompt: get_task_system_prompt)
+      redirect_to conversation_path(conversation)
     end
+  end
 
-    # Load conversations not related to a lesson
-    @conversations = current_user.conversations.generic.order(created_at: :desc)
-    # Load the first conversation for display
-    @conversation = @conversations.first
+  def show
+    set_conversations
   end
 
   def create
@@ -24,28 +23,14 @@ class ConversationsController < ApplicationController
       title: generate_unique_chat_title,
       task_system_prompt: get_task_system_prompt
     )
-    set_conversations
-    respond_to do |format|
-      format.turbo_stream
-    end
+    redirect_to conversation_path(@conversation) # Show the new conversation.
   end
 
   def destroy
     @conversation.destroy
-    set_conversations
+    set_conversations # Refresh the list of conversations
     respond_to do |format|
       format.turbo_stream
-    end
-  end
-
-  def clear
-    # For generic conversations - make sure the conversation is not associated with a lesson in progress first
-    # (Otherwise, for lessons would be correct to maintain the conversation record unless the lesson is restarted)
-    if @conversation.lesson_progress.nil?
-      @conversation.messages.destroy_all
-      respond_to do |format|
-        format.turbo_stream
-      end
     end
   end
 
