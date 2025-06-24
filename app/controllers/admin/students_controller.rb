@@ -10,8 +10,8 @@ module Admin
 
     def show
       # Perform verification that the course reports were generated, in case the job failed originally
-      @completed_enrollments.each do |enrollment|
-        enrollment.course_report_check
+      @active_enrollments.each do |enrollment|
+        enrollment.course_report_check if enrollment.completed?
       end
     end
 

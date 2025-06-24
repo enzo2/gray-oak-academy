@@ -3,6 +3,7 @@ class Enrollment < ApplicationRecord
   belongs_to :course
   has_many :student_reports, as: :reportable, dependent: :nullify # used for course-end reports
 
+  # Scopes filter completed/in_progress based on the presence of an enrollment report
   scope :completed, -> { joins(:student_reports).where(student_reports: { status: :completed }) }
   scope :in_progress, -> { where.not(
       id: joins(:student_reports).where(student_reports: { status: :completed }).select(:id)
@@ -56,6 +57,7 @@ class Enrollment < ApplicationRecord
   def course_report_check
     # If the course is completed and there are no student reports, generate a course report
     if completed? && !student_reports.exists?
+      Rails.logger.info "Found missing enrollment report. Generating report for enrollment #{id}"
       GenerateCourseReportJob.perform_later(self)
     end
   end
