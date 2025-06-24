@@ -134,8 +134,8 @@ class OpenaiApiService
       raise OpenAiError, "The requested service was not found. Details: #{error_message}"
     rescue StandardError => e
       Rails.logger.error "StandardError #{e.inspect}"
-      Rails.logger.error "Trace: #{e.backtrace.join("\n")}"
-      raise e
+      # Rails.logger.error "Trace: #{e.backtrace.join("\n")}"
+      raise OpenAiError, "An unexpected error occurred: #{e.message}"
     end # end of begin/rescue/end block
   end
 
@@ -271,8 +271,8 @@ class OpenaiApiService
 
       rescue StandardError => e
         # Handle any errors during processing
-        Rails.logger.error "Error processing chunk: #{e.message}"
-        # Optionally log or handle the error as needed
+        Rails.logger.error "Error processing stream chunk: #{e.message}"
+        raise e
       end
     end
   end

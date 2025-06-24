@@ -31,6 +31,8 @@ class GetLlmCompletionJob < ApplicationJob
 
   rescue OpenAiError => e
     Rails.logger.error "OpenAiService: #{e.message}"
+    # Destroy the last message if it was a user message, since it was not sent and may have caused an error
+    conversation.messages.role_user.last&.destroy if conversation.messages.last&.role_user?
     broadcast_error("#{e.message}", conversation)
     raise
   rescue StandardError => e
@@ -107,7 +109,8 @@ class GetLlmCompletionJob < ApplicationJob
           broadcast_completion_finished(conversation, message.id)
         end
       rescue StandardError => e
-        Rails.logger.error "Error processing stream chunk: #{e.message}"
+        Rails.logger.error "Error during streaming."
+        raise e
       end
     end
   end
