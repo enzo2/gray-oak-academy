@@ -4,8 +4,10 @@ class LessonPlan < ApplicationRecord
   has_one :course, through: :lesson
   has_and_belongs_to_many :resources
 
-  # Field: t.jsonb :content, default: [] # Array of hashes [{type:details}, ....]
-  # Field: t.boolean :chalkboard_enabled, default: true
+  # Field: t.jsonb :content, default: [] # Array of hashes [{type => details}, ...]
+  # Field: t.jsonb :suggested_resources, default: [] # Array of hashes [{type => description}, ...]
+  # Field: t.boolean :chalkboard_enabled, default: true, null: false
+  # Field: t.enum :audio, enum_type: :audio_setting, default: "disabled", null: false
 
   enum :status, { draft: "draft", published: "published" }, prefix: true
   # "archived" status also available in the enum column, but can't think of a use case
@@ -15,7 +17,14 @@ class LessonPlan < ApplicationRecord
   # Allow blank content if still new draft
   validate :validate_content_format, unless: -> { status == "draft" && content.blank? }
 
+  after_initialize :link_default_resources, if: :new_record?
+
   private
+
+  def link_default_resources
+    default_resources = Resource.where(include_by_default: true)
+    resources << default_resources
+  end
 
   def validate_content_format
     if content.empty?

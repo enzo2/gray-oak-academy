@@ -65,7 +65,7 @@ module Admin
     end
 
     def resource_params
-      params.require(:resource).permit(:category, :description, :uri, :file)
+      params.require(:resource).permit(:category, :description, :uri, :file, :include_by_default)
     end
   end
 end

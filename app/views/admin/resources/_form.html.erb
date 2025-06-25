@@ -62,7 +62,12 @@
     <% end %>
   </div>
 
+  <div class="mb-4">
+    <%= form.check_box :include_by_default, class: "mr-1 checkbox-primary inline" %>
+    <%= form.label :include_by_default, "Include by default on new lesson plans", class: "form-label inline" %>
+  </div>
+
   <div class="flex items-center justify-between mb-4">
-    <%= form.submit "Add Resource", class: "btn-primary" %>
+    <%= form.submit class: "btn-primary" %>
   </div>
 <% end %>

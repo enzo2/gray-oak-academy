@@ -1,6 +1,7 @@
 <tr id="<%= dom_id(resource) %>" class="border-b border-stone-600 dark:border-stone-400 [&_td]:px-2 [&_td]:py-3">
   <td class=" text-left"><%= resource.category %></td>
   <td class="text-center"><%= truncate(resource.description, length: 150) %></td>
+  <td class="text-center"><%= resource.include_by_default? ? 'Yes' : 'No' %></td>
   <td class="text-right [&_a:hover]:underline *:inline-block">
     <%= link_to 'View', admin_resource_path(resource), class: 'mr-2' %>
     <%= link_to 'Edit', edit_admin_resource_path(resource), class: 'mr-2' %>
