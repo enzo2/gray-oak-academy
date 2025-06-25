@@ -1,7 +1,7 @@
 module Admin
   class LessonPlansController < Admin::BaseController
     before_action :set_lesson
-    before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :new_resource, :generate_content ]
+    before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :new_resource, :generate_content, :remove_suggested_resource ]
 
     def edit
       # Render the edit form for the lesson plan
@@ -59,6 +59,19 @@ module Admin
       @lesson_plan.save!
       GenerateLessonPlanContentJob.perform_later(@lesson_plan, current_user)
       head :accepted # No view needed; the Job will broadcast on completion
+    end
+
+    def remove_suggested_resource
+      index = params[:resource_index].to_i
+      @lesson_plan.suggested_resources ||= []
+      if index >= 0 && index < @lesson_plan.suggested_resources.length
+        @lesson_plan.suggested_resources.delete_at(index)
+        @lesson_plan.save!
+      end
+      respond_to do |format|
+        format.turbo_stream { render turbo_stream: turbo_stream.remove("suggested-resource-#{index}") }
+        format.html { redirect_to edit_admin_course_lesson_lesson_plan_path(@lesson.course, @lesson) }
+      end
     end
 
     private

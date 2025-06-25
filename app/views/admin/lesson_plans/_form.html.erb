@@ -59,11 +59,20 @@
     <div class="mb-4">
       <label class="form-label">Suggested Resources</label>
       <p class="block text-sm mb-2">
-        <i>Suggested by the LLM and should be obtained or validated before adding to the plan.</i>
+        <i>Not included unless you obtain and add as a linked resource.</i>
       </p>
-      <ul class="list-disc ml-6">
-        <% lesson_plan.suggested_resources.each do |resource| %>
-          <li class="mb-2">
+      <ul class="list-disc ml-2">
+        <% lesson_plan.suggested_resources.each_with_index do |resource, idx| %>
+          <li class="mb-2 flex space-x-2 items-center" id="suggested-resource-<%= idx %>">
+            <%= link_to remove_suggested_resource_admin_course_lesson_lesson_plan_path(lesson.course, lesson, idx),
+                  method: :delete,
+                  data: { 
+                    turbo_method: :delete,
+                    turbo_confirm: 'Remove this suggested resource?' 
+                    }, 
+                  class: 'flex items-center' do %>
+              <sl-icon name="trash" class="text-gray-500 hover:text-red-500"></sl-icon>
+            <% end %>
             <span class="font-semibold"><%= resource.keys.first %></span>: <%= resource.values.first %>
           </li>
         <% end %>

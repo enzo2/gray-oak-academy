@@ -49,6 +49,7 @@ Rails.application.routes.draw do
           delete "unlink_resource/:resource_id", to: "lesson_plans#unlink_resource", as: :unlink_resource
           get "new_resource", to: "lesson_plans#new_resource", as: :new_resource
           post "generate_content", to: "lesson_plans#generate_content", as: :generate_content
+          delete "remove_suggested_resource/:resource_index", to: "lesson_plans#remove_suggested_resource", as: :remove_suggested_resource
         end
       end
     end
