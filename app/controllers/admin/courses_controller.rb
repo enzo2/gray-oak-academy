@@ -46,21 +46,19 @@ module Admin
 
     def destroy
       @course.destroy
-      respond_to do |format|
-        format.turbo_stream
-      end
+      redirect_to admin_courses_path, status: :see_other
     end
 
     # POST /admin/courses/:id/archive
     def archive
       @course.update!(status: :archived)
-      redirect_to admin_courses_path
+      redirect_to admin_courses_path, status: :see_other
     end
 
     # POST /admin/courses/:id/unarchive
     def unarchive
       @course.update!(status: :active)
-      redirect_to admin_courses_path
+      redirect_to admin_courses_path, status: :see_other
     end
 
     # POST /admin/courses/:id/generate_outline
