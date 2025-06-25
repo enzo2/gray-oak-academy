@@ -1,8 +1,8 @@
 <% if lesson_plan.content.blank? %>
-  <p class="mb-2"><i>You can use the LLM to generate lesson plan content. However, you should at least review and enhance it with your own resources.</i></p>
+  <p class="mb-2"><i>You can use the LLM to generate lesson plan content. You should review and enhance it with your own resources.</i></p>
   <%= form_with url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :post, 
     data: { 
-      turbo_confirm: "This will call the LLM to generate lesson plan content. You may want to switch to a thinking LLM. Proceed?",
+      turbo_confirm: "This will call the LLM to generate lesson plan content and suggested resources. You may want to switch to a thinking LLM. Proceed?",
       controller: "shoelace-button-loading" }, 
     class: "inline-block mb-4" do |form| %>
     <sl-button type="submit" variant="success" outline id="">
@@ -29,7 +29,7 @@
     <p class="block text-sm mb-2"><i>
       The content will be used by the LLM tutor to conduct the lesson.<br>
       As examples, you could specify knowledge, resources, exercises, teaching methods, generative applets, or evaluation criteria for the lesson.<br>
-      Resources must be added and linked to the lesson plan (you can do so once the plan is saved to draft status).</i></p>
+      Referenced sources must be added and linked to the lesson plan below.</i></p>
     <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
     <% content_data.each do |item| %>
       <div class="flex items-center mb-1 space-x-2">
@@ -55,6 +55,22 @@
     </template>
   </div>
 
+  <% if lesson_plan.suggested_resources.present? %>
+    <div class="mb-4">
+      <label class="form-label">Suggested Resources</label>
+      <p class="block text-sm mb-2">
+        <i>Suggested by the LLM and should be obtained or validated before adding to the plan.</i>
+      </p>
+      <ul class="list-disc ml-6">
+        <% lesson_plan.suggested_resources.each do |resource| %>
+          <li class="mb-2">
+            <span class="font-semibold"><%= resource.keys.first %></span>: <%= resource.values.first %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <div class="mb-4">
     <%= f.label "Chalkboard", class: "form-label" %>
     <div class="flex items-center">
@@ -78,7 +94,7 @@
     <%= link_to "Set up Speech API to ensure transcription is available.", edit_user_registration_path(), class: "link-primary", target: "_blank" unless current_user.setting.speech_configured? %>
     </p>
   </div>
-
+  
   <div class="mb-4">
     <%= f.label :status, class: "form-label" %>
     <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Don't forget to add resources below.</i></p>

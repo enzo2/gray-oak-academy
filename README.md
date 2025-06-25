@@ -3,23 +3,21 @@
 ## Background and Purpose
 Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. This app allows anyone to quickly construct lessons or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executes those lesson plans using an LLM of choice.
 
-"Do my homework for me" is the status quo that has arisen in the GPT era, now widely considered a crisis in education. But with the LLM given a primary teaching role, the idea of cheating with LLMs is turned on its head. Just as a private tutor would quickly become aware when their student shows disinterest or poor understanding, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The rationale for homework—if any—would shift from evaluation toward exploratory learning and meaningful application. The supervising (human) teacher will be freed up to spend time on important tasks like incorporating more memorable experiences, seeking out learning resources, and mentoring individual students. After lessons, students will immediately feel satisfied that their new knowledge is practical and useful. 
+"Do my homework for me" is the status quo that has arisen in the GPT era, now widely considered a crisis in education. But with the LLM given a primary teaching role, the idea of cheating with LLMs is turned on its head. Just as a private tutor would quickly become aware when their student shows disinterest or poor understanding, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The rationale for homework—if any—would shift from evaluation toward exploratory learning and meaningful application. The supervising (human) teacher will be freed up to spend time on important tasks like incorporating more memorable experiences, seeking out learning resources, and mentoring individual students. After lessons, students will immediately feel satisfied that their new knowledge is practical and useful.
 
 Since this is a major shift in educational approach, take a moment to consider what such a system ought to look like. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
 1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity/leeway.
 2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even people and human resources. 
 3. Prompt transparency: a strong set of user-editable prompts defining the teaching methodology, principles, and values for the LLM to follow. 
 4. Prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
-5. An LLM chat interface with fully multimodal interactivity, comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI, diagramming, and sandboxed code execution. 
+5. An LLM chat interface with fully multimodal interactivity, comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI and sandboxed code execution. 
 6. Because some lessons are better taught away from a computer, through casual conversation, or even outdoors, it should support speech-only mode for mobile phone use (i.e. "walk and talk").
 
 **Gray Oak Academy is a prototype of this system.**
 
-Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This could still be a problem. But as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated.
+Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. However, prompted well, the LLM is positioned to improve upon the supervising teacher's curriculum and capabilities, both in the planning and execution phases. Try the app, and you'll see what I mean.
 
-Prompted well, the LLM should ideally improve upon the supervising teacher's curriculum and capabilities. This could include teaching more foundationally, adapting to the student's progress, and gamification using just-in-time applets. It should be companionable, being neither demanding nor sycophantic. A benchmark for LLM intelligence will be their ability to creatively teach by breaking into the real world; as a futuristic example, if '3D printer' were marked as a resource, the LLM could conceive of a physical demonstration, write an OpenSCAD file, and ask the teacher to print it out in advance of the lesson. But even with the current generation of LLMs, there is plenty of unexplored territory. 
-
-*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project. It's still a prototype and doesn't have much test coverage.
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's still a prototype and doesn't have much test coverage.
 
 ## Features
 - Self-hostable with docker
@@ -27,7 +25,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Native LLM chat interface supporting images, raw audio input and STT, TTS with auto-read
 - Student lesson view with "chalkboard" (multipurpose canvas accessible by the LLM)
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
-- One-click LLM generation of course outlines, lesson list, and lesson plans
+- One-click LLM generation of course outlines, lesson list, lesson plans, and suggested resources
 - LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
 - LLM-generated student reports are fed into the next session, ensuring continuity and personalization
 
@@ -37,7 +35,7 @@ Prompted well, the LLM should ideally improve upon the supervising teacher's cur
 - Cost/token usage tracking
 - Remembers API URIs and model names for easy switching
 - If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions (in anticipation of improvements in audio understanding models)
-- Python code execution tool
+- Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
 - Dark/Light mode
 

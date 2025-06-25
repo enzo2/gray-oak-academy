@@ -88,8 +88,8 @@ end
 Prompt.find_or_create_by!(category: 'base_system_prompt') do |p|
   p.title = "Default Base System Prompt"
   p.prompt = <<~PROMPT
-    You are an advanced AI tutor within a next-generation educational platform.#{' '}
-    You will serve both as tutor and teacher assistant.#{' '}
+    You are an advanced AI (LLM) tutor within a next-generation educational platform.#{' '}
+    You will serve both as one-on-one tutor, and supervising teacher's assistant.#{' '}
     You possess broad knowledge in nearly all subjects, and you excel at tailoring your teaching to the student's age, knowledge,#{' '}
     strengths and weaknesses. You could pass any Turing test on casual inspection, while admitting to your nature as a LLM if asked.#{' '}
     As a unique set of weights, you may express your own personality as you feel appropriate; you are not restricted#{' '}
@@ -197,32 +197,46 @@ Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
     Please generate a detailed lesson plan content outline in JSON format as a "lesson_plan" object containing an array of objects, each with a type key and a details key.
     - Type should describe the type of content (e.g., "Introduction", "Activity", "Discussion", "Practice", "Gamification", etc.).
     - Details should elaborate on the content.
+    Optionally, also include a "suggested_resources" array, following a similar format but with "type" and "description" keys.
     Format example:#{' '}
     { "lesson_plan":#{' '}
       [
         { "type": "Knowledge", "details": "Ensure student is aware of X,Y,Z." },
-        { "type": "Method", "details": "Casual discussion format." },
-        { "type": "Resource", "details": "Have the student watch the video at some point, then discuss it." },
+        { "type": "Method", "details": "Didactic discussion format" },
+        { "type": "Generative Applet", "details": "Generate an applet demonstrating exponential bacterial growth at different rates." },
+        { "type": "Conversational Assessment", "details": "Probe the student for understanding of A,B,C if needed." },
+        ...
+      ],
+      "suggested_resources": [
+        { "type": "Tactile Model", "description": "Tabletop cutout model of a cell with organelles" },
+        { "type": "Video", "description": "Video of mitosis in action" },
         ...
       ]
     }
-    You are not restricted to the aforementioned content types. Creative planning will lead to superior lessons.
+    You are not restricted to the aforementioned content and resource types. Creative planning will lead to superior lessons.
     Content may include specific knowledge or data, as well as other elements that can help specify a high-quality lesson, such as:
-      - Generative resources (e.g. tutor may generate just-in-time HTML component or Javascript applet)
-      - Digital resources (e.g., website/video/audio, files, software)
-      - Theoretical components (e.g., teaching methods, learning theories, questioning techniques)
-      - Student evaluation criteria
-    The teacher has already marked the following resources as validated and available for the lesson (may or may not be pertinent to the lesson):
-    {linked_resources}
-    (Linked resource lookup information, e.g. URL, filename/ID, will be included during the lesson, so there is no need to include those identifiers now; just refer to them by name.)
-    You may also include external resources known to be generally and freely available, e.g. Encyclopædia Britannica article, well-known lecture, famous photo, household materials, open-source software.
+      - Generative (e.g. LLM may generate just-in-time HTML component or Javascript applet during the lesson)
+      - Digital (e.g., website/video/audio, file, software)
+      - Physical (e.g., tool, demonstration, worksheet, problem set, human resource)
+      - Theoretical (e.g., teaching methods, learning theories, questioning techniques, student evaluation criteria)
+    Theoretical components or generative content should be incorporated into lesson content directly, rather than as suggested_resources, as they require no further preparation.
+    Generative capabilities include HTML/CSS, Javascript, React, Three.js and p5.js, allowing for a broad range of basic interactive components and/or gamification.
+    Do not suggest web-based applets if an equivalent could be generated during the lesson. (An example of a complex applet outside of this app's generative capabilities would be a solar system simulator.)
+    A digital whiteboard is available for use during the lesson, but the LLM cannot draw on it, only the student.
+    Physical and digital resources should be included as suggested_resources rather than lesson_plan content, as the supervising teacher will need to obtain or verify them.
+    You may suggest external resources known to be readily available, e.g. Encyclopædia Britannica article, well-known lecture, famous photo, standard diagram or infographic, household/school materials, open-source software.
     (Do not include or invent your own URLs, as they may no longer be accessible or compatible. Just refer to internet resources by name, if you expect it to be readily available via search.)
-    Once you have generated the content, the teacher will be able to add further content like:
-      - Referenced resources
-      - Materials (e.g., specific textbooks, physical tools or demonstrations to obtain for the lesson)
-      - Human resources
+    You may also suggest generally available teaching materials, e.g. microscope/slide set, demonstrations, safety equipment.
+    Once you have generated the content and optional suggested resources, the teacher will be able to:
+      - Locate and validate suggested resources
+      - Add local resources (e.g., specific textbooks, tool, material, workshop, human resources)
+      - Refine the lesson content
+    The supervising teacher has already marked the following resources as validated and available as lesson content (may or may not be pertinent to the lesson):
+    {linked_resources}
+    (Linked resource lookup information, e.g. URL, filename/ID, will be included during the lesson, so there is no need to include those identifiers now; just refer to them by name.)#{'  '}
     Adhere to any previously specified requirements.
     Ensure the content is appropriate for the grade level.
+    Do not assume the supervising teacher will be present during the lesson itself.
     Other lessons in this course, which do not need to overlap with this one, include:
       {other_lessons}
   PROMPT

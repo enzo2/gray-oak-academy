@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_19_010421) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_24_205210) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -151,6 +151,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_19_010421) do
     t.datetime "updated_at", null: false
     t.boolean "chalkboard_enabled", default: true, null: false
     t.enum "audio", default: "disabled", null: false, enum_type: "audio_setting"
+    t.jsonb "suggested_resources", default: []
     t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id"
     t.index ["teacher_id"], name: "index_lesson_plans_on_teacher_id"
   end

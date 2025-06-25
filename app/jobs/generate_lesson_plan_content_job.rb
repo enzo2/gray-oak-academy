@@ -4,7 +4,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
   CONTENT_SCHEMA = {
     "strict": true,
     "name": "Lesson_Plan",
-    "description": "A detailed lesson plan content outline.",
+    "description": "A detailed lesson plan content and strategy outline.",
     "schema": {
       "type": "object",
       "properties": {
@@ -19,6 +19,19 @@ class GenerateLessonPlanContentJob < ApplicationJob
             "required": [ "type", "details" ],
             "additionalProperties": false
           }
+        },
+        "suggested_resources": {
+          "type": "array",
+          "description": "A list of suggested resources for the lesson which may need to be located, obtained or validated before use.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "required": [ "type", "description" ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [ "lesson_plan" ],
@@ -30,13 +43,13 @@ class GenerateLessonPlanContentJob < ApplicationJob
     lesson = lesson_plan.lesson
     course = lesson.course
     customized_prompt = Prompt.get_prompt(category: "generate_lesson_plan", user: current_user)
-      .gsub("{title}", lesson.title)
+      .gsub("{title}", "#{lesson.position}. #{lesson.title}")
       .gsub("{goals}", lesson.goals)
       .gsub("{approx_duration_min}", lesson.approx_duration_min.to_s)
       .gsub("{grade_level}", course.grade_level)
       .gsub("{course_title}", course.title)
       .gsub("{linked_resources}", lesson.lesson_plan.resources.format_collection)
-      .gsub("{other_lessons}", lesson.course.lessons.where.not(id: lesson.id).map(&:title).join(", "))
+      .gsub("{other_lessons}", lesson.course.lessons.where.not(id: lesson.id).map { |l| "#{l.position}. #{l.title}" }.join(", "))
 
     # Prepare messages for the LLM
     messages = [ { role: "user", content: customized_prompt } ]
@@ -56,10 +69,16 @@ class GenerateLessonPlanContentJob < ApplicationJob
       )
 
       # Update the lesson plan with the generated content (Stored as array in JSONB column.)
-      extracted_content = parsed_content["lesson_plan"].map do |item|
+      extracted_lesson_plan = parsed_content["lesson_plan"].map do |item|
         { item["type"] => item["details"] }
       end
-      lesson_plan.update!(content: extracted_content)
+      extracted_suggested_resources = parsed_content["suggested_resources"].map do |item|
+        { item["type"] => item["description"] }
+      end
+      lesson_plan.update!(
+        content: extracted_lesson_plan,
+        suggested_resources: extracted_suggested_resources || []
+      )
 
       # Broadcast the updated lesson plan content
       broadcast_success(current_user, lesson_plan, lesson)
