@@ -9,15 +9,11 @@ module Admin
 
     def update
       if @lesson_plan.update(lesson_plan_params)
-        flash.now[:success] = "Updated succcessfully."
-        respond_to do |format|
-          format.turbo_stream
-        end
+        flash[:success] = "Updated succcessfully."
+        redirect_to edit_admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), status: :see_other
       else
-        flash.now[:error] = "Failed to update lesson plan. #{@lesson_plan.errors.full_messages.join(', ')}"
-        respond_to do |format|
-          format.turbo_stream { render :update, status: :unprocessable_entity }
-        end
+        flash[:error] = "Failed to update lesson plan."
+        render :edit, status: :unprocessable_entity
       end
     end
 
