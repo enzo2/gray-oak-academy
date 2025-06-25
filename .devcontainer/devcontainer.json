@@ -13,7 +13,10 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/rails/devcontainer/features/activestorage": {},
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-    "ghcr.io/rails/devcontainer/features/postgres-client": {}
+    "ghcr.io/rails/devcontainer/features/postgres-client": {},
+    "ghcr.io/devcontainers/features/node:1": { //not included for the app, just for any dev tools like Gemini CLI
+      "version": "24"
+    }
   },
 
   "containerEnv": {
