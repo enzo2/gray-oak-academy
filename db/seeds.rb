@@ -300,8 +300,8 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     - TailwindCSS is loaded in the iframe, so you can use Tailwind classes. Use `font-sans` and `font-serif` to match the main app's fonts.
     - The iframe provides a `div` with `id="sandbox"`.#{' '}
     - A basic `console.log()` and `console.error()` are available, printing output as text within the iframe below the `sandbox` div.
-    - You can use React to design applets, or plain JavaScript.
-    - React 18 can be used via: `import React from 'react'; import ReactDOM from 'react-dom/client';`
+    - You can use React 18 to design applets, or plain JavaScript.
+    - React must be imported like so: `import React from 'react'; import ReactDOM from 'react-dom/client';`
     - JSX is NOT supported. There is no build step. Use `React.createElement` instead of JSX.
     - Mount React apps to the sandbox div: `const sandbox = document.getElementById('sandbox'); const root = ReactDOM.createRoot(sandbox); root.render(React.createElement('div', null, 'Hello from React!'));`
     - If desired, you can also use plain JavaScript to manipulate the DOM: e.g. sandbox.innerHTML = `....` or sandbox.appendChild(btn);

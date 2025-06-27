@@ -46,7 +46,8 @@ class Setting < ApplicationRecord
   before_validation :ensure_speech_api_base_uri_trailing_slash
 
   def speech_configured?
-    speech_api_base_uri.present? && speech_api_access_token.present?
+    speech_api_access_token.present?
+    # All speech settings have defaults except the access token. URI defaults to OpenAI.
   end
 
   private

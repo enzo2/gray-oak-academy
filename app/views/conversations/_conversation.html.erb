@@ -7,7 +7,7 @@
      data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
   <div id="conversation-header">
     <% if conversation.lesson_progress.nil? %>
-      <div class="flex justify-end items-center space-x-2">
+      <div class="flex justify-end items-center space-x-2 mb-1">
         <% if current_user.setting.speech_configured? %>
             <sl-icon-button 
               id="auto-read-toggle"

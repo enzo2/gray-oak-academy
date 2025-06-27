@@ -77,10 +77,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - For heavy users, providers supporting automated prompt caching will reduce cost.
 
 ### Choosing an LLM: 
-- For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. 
-- For outline/lesson generation, model must support structured outputs.
-- You must use a fairly intelligent LLM, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. However, thinking models may have excessive latency for real-time tutoring.
-- Sonnet 3.7 seems to do best overall, whereas Gemini Flash is adequate and has a 1 megatoken context window, plus audio input. GPT-4o does not seem to perform well.
+- For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. Avoid reasoning models due to excessive latency. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
+- For outline/lesson generation, model must support structured outputs. Reasoning models are preferable.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code.
@@ -103,21 +101,27 @@ Maintain the core app principles:
 - All LLM prompts and tools should be user-editable; use the existing models.
 - Test with different LLMs.
 
-### Future feature ideas:
-- If not cost-prohibitive, experiment with realtime, fully multimodal APIs - ?container for Pipecat with Gemini Live API
-- Camera/webcam input (e.g. show the LLM your work)
-- Resource suggestions to the teacher based on lesson goals (LLM-only, or via web search APIs)
-- Resource tagging, archive, usage tracking
-- Agentic curriculum design (i.e. chat and iterate)
-- Images output support (OpenAI Images API, Gemini API) for generative diagrams, infographics, student inspiration, etc. (once models have improved sufficiently)
-- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student, etc.)
-- Separate LLM settings for lesson planning vs. conducting
-- Settings for reasoning models
-- Student feedback form at end of lessons
+### Feature ideas:
+- Separate LLM settings for lesson planning vs. conducting; reasoning model settings
+- Agentic/iterative curriculum design
+   - Chat about curriculum + tool calls to edit
+   - Automated resource finding/validation 
+   - Agent with web search / deep research support
+   - Pre-prepared applets
+- MCP support
+- Resource tagging, archive
+- Camera input/snapshots (e.g. show the LLM your desk)
+- Mobile-first chalkboard
+- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student)
+- Student feedback tool at end of lessons
 - Teacher alerts, notifications, mobile push, etc. 
-- Student analytics 
+- Student analytics (time spent, etc.)
 - Hide more advanced settings/features under a Power User mode
+- Python applets (pyodide iframe)
+- Speed up audio input with ffmpeg to reduce cost
 - Consider RAG (pgvector + neighbor gem), but might not be needed since inexpensive long-context LLMs are now available
+- Experiment with live/realtime APIs for voice lessons
+- Image output support (OpenAI Images API, Gemini API) for generative diagrams, infographics, student inspiration, etc. (once models have improved sufficiently)
 
 ## License
 See LICENSE.md.
