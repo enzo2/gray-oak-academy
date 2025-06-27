@@ -9,6 +9,20 @@ services:
     environment:
       RAILS_ENV: production
       DATABASE_URL: postgres://postgres:${DB_PASSWORD}@postgres:5432
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
+      APP_NAME: ${APP_NAME}
+      APP_HOST: ${APP_HOST} 
+      WEBMASTER_EMAIL_ADDRESS: ${WEBMASTER_EMAIL_ADDRESS}
+      SMTP_ADDRESS: ${SMTP_ADDRESS}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      TEACHER_SIGNUP_CODE: ${TEACHER_SIGNUP_CODE}
+      STUDENT_SIGNUP_CODE: ${STUDENT_SIGNUP_CODE}
+      OPENAI_API_BASE_URI: ${OPENAI_API_BASE_URI}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DEFAULT_MODEL: ${DEFAULT_MODEL}
+      DEMO_MODE: ${DEMO_MODE}
     depends_on:
       - postgres
       - terrarium
