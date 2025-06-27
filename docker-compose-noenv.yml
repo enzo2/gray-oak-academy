@@ -1,0 +1,41 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    restart: always
+    environment:
+      RAILS_ENV: production
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD}@postgres:5432
+    depends_on:
+      - postgres
+      - terrarium
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+    - default
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+  terrarium:
+    image: ghcr.io/khoj-ai/terrarium:latest
+    restart: unless-stopped
+    networks:
+    - default
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres-data:
