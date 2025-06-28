@@ -70,6 +70,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
 - *The default setup is not secure. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 - For actual production use, retrieve the generated `/config/credentials/production.yml.enc` from the container's ephemeral filesystem and add it to your repository, so it will persist across restarts.
+- As an alternative without .env files, e.g. for a Portainer stack deployment, `docker-compose-noenv.yml` is provided. 
 
 ### Choosing an API:
 - Notably, Gemini API has an OpenAI-compatible endpoint, a free tier, audio input, and 1+ megatoken context windows. 
