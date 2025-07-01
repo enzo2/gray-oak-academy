@@ -1,3 +1,6 @@
+# For Production
+# Alternative to docker-compose.yml using environment variables instead of .env.production
+# Useful if your ENV are defined elsewhere e.g. Portainer
 services:
   web:
     build:

@@ -65,6 +65,11 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+      terrarium:
+        image: ghcr.io/khoj-ai/terrarium:latest
+        ports:
+          - 8080:8080
+        options: --health-cmd="curl -f http://localhost:8080" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - name: Install packages
@@ -87,6 +92,7 @@ jobs:
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
+          # Other environment variables are loaded from the .env.test file by dotenv-rails
         run: bin/rails db:test:prepare test test:system
 
       - name: Keep screenshots from failed system tests
