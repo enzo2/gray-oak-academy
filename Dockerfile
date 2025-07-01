@@ -71,6 +71,6 @@ EXPOSE 3001
 CMD ["./bin/rails", "server", "-p", "3001"]
 
 #For Thruster-wrapped Puma
-#Make sure you also reconfigure production.rb, docker-compose.yml, .env.production
+# You'll need to enable thruster gem in Gemfile, and reconfigure production.rb, docker-compose.yml, .env.production
 #EXPOSE 443
 #CMD ["./bin/thrust", "./bin/rails", "server"]

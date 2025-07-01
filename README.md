@@ -56,7 +56,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - `git clone` the repository to your machine. 
 - Docker is needed. (Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise the app will be super slow.)
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
-- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Note: The development environment sets up a self-signed certificate for SSL access, so if you want to try STT/voice input using your phone over the same LAN, choose the Devcontainer.) 
+- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Caveat: If you want to try STT/voice input using your phone over the same LAN, choose the Devcontainer, since the development environment includes SSL by default using a self-signed certificate.)
 
 ### Development: 
 - Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
@@ -65,15 +65,15 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Run `rails server`. Visit https://localhost:3000. 
 
 ### Production:
+- *Note: The default setup is not secure. It just runs the Puma server. The minimum option for serving publically would be to enable Thruster, Rails' basic proxy with Let's Encrypt support, in the Dockerfile. You'll also need to adjust SSL settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 - Create `/.env.production`: see `.env.production.example`. Include a random 32-character `RAILS_MASTER_KEY`, and keep it secure. 
 - Also create `/.env`: see `.env.example`. (This is for Postgres.)
+- *As an alternative without .env files, e.g. for a Portainer stack deployment, `docker-compose-noenv.yml` is provided.*
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
-- *The default setup is not secure. It just runs the Puma server. You can add Thruster, Rails' default proxy with Let's Encrypt support, in the Dockerfile. If serving over the internet, you'll also need to adjust settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 - For actual production use, retrieve the generated `/config/credentials/production.yml.enc` from the container's ephemeral filesystem and add it to your repository, so it will persist across restarts.
-- As an alternative without .env files, e.g. for a Portainer stack deployment, `docker-compose-noenv.yml` is provided. 
 
 ### Choosing an API:
-- Notably, Gemini API has an OpenAI-compatible endpoint, a free tier, audio input, and 1+ megatoken context windows. 
+- Notably, Gemini API has a a free tier, an OpenAI-compatible endpoint, raw audio input, and 1+ megatoken context windows.
 - Built-in support for OpenRouter enables tracking actual costs and displays context window usage. OpenRouter also avoids token limits, and enables trying different providers/models easily. But no audio input. 
 - For heavy users, providers supporting automated prompt caching will reduce cost.
 
