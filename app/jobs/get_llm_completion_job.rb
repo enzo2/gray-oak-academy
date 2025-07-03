@@ -61,19 +61,18 @@ class GetLlmCompletionJob < ApplicationJob
           Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
           chunk.dig("delta", "tool_calls").each do |tool_call|
             idx = tool_call["index"] || 0
+            # Initialize the tool call entry in the buffer if this is the first chunk for this tool call
             tool_calls_buffer[idx] ||= {
               type: tool_call["type"] || "function",
-              id: tool_call["id"],
+              # Gemini OpenAI Compatibility API bug workaround - it gives an empty string as ID, but needs one later or gives a 400 error
+              id: tool_call["id"].blank? ? "call_#{SecureRandom.alphanumeric(24)}" : tool_call["id"],
               function: {
                 name: tool_call.dig("function", "name"),
-                arguments: ""
+                arguments: "" # Initialize as empty string, will be updated with actual arguments
               }
             }
-            # Only set id/name/type if present and not already set
-            tool_calls_buffer[idx][:id] ||= tool_call["id"] if tool_call["id"]
-            tool_calls_buffer[idx][:type] ||= tool_call["type"] if tool_call["type"]
-            tool_calls_buffer[idx][:function][:name] ||= tool_call.dig("function", "name") if tool_call.dig("function", "name")
-            # Always append arguments
+            # id/type/name are supposed to be set in the first chunk, so we won't change them.
+            # Append arguments
             tool_calls_buffer[idx][:function][:arguments] += tool_call.dig("function", "arguments") if tool_call.dig("function", "arguments")
           end
         end
