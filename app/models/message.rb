@@ -54,8 +54,15 @@ class Message < ApplicationRecord
 
   # Return content in JSON format with base64 images for LLM APIs.
   def content_with_images
-    return content if images.empty? # Just return the text string if that's the only content.
+    # If there are no images, the behavior depends on the role.
+    if images.empty?
+      # For tool messages, wrap the string content in the required array structure.
+      return [{ "type": "text", "text": content }] if role_tool?
+      # For other roles, just return the raw text string.
+      return content
+    end
 
+    # If there are images, always return an array.
     content_json = [ { "type": "text", "text": content } ]
     images.each do |image|
       content_json << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
