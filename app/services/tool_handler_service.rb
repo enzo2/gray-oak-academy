@@ -31,13 +31,17 @@ class ToolHandlerService
     when "python_sandbox"
       execute_python_code_executor
     else
-      raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented"
+      raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented!"
     end
     rescue ToolExecutionError => e
       Rails.logger.error("ToolExecutionError: #{e.message}")
-      broadcast_error("Error using tool: #{e.message}")
+      # Notify the LLM of the error, not the user, since the LLM called the tool.
+      create_tool_message("Tool execution resulted in error: #{e.message}")
+      # Allow the LLM to handle the error gracefully
+      GetLlmCompletionJob.perform_later(conversation: @conversation)
     rescue => e
       Rails.logger.error("Unexpected error: #{e.message}")
+      # Other errors are shown to the user.
       broadcast_error("Unexpected error: #{e.message}")
     end
   end
@@ -164,16 +168,17 @@ class ToolHandlerService
     broadcast_placeholder
     code = @args["code"]
     result = PythonCodeExecutorService.execute(code)
-    if result["error"]
-      content = "Python execution failed: #{result["error"]}"
+    if result["error"] # I.e. HTTP error from terrarium
+      content = result.to_json
       Rails.logger.error("PythonCodeExecutorService error: #{result["error"]}")
-      raise ToolExecutionError, "Python execution failed: #{result["error"]}"
+      raise ToolExecutionError, "Python code execution service error: #{result["error"]}"
     else
-      content = result.to_s
+      content = result.to_json
       Rails.logger.debug "PythonCodeExecutorService output: #{content}"
+      create_tool_message(content)
+      # Allow LLM to handle the tool message
+      GetLlmCompletionJob.perform_later(conversation: @conversation) # Concurrency control is in place, so the original job will finish first.
     end
-    create_tool_message(content)
-    GetLlmCompletionJob.perform_later(conversation: @conversation) # Concurrency control is in place, so the original job will finish first.
   end
 
   def broadcast_error(message)
