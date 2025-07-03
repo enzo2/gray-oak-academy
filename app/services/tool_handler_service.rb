@@ -169,7 +169,6 @@ class ToolHandlerService
     code = @args["code"]
     result = PythonCodeExecutorService.execute(code)
     if result["error"] # I.e. HTTP error from terrarium
-      content = result.to_json
       Rails.logger.error("PythonCodeExecutorService error: #{result["error"]}")
       raise ToolExecutionError, "Python code execution service error: #{result["error"]}"
     else
