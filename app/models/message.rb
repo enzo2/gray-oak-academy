@@ -17,6 +17,7 @@ class Message < ApplicationRecord
   after_destroy_commit -> { broadcast_destroyed }
 
   def broadcast_created
+    return if role_tool? # Don't broadcast tool messages, as they are only shown to the LLM.
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
     # Docs recommend broadcast_append_later_to, but this causes view to render first, putting the assistant message placeholder out of order.
     # using broadcast_append_to forces the new user message to be broadcast before we move onto the assistant message.
@@ -26,7 +27,7 @@ class Message < ApplicationRecord
       partial: "messages/message",
       target: "#{dom_id(conversation)}",
       locals: { message: self }
-    ) unless role_tool?
+    )
     # Remove any temporary new message placeholder
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
   end
