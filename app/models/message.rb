@@ -54,10 +54,9 @@ class Message < ApplicationRecord
 
   # Return content in JSON format with base64 images for LLM APIs.
   def content_with_images
-    # If there are no images, the behavior depends on the role.
     if images.empty?
-      # For tool messages, wrap the string content in the required array structure.
-      return [{ "type": "text", "text": content }] if role_tool?
+      # OpenAI API accepts a string or array. Stick with the stright for now.
+      # return [{ "type": "text", "text": content }] if role_tool?
       # For other roles, just return the raw text string.
       return content
     end
@@ -97,8 +96,8 @@ class Message < ApplicationRecord
   def self.for_completion_with_media(messages:, audio: false)
     messages.map do |message|
       msg_hash = { role: message.role, content: audio ? message.content_with_media : message.content_with_images }
-      msg_hash[:tool_call_id] = message.tool_call_id if message.role == "tool" && message.respond_to?(:tool_call_id) && message.tool_call_id.present?
-      msg_hash[:tool_calls] = message.tool_calls if message.role == "assistant" && message.respond_to?(:tool_calls) && message.tool_calls.present?
+      msg_hash[:tool_call_id] = message.tool_call_id if message.role_tool? && message.respond_to?(:tool_call_id) && message.tool_call_id.present?
+      msg_hash[:tool_calls] = message.tool_calls if message.role_assistant? && message.respond_to?(:tool_calls) && message.tool_calls.present?
       msg_hash
     end
   end
