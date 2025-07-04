@@ -5,7 +5,6 @@ class ApplicationController < ActionController::Base
   # Authenticate entire app
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
-  #before_action :check_llm_configured, if: :devise_controller?
 
   def require_admin
     unless current_user.role_admin?
