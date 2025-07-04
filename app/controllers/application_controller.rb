@@ -5,6 +5,7 @@ class ApplicationController < ActionController::Base
   # Authenticate entire app
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
+  #before_action :check_llm_configured, if: :devise_controller?
 
   def require_admin
     unless current_user.role_admin?
@@ -48,9 +49,9 @@ class ApplicationController < ActionController::Base
     return if current_user.settings.llm_configured?
 
     if current_user.role_admin?
-      flash[:warning] = "No default LLM configured. Please visit settings."
+      flash.now[:warning] = "No default LLM configured. Please visit settings."
     elsif current_user.role_student?
-      flash[:warning] = "Your teacher must add an LLM before you can use the app."
+      flash.now[:warning] = "Your teacher must add an LLM before you can use the app."
     end
   end
 
