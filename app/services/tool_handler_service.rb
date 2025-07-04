@@ -37,8 +37,6 @@ class ToolHandlerService
       Rails.logger.error("ToolExecutionError: #{e.message}")
       # Notify the LLM of the error, not the user, since the LLM called the tool.
       create_tool_message("Tool execution resulted in error: #{e.message}")
-      # Allow the LLM to handle the error gracefully
-      GetLlmCompletionJob.perform_later(conversation: @conversation)
     rescue => e
       Rails.logger.error("Unexpected error: #{e.message}")
       # Other errors are shown to the user.
@@ -129,9 +127,8 @@ class ToolHandlerService
     Rails.logger.debug("Report: #{@args}")
 
     # Broadcast completion message to the conversation
-    @message.update(content: @message.content + "\n<br><span class='text-white font-sans bg-green-600 p-2 rounded-sm'><b>Lesson completed!</b> You can close the tab.</span>")
-
-    create_tool_message("Confirmation: Lesson completed and student report generated successfully.")
+    broadcast_lesson_completed
+    create_tool_message("Confirmation: Lesson completed and student report generated successfully. (Any further messages will not be reflected in the progress report.)")
   end
 
   def execute_chalkboard_file
@@ -161,7 +158,6 @@ class ToolHandlerService
 
     Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
     create_tool_message("Chalkboard updated with file: #{filename} (#{file_type})")
-    GetLlmCompletionJob.perform_later(conversation: @conversation)
   end
 
   def execute_python_code_executor
@@ -177,8 +173,6 @@ class ToolHandlerService
       content = result.to_json
       Rails.logger.debug "PythonCodeExecutorService output: #{content}"
       create_tool_message(content)
-      # Call LLM again to continue the conversation
-      GetLlmCompletionJob.perform_later(conversation: @conversation) # Concurrency control is in place, so the original job will finish first.
     end
   end
 
@@ -188,6 +182,14 @@ class ToolHandlerService
       target: "flash_bar",
       partial: "shared/flash",
       locals: { flash: { error: message } }
+    )
+  end
+
+  def broadcast_lesson_completed
+    Turbo::StreamsChannel.broadcast_append_later_to(
+      "#{dom_id(@conversation)}",
+      target: "#{dom_id(@conversation)}",
+      partial: "student/lessons/lesson_completed"
     )
   end
 
@@ -207,6 +209,8 @@ class ToolHandlerService
       content: content,
       tool_call_id: @tool_call_id
     )
-    # Don't call GetLlmCompletionJob here, as some tools may represent the end of the conversation.
+    # Allow the LLM to continue with the tool result.
+    # Concurrency control is in place per conversation, so the original job will finish first (e.g. if multiple tools were called)
+    GetLlmCompletionJob.perform_later(conversation: @conversation)
   end
 end
