@@ -1,7 +1,7 @@
 <div id="<%= dom_id(message) %>" 
      class="w-full"
      <%= "data-conversation-target=userMessage" if message.role_user? %>
-     <%= "data-conversation-target=assistantMessage data-tts-stream-target=assistantMessage" if message.role_assistant? %>
+     <%= "data-conversation-target=assistantMessage data-tts-stream-target=assistantMessage" if message.role_assistant? && message.persisted? %>
      data-message-id-param="<%= message.id %>"
      >
   <%= render partial: "messages/message_content", locals: { message: message } %>
@@ -9,4 +9,12 @@
 
 <% if message.persisted? && message.role_assistant? %>
   <%= render partial: "messages/message_buttons", locals: { message: message } %>
+<% end %>
+
+<%# If this is a user message, and it's the last message in the conversation,
+    also render a placeholder for the assistant reply (spinner will show).
+    The placeholder will be removed by the broadcast of the real assistant message. %>
+<% if message.role_user? && message.persisted? && message.conversation.messages.last == message %>
+  <%# This is recursive once, but seems to work. %>
+  <%= render "messages/message", message: Message.new(role: :assistant, content: "") %>
 <% end %>

@@ -9,7 +9,7 @@ class MessagesController < ApplicationController
     # Handle images
     process_images_param(@message, params[:message][:images_data]) if params[:message][:images_data].present?
 
-    # This will trigger the model callback to broadcast the user message synchronously, before the turbo_stream view below is rendered.
+    # This will trigger the model callback to broadcast the user message asynchronously.
     @message.save!
 
     # Get completion and stream the response to the conversation view

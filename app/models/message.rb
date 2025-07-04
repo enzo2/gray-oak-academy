@@ -19,10 +19,8 @@ class Message < ApplicationRecord
   def broadcast_created
     return if role_tool? # Don't broadcast tool messages, as they are only shown to the LLM.
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
-    # Docs recommend broadcast_append_later_to, but this causes view to render first, putting the assistant message placeholder out of order.
-    # using broadcast_append_to forces the new user message to be broadcast before we move onto the assistant message.
-    # Does not appear to cause any significant slowdown.
-    broadcast_append_to(
+    # Could change to broadcast_append_to (synchronous) if any issues with the assistant reply appearing before the user message
+    broadcast_append_later_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
       target: "#{dom_id(conversation)}",
@@ -55,7 +53,7 @@ class Message < ApplicationRecord
   # Return content in JSON format with base64 images for LLM APIs.
   def content_with_images
     if images.empty?
-      # OpenAI API accepts a string or array. Stick with the stright for now.
+      # OpenAI API accepts a string or array. Stick with the string for now.
       # return [{ "type": "text", "text": content }] if role_tool?
       # For other roles, just return the raw text string.
       return content

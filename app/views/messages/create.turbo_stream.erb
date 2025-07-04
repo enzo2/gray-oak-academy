@@ -1,19 +1,13 @@
-<%# The controller saves the user's new message. %>
-<%# The model should first broadcast the new message using broadcast_append_to. %>
-<%# Then, this view is rendered, adding a placeholder for the assistant reply. %>
-
-<%# Placeholder for the assistant reply. Empty content will be rendered as a spinner. %>
-<%# This will have an id of "new_message" and is removed via callback when the real message is broadcast. %>
-<%= turbo_stream.append "#{dom_id(@message.conversation)}" do %>
-  <%= render "message", message: Message.new(role: :assistant, content: "") %>
-<% end %>
+<%# The controller saves the user's new message. 
+    The model broadcast_append_to will then render the new message, which also includes a placeholder for the assistant reply. 
+    This view only needs to handle other UI updates. %>
 
 <%= turbo_stream.replace "#{dom_id(@message.conversation)}_message_form" do %>
   <%= render "form", conversation: @message.conversation %>
 <% end %>
 
 <%= turbo_stream.update "context-usage-bar" do %>
-  <%# Rails.logger.debug "Updating context usage bar: #{@message.conversation.context_usage.inspect}" %>
+  <% Rails.logger.debug "Updating context usage bar: #{@message.conversation.context_usage.inspect}" %>
   <%= render "conversations/context_usage_bar", context_usage: @message.conversation.context_usage %>
 <% end %>
 
