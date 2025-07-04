@@ -6,10 +6,8 @@ module SystemTestAuthenticationHelpers
     fill_in "Email", with: user.email
     fill_in "Password", with: password
     click_on "Log in"
-    # If login fails, print the page for debugging
-    unless page.has_no_text?("Invalid Email or password.")
-      puts page.body
-    end
+    unless page.has_text?("Dashboard", wait: 5)
+      raise "Login did not complete as expected for user: \\#{user.email}"
   end
 end
 
