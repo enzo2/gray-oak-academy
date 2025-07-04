@@ -2,8 +2,10 @@
      class="message-buttons-wrapper
             my-2 
             flex justify-start gap-2">
-  <% if message.role_assistant? && message.conversation.tts_available? %>
-    <%# TTS button will be hidden by default and enabled by the TTS controller  %>
+  <%# TTS button %>
+  <%# Will be hidden by default, and enabled by the TTS Stimulus controller if the browser requirements are met %>
+  <% if message.role_assistant? && message.content.present? && message.conversation.tts_available? %>
+    
     <sl-icon-button 
       disabled
       name="volume-up" 
