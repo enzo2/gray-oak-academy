@@ -28,19 +28,15 @@ class SpeechService
   # 3) Yield the audio chunks to the controller so they can be re-streamed using ActionController:Live.
   # 4) The Stimulus controller plays the stream as soon as it starts receiving chunks.
   def tts_stream(text, &block)
+    text = sanitize_tts_text(text) # in case wasn't done yet
+    return if text.blank?
+
     conn = Faraday.new(url: @speech_base_uri) do |faraday|
       faraday.request :authorization, "Bearer", @speech_access_token
       faraday.request :retry, { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
       faraday.response :raise_error # Raise errors for 4xx/5xx responses
       faraday.adapter Faraday.default_adapter
     end
-
-    # Remove any code blocks from the text
-    text = text.gsub(/```.*?```/m, "")
-    # Remove any HTML tags
-    text = strip_tags(text)
-
-    return if text.blank?
 
     endpoint = "audio/speech"
     payload = {
@@ -122,11 +118,14 @@ class SpeechService
         ffmpeg_status = wait_thr.value # Wait for ffmpeg process to finish
         stdout_thread.join # Wait for reader threads to finish
         stderr_thread.join
+        Rails.logger.info "ffmpeg process and reader threads finished"
 
         # Check ffmpeg exit status
         unless ffmpeg_status.success? || @client_disconnected
           Rails.logger.error "ffmpeg failed with status: #{ffmpeg_status.exitstatus}. Stderr: #{ffmpeg_stderr_output}"
           raise SpeechServiceError, "Audio processing failed (ffmpeg exited with status #{ffmpeg_status.exitstatus}). Error: #{ffmpeg_stderr_output.lines.last || 'Unknown ffmpeg error'}"
+        else
+          Rails.logger.info "ffmpeg completed successfully"
         end
 
         # Also check the original API response status *after* streaming attempt
@@ -212,6 +211,15 @@ class SpeechService
       Rails.logger.error "StandardError in STT transcription: #{e.message}"
       raise e # Re-raise other standard errors
     end
+  end
+
+  def sanitize_tts_text(text)
+    # Remove any code blocks
+    text = text.gsub(/```.*?```/m, "")
+    # Remove any HTML tags
+    text = strip_tags(text)
+
+    text
   end
 
   private

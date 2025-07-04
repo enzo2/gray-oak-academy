@@ -169,18 +169,21 @@ class MessagesController < ApplicationController
   # GET /messages/:id/tts_stream
   def tts_stream
     message = Message.find(params[:id])
-
-    unless message.role_assistant? && (message.content.present? || message.tool_calls.present?)
-      return head :not_found
-    end
-
     unless message.conversation.user == current_user || current_user.role_admin?
       return head :forbidden
     end
-
     unless current_user.settings.speech_configured?
       Rails.logger.warn "Streaming speech requested but not configured for user #{current_user.id}"
       return head :not_implemented
+    end
+    unless message.role_assistant? && (message.content.present? || message.tool_calls.present?)
+      return head :no_content
+    end
+
+    speech_service = SpeechService.new(current_user: current_user)
+    text_to_speak = speech_service.sanitize_tts_text(message.content) # Don't speak tool calls for now
+    if text_to_speak.blank?
+      return head :no_content
     end
 
     # Set headers for streaming
@@ -190,18 +193,8 @@ class MessagesController < ApplicationController
     response.headers.delete("Content-Length") # Required for streaming
     response.headers["Last-Modified"] = Time.now.httpdate # Helps prevent some middleware buffering
 
-    # Use response.stream to send data as it arrives
+    # Begin and use response.stream to send data as it arrives
     begin
-      speech_service = SpeechService.new(current_user: current_user)
-      text_to_speak = if message.content.present?
-                        message.content
-      elsif message.tool_calls.present?
-        # If there's no content, we could read the tool call so the user knows something happened
-        # However, this is not user-friendly, and it may still be reading when the subsequent assistant message is ready
-        # "Used #{"tool".pluralize(message.tool_calls.count)}: #{message.tool_calls.map { |tool_call| tool_call.dig("function", "name") }.join(", ")}"
-      else
-        ""
-      end
       speech_service.tts_stream(text_to_speak) do |chunk|
         response.stream.write chunk
         # Rails.logger.debug "Sent chunk of size #{chunk.bytesize} for message #{message.id}"
