@@ -8,6 +8,7 @@ function getMediaSourceClass() {
   return null;
 }
 
+// WebM/opus is supported by MSE for streaming; Ogg/opus is not. (https://github.com/w3c/media-source/issues/245)
 const mimeType = 'audio/webm;codecs=opus';
 
 export default class extends Controller {

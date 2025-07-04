@@ -195,10 +195,12 @@ class MessagesController < ApplicationController
       speech_service = SpeechService.new(current_user: current_user)
       text_to_speak = if message.content.present?
                         message.content
-      elsif message.tool_calls.present? # If there's no content, read the tool call so the user knows something happened
-                        "Used #{"tool".pluralize(message.tool_calls.count)}: #{message.tool_calls.map { |tool_call| tool_call.dig("function", "name") }.join(", ")}"
+      elsif message.tool_calls.present?
+        # If there's no content, we could read the tool call so the user knows something happened
+        # However, this is not user-friendly, and it may still be reading when the subsequent assistant message is ready
+        # "Used #{"tool".pluralize(message.tool_calls.count)}: #{message.tool_calls.map { |tool_call| tool_call.dig("function", "name") }.join(", ")}"
       else
-                        ""
+        ""
       end
       speech_service.tts_stream(text_to_speak) do |chunk|
         response.stream.write chunk

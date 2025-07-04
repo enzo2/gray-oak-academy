@@ -21,10 +21,13 @@ class SpeechService
     @client = create_speech_client
   end
 
-  # There is no point using ruby-openai client for TTS, as the response time is so slow without chunked transfer encoding
-  # Use Faraday directly for streaming
+  # There is no point using ruby-openai client for TTS, as the response time is so slow without chunked transfer encoding.
+  # To stream the response to the user in realtime, we can:
+  # 1) Use Faraday directly for streaming from the Speech API. Start processing chunks immediately.
+  # 2) Send the chunks to ffmpeg to transmux to WebM/opus that the browser can stream with MSE (https://github.com/w3c/media-source/issues/245)
+  # 3) Yield the audio chunks to the controller so they can be re-streamed using ActionController:Live.
+  # 4) The Stimulus controller plays the stream as soon as it starts receiving chunks.
   def tts_stream(text, &block)
-    # Use Faraday directly for streaming
     conn = Faraday.new(url: @speech_base_uri) do |faraday|
       faraday.request :authorization, "Bearer", @speech_access_token
       faraday.request :retry, { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
@@ -37,6 +40,8 @@ class SpeechService
     # Remove any HTML tags
     text = strip_tags(text)
 
+    return if text.blank?
+
     endpoint = "audio/speech"
     payload = {
       model: @tts_model,
@@ -46,7 +51,7 @@ class SpeechService
       instructions: @tts_instructions
     }.to_json
 
-    # Convert the response to WebM format using ffmpeg to allow use of Opus codec with MSE on all browsers
+    # Transmux the response to WebM format using ffmpeg to allow use of Opus codec with MSE on all browsers
     # ffmpeg: read from stdin, write to stdout
     ffmpeg_command = [ "ffmpeg", "-i", "pipe:0", "-vn", "-c:a", "copy", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ]
     ffmpeg_stderr_output = "" # Variable to capture ffmpeg errors
