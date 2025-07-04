@@ -8,8 +8,6 @@ module SystemTestAuthenticationHelpers
     click_on "Log in"
     unless page.has_text?("Dashboard", wait: 5)
       raise "Login did not complete as expected for user: \\#{user.email}"
-    unless page.has_text?("Dashboard", wait: 5)
-      raise "Login did not complete as expected for user: \\#{user.email}"
     end
   end
 end
