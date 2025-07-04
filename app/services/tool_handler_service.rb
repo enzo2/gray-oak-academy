@@ -129,7 +129,8 @@ class ToolHandlerService
     Rails.logger.debug("Report: #{@args}")
 
     # Broadcast completion message to the conversation
-    @message.update(content: @message.content + "\n<br><span class='text-white bg-green-600 p-2 rounded-sm'><b>Lesson completed!</b> You can close the tab.</span>")
+    @message.update(content: @message.content + "\n<br><span class='text-white font-sans bg-green-600 p-2 rounded-sm'><b>Lesson completed!</b> You can close the tab.</span>")
+
     create_tool_message("Confirmation: Lesson completed and student report generated successfully.")
   end
 
@@ -160,6 +161,7 @@ class ToolHandlerService
 
     Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
     create_tool_message("Chalkboard updated with file: #{filename} (#{file_type})")
+    GetLlmCompletionJob.perform_later(conversation: @conversation)
   end
 
   def execute_python_code_executor
@@ -175,7 +177,7 @@ class ToolHandlerService
       content = result.to_json
       Rails.logger.debug "PythonCodeExecutorService output: #{content}"
       create_tool_message(content)
-      # Allow LLM to handle the tool message
+      # Call LLM again to continue the conversation
       GetLlmCompletionJob.perform_later(conversation: @conversation) # Concurrency control is in place, so the original job will finish first.
     end
   end
@@ -205,5 +207,6 @@ class ToolHandlerService
       content: content,
       tool_call_id: @tool_call_id
     )
+    # Don't call GetLlmCompletionJob here, as some tools may represent the end of the conversation.
   end
 end

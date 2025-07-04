@@ -2,6 +2,7 @@
   <div id="<%= dom_id(message) %>_content"
         class="bg-moss-light dark:bg-moss-dark rounded-md my-2 px-4 py-2 w-fit">
     <% if message.content.blank? && message.images.empty? && message.audios.empty? %>
+      <%# This is used when an audio message is being transcribed. %>
       <sl-spinner></sl-spinner>
     <% elsif message.content.blank? && message.images.empty? && message.audios.any? %>
       <i class="text-dim text-sm">Transcribing...</i>&nbsp;<sl-spinner></sl-spinner>
@@ -52,4 +53,5 @@
     <% end %>
   </div>
 <% end %>
+
 <%# Tool result messages will not be shown to the user %>

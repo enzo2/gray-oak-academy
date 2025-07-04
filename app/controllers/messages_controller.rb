@@ -78,7 +78,7 @@ class MessagesController < ApplicationController
       return
     end
 
-    # Create a new user message with empty content. Will be broadcast to the conversation view.
+    # Create a new user message with empty content. Will be broadcast to the conversation view and spinner will show.
     @message = conversation.messages.create!(role: "user", content: "")
 
     # Handle images if present
