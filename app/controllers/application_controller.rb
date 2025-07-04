@@ -43,4 +43,26 @@ class ApplicationController < ActionController::Base
     devise_parameter_sanitizer.permit(:sign_up, keys: [ :first_name, :last_name, :role, :signup_code ])
     devise_parameter_sanitizer.permit(:account_update, keys: [ :first_name, :last_name ])
   end
+
+  def check_llm_configured
+    return if current_user.settings.llm_configured?
+
+    if current_user.role_admin?
+      flash[:warning] = "No default LLM configured. Please visit settings."
+    elsif current_user.role_student?
+      flash[:warning] = "Your teacher must add an LLM before you can use the app."
+    end
+  end
+
+  def require_llm_configured
+    return if current_user.settings.llm_configured?
+
+    if current_user.role_admin?
+      flash[:error] = "You need to configure an LLM before you can do that."
+      redirect_to edit_user_registration_path
+    else
+      flash[:error] = "Your teacher must add an LLM before you can chat."
+      redirect_to student_root_path
+    end
+  end
 end

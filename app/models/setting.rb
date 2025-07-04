@@ -3,6 +3,7 @@ class Setting < ApplicationRecord
   # Settings is a JSONB column; so it is not necessary to perform a DB migration to change the settings fields
   # t.jsonb :settings, null: false, default: {}
 
+  # Encrypt all settings in the DB
   encrypts :settings
 
   # user.settings is alias for user.setting
@@ -32,6 +33,7 @@ class Setting < ApplicationRecord
     stt_model_name
   ].freeze
 
+  # Override the getter for each inherited setting key to return the teacher's setting, if the user is a student
   INHERITED_SETTING_KEYS.each do |key|
     define_method(key) do
       if user.role_student? && user.teacher
@@ -48,6 +50,13 @@ class Setting < ApplicationRecord
   def speech_configured?
     speech_api_access_token.present?
     # All speech settings have defaults except the access token. URI defaults to OpenAI.
+  end
+
+  # Check if an LLM is configured
+  def llm_configured?
+    (llm_api_base_uri.present? || ENV["OPENAI_API_BASE_URI"].present?) &&
+      (llm_api_access_token.present? || ENV["OPENAI_API_KEY"].present?) &&
+      (llm_model_name.present? || ENV["DEFAULT_MODEL"].present?)
   end
 
   private

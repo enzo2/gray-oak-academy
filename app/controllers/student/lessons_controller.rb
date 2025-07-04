@@ -1,6 +1,7 @@
 module Student
   class LessonsController < ApplicationController
     before_action :set_lesson, only: [ :show ]
+    before_action :require_llm_configured, only: [ :show ]
 
     def show
       # Initiate a lesson_progress and associated conversation if this is the first time the user is accessing the lesson

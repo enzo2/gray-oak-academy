@@ -1,5 +1,7 @@
 module Student
   class DashboardController < ApplicationController
+    before_action :check_llm_configured
+
     def dashboard
       @enrollments = current_user.enrollments.includes(:course)
       @applets = current_user.applets
