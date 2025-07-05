@@ -39,9 +39,9 @@ class Message < ApplicationRecord
     dom = Nokogiri::HTML.fragment(html)
     html = dom.at_css(":root").inner_html
     # Broadcast_update_later_to uses Jobs that are processed out of order and message stream will be janky/truncated.
-    # To slow down the broadcasts without affecting the UX, the message updates are buffered in GetLlmCompletionJob.
-    # Try keeping it and buffer updates to 200ms.
-    broadcast_update_later_to(
+    # It didn't help to add concurrency control, speed up solid_queue dispatcher to 100ms, and buffer the updates to 120ms.
+    # So we use broadcast_update_to instead.
+    broadcast_update_to(
       "#{dom_id(conversation)}",
       target: "#{dom_id(self)}_content",
       html: html
