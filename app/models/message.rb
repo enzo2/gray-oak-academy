@@ -37,7 +37,7 @@ class Message < ApplicationRecord
     html = ApplicationController.renderer_with_signed_in_user(conversation.user).render(partial: "messages/message_content", locals: { message: self })
     dom = Nokogiri::HTML.fragment(html)
     html = dom.at_css(":root").inner_html
-    broadcast_update_later_to(
+    broadcast_update_to( # Don't use broadcast_update_later_to since jobs may be processed out of order and message stream will be janky/truncated.
       "#{dom_id(conversation)}",
       target: "#{dom_id(self)}_content",
       html: html
