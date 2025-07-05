@@ -38,9 +38,12 @@ class Message < ApplicationRecord
     html = ApplicationController.renderer_with_signed_in_user(conversation.user).render(partial: "messages/message_content", locals: { message: self })
     dom = Nokogiri::HTML.fragment(html)
     html = dom.at_css(":root").inner_html
-    # Broadcast_update_later_to uses Jobs that are processed out of order and message stream will be janky/truncated.
-    # It didn't help to add concurrency control, speed up solid_queue dispatcher to 100ms, and buffer the updates to 120ms.
-    # So we use broadcast_update_to instead.
+
+    # Need to broadcast the updates at a rapid rate as they are streamed.
+    # Broadcast_update_later_to uses Jobs that are processed out of order and message becomes janky and truncated.
+    # Tried adding concurrency control, sped up solid_queue dispatcher to 100ms, and buffered the updates to 120ms -
+    # this improved jank but still sometimes left the last chunk missing.
+    # So we use broadcast_update_to instead. The rendering was already done, anyway, so it's not much more work to send the broadcast.
     broadcast_update_to(
       "#{dom_id(conversation)}",
       target: "#{dom_id(self)}_content",

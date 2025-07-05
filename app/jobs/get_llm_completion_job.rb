@@ -52,7 +52,7 @@ class GetLlmCompletionJob < ApplicationJob
     # Buffer for message content to slow down unnecessarily rapid streams
     content_buffer = ""
     last_update_time = Time.current
-    update_interval = 0.120 # seconds
+    update_interval = 0.120 # seconds. Want to balance a fast UX with reducing turbo_stream broadcasts
 
     # Method to flush the message content buffer
     flush_buffer = ->(force: false) do
