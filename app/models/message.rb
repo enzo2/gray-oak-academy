@@ -11,7 +11,8 @@ class Message < ApplicationRecord
 
   before_create :ensure_text_present
 
-  # Include broadcast logic in the model, since it's an inherent property of Messages that they will need to be viewed immediately.
+  # Include broadcast logic in the model, since it's an inherent property of Messages
+  # that they will need to be viewed immediately and should always be kept up to date.
   after_create_commit -> { broadcast_created; check_context_limit }
   after_update_commit -> { broadcast_updated }
   after_destroy_commit -> { broadcast_destroyed }
@@ -37,7 +38,10 @@ class Message < ApplicationRecord
     html = ApplicationController.renderer_with_signed_in_user(conversation.user).render(partial: "messages/message_content", locals: { message: self })
     dom = Nokogiri::HTML.fragment(html)
     html = dom.at_css(":root").inner_html
-    broadcast_update_to( # Don't use broadcast_update_later_to since jobs may be processed out of order and message stream will be janky/truncated.
+    # Broadcast_update_later_to uses Jobs that are processed out of order and message stream will be janky/truncated.
+    # To slow down the broadcasts without affecting the UX, the message updates are buffered in GetLlmCompletionJob.
+    # Try keeping it and buffer updates to 200ms.
+    broadcast_update_later_to(
       "#{dom_id(conversation)}",
       target: "#{dom_id(self)}_content",
       html: html

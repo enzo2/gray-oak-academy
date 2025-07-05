@@ -49,6 +49,21 @@ class GetLlmCompletionJob < ApplicationJob
 
     # Buffer for accumulating tool calls by index
     tool_calls_buffer = {}
+    # Buffer for message content to slow down unnecessarily rapid streams
+    content_buffer = ""
+    last_update_time = Time.current
+    update_interval = 0.2 # seconds
+
+    # Method to flush the message content buffer
+    flush_buffer = ->(force: false) do
+      return if content_buffer.empty?
+      if force || (Time.current - last_update_time > update_interval)
+        message.update!(content: message.content + content_buffer)
+        content_buffer = ""
+        last_update_time = Time.current
+        Rails.logger.debug "Flushed message content buffer to DB"
+      end
+    end
 
     # Return a proc that handles the streamed response
     Proc.new do |chunk|
@@ -79,9 +94,10 @@ class GetLlmCompletionJob < ApplicationJob
 
         # Finalize and execute tool calls when finish reason indicates tool call completion
         if chunk["finish_reason"] == "tool_calls"
-          final_tool_calls = tool_calls_buffer.values.sort_by { |tc| tc[:id].to_s }
-          message.update!(tool_calls: final_tool_calls)
+          flush_buffer.call(force: true) # Ensure any remaining content is flushed before handling tools
           broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
+          final_tool_calls = tool_calls_buffer.values.sort_by { |tc| tc[:id].to_s }
+          message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
           Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
           final_tool_calls.each do |tool_call|
             tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
@@ -95,9 +111,8 @@ class GetLlmCompletionJob < ApplicationJob
         elsif chunk.dig("delta", "content")&.length&. > 0
           # For standard content, append the new chunk to the message's content
           Rails.logger.debug "Content chunk: #{chunk.inspect}"
-          delta_content = chunk.dig("delta", "content")
-          # Updating the message will trigger a turbo stream broadcast to update the view
-          message.update!(content: message.content + delta_content)
+          content_buffer += chunk.dig("delta", "content")
+          flush_buffer.call
         else
           Rails.logger.debug "Non-content chunk: #{chunk.inspect}"
         end
@@ -105,6 +120,7 @@ class GetLlmCompletionJob < ApplicationJob
         # When finished, broadcast the completion event to the client (e.g. to trigger TTS)
         # (Already done for tool_calls)
         if chunk["finish_reason"].present? && chunk["finish_reason"].length > 0 && chunk["finish_reason"] != "tool_calls"
+          flush_buffer.call(force: true) # Force a final flush of the buffer
           broadcast_completion_finished(conversation, message.id)
         end
       rescue StandardError => e
@@ -125,6 +141,10 @@ class GetLlmCompletionJob < ApplicationJob
   end
 
   def broadcast_completion_finished(conversation, message_id)
+    # Send a final message update as workaround for Turbo::Streams::ActionBroadcastJob being processed out-of-order
+    # Message.find_by(id: message_id)&.broadcast_updated
+    # Rails.logger.debug "Sent final message update for # #{message_id}"
+    # Send custom event to the client signalling end of stream (e.g. to trigger TTS)
     Rails.logger.debug("Broadcasting completion finished event to conversation: #{conversation.id}")
     Turbo::StreamsChannel.broadcast_action_to(
       "#{dom_id(conversation)}",
