@@ -27,7 +27,7 @@
     <% end %>
   </td>
   <td class="py-2 px-3 text-right [&_a:hover]:underline">
-    <div class="flex-col justify-end justify-items-end">
+    <div class="flex flex-col items-end">
       <% if course.status_active? %>
         <%= link_to "View/Edit Lessons", admin_course_lessons_path(course), class: "block" %>
         <%= link_to "Edit Course", edit_admin_course_path(course), class: "block", data: { turbo_stream: true } %>
