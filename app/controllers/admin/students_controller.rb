@@ -10,11 +10,11 @@ module Admin
       params[:teacher] = current_user if current_user.role_admin? && student_params[:adopt_student] == "1"
       @student = User.new(params)
       if @student.save
-        # set_students_nav
         flash[:success] = "Student account created."
-        respond_to do |format|
-          # format.turbo_stream {
-          format.html { redirect_to admin_students_path }
+        if @student.teacher.present?
+          redirect_to admin_student_path(@student)
+        else
+          redirect_to admin_students_path, status: :see_other
         end
       else
         flash.now[:error] = @student.errors.full_messages.to_sentence

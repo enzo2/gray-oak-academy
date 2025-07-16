@@ -1,43 +1,67 @@
-<sl-tree class="mb-2 [&::part(treeitem)]:text-inherit" id="students-nav-tree">
-  <sl-tree-item expanded class="">
-    <strong>My Students</strong>
-    <% my_students.each do |student| %>
-      <sl-tree-item <%= 'selected' if @student&.id == student.id %>>
-        <%= link_to student.name, admin_student_path(student), class: "hover:underline" %>
-      </sl-tree-item>
-    <% end.empty? and begin %>
-      <sl-tree-item disabled>No students yet</sl-tree-item>
-    <% end %>
-  </sl-tree-item>
+<div class="mb-2" data-controller="tree-view">
+  <div>
+    <button type="button"
+            class="flex items-center w-full text-left gap-1 px-0 py-1"
+            aria-expanded="true"
+            data-action="click->tree-view#toggle"
+            aria-controls="my-students-content">
+      <span class="flex items-center justify-center w-4 h-4 mr-1" data-tree-view-target="icon" aria-hidden="true"></span>
+      <span class="font-semibold">My Students</span>
+    </button>
+    <div id="my-students-content" data-tree-view-target="content">
+      <div class="pl-6">
+        <% my_students.each do |student| %>
+          <%= link_to student.name,
+              admin_student_path(student),
+              class: "hover:underline block px-2 py-1 rounded #{'bg-slate-300 dark:bg-slate-700' if @student&.id == student.id}" %>
+        <% end.empty? and begin %>
+          <div class="py-1 text-gray-500">No students yet</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
 
-  <sl-tree-item>
-    <strong>Other Students</strong>
-    <% other_students.each do |student| %>
-      <sl-tree-item>
-        <div class="flex justify-between items-center w-full">
-          <span><%= student.name %></span>
-          <% if student.teacher.nil? %>
-            <%= link_to adopt_admin_student_path(student), data: { 
-                  turbo_method: :post, 
-                  turbo_stream: true
-                  } do %>
-              <sl-icon-button 
-                name="person-add" label="Adopt" 
-                class="text-green-600 text-lg [&::part(base)]:p-[4px]"></sl-icon-button>
+  <div>
+    <button type="button"
+            class="flex items-center w-full text-left gap-1 px-0 py-1"
+            aria-expanded="false"
+            data-action="click->tree-view#toggle"
+            aria-controls="other-students-content">
+      <span class="flex items-center justify-center w-4 h-4 mr-1" data-tree-view-target="icon" aria-hidden="true"></span>
+      <span class="font-semibold">Other Students</span>
+    </button>
+    <div id="other-students-content" hidden data-tree-view-target="content">
+      <div class="pl-6">
+        <% other_students.each do |student| %>
+          <div class="flex justify-between items-center w-full px-2 py-1">
+            <span><%= student.name %></span>
+            <% if student.teacher.nil? %>
+              <%= link_to adopt_admin_student_path(student),
+                    class: "text-green-600 hover:text-green-500 p-1",
+                    data: { turbo_method: :post, turbo_stream: true } do %>
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+              <% end %>
             <% end %>
-          <% end %>
-        </div>
-      </sl-tree-item>
-    <% end.empty? and begin %>
-      <sl-tree-item disabled>No other students</sl-tree-item>
-    <% end %>
-  </sl-tree-item>
-</sl-tree>
+          </div>
+        <% end.empty? and begin %>
+          <div class="py-1 text-gray-500">No other students</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
 
 <hr class="hr-primary mb-2">
 
-<button class="hover:text-green-500 hover:cursor-pointer" onclick="document.getElementById('new-student-modal').show()">
-  <sl-icon name="person-add" class="mr-1"></sl-icon>
+<button class="hover:text-green-500 hover:cursor-pointer flex items-center" 
+        onclick="document.getElementById('new-student-modal').show()">
+  <svg class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+  </svg>
   New Student
 </button>
 
