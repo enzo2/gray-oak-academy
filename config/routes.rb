@@ -71,6 +71,9 @@ Rails.application.routes.draw do
         post :enroll
         delete :unenroll
       end
+      collection do
+        post :new, action: :new_student, as: :new
+      end
     end
 
     resources :llms, only: [ :update ]

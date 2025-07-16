@@ -1,5 +1,5 @@
-<sl-tree class="mb-6" id="students-nav-tree">
-  <sl-tree-item expanded>
+<sl-tree class="mb-2 [&::part(treeitem)]:text-inherit" id="students-nav-tree">
+  <sl-tree-item expanded class="">
     <strong>My Students</strong>
     <% my_students.each do |student| %>
       <sl-tree-item <%= 'selected' if @student&.id == student.id %>>
@@ -10,7 +10,7 @@
     <% end %>
   </sl-tree-item>
 
-  <sl-tree-item expanded>
+  <sl-tree-item>
     <strong>Other Students</strong>
     <% other_students.each do |student| %>
       <sl-tree-item>
@@ -33,3 +33,14 @@
     <% end %>
   </sl-tree-item>
 </sl-tree>
+
+<hr class="hr-primary mb-2">
+
+<button class="hover:text-green-500 hover:cursor-pointer" onclick="document.getElementById('new-student-modal').show()">
+  <sl-icon name="person-add" class="mr-1"></sl-icon>
+  New Student
+</button>
+
+<sl-dialog id="new-student-modal" label="Add Student" class="w-[400px]">
+  <%= render 'new_student_modal' unless current_user.role_student? %>
+</sl-dialog>

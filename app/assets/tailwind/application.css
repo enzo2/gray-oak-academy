@@ -151,3 +151,6 @@
   @apply text-stone-700 dark:text-stone-300;
 }
 
+@utility hr-primary {
+  @apply border-stone-300 dark:border-stone-600;
+}

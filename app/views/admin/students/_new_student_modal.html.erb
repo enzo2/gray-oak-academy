@@ -1,0 +1,42 @@
+<% student = local_assigns[:student] || User.new(role: :student) %>
+
+<% if student&.errors&.any? %>
+  <div class="mb-2 text-red-600">
+    <ul>
+      <% student.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+<%= form_with model: student, url: new_admin_students_path, method: :post, data: { turbo_stream: true } do |f| %>
+  <div class="mb-4">
+    <%= f.label :first_name, "First Name", class: "form-label" %>
+    <%= f.text_field :first_name, class: "input-primary w-full" %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :last_name, "Last Name", class: "form-label" %>
+    <%= f.text_field :last_name, class: "input-primary w-full" %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :email, "Email", class: "form-label" %>
+    <%= f.email_field :email, class: "input-primary w-full", autocomplete: "off", validate: true %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :password, "Password", class: "form-label" %>
+    <%= f.password_field :password, class: "input-primary w-full" %>
+  </div>
+  <div class="mb-4">
+    <%= f.label :password_confirmation, "Confirm Password", class: "form-label" %>
+    <%= f.password_field :password_confirmation, class: "input-primary w-full" %>
+  </div>
+  <div class="mb-4">
+    <%= f.check_box :adopt_student, class: "checkbox-primary" %>
+    <%= f.label :adopt_student, "Adopt student now?", class: "form-label inline" %>
+  </div>
+  <div class="flex justify-end gap-2">
+    <sl-button type="button" onclick="this.closest('sl-dialog').hide()">Cancel</sl-button>
+    <sl-button type="submit"  variant="success">Add Student</sl-button>
+  </div>
+<% end %>
+

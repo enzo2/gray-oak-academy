@@ -4,6 +4,27 @@ module Admin
     before_action :set_enrollment_data, only: [ :show, :enroll, :unenroll ]
     before_action :set_students_nav, only: [ :index, :show ]
 
+    # POST /admin/students/new
+    def new_student
+      params = student_params.except(:adopt_student).merge(signup_code: ENV["STUDENT_SIGNUP_CODE"])
+      params[:teacher] = current_user if current_user.role_admin? && student_params[:adopt_student] == "1"
+      @student = User.new(params)
+      if @student.save
+        # set_students_nav
+        flash[:success] = "Student account created."
+        respond_to do |format|
+          # format.turbo_stream {
+          format.html { redirect_to admin_students_path }
+        end
+      else
+        flash.now[:error] = @student.errors.full_messages.to_sentence
+        respond_to do |format|
+          format.turbo_stream { render "update_new_student_modal", status: :unprocessable_entity }
+          format.html { redirect_to admin_students_path, status: :unprocessable_entity }
+        end
+      end
+    end
+
     def index
       @student = nil
     end
@@ -56,6 +77,9 @@ module Admin
 
     private
 
+    def student_params
+      params.require(:user).permit(:first_name, :last_name, :email, :password, :password_confirmation, :adopt_student)
+    end
     def set_student
       @student = User.find(params[:id])
     end
