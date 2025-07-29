@@ -1,7 +1,7 @@
-<div class="mb-2" data-controller="tree-view">
+<div class="mb-2" data-controller="tree-view" id="students-list-tree">
   <div>
     <button type="button"
-            class="flex items-center w-full text-left gap-1 px-0 py-1"
+            class="flex items-center w-full text-left gap-1 px-0 py-1 cursor-pointer"
             aria-expanded="true"
             data-action="click->tree-view#toggle"
             aria-controls="my-students-content">
@@ -23,7 +23,7 @@
 
   <div>
     <button type="button"
-            class="flex items-center w-full text-left gap-1 px-0 py-1"
+            class="flex items-center w-full text-left gap-1 px-0 py-1 cursor-pointer"
             aria-expanded="false"
             data-action="click->tree-view#toggle"
             aria-controls="other-students-content">

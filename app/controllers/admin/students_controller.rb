@@ -39,15 +39,11 @@ module Admin
     def adopt
       if @student.teacher.nil?
         @student.update(teacher: current_user)
-        set_students_nav
-        flash.now[:success] = "Student adopted successfully."
-        respond_to do |format|
-          format.turbo_stream
-          format.html { redirect_to admin_students_path, status: :see_other }
-        end
+        flash[:success] = "Student adopted successfully."
+        redirect_to admin_student_path(@student), status: :see_other
       else
-        flash.now[:error] = "Student already has a teacher."
-        render :adopt, status: :unprocessable_entity
+        flash[:error] = "Student already has a teacher."
+        redirect_to admin_students_path, status: :unprocessable_entity
       end
     end
 
