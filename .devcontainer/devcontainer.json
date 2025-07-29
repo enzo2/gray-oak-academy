@@ -35,5 +35,5 @@
   // "remoteUser": "root",
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "bin/setup --skip-server"
+  "postCreateCommand": "chmod +x bin/* && bin/setup --skip-server"
 }
