@@ -7,17 +7,19 @@
      data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
   <div id="conversation-header">
     <% if conversation.lesson_progress.nil? %>
-      <div class="flex justify-end items-center space-x-2 mb-1">
-        <% if current_user.setting.speech_configured? %>
-            <sl-icon-button 
-              id="auto-read-toggle"
-              name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-              label="Auto-read" 
-              class="text-xl [&::part(base)]:pt-2"
-              data-action="click->tts-stream#toggleAutoRead"
-              >
-            </sl-icon-button>
-        <% end %>
+      <div class="flex justify-between items-center space-x-4 mb-1">
+        <div class="flex justify-start items-center space-x-2">
+          <% if current_user.setting.speech_configured? %>
+              <sl-icon-button 
+                id="auto-read-toggle"
+                name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+                label="Auto-read" 
+                class="text-xl [&::part(base)]:pt-2"
+                data-action="click->tts-stream#toggleAutoRead"
+                ></sl-icon-button>
+          <% end %>
+          <span class="text-dim text-sm"><%= conversation.llm_in_use&.model || current_user.settings.llm_model_name %></span>
+        </div>
         <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
       </div>
     <% end %>

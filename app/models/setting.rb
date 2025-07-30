@@ -19,10 +19,12 @@ class Setting < ApplicationRecord
   store_accessor :settings, :tts_voice_name
   store_accessor :settings, :tts_instructions
   store_accessor :settings, :stt_model_name
+  store_accessor :settings, :reasoning_model_name
 
   # keys that should be inherited from the teacher's settings for students:
   INHERITED_SETTING_KEYS = %i[
     llm_model_name
+    reasoning_model_name
     llm_api_access_token
     llm_api_base_uri
     speech_api_base_uri

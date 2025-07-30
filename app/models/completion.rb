@@ -48,6 +48,7 @@ class Completion < ApplicationRecord
   private
 
   # The Llm model is generated here, if it doesn't exist already.
+  # This assures that any Llm instance is a valid model/API combination, since a completion had to be created first.
   def associate_llm
     self.llm = Llm.find_or_create_by!(
       model: model,

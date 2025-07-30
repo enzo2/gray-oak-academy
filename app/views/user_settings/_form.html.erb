@@ -60,6 +60,21 @@
                          action: "hw-combobox:selection->llm-settings#checkNewModel",
                          llm_settings_target: "modelCombobox"
                        } %>
+        <p class="text-sm text-dim mt-1">
+          The main LLM used for chat/lessons. Avoid long-thinking models.
+        </p>
+      </div>
+
+      <div class="mb-4">
+        <%= f.label :reasoning_model_name, "LLM reasoning model name (optional)", class: "form-label" %>
+        <%= f.combobox "reasoning_model_name",
+                       "#{user_settings_llm_models_path}?api_uri=#{settings.llm_api_base_uri}",
+                       name_when_new: "setting[reasoning_model_name]",
+                       placeholder: "Select or enter Model Name",
+                       include_blank: "Use main model for reasoning" %>
+        <p class="text-sm text-dim mt-1">
+          Add a thinking/reasoning model for better performance on curriculum-related tasks. Won't be used for chat. Must support structured outputs.
+        </p>
       </div>
 
       <hr class="my-6 border-stone-300 dark:border-stone-700">

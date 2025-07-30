@@ -33,7 +33,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - All system prompts can be customized (opinionated defaults included)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
-- Remembers API URIs and model names for easy switching
+- Remembers API URLs and model names for easy switching
 - If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions (in anticipation of improvements in audio understanding models)
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
@@ -78,8 +78,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - For heavy users, providers supporting automated prompt caching will reduce cost.
 
 ### Choosing an LLM: 
-- For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. Avoid reasoning models due to excessive latency. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
-- For outline/lesson generation, model must support structured outputs. Reasoning models are preferable.
+- For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
+- For outline/lesson generation, model must support structured outputs. Reasoning models are preferable, and you can set a separate reasoning model in settings.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code.
@@ -89,21 +89,12 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. Be sure to add resources.
-- Make a student account. On the teacher account, go to Students, adopt the student, and enroll them in the course.
+- Add a student account from the teacher's dashboard or using the student signup code. 
 - The student can then go to their dashboard and try out the lesson.
 
-## Contributor guidelines:
-Maintain the core app principles:
-- Do not vibe-code without fully reviewing and iterating on your code. To prompt with the full codebase, repomix.config.json is included.
-- The goal is to meet or exceed the level of a private tutor 
-- Self-hostable, and ideally improve in this respect
-- Suitable for all student ages
-- Follow generally accepted Rails architecture, keep models heavy, controllers light, code easy to follow and commented.
-- All LLM prompts and tools should be user-editable; use the existing models.
-- Test with different LLMs.
-
-### Feature ideas:
-- Separate LLM settings for lesson planning vs. conducting; reasoning model settings
+## Feature ideas:
+- Switch to ruby_llm gem 
+- Add a superuser role for oversight of all teachers and students
 - Agentic/iterative curriculum design
    - Chat about curriculum + tool calls to edit
    - Automated resource finding/validation 
@@ -117,12 +108,22 @@ Maintain the core app principles:
 - Student feedback tool at end of lessons
 - Teacher alerts, notifications, mobile push, etc. 
 - Student analytics (time spent, etc.)
-- Hide more advanced settings/features under a Power User mode
+- Hide more advanced settings/features under a Power User setting
 - Python applets (pyodide iframe)
 - Speed up audio input with ffmpeg to reduce cost
 - Consider RAG (pgvector + neighbor gem), but might not be needed since inexpensive long-context LLMs are now available
 - Experiment with live/realtime APIs for voice lessons
 - Image output support (OpenAI Images API, Gemini API) for generative diagrams, infographics, student inspiration, etc. (once models have improved sufficiently)
+
+## Contributor guidelines:
+Maintain the core app principles:
+- Do not vibe-code without fully reviewing and iterating on your code. To prompt with the full codebase, repomix.config.json is included.
+- The goal is to meet or exceed the level of a private tutor 
+- Self-hostable, and ideally improve in this respect
+- Suitable for all student ages
+- Follow generally accepted Rails architecture, keep models heavy, controllers light, code easy to follow and commented.
+- All LLM prompts and tools should be user-editable; use the existing models for Prompt and Tool.
+- Test with different LLMs.
 
 ## License
 See LICENSE.md.

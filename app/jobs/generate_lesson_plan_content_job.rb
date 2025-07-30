@@ -56,7 +56,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenaiApiService.new(current_user: current_user)
+      client = OpenaiApiService.new(current_user: current_user, reasoning_model: true)
 
       parsed_content = client.complete(
         messages,

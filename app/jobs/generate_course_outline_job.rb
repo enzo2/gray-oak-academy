@@ -37,7 +37,7 @@ class GenerateCourseOutlineJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenaiApiService.new(current_user: current_user)
+      client = OpenaiApiService.new(current_user: current_user, reasoning_model: true)
       parsed_outline = client.complete(
         messages,
         response_format: {

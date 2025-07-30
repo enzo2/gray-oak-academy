@@ -15,6 +15,7 @@ class UserSettingsController < ApplicationController
     end
   end
 
+  # Returns a list of models for the given API URI to populate the combobox options
   def llm_models
     api_uri = params[:api_uri]
     Rails.logger.debug "API URI received: #{api_uri}"
@@ -38,6 +39,7 @@ class UserSettingsController < ApplicationController
   def user_settings_params
     params.require(:setting).permit(
       :llm_model_name, :llm_api_access_token, :llm_api_base_uri,
+      :reasoning_model_name,
       :speech_api_base_uri, :speech_api_access_token, :tts_model_name,
       :tts_voice_name, :tts_instructions, :stt_model_name
     )

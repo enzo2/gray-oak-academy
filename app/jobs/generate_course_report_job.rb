@@ -51,7 +51,8 @@ class GenerateCourseReportJob < ApplicationJob
     begin
       # Make the LLM request
       client = OpenaiApiService.new(
-        current_user: teacher
+        current_user: teacher,
+        reasoning_model: true
       )
       parsed_content = client.complete(
         messages,

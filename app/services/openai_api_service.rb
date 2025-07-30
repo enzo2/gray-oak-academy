@@ -11,13 +11,14 @@ class OpenaiApiService
   # If a task system prompt is provided, it will be added to the conversation, along with the base system prompt, teaching principles, and generative guidelines.
   # If neither a system prompt message, nor a task system prompt is provided, the default system prompt will be used (base system prompt + teaching principles).
 
-  def initialize(current_user:, conversation: nil, model: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false)
+  def initialize(current_user:, conversation: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false)
     # Don't initialize for orphaned students.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
     @user = current_user
     @conversation = conversation
-    @model = model.presence || default_model
+    @reasoning_model_flag = reasoning_model
+    @model = determine_model(reasoning_model)
     @access_token = access_token.presence || default_access_token
     @base_uri = current_user.settings.llm_api_base_uri.presence || default_base_uri
     @client = create_client
@@ -38,7 +39,7 @@ class OpenaiApiService
       messages.unshift({ role: "system", content: @system_prompt })
     end
 
-    # inject prefill message unless OpenAI is being used
+    # inject prefilled assistant message unless OpenAI is being used
     if prefill && !@base_uri.include?("api.openai.com")
       messages << { role: "assistant", content: prefill }
     end
@@ -52,13 +53,39 @@ class OpenaiApiService
           **(@tools.present? ? { tools: @tools } : {}),
           **(response_format.present? ? { response_format: response_format } : {}),
           stream: @stream_handler,
+
           # Request usage stats from OpenRouter
           **(@base_uri.include?("openrouter.ai") ? { usage: { include: true } } : {}),
-          # Request usage stats from OpenAI when streaming
-          **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {})
-          # **(@base_uri.include?("openrouter.ai") ? { reasoning: { .... } } : {})  future reasoning support
+          # Request usage stats when streaming
+          **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {}),
+
+          # By default, OpenAI sets thinking budget to medium, and doesn't include the summary
+
+          # Set thinking for OpenRouter
+          **(@reasoning_model_flag && @base_uri.include?("openrouter.ai") ? {
+            reasoning: {
+              enabled: true,
+              exclude: true
+            }
+          } : {}),
+
+          # Set thinking for Google OpenAI-compatibility API
+          **(@reasoning_model_flag && @base_uri.include?("generativelanguage.googleapis.com") ? {
+            extra_body: {
+              "google": {
+                "thinking_config": {
+                  "thinking_budget": "3000",
+                  "include_thoughts": "False"
+                }
+              }
+            }
+          } : {})
         }
-      ) # Response will be empty if a stream handler was provided, as the response is handled while streaming.
+      )
+      # Response will be empty if a stream handler was provided, as the response is handled while streaming.
+      # If an error occurs, it will be handled by the rescue block and the following code will not be executed.
+
+      Rails.logger.debug "API response: #{response}"
 
       # Store the Completion record. Handle streaming and non-streaming cases.
       @usage = @stream_handler ? @usage_chunk : response.dig("usage")
@@ -148,8 +175,20 @@ class OpenaiApiService
 
   private
 
-  def default_model
-    @user.setting.llm_model_name.presence || ENV.fetch("DEFAULT_MODEL") { raise "Model was neither provided nor set in ENV variable DEFAULT_MODEL." }
+  def determine_model(reasoning_model_flag)
+    reasoning_model = @user.setting.reasoning_model_name.presence
+    nonreasoning_model = @user.setting.llm_model_name.presence || ENV.fetch("DEFAULT_MODEL")
+
+    if reasoning_model_flag && reasoning_model
+      # Use the user's reasoning model
+      reasoning_model
+    elsif reasoning_model_flag && !reasoning_model
+      Rails.logger.info "Reasoning model flag is set, but no reasoning model is configured. Falling back to default model: #{nonreasoning_model}"
+      nonreasoning_model
+    else
+      # Use the user's regular model, or fall back to the default model
+      nonreasoning_model
+    end
   end
 
   def default_access_token
