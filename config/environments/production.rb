@@ -4,10 +4,10 @@ Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
   # NOTE: this may change in rails 8.1
-  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 443 }
+  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "https" }
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), port: 443 }
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "https" }
 
   # Redirect all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = false
