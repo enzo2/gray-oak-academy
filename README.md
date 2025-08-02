@@ -1,12 +1,12 @@
 # Gray Oak Academy
 
 ## Background and Purpose
-Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. This app allows anyone to quickly construct lessons or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executes those lesson plans using an LLM of choice.
+Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. This app allows anyone to easily build lesson plans or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executes those lesson plans using an LLM of choice. 
 
-"Do my homework for me" is the status quo that has arisen in the GPT era, now widely considered a crisis in education. But with the LLM given a primary teaching role, the idea of cheating with LLMs is turned on its head. Just as a private tutor would quickly become aware when their student shows disinterest or poor understanding, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The rationale for homework—if any—would shift from evaluation toward exploratory learning and meaningful application. The supervising (human) teacher will be freed up to spend time on important tasks like incorporating more memorable experiences, seeking out learning resources, and mentoring individual students. After lessons, students will immediately feel satisfied that their new knowledge is practical and useful.
+"Do my homework for me" is the new status quo of the GPT era, now widely considered a crisis in education. But with the LLM given a primary tutoring role, the idea of cheating with LLMs is turned on its head. Just as a private tutor would readily discern when a student is struggling or disinterested, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The need for homework and exams would diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. After lessons, students will feel satisfied that their new knowledge is practical and useful. The supervising (human) teacher will be freed up to spend time seeking out learning resources, incorporating more memorable experiences, and mentoring individual students. 
 
 Since this is a major shift in educational approach, take a moment to consider what such a system ought to look like. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
-1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity/leeway.
+1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity.
 2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even people and human resources. 
 3. Prompt transparency: a strong set of user-editable prompts defining the teaching methodology, principles, and values for the LLM to follow. 
 4. Prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
@@ -17,7 +17,7 @@ Since this is a major shift in educational approach, take a moment to consider w
 
 Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. However, prompted well, the LLM is positioned to improve upon the supervising teacher's curriculum and capabilities, both in the planning and execution phases. Try the app, and you'll see what I mean.
 
-*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's still a prototype and doesn't have much test coverage.
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's still early and doesn't have much test coverage.
 
 ## Features
 - Self-hostable with docker
