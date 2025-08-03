@@ -1,5 +1,11 @@
-<%= turbo_stream.replace "user-settings-form" do %>  
-  <%= render "user_settings/form", settings: @settings %>
+<%# Settings are split across two forms, so we need to update both %>
+
+<%= turbo_stream.replace "llm-settings-form" do %>  
+  <%= render "user_settings/api", settings: @settings %>
+<% end %>
+
+<%= turbo_stream.replace "speech-settings-form" do %>  
+  <%= render "user_settings/speech", settings: @settings %>
 <% end %>
 
 <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>

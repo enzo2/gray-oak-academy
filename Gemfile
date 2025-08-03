@@ -42,7 +42,7 @@ gem "hotwire_combobox"
 gem "faraday-retry"
 gem "open_router", git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
 gem "ruby-openai"
-# gem "ruby_llm" for future use
+ gem "ruby_llm"
 
 # Vector Search
 # gem "pgvector"

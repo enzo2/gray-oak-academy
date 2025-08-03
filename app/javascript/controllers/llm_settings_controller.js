@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static values = { modelsPath: String }
-  static targets = [ "modelCombobox" ] // This should target the fieldset/div of the *second* combobox
+  static targets = [ "modelCombobox", "reasoningModelCombobox" ] 
 
   connect() {
     //console.log("LLM Settings controller connected");
@@ -15,87 +15,65 @@ export default class extends Controller {
   }
 
   /**
-   * Updates the async source URL for the model combobox based on the selected API URI.
+   * Updates the async source URL for the model comboboxes based on the selected API URI.
    * Handles different event types that trigger this update.
    */
   updateModels(event) {
-    //console.log("updateModels triggered by event:", event.type, event);
-    let apiUri = ""; // Default to empty
+    let apiUri = "";
 
-    // --- Determine the API URI based on the event type ---
     if (event.type === 'hw-combobox:clear') {
-      // If the source combobox was cleared
       apiUri = "";
-      //console.log("Source cleared, API URI set to empty");
     } else if (event.detail && typeof event.detail.display !== 'undefined') {
-      // For hw-combobox custom events (like hw-combobox:selection)
-      // Use event.detail.display, which contains the text visible in the input
-      apiUri = event.detail.display || ""; // Use display value, fallback to empty
-      //console.log(`Event type: ${event.type}, API URI from detail.display:`, apiUri);
+      apiUri = event.detail.display || "";
     } else if (event.target && typeof event.target.value !== 'undefined') {
-       // For standard events like 'input' originating from the text input
-      apiUri = event.target.value || ""; // Use the input's current value
-      //console.log(`Event type: ${event.type}, API URI from target.value:`, apiUri);
+      apiUri = event.target.value || "";
     } else if (event.type === 'connect' && event.target?.value) {
-       // Handling the simulated event from connect()
-       apiUri = event.target.value || "";
-       //console.log(`Event type: ${event.type}, API URI from initial value:`, apiUri);
-    }
-     else {
+      apiUri = event.target.value || "";
+    } else {
       console.warn("Could not determine API URI from event:", event);
-      // Don't proceed if we couldn't get a URI
-      // Optionally clear the dependent combobox here as well
-      this.clearModelCombobox();
-      return;
-    }
-    // --- End API URI Determination ---
-
-    if (!this.hasModelComboboxTarget) {
-      console.error("Could not find modelCombobox target");
+      this.clearAllComboboxes();
       return;
     }
 
-    // Get the Stimulus controller instance for the target combobox
-    const modelComboboxElement = this.modelComboboxTarget;
-    const modelComboboxController = this.application.getControllerForElementAndIdentifier(modelComboboxElement, "hw-combobox");
-
-    if (!modelComboboxController) {
-      console.error("Could not find hw-combobox controller instance on the modelCombobox target.");
-      return;
-    }
-
-    // Construct the new URL for the model combobox's options
     const newUrl = `${this.modelsPathValue}?api_uri=${encodeURIComponent(apiUri)}`;
 
-    // --- Update the target combobox using its controller ---
-    // Set the asyncSrcValue - this tells hw-combobox where to load from next time
-    modelComboboxController.asyncSrcValue = newUrl;
-
-    // Clear the target combobox's current value and input display
-    this.clearModelCombobox(modelComboboxController);
-
-    //console.log("Updated model combobox asyncSrcValue to:", newUrl);
+    if (this.hasModelComboboxTarget) {
+      this.updateComboboxSource(this.modelComboboxTarget, newUrl);
+    }
+    if (this.hasReasoningModelComboboxTarget) {
+      this.updateComboboxSource(this.reasoningModelComboboxTarget, newUrl);
+    }
   }
 
   /**
-   * Helper to clear the model combobox using its controller instance.
+   * Updates a specific combobox target's async source and clears its value.
+   * @param {HTMLElement} targetElement - The combobox element to update.
+   * @param {string} newUrl - The new URL for the combobox's async source.
    */
-  clearModelCombobox(controller = null) {
-      if (!this.hasModelComboboxTarget) return;
+  updateComboboxSource(targetElement, newUrl) {
+    const comboboxController = this.application.getControllerForElementAndIdentifier(targetElement, "hw-combobox");
 
-      const modelComboboxController = controller || this.application.getControllerForElementAndIdentifier(this.modelComboboxTarget, "hw-combobox");
+    if (comboboxController) {
+      comboboxController.asyncSrcValue = newUrl;
+      comboboxController.clear();
+      //console.log(`Updated ${targetElement.id} asyncSrcValue to: ${newUrl}`);
+    } else {
+      console.error(`Could not find hw-combobox controller for target:`, targetElement);
+    }
+  }
 
-      if (modelComboboxController) {
-          modelComboboxController.clear(); // Use the clear method from hw-combobox
-          //console.log("Cleared model combobox");
-      } else {
-          console.error("Could not find hw-combobox controller to clear model combobox.");
-          // Fallback for safety, though less ideal:
-          // const input = this.modelComboboxTarget.querySelector('input[role="combobox"]');
-          // const hiddenInput = this.modelComboboxTarget.querySelector('input[type="hidden"]');
-          // if (input) input.value = "";
-          // if (hiddenInput) hiddenInput.value = "";
-      }
+  /**
+   * Helper to clear all dependent comboboxes.
+   */
+  clearAllComboboxes() {
+    if (this.hasModelComboboxTarget) {
+      const controller = this.application.getControllerForElementAndIdentifier(this.modelComboboxTarget, "hw-combobox");
+      if (controller) controller.clear();
+    }
+    if (this.hasReasoningModelComboboxTarget) {
+      const controller = this.application.getControllerForElementAndIdentifier(this.reasoningModelComboboxTarget, "hw-combobox");
+      if (controller) controller.clear();
+    }
   }
 
 

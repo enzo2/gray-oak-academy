@@ -1,0 +1,62 @@
+<%= form_with(model: settings, url: user_settings_path, method: :patch, id: "speech-settings-form") do |f| %>
+  <% if settings.errors.any? %>
+    <div class="mb-4 text-red-950 dark:text-red-300">
+      <%= pluralize(settings.errors.count, "error") %> prevented the settings from being saved.
+      <ul>
+        <% settings.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div> 
+
+    <h4 class="text-lg font-semibold mb-2">Speech API Settings</h4>
+    <p class="mb-4 text-sm text-dim">
+        To enable STT/TTS, add OpenAI-compatible Speech API credentials here.<br>
+        To use defaults, add your OpenAI access token and leave the other fields empty.
+    </p>
+
+    <div class="mb-4">
+      <%= f.label :speech_api_base_uri, "Speech API base URI", class: "form-label" %>
+      <%= f.url_field :speech_api_base_uri, class: "input-primary", placeholder: "https://api.openai.com/v1/" %>
+    </div>
+
+    <div class="mb-4">
+      <%= f.label :speech_api_access_token, "Speech API access token", class: "form-label" %>
+      <%= f.text_field :speech_api_access_token, class: "input-primary" %>
+      <p class="text-sm text-dim mt-1">
+        Will be stored in the database. Encryption is not provided.
+      </p>
+    </div>
+
+    <div class="mb-4">
+      <%= f.label :tts_model_name, "TTS model name", class: "form-label" %>
+      <%= f.text_field :tts_model_name, class: "input-primary", placeholder: "gpt-4o-mini-tts" %>
+    </div>
+
+    <div class="mb-4">
+      <%= f.label :tts_voice_name, "TTS voice name", class: "form-label" %>
+      <%= f.text_field :tts_voice_name, class: "input-primary", placeholder: "verse" %>
+    </div>
+
+    <div class="mb-4">
+      <%= f.label :tts_instructions, "TTS instructions", class: "form-label" %>
+      <%= f.text_area :tts_instructions, class: "input-primary", 
+            placeholder: "Speak in a calm and friendly tone." %>
+    </div>
+
+    <div class="mb-4">
+      <%= f.label :stt_model_name, "STT model name", class: "form-label" %>
+      <%= f.text_field :stt_model_name, class: "input-primary", 
+            placeholder: "gpt-4o-mini-transcribe" %>
+    </div>
+
+
+    <div class="mb-6">
+      <%= f.submit "Update Settings", class: "btn-primary" %>
+    </div>
+  </div> 
+
+<% end %>
