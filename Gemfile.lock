@@ -354,15 +354,6 @@ GEM
     ruby-vips (2.2.4)
       ffi (~> 1.12)
       logger
-    ruby_llm (1.5.1)
-      base64
-      event_stream_parser (~> 1)
-      faraday (>= 1.10.0)
-      faraday-multipart (>= 1)
-      faraday-net_http (>= 1)
-      faraday-retry (>= 1)
-      marcel (~> 1.0)
-      zeitwerk (~> 2)
     rubyzip (2.4.1)
     securerandom (0.4.1)
     selenium-webdriver (4.34.0)
@@ -460,7 +451,6 @@ DEPENDENCIES
   rails (~> 8.0.2)
   rubocop-rails-omakase
   ruby-openai
-  ruby_llm
   selenium-webdriver
   solid_cable
   solid_cache

@@ -37,12 +37,12 @@ gem "devise"
 gem "acts_as_list"
 gem "markdown_views"
 gem "hotwire_combobox"
-
-# LLM APIs
 gem "faraday-retry"
+
+# LLM API access/wrappers
 gem "open_router", git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
 gem "ruby-openai"
- gem "ruby_llm"
+# gem "ruby_llm"   # could add this but it's not fully developed yet, eg. lacks xAI, TTS
 
 # Vector Search
 # gem "pgvector"
