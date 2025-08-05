@@ -13,7 +13,7 @@ class AppletsController < ApplicationController
   def index
     @applets = current_user.applets.order(created_at: :desc)
     # If the user is an admin, render with the admin layout.
-    if current_user.role_admin?
+    if current_user.role_teacher?
       render :index, layout: "admin/base"
     end
     # Student dashboard doesn't use the index template.

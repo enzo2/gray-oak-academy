@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_25_201835) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_05_145058) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -24,7 +24,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_201835) do
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
   create_enum "role_name", ["system", "user", "assistant", "tool"]
   create_enum "student_report_status", ["in_progress", "completed"]
-  create_enum "user_role", ["student", "admin"]
+  create_enum "user_role", ["student", "admin", "superuser"]
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false

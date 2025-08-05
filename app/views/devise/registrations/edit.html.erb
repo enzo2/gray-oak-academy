@@ -2,7 +2,7 @@
   <h2 class="text-2xl">Settings</h2>
 
   <sl-tab-group class="[&::part(body)]:overflow-visible">
-    <% if current_user.role_admin? %>
+    <% if current_user.role_teacher? %>
       <sl-tab slot="nav" panel="api">LLM API</sl-tab>
       <sl-tab slot="nav" panel="speech">Speech</sl-tab>
       <sl-tab slot="nav" panel="llm">LLMs</sl-tab>
@@ -10,7 +10,7 @@
     <sl-tab slot="nav" panel="account">Account</sl-tab>
     <sl-tab slot="nav" panel="delete-account">Delete Account</sl-tab>
 
-    <% if current_user.role_admin? %>
+    <% if current_user.role_teacher? %>
       <sl-tab-panel name="api">
         <%= render "user_settings/api", settings: current_user.settings %>
       </sl-tab-panel>
@@ -75,7 +75,7 @@
     <sl-tab-panel name="delete-account">
       <div class="mb-4 mx-auto">
         <h3 class="text-xl font-bold mb-4 mt-8 text-stone-800 dark:text-white">Delete my account</h3>
-        <% if current_user.role_admin? %>
+        <% if current_user.role_admin? || current_user.role_superuser? %>
           <p class="mb-2 text-stone-600 dark:text-stone-400">This is permanent!</p>
           <%= button_to "Delete my account", registration_path(resource_name), data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, method: :delete, class: "btn-danger w-48" %>
         <% else %>

@@ -48,7 +48,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ### Security
 - Devise for authentication
-- Teacher (Admin) and Student roles
+- Superuser, Teacher and Student roles
 - For security, not designed for hosting publically by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
 - Note: The LLM is permitted to auto-execute its own javascript within a sandboxed iframe. 
 
@@ -59,14 +59,14 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Caveat: If you want to try STT/voice input using your phone over the same LAN, choose the Devcontainer, since the development environment includes SSL by default using a self-signed certificate.)
 
 ### Development: 
-- Create `/.devcontainer/.env.development`: see `/.devcontainer/.env.development.example`. 
+- Create `/.devcontainer/.env.development` following `/.devcontainer/.env.development.example`. 
 - Open with VSCode, etc., and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
 - Optionally, add the automatically generated `/config/certs/root-ca.crt` to your browser's trusted certificates.
 - Run `rails server`. Visit https://localhost:3000. 
 
 ### Production:
 - *Note: The default setup is not secure. It just runs the Puma server. The minimum option for serving publically would be to enable Thruster, Rails' basic proxy with Let's Encrypt support, in the Dockerfile. You'll also need to adjust SSL settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
-- Create `/.env.production`: see `.env.production.example`. Include a random 32-character `RAILS_MASTER_KEY`, and keep it secure. 
+- Create `/.env.production` following `.env.production.example`. Include a random 32-character `RAILS_MASTER_KEY`, and keep it secure. 
 - Also create `/.env`: see `.env.example`. (This is for Postgres.)
 - *As an alternative without .env files, e.g. for a Portainer stack deployment, `docker-compose-noenv.yml` is provided.*
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
@@ -82,9 +82,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - For outline/lesson generation, model must support structured outputs. Reasoning models are preferable, and you can set a separate reasoning model in settings.
 
 ## Getting Started
-- Create a teacher account using the teacher signup code.
-- Go to Settings > Preferences if you want to change the model from what's specified in the environment variable. 
-- Go to Prompts if you want to review your system prompts.
+- Create a teacher account using the teacher signup code. (To become a superuser, manually change your user_role from the console, `User.first.role_superuser!`.)
+- Go to Settings > Preferences if you want to change the model from what's specified in the environment variables. 
 - To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
 - Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 

@@ -4,7 +4,7 @@
 class Users::RegistrationsController < Devise::RegistrationsController
   # before_action :configure_sign_up_params, only: [:create]
   # before_action :configure_account_update_params, only: [:update]
-  before_action :check_demo_mode, only: [ :new, :create ]
+  before_action :check_signup_mode, only: [ :new, :create ]
 
   # GET /resource/sign_up
   # def new
@@ -64,10 +64,10 @@ class Users::RegistrationsController < Devise::RegistrationsController
   #
   private
 
-  def check_demo_mode
-    if ENV["DEMO_MODE"] == "true"
-      Rails.logger.info "Signup attempted while in demo mode."
-      flash[:alert] = "Signups are disabled in demo mode."
+  def check_signup_mode
+    if ENV["ALLOW_SIGNUPS"] != "true"
+      Rails.logger.info "Signup attempted, but signups are currently disabled."
+      flash[:alert] = "Signups are currently not allowed."
       redirect_to root_path, status: :see_other
     end
   end

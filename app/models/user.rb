@@ -5,16 +5,19 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable,
          :trackable
 
-  enum :role, { student: "student", admin: "admin" }, prefix: true
+  # Superusers have maximum permissions, and can only be created/elevated manually from the console.
+  # Admins only have access to their own students.
+  # "Teacher" is not a user role, but but you can use role_teacher? instead of (role_admin? || role_superuser?)
+  enum :role, { student: "student", admin: "admin", superuser: "superuser" }, prefix: true
 
   validates :first_name, presence: true
   validates :last_name, presence: true
-  validate :validate_first_user_must_be_admin
-  validate :validate_signup_code
+  validate :validate_first_user_must_be_admin_or_superuser
+  validate :validate_signup_code # A signup code is required for registration, to differentiate teachers and students
   attr_accessor :signup_code # Allow submission of the signup_code on registration
 
   after_create :ensure_setting
-  after_create :seed_admin_data, if: :role_admin?
+  after_create :seed_admin_data, if: :role_admin? || :role_superuser?
 
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
@@ -44,6 +47,10 @@ class User < ApplicationRecord
     setting
   end
 
+  def role_teacher?
+    role_admin? || role_superuser?
+  end
+
   private
 
   def ensure_setting
@@ -64,10 +71,10 @@ class User < ApplicationRecord
     end
   end
 
-  def validate_first_user_must_be_admin
+  def validate_first_user_must_be_admin_or_superuser
     return unless new_record?
     return unless User.count.zero?
-    errors.add(:role, "must be teacher for the first user.") unless role_admin?
+    errors.add(:role, "must not be a student, because it is the first user.") unless role_superuser? || role_admin?
   end
 
   def validate_signup_code
@@ -75,7 +82,7 @@ class User < ApplicationRecord
     errors.add :signup_code, "is required" unless signup_code.present?
 
     case role
-    when "admin"
+    when "admin" || "superuser"
       errors.add(:signup_code, "is invalid") unless signup_code == ENV["TEACHER_SIGNUP_CODE"]
     when "student"
       errors.add(:signup_code, "is invalid") unless signup_code == ENV["STUDENT_SIGNUP_CODE"]

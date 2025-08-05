@@ -7,7 +7,9 @@ module Admin
     # POST /admin/students/new
     def new_student
       params = student_params.except(:adopt_student).merge(signup_code: ENV["STUDENT_SIGNUP_CODE"])
-      params[:teacher] = current_user if current_user.role_admin? && student_params[:adopt_student] == "1"
+      if current_user.role_teacher? && student_params[:adopt_student] == "1"
+        params[:teacher] = current_user
+      end
       @student = User.new(params)
       if @student.save
         flash[:success] = "Student account created."
@@ -76,8 +78,14 @@ module Admin
     def student_params
       params.require(:user).permit(:first_name, :last_name, :email, :password, :password_confirmation, :adopt_student)
     end
+
     def set_student
       @student = User.find(params[:id])
+      # Superusers can access any student. Admins can only access their own students.
+      unless current_user.role_superuser? || current_user.students.include?(@student)
+        flash[:alert] = "You are not authorized to view this student."
+        redirect_to admin_students_path
+      end
     end
 
     def set_students_nav

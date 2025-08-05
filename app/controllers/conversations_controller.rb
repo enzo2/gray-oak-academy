@@ -52,7 +52,7 @@ class ConversationsController < ApplicationController
   end
 
   def get_task_system_prompt
-    if current_user.role_admin?
+    if current_user.role_teacher?
       Prompt.get_prompt(category: "teacher_assistant", user: current_user)
     else
       Prompt.get_prompt(category: "open_ended_student_chat", user: current_user)

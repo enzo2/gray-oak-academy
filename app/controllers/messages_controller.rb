@@ -169,7 +169,8 @@ class MessagesController < ApplicationController
   # GET /messages/:id/tts_stream
   def tts_stream
     message = Message.find(params[:id])
-    unless message.conversation.user == current_user || current_user.role_admin?
+    # Only allow streaming speech for messages in conversations the user owns
+    unless (message.conversation.user == current_user) || current_user.role_superuser?
       return head :forbidden
     end
     unless current_user.settings.speech_configured?

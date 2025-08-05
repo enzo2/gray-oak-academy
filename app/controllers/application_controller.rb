@@ -6,8 +6,15 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
 
+  def require_superuser
+    unless current_user.role_superuser?
+      flash[:alert] = "You must be a superuser to access this page."
+      redirect_to admin_root_path
+    end
+  end
+
   def require_admin
-    unless current_user.role_admin?
+    unless current_user.role_admin? || current_user.role_superuser?
       flash[:alert] = "You must be an admin to access this page."
       redirect_to student_root_path
     end
@@ -15,7 +22,7 @@ class ApplicationController < ActionController::Base
 
   # Root path for all users, redirects to appropriate dashboard
   def index
-    if current_user.role_admin?
+    if current_user.role_admin? || current_user.role_superuser?
       redirect_to admin_root_path
     elsif current_user.role_student?
       redirect_to student_root_path
@@ -47,22 +54,22 @@ class ApplicationController < ActionController::Base
   def check_llm_configured
     return if current_user.settings.llm_configured?
 
-    if current_user.role_admin?
-      flash.now[:warning] = "No default LLM configured. Please visit settings."
-    elsif current_user.role_student?
+    if current_user.role_student?
       flash.now[:warning] = "Your teacher must add an LLM before you can use the app."
+    else
+      flash.now[:warning] = "No default LLM configured. Please visit settings."
     end
   end
 
   def require_llm_configured
     return if current_user.settings.llm_configured?
 
-    if current_user.role_admin?
-      flash[:error] = "You need to configure an LLM before you can do that."
-      redirect_to edit_user_registration_path
-    else
+    if current_user.role_student?
       flash[:error] = "Your teacher must add an LLM before you can chat."
       redirect_to student_root_path
+    else
+      flash[:error] = "You need to configure an LLM before you can do that."
+      redirect_to edit_user_registration_path
     end
   end
 end
