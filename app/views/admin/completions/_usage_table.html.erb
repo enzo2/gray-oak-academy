@@ -55,7 +55,7 @@
             </div>
           </sl-details>
         </td>
-        <td><%= data.api_provider || 'N/A' %></td>
+        <td><%= format_api_provider(data.api_provider) %></td>
         <td><%= number_to_delimited(data.total_prompt_tokens) %></td>
         <td><%= number_to_delimited(data.total_cached_tokens) %></td>
         <td><%= data.total_reasoning_tokens&.positive? ? number_to_delimited(data.total_reasoning_tokens) : "" %></td>
