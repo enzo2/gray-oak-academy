@@ -196,7 +196,7 @@ class OpenaiApiService
   end
 
   def default_base_uri
-    ENV.fetch("OPENAI_API_BASE_URI") { raise "Base URI was neither entered in settings, nor set in ENV variable OPENAI_API_BASE_URI." }
+    ENV.fetch("OPENAI_API_BASE_URL") { raise "Base URL was neither entered in settings, nor set in ENV variable OPENAI_API_BASE_URL." }
   end
 
   def create_client

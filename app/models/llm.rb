@@ -17,8 +17,16 @@ class Llm < ApplicationRecord
     supports_audio_input && supports_audio_output
   end
 
+  DEFAULT_API_BASE_URLS = [
+    "https://openrouter.ai/api/v1/",
+    "https://api.openai.com/v1/",
+    "https://generativelanguage.googleapis.com/v1beta/openai/"
+  ].freeze
+
+  # Returns the full list of API base URIs, including the defaults, and any others that have been used
   def self.list_api_base_uris
-    Llm.pluck(:api_provider).uniq
+    custom_uris = Llm.pluck(:api_provider).uniq
+    (DEFAULT_API_BASE_URLS + custom_uris).uniq
   end
 
   def self.list_models
@@ -31,6 +39,7 @@ class Llm < ApplicationRecord
 
   private
 
+  # Sets a standard that API URIs will include the trailing slash
   def ensure_api_provider_trailing_slash
     if api_provider.present? && !api_provider.end_with?("/")
       self.api_provider = "#{api_provider}/"

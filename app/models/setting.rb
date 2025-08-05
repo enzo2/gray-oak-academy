@@ -56,7 +56,7 @@ class Setting < ApplicationRecord
 
   # Check if an LLM is configured
   def llm_configured?
-    (llm_api_base_uri.present? || ENV["OPENAI_API_BASE_URI"].present?) &&
+    (llm_api_base_uri.present? || ENV["OPENAI_API_BASE_URL"].present?) &&
       (llm_api_access_token.present? || ENV["OPENAI_API_KEY"].present?) &&
       (llm_model_name.present? || ENV["DEFAULT_MODEL"].present?)
   end
