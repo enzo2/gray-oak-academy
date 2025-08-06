@@ -64,7 +64,7 @@ Rails.application.routes.draw do
 
     resources :completions, only: [ :index ]
 
-    resources :students, only: [ :index, :show ] do
+    resources :students, only: [ :index, :show, :destroy ] do
       member do
         post :adopt
         delete :unadopt

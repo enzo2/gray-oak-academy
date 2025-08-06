@@ -112,6 +112,7 @@ export default class extends Controller {
     content.hidden = false;
     const height = content.scrollHeight;
     content.style.height = "0";
+    content.style.overflow = "hidden";
     content.style.transition = "height 300ms ease-out";
     requestAnimationFrame(() => {
       content.style.height = `${height}px`;
@@ -121,6 +122,7 @@ export default class extends Controller {
   close(content) {
     const height = content.scrollHeight;
     content.style.height = `${height}px`;
+    content.style.overflow = "hidden";
     content.style.transition = "height 300ms ease-out";
     requestAnimationFrame(() => {
       content.style.height = "0";
@@ -136,6 +138,7 @@ export default class extends Controller {
     }
 
     content.style.height = "";
+    content.style.overflow = "";
     content.style.transition = "";
     this.isAnimating = false;
   }

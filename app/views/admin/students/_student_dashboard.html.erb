@@ -60,11 +60,19 @@
   <sl-tab-panel name="settings">
     <h3 class="text-lg mb-4">Settings</h3>
       <% if @student.teacher == current_user %>
-        <span class="text-red-600 mb-1 font-bold block">Danger zone</span>
-        <%= button_to 'Un-adopt student', unadopt_admin_student_path(@student), 
+        <p class="text-sm text-dim mb-1">You can release the student so that another teacher can adopt them.</p>
+        <%= button_to 'Release student', unadopt_admin_student_path(@student), 
           method: :delete, 
           data: { turbo_confirm: 'This will remove the student from your list. Are you sure?' }, 
           class: "btn-danger text-sm" %>
+      <% end %>
+      
+      <% if current_user.role_superuser? %>
+        <span class="text-red-600 mb-1 font-bold block mt-4">Danger zone</span>
+        <%= button_to 'DELETE STUDENT ACCOUNT', admin_student_path(@student), 
+            method: :delete, 
+            data: { turbo_confirm: 'THIS CANNOT BE UNDONE. ALL STUDENT DATA WILL BE LOST. YOU SHOULD ONLY REMOVE ACCOUNTS CREATED IN ERROR. CONTINUE?' }, 
+            class: "btn-danger text-sm" %>
       <% end %>
   </sl-tab-panel>
 

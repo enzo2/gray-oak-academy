@@ -8,7 +8,7 @@ class ApplicationController < ActionController::Base
 
   def require_superuser
     unless current_user.role_superuser?
-      flash[:alert] = "You must be a superuser to access this page."
+      flash[:alert] = "You are not authorized to access that."
       redirect_to admin_root_path
     end
   end

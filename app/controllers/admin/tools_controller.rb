@@ -1,5 +1,6 @@
 module Admin
   class ToolsController < Admin::BaseController
+    before_action :require_superuser
     before_action :set_tool, only: [ :show, :edit, :update ]
 
     def index

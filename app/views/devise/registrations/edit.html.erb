@@ -8,7 +8,6 @@
       <sl-tab slot="nav" panel="llm">LLMs</sl-tab>
     <% end %>
     <sl-tab slot="nav" panel="account">Account</sl-tab>
-    <sl-tab slot="nav" panel="delete-account">Delete Account</sl-tab>
 
     <% if current_user.role_teacher? %>
       <sl-tab-panel name="api">
@@ -70,21 +69,23 @@
           <%= f.submit "Update", class: "btn-primary" %>
         </div>
       <% end %>
-    </sl-tab-panel>
 
-    <sl-tab-panel name="delete-account">
+      <hr class="hr-primary">
+
       <div class="mb-4 mx-auto">
-        <h3 class="text-xl font-bold mb-4 mt-8 text-stone-800 dark:text-white">Delete my account</h3>
-        <% if current_user.role_admin? || current_user.role_superuser? %>
-          <p class="mb-2 text-stone-600 dark:text-stone-400">This is permanent!</p>
-          <%= button_to "Delete my account", registration_path(resource_name), data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, method: :delete, class: "btn-danger w-48" %>
+        <h3 class="text-lg font-bold mb-2 mt-6">Delete my account</h3>
+
+        <%#= button_to "Delete my account", registration_path(resource_name), 
+          data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, 
+          method: :delete, class: "btn-danger w-48" %>
+
+        <% if current_user.role_superuser? %>
+          <p class="mb-2 text-dim">You are the superuser. If you really need to delete your account, use the console.</p>
         <% else %>
-          <p class="mb-2 text-stone-600 dark:text-stone-400">You must ask a teacher to delete your account.</p>
+          <p class="mb-2 text-dim">You must ask the administrator to delete your account.</p>
         <% end %>
       </div>
+
     </sl-tab-panel>
-
   </sl-tab-group>
-
-
 </main>

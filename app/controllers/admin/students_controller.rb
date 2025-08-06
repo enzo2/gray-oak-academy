@@ -1,6 +1,7 @@
 module Admin
   class StudentsController < Admin::BaseController
-    before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll ]
+    before_action :require_superuser, only: [ :destroy ]
+    before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll, :destroy ]
     before_action :set_enrollment_data, only: [ :show, :enroll, :unenroll ]
     before_action :set_students_nav, only: [ :index, :show ]
 
@@ -71,6 +72,13 @@ module Admin
         format.turbo_stream { render :reload_dashboard }
         format.html { redirect_to admin_student_path(@student), status: :see_other }
       end
+    end
+
+    def destroy
+      # Only available to superusers. This is a highly destructive action.
+      @student.destroy!
+      flash[:success] = "Student deleted successfully."
+      redirect_to admin_students_path, status: :see_other
     end
 
     private

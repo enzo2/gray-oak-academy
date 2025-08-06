@@ -29,9 +29,11 @@
           <li class="mb-2">
             <%= link_to "Prompts", admin_prompts_path, class: "hover:underline"  %>
           </li>
-          <li class="mb-2">
-            <%= link_to "Tools", admin_tools_path, class: "hover:underline"  %>
-          </li>
+          <% if current_user.role_superuser? %>
+            <li class="mb-2">
+              <%= link_to "Tools", admin_tools_path, class: "hover:underline"  %>
+            </li>
+          <% end %>
           <li class="mb-2">
             <%= link_to "Applets", applets_path, class: "hover:underline"  %>
           </li>

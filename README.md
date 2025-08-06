@@ -3,14 +3,14 @@
 ## Background and Purpose
 Gray Oak Academy is a teacher-directed LLM tutoring platform, meant to realize the often-discussed idea that the future of education is 1-on-1 private tutoring conducted by LLMs. This app allows anyone to easily build lesson plans or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executes those lesson plans using an LLM of choice. 
 
-"Do my homework for me" is the new status quo of the GPT era, now widely considered a crisis in education. But with the LLM given a primary tutoring role, the idea of cheating with LLMs is turned on its head. Just as a private tutor would readily discern when a student is struggling or disinterested, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The need for homework and exams would diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. After lessons, students will feel satisfied that their new knowledge is practical and useful. The supervising (human) teacher will be freed up to spend time seeking out learning resources, incorporating more memorable experiences, and mentoring individual students. 
+"Do my homework for me" is the new status quo of the GPT era, now widely considered a crisis in education. But with the LLM given a primary tutoring role, the idea of cheating with LLMs is turned on its head. Just as a private tutor would readily discern when a student is struggling or disinterested, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The need for homework and exams would diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. After lessons, students will feel satisfied that their new knowledge is practical and useful. The supervising (human) teacher will be freed up to spend time seeking out learning resources, incorporating more memorable experiences, refining the curriculum, and mentoring individual students. 
 
-Since this is a major shift in educational approach, take a moment to consider what such a system ought to look like. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
+Since this is a major shift in educational approach (although it's old-fashioned from a certain perspective!), take a moment to consider what such a system ought to look like. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
 1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity.
 2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even people and human resources. 
 3. Prompt transparency: a strong set of user-editable prompts defining the teaching methodology, principles, and values for the LLM to follow. 
-4. Prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
-5. An LLM chat interface with fully multimodal interactivity, comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI and sandboxed code execution. 
+4. Student context: prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
+5. Multimodal input and output, comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI and sandboxed code execution. 
 6. Because some lessons are better taught away from a computer, through casual conversation, or even outdoors, it should support speech-only mode for mobile phone use (i.e. "walk and talk").
 
 **Gray Oak Academy is a prototype of this system.**
@@ -22,7 +22,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- Native LLM chat interface supporting images, raw audio input and STT, TTS with auto-read
+- Native LLM chat interface supporting images, native audio input, STT/TTS with auto-read
 - Student lesson view with "chalkboard" (multipurpose canvas accessible by the LLM)
 - Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, lesson plans, and suggested resources
@@ -34,7 +34,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
 - Remembers API URLs and model names for easy switching
-- If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions (in anticipation of improvements in audio understanding models)
+- If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
 - Dark/Light mode

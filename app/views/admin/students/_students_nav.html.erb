@@ -22,19 +22,28 @@
   </div>
 
   <div>
+    <% other_students_expanded = defined?(@student) && other_students.include?(@student) %>
     <button type="button"
             class="flex items-center w-full text-left gap-1 px-0 py-1 cursor-pointer"
-            aria-expanded="false"
+            aria-expanded="<%= other_students_expanded %>"
             data-action="click->tree-view#toggle"
             aria-controls="other-students-content">
       <span class="flex items-center justify-center w-4 h-4 mr-1" data-tree-view-target="icon" aria-hidden="true"></span>
       <span class="font-semibold">Other Students</span>
     </button>
-    <div id="other-students-content" hidden data-tree-view-target="content">
+    <div id="other-students-content" <%= 'hidden' unless other_students_expanded %> data-tree-view-target="content">
       <div class="pl-6">
         <% other_students.each do |student| %>
           <div class="flex justify-between items-center w-full px-2 py-1">
-            <span><%= student.name %></span>
+
+            <%# Superusers can navigate to any student's settings; teachers can only see the name %>
+            <% if current_user.role_superuser? %>
+              <%= link_to student.name, admin_student_path(student), 
+              class: "hover:underline block px-2 py-1 rounded #{'bg-slate-300 dark:bg-slate-700' if @student&.id == student.id}" %>
+            <% elsif current_user.role_admin? %>
+              <span><%= student.name %></span>
+            <% end %>
+
             <% if student.teacher.nil? %>
               <%= link_to adopt_admin_student_path(student),
                     class: "text-green-600 hover:text-green-500 p-1",

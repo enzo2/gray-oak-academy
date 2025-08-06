@@ -2,7 +2,7 @@
 <h2 class="font-bold text-2xl mb-4">Prompts</h2>
 
 <h3 class="text-xl mb-2">Your prompts</h3>
-<p class="mb-4 text-dim">
+<p class="mb-4 text-dim text-sm">
   <i>
     You can override the defaults for you and your students by adding your own for any category.<br>
     <b>Warning! Power users only.</b> Some prompts include essential app functionality.
@@ -27,10 +27,13 @@
 <br><br>
 
 <h3 class="text-xl mb-2">Default prompts</h3>
-<p class="text-dim mb-2"><i>
-  <b>Warning! Editing default prompts will affect all users.</b><br>
-  It is better to add your own prompt instead, which will supercede the default prompt.<br>
-  Copy and paste the default prompt for your desired category, then make your changes.
+<p class="text-dim text-sm mb-2"><i>
+  <% if current_user.role_superuser? %>
+    <b>Warning! Editing default prompts will affect all users.</b><br>
+    To override the default prompt just for you and your students, create another with the same category, copy and paste the default prompt for that category, then make your changes.
+  <% else %>
+    You can copy the default prompt for your desired category, press 'New Prompt', paste it, and make changes.
+  <% end %>
 </i></p>
 
 <div class="grid grid-cols-[1fr_1fr_4fr_1fr] auto-rows-auto gap-4 border-b font-bold py-2">
