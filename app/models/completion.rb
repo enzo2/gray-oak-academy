@@ -2,7 +2,8 @@
 class Completion < ApplicationRecord
   belongs_to :llm
   belongs_to :conversation, optional: true
-  before_validation :associate_llm # Set the LLM association automatically.
+  belongs_to :user, optional: true
+  before_validation :associate_llm, :set_user_from_conversation
   self.implicit_order_column = "created_at"
 
   validates :model, presence: true
@@ -38,12 +39,13 @@ class Completion < ApplicationRecord
     usage_data_query
   end
 
-  # For querying token usage and cost data within a date range
-  def self.date_ranged_usage_data(start_date, end_date)
-    usage_data_query(
-      where(created_at: start_date.beginning_of_day..end_date.end_of_day)
-    )
-  end
+  scope :for_user_ids, ->(user_ids) {
+    where(user_id: user_ids)
+  }
+
+  scope :in_date_range, ->(start_date, end_date) {
+    where(created_at: start_date.beginning_of_day..end_date.end_of_day)
+  }
 
   private
 
@@ -55,5 +57,9 @@ class Completion < ApplicationRecord
       api_provider: api_provider
     )
     Rails.logger.debug "Associated LLM #{self.llm.inspect} with completion #{self.inspect}"
+  end
+
+  def set_user_from_conversation
+    self.user ||= conversation&.user
   end
 end

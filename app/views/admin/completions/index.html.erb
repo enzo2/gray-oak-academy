@@ -1,17 +1,39 @@
-<h2 class="text-2xl font-bold mb-5">Usage</h2>
+<h2 class="text-2xl font-bold mb-2">Usage</h2>
 
-<p>This reflects usage for the whole app across all users. TTS/STT usage is not included.</p>
+<p class="mb-4 text-sm text-dim">Note: TTS/STT usage is not included.</p>
 
-<%= form_tag admin_completions_path, method: :get do %>
-  <div class="mb-4 flex items-center gap-2">
-    <%= date_field_tag :start_date, params[:start_date], class: "" %>
-    <%= date_field_tag :end_date, params[:end_date], class: "" %>
-    <%= submit_tag "Filter by Date Range", class: "btn btn-primary" %>
+<%= form_with url: admin_completions_path, method: :get, class: "mb-4 space-y-4" do |f| %>
+  <div class="flex items-center gap-2">
+    <div class="flex flex-col">
+      <%= f.label :start_date, "From", class: "text-sm text-dim" %>
+      <%= f.date_field :start_date, value: params[:start_date], class: "" %>
+    </div>
+    <div class="flex flex-col">
+      <%= f.label :end_date, "To", class: "text-sm text-dim" %>
+      <%= f.date_field :end_date, value: params[:end_date], class: "" %>
+    </div>
+  </div>
+
+  <div class="flex flex-col md:flex-row  gap-2">
+    <% if current_user.role_superuser? %>
+      <%= f.collection_select :filter_by_user_id, @users, :id, :name, {include_blank: "Filter by User", selected: params[:filter_by_user_id]}, {class: "input-primary max-w-64 block"} %>
+      <%= f.collection_select :filter_by_teacher_id, @teachers, :id, :name, {include_blank: "Filter by Teacher", selected: params[:filter_by_teacher_id]}, {class: "input-primary max-w-64 block"} %>
+    <% elsif current_user.role_admin? %>
+      <%= f.collection_select :filter_by_scope, [["My Usage", "user"], ["My Students' Usage", "students"]], :last, :first, 
+        {include_blank: "My Students' & My Usage", selected: params[:filter_by_scope]}, {class: "input-primary max-w-64 block"} %>
+    <% end %>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <%= f.submit "Filter", class: "btn-primary" %>
+    <%= link_to "Clear Filters", admin_completions_path, class: "hover:underline" %>
   </div>
 <% end %>
 
 <%= render partial: "usage_table", locals: { usage_data: @usage_data } %>
+
 <hr class="my-5 dark:border-stone-700">
+
 <p><i>Notes:</i></p>
 <p><sup>*</sup> Tokens are recorded according to the native tokenizer of each model, so the total across different models is not very meaningful.</p>
 <p><sup>**</sup> Note: Actual cost is only recorded when OpenRouter is used.</p>

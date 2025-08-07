@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_05_145058) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_06_213243) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,11 +92,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_05_145058) do
     t.datetime "updated_at", null: false
     t.bigint "llm_id", null: false
     t.bigint "conversation_id"
+    t.bigint "user_id"
     t.index ["api_provider"], name: "index_completions_on_api_provider"
     t.index ["conversation_id"], name: "index_completions_on_conversation_id"
     t.index ["llm_id"], name: "index_completions_on_llm_id"
     t.index ["model"], name: "index_completions_on_model"
     t.index ["model_provider"], name: "index_completions_on_model_provider"
+    t.index ["user_id"], name: "index_completions_on_user_id"
   end
 
   create_table "conversations", force: :cascade do |t|
@@ -296,6 +298,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_05_145058) do
   add_foreign_key "audios", "messages"
   add_foreign_key "completions", "conversations", on_delete: :nullify
   add_foreign_key "completions", "llms"
+  add_foreign_key "completions", "users", on_delete: :nullify
   add_foreign_key "conversations", "lesson_progresses"
   add_foreign_key "conversations", "users"
   add_foreign_key "courses", "users", column: "teacher_id"
