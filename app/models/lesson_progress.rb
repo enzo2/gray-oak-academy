@@ -7,6 +7,9 @@ class LessonProgress < ApplicationRecord
   has_one :conversation, dependent: :destroy
   has_one :student_report, as: :reportable, dependent: :nullify # Don't destroy student reports if the lesson/course is deleted.
 
+  # Enforce no duplicate progresses for the same student and lesson
+  validates_uniqueness_of :student_id, scope: :lesson_id, message: "has already started progress on this lesson."
+
   # Also includes JSONB fields for :chat_history and :progress_data; not currently needed since chat is in the Conversation and progress is in the StudentReport
 
   def find_or_create_conversation(user)

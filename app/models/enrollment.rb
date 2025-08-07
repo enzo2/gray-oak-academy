@@ -3,6 +3,9 @@ class Enrollment < ApplicationRecord
   belongs_to :course
   has_many :student_reports, as: :reportable, dependent: :nullify # used for course-end reports
 
+  # Enforce no duplicate enrollments
+  validates_uniqueness_of :student_id, scope: :course_id, message: "has already enrolled in this course"
+
   # Scopes filter completed/in_progress based on the presence of an enrollment report
   scope :completed, -> { joins(:student_reports).where(student_reports: { status: :completed }) }
   scope :in_progress, -> { where.not(

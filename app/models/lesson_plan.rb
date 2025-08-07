@@ -4,6 +4,8 @@ class LessonPlan < ApplicationRecord
   has_one :course, through: :lesson
   has_and_belongs_to_many :resources
 
+  validates_uniqueness_of :lesson_id # lesson has_one lesson_plan
+
   # Field: t.jsonb :content, default: [] # Array of hashes [{type => details}, ...]
   # Field: t.jsonb :suggested_resources, default: [] # Array of hashes [{type => description}, ...]
   # Field: t.boolean :chalkboard_enabled, default: true, null: false

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_06_213243) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_07_140257) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -131,6 +131,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_06_213243) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["course_id"], name: "index_enrollments_on_course_id"
+    t.index ["student_id", "course_id"], name: "index_enrollments_on_student_id_and_course_id", unique: true
     t.index ["student_id"], name: "index_enrollments_on_student_id"
   end
 
@@ -154,7 +155,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_06_213243) do
     t.boolean "chalkboard_enabled", default: true, null: false
     t.enum "audio", default: "disabled", null: false, enum_type: "audio_setting"
     t.jsonb "suggested_resources", default: []
-    t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id"
+    t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id", unique: true
     t.index ["teacher_id"], name: "index_lesson_plans_on_teacher_id"
   end
 
@@ -171,6 +172,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_06_213243) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["lesson_id"], name: "index_lesson_progresses_on_lesson_id"
+    t.index ["student_id", "lesson_id"], name: "index_lesson_progresses_on_student_id_and_lesson_id", unique: true
     t.index ["student_id"], name: "index_lesson_progresses_on_student_id"
   end
 

@@ -3,6 +3,7 @@ class CreateLessonProgresses < ActiveRecord::Migration[7.2]
     create_table :lesson_progresses do |t|
       t.references :student, null: false, foreign_key:  { to_table: :users }
       t.references :lesson, null: false, foreign_key: true
+      # Should be unique for {:student, :lesson} - added later.
       t.jsonb :chat_history
       t.jsonb :progress_data
 

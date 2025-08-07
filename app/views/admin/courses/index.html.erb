@@ -27,24 +27,20 @@
   </tbody>
 </table>
 
-<h3 class="text-xl font-semibold mb-2">Archived Courses</h3>
-<table class="w-full border-collapse">
-  <thead>
-    <tr class="border-b border-stone-800 dark:border-stone-200">
-      <th class="py-2 px-3 text-left">Title</th>
-      <th class="py-2 px-3 text-left">Summary</th>
-      <th class="py-2 px-3 text-center">Grade Level</th>
-      <th class="py-2 px-3 text-center">Status</th>
-      <th class="py-2 px-3 text-right">Actions</th>
-    </tr>
-  </thead>
-  <tbody id="archived-courses-table-body">
-      <% if @archived_courses.any? %>
-        <%= render @archived_courses %>
-      <% else %>
-        <tr id="no_archived_courses">
-          <td colspan="5" class="py-4 px-6 text-center">No archived courses.</td>
-        </tr>
-      <% end %>
-  </tbody>
-</table>
+<% if @archived_courses.any? %>
+  <h3 class="text-xl font-semibold mb-2">Archived Courses</h3>
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="border-b border-stone-800 dark:border-stone-200">
+        <th class="py-2 px-3 text-left">Title</th>
+        <th class="py-2 px-3 text-left">Summary</th>
+        <th class="py-2 px-3 text-center">Grade Level</th>
+        <th class="py-2 px-3 text-center">Status</th>
+        <th class="py-2 px-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="archived-courses-table-body">
+      <%= render @archived_courses %>
+    </tbody>
+  </table>
+<% end %>
