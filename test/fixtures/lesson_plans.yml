@@ -24,7 +24,7 @@ two:
 audio_only:
   content: {}
   status: draft
-  lesson: one
+  lesson: audio_lesson
   teacher: admin
   chalkboard_enabled: true
   audio: only

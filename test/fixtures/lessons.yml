@@ -17,3 +17,12 @@ two:
   position: 2
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+audio_lesson:
+  title: Lesson 3 (audio-only)
+  approx_duration_min: 20
+  goals: Learn about bugs
+  course: one
+  position: 3
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
