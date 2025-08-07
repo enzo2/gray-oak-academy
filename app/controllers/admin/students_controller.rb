@@ -41,18 +41,17 @@ module Admin
     end
 
     def adopt
-      if @student.teacher.nil?
-        @student.update(teacher: current_user)
+      if @student.update(teacher: current_user)
         flash[:success] = "Student adopted successfully."
         redirect_to admin_student_path(@student), status: :see_other
       else
-        flash[:error] = "Student already has a teacher."
-        redirect_to admin_students_path, status: :unprocessable_entity
+        flash[:error] = @student.errors.full_messages.to_sentence
+        redirect_to admin_students_path, status: :unprocessable_content
       end
     end
 
     def unadopt
-      @student.update(teacher: nil)
+      @student.update!(teacher: nil)
       flash[:success] = "Student unadopted successfully."
       redirect_to admin_students_path, status: :see_other
     end

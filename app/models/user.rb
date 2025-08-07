@@ -14,6 +14,8 @@ class User < ApplicationRecord
   validates :last_name, presence: true
   validate :validate_first_user_must_be_admin_or_superuser
   validate :validate_signup_code # A signup code is required for registration, to differentiate teachers and students
+  validate :validate_teacher_role
+  validate :validate_not_own_teacher
   attr_accessor :signup_code # Allow submission of the signup_code on registration
 
   after_create :ensure_setting
@@ -51,6 +53,16 @@ class User < ApplicationRecord
   end
 
   private
+
+  def validate_teacher_role
+    return if teacher.nil?
+    errors.add(:teacher, "cannot be a student.") if teacher.role_student?
+  end
+
+  def validate_not_own_teacher
+    return if teacher.nil?
+    errors.add(:teacher, "cannot be yourself") if teacher == self
+  end
 
   def ensure_setting
     create_setting! if setting.nil?
