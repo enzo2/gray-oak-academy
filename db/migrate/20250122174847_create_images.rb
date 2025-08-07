@@ -3,7 +3,7 @@ class CreateImages < ActiveRecord::Migration[8.0]
     create_enum :content_type, [ "image/png", "image/jpeg", "image/webp" ]
 
     create_table :images do |t|
-      t.references :message, foreign_key: true
+      t.references :message, foreign_key: true # should be null: false - fixed later
       t.string :uri, null: true
       t.enum :content_type, enum_type: :content_type, null: false
       t.string :description, null: true

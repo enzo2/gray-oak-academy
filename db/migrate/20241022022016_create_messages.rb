@@ -3,7 +3,7 @@ class CreateMessages < ActiveRecord::Migration[7.2]
     create_enum :role_name, [ "system", "user", "assistant" ]
 
     create_table :messages do |t|
-      t.references :conversation, foreign_key: true
+      t.references :conversation, foreign_key: true # should be null: false - fixed later
       t.enum :role, enum_type: :role_name, null: false
       t.string :content, null: false
 

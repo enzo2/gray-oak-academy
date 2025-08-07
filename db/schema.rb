@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_07_140257) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_07_150346) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -136,7 +136,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_140257) do
   end
 
   create_table "images", force: :cascade do |t|
-    t.bigint "message_id"
+    t.bigint "message_id", null: false
     t.string "uri"
     t.enum "content_type", null: false, enum_type: "content_type"
     t.string "description"
@@ -207,7 +207,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_140257) do
   end
 
   create_table "messages", force: :cascade do |t|
-    t.bigint "conversation_id"
+    t.bigint "conversation_id", null: false
     t.enum "role", null: false, enum_type: "role_name"
     t.string "content", null: false
     t.datetime "created_at", null: false
