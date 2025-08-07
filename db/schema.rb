@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_07_150346) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_07_151056) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -162,6 +162,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_150346) do
   create_table "lesson_plans_resources", id: false, force: :cascade do |t|
     t.bigint "lesson_plan_id", null: false
     t.bigint "resource_id", null: false
+    t.index ["lesson_plan_id", "resource_id"], name: "index_lesson_plans_resources_on_lesson_plan_id_and_resource_id", unique: true
   end
 
   create_table "lesson_progresses", force: :cascade do |t|
