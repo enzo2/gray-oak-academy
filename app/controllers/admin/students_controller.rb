@@ -4,6 +4,7 @@ module Admin
     before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll, :destroy ]
     before_action :set_enrollment_data, only: [ :show, :enroll, :unenroll ]
     before_action :set_students_nav, only: [ :index, :show ]
+    before_action :require_own_student, only: [ :show, :unadopt, :enroll, :unenroll ]
 
     # POST /admin/students/new
     def new_student
@@ -83,17 +84,20 @@ module Admin
 
     private
 
+    def require_own_student
+      # Superusers can access any student. Admins can only access their own students.
+      unless current_user.role_superuser? || current_user.students.include?(@student)
+        flash[:warning] = "You are not that student's teacher."
+        redirect_to admin_students_path
+      end
+    end
+
     def student_params
       params.require(:user).permit(:first_name, :last_name, :email, :password, :password_confirmation, :adopt_student)
     end
 
     def set_student
       @student = User.find(params[:id])
-      # Superusers can access any student. Admins can only access their own students.
-      unless current_user.role_superuser? || current_user.students.include?(@student)
-        flash[:alert] = "You are not authorized to view this student."
-        redirect_to admin_students_path
-      end
     end
 
     def set_students_nav
