@@ -11,8 +11,18 @@
 
       <div class="mb-4 flex justify-start">
         <% if enrollment.has_available_lesson? %>
-          <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0 text-green-500" title="Available lessons"></sl-icon>
-          <span class="text-sm">Next lesson ready.</span>
+          <% if current_user == enrollment.student # Allow teachers to take lessons for themselves %>
+            <%= link_to student_lesson_path(enrollment.next_available_lesson), 
+                  target: "_blank", class: "block btn-primary text-sm" do %>
+              <div class="flex items-center">
+                <sl-icon name="check-circle-fill" class="text-blue-700 pr-2"></sl-icon>
+                <span>&nbsp;<%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start next" %> lesson</span>
+              </div>
+            <% end %>
+          <% else %>
+            <sl-icon name="check-circle-fill" class="text-lg mr-2 shrink-0 text-green-500" title="Available lessons"></sl-icon>
+            <span class="text-sm">Next lesson ready.</span>
+          <% end %>
         <% else %>
           <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
           <span class="text-sm">No lessons available for student. Please 
@@ -38,7 +48,7 @@
       <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
           method: :delete,
           data: { 
-            turbo_confirm: 'WARNING! This will delete all student progress and cannot be reversed. Are you sure?',
+            turbo_confirm: 'WARNING! This will delete all student progress and cannot be reversed. Student reports will be orphaned. It is better to retain the enrollment for record-keeping. Are you sure?',
             turbo_stream: true 
           }, 
           class: "btn-danger text-sm" %>

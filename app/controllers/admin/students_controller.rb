@@ -59,19 +59,13 @@ module Admin
     def enroll
       course = Course.find(params[:course_id])
       @student.enrollments.create(course: course)
-      respond_to do |format|
-        format.turbo_stream { render :reload_dashboard }
-        format.html { redirect_to admin_student_path(@student), status: :see_other }
-      end
+      redirect_to admin_student_path(@student), status: :see_other
     end
 
     def unenroll
       enrollment = @student.enrollments.find_by(course_id: params[:course_id])
       enrollment&.destroy
-      respond_to do |format|
-        format.turbo_stream { render :reload_dashboard }
-        format.html { redirect_to admin_student_path(@student), status: :see_other }
-      end
+      redirect_to admin_student_path(@student), status: :see_other
     end
 
     def destroy
@@ -85,7 +79,7 @@ module Admin
 
     def require_own_student
       # Superusers can access any student. Admins can only access their own students.
-      unless current_user.role_superuser? || current_user.students.include?(@student)
+      unless current_user.role_superuser? || current_user == @student || current_user.students.include?(@student)
         flash[:warning] = "You are not that student's teacher."
         redirect_to admin_students_path
       end

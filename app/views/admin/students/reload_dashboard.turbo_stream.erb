@@ -1,8 +1,0 @@
-<%# Update the entire student dashboard %>
-<%# (Need to do this because refresh/morph of entire page is not compatible with the sl-tree element in the students_nav column) %>
-<%= turbo_stream.update "student-dashboard" do %>
-  <%= render 'student_dashboard' %>
-<% end %>
-
-<%# Update flash message %>
-<%= turbo_stream.append "flash_bar", partial: "shared/flash" %>
