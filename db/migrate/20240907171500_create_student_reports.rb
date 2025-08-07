@@ -6,7 +6,7 @@ class CreateStudentReports < ActiveRecord::Migration[7.2]
     create_table :student_reports do |t|
       t.references :reportable, polymorphic: true, null: false
       t.references :student, null: false, foreign_key: { to_table: :users }
-      t.references :teacher, null: false, foreign_key: { to_table: :users }
+      t.references :teacher, null: false, foreign_key: { to_table: :users } # changed to nullable
       t.references :lesson, null: false, foreign_key: true # REMOVED
       t.references :enrollment, null: false, foreign_key: true # REMOVED
       t.references :course, null: false, foreign_key: true # REMOVED

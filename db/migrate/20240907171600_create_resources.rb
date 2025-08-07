@@ -4,7 +4,7 @@ class CreateResources < ActiveRecord::Migration[7.2]
       t.string :category
       t.text :description
       t.string :uri
-      t.references :teacher, null: false, foreign_key: { to_table: :users }
+      t.references :teacher, null: false, foreign_key: { to_table: :users } # changed to nullable later
 
       t.timestamps
     end

@@ -2,9 +2,9 @@ class StudentReport < ApplicationRecord
   # Reports stored as progress_data (JSONB).
   # As LLMs may not follow the desired schema for reports, don't depend on any particular JSON format.
 
-  belongs_to :reportable, polymorphic: true # allows any model to have a StudentReport through reportable
+  belongs_to :reportable, polymorphic: true # allows any model to have a StudentReport through reportable (eg. lesson report, enrollment report, misc)
   belongs_to :student, class_name: "User", inverse_of: :student_reports, optional: false
-  belongs_to :teacher, class_name: "User", inverse_of: :authored_reports, optional: false
+  belongs_to :teacher, class_name: "User", inverse_of: :authored_reports, optional: true # if teacher is deleted, report can remain
 
   enum :author_type, { ai_generated: "ai_generated", teacher_written: "teacher_written" }, prefix: true
   enum :status, { in_progress: "in_progress", completed: "completed" }, prefix: true

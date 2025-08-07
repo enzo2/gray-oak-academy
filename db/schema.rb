@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_07_151056) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_07_163800) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -232,7 +232,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_151056) do
     t.string "category"
     t.text "description"
     t.string "uri"
-    t.bigint "teacher_id", null: false
+    t.bigint "teacher_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "include_by_default"
@@ -251,7 +251,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_151056) do
     t.string "reportable_type"
     t.bigint "reportable_id"
     t.bigint "student_id", null: false
-    t.bigint "teacher_id", null: false
+    t.bigint "teacher_id"
     t.enum "author_type", null: false, enum_type: "report_author_type"
     t.enum "status", null: false, enum_type: "student_report_status"
     t.jsonb "progress_data"
