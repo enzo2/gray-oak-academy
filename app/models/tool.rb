@@ -1,6 +1,4 @@
 class Tool < ApplicationRecord
-  # belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :tools, optional: true
-
   validates :specifications, presence: true
   validates :name, uniqueness: true
   validate :valid_specifications

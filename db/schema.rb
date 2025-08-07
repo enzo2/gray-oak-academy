@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_07_163800) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_07_175812) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -265,12 +265,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_163800) do
 
   create_table "tools", force: :cascade do |t|
     t.jsonb "specifications"
-    t.bigint "teacher_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.virtual "name", type: :string, as: "(specifications ->> 'name'::text)", stored: true
     t.virtual "description", type: :string, as: "(specifications ->> 'description'::text)", stored: true
-    t.index ["teacher_id"], name: "index_tools_on_teacher_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -319,6 +317,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_163800) do
   add_foreign_key "settings", "users"
   add_foreign_key "student_reports", "users", column: "student_id"
   add_foreign_key "student_reports", "users", column: "teacher_id"
-  add_foreign_key "tools", "users", column: "teacher_id"
   add_foreign_key "users", "users", column: "teacher_id"
 end
