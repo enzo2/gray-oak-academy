@@ -35,7 +35,7 @@ class AdminStudentsTest < ApplicationSystemTestCase
     find('sl-tab[panel="settings"]').click
     # Accept the confirmation dialog for unadopting
     page.accept_confirm do
-      click_button "Un-adopt student"
+      click_button "Release student"
     end
     assert_text "Student unadopted successfully."
   end
