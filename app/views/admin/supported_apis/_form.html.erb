@@ -13,16 +13,20 @@
   <div>
     <%= f.label :api_base_uri, "API base URL", class: "form-label" %>
     <%= f.url_field :api_base_uri, class: "input-primary", placeholder: "https://openrouter.ai/api/v1/" %>
-    <p class="text-xs text-dim mt-1">Must be OpenAI-compatible. Example: https://openrouter.ai/api/v1/ </p>
+    <p class="text-xs text-dim mt-1">Must be OpenAI-compatible (Chat Completions API).</p>
   </div>
 
   <div>
     <%= f.label :api_access_token, "Shared access token", class: "form-label" %>
-    <%= f.password_field :api_access_token, class: "input-primary", autocomplete: "off", placeholder: (@supported_api.persisted? ? "Leave blank to keep current token" : "Paste token (kept encrypted)") %>
+    <%= f.text_field :api_access_token, class: "input-primary", autocomplete: "off", 
+      placeholder: (@supported_api.persisted? && @supported_api.api_access_token.present? ? "Leave blank to keep current token" : "Paste token here"),
+      value: "" %>
     <% if @supported_api.persisted? %>
       <p class="text-xs text-dim mt-1">
         <% if @supported_api.api_access_token.present? %>
-          Token: <span class="text-emerald-700 dark:text-emerald-300">Present</span> — leave blank to keep unchanged.
+          Token: <span class="text-emerald-700 dark:text-emerald-300">
+            Saved (<%= @supported_api.api_access_token.first(4) %>...<%= @supported_api.api_access_token.last(2) %>)
+            </span> — leave blank to keep unchanged.
         <% else %>
           Token: <span class="text-stone-500">None</span>
         <% end %>
@@ -46,7 +50,7 @@
   <% if @supported_api.new_record? && current_user.role_superuser? %>
     <div class="mt-4 p-3 border rounded">
       <h4 class="font-semibold mb-2">Verify models now (comma or newline separated)</h4>
-      <%= text_area_tag :models_to_verify, nil, class: "input-primary w-full", rows: 3, placeholder: "e.g.\nopenai/gpt-4o-mini\nopenai/gpt-4o" %>
+      <%= text_area_tag :models_to_verify, nil, class: "input-primary w-full", rows: 3, placeholder: "e.g.\nopenai/gpt-5-mini\ngoogle/gemini-2.5-flash" %>
       <p class="text-xs text-dim mt-1">On save, a background job will verify each model by issuing a minimal completion and will add it to the site-wide Models list if successful.</p>
     </div>
   <% end %>
@@ -73,12 +77,29 @@
           <% @verified_models.each_with_index do |llm, idx| %>
             <tr class="<%= idx.odd? ? 'bg-stone-200 dark:bg-stone-700' : '' %>">
               <td class="px-2 py-1"><%= llm.model %></td>
-              <td class="px-2 py-1"><%= llm.supports_audio_input ? "Yes" : "No" %></td>
+              <td class="px-2 py-1">
+                <% if current_user.role_superuser? %>
+                  <%= form_with(model: llm, url: admin_llm_path(llm), method: :patch, data: { turbo_stream: true }) do |f| %>
+                    <%= f.check_box :supports_audio_input,
+                          {
+                            checked: llm.supports_audio_input,
+                            data: { controller: "llm-checkbox", action: "llm-checkbox#submit" },
+                            class: "checkbox-primary",
+                            id: "llm_#{llm.id}_supports_audio_input"
+                          } %>
+                  <% end %>
+                <% else %>
+                  <%= llm.supports_audio_input ? "Yes" : "No" %>
+                <% end %>
+              </td>
             </tr>
           <% end %>
         </tbody>
       </table>
       <p class="text-xs text-dim mt-1">Only superusers can change site-wide audio flags.</p>
+      <% if current_user.role_superuser? %>
+        <p class="text-xs mt-1"><%= link_to "Manage all LLM models", admin_llms_path, class: "hover:underline" %></p>
+      <% end %>
     </div>
   <% else %>
     <p class="text-sm text-dim mt-4">No verified models yet for this provider.</p>

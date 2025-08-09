@@ -166,6 +166,10 @@ class OpenaiApiService
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ResourceNotFound error #{e.message}: #{error_message}"
       raise OpenAiError, "The requested service was not found. Details: #{error_message}"
+    rescue Faraday::TooManyRequestsError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::TooManyRequestsError #{e.message}: #{error_message}"
+      raise
     rescue StandardError => e
       Rails.logger.error "StandardError #{e.inspect}"
       # Rails.logger.error "Trace: #{e.backtrace.join("\n")}"
@@ -355,7 +359,9 @@ class OpenaiApiService
     Rails.logger.debug "Parsed error response: #{parsed.inspect}"
 
     if parsed.is_a?(Hash) && parsed["error"].is_a?(Hash)
-      parsed["error"]["message"] || parsed["error"]["status"] || "Unknown error"
+      message = parsed["error"]["message"] || parsed["error"]["status"] || "Unknown error"
+      raw = parsed.dig("error", "metadata", "raw")
+      raw ? "#{message}: (#{raw})" : message
     else
       "Unknown error format: #{parsed.inspect}"
     end

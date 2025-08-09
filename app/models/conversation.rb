@@ -15,14 +15,16 @@ class Conversation < ApplicationRecord
     completions.last&.prompt_tokens || 0
   end
 
-  # Returns the Llm model instance that will be used, or if it doesn't exist yet (never used), the most recent one used in this conversation.
-  # Always returns a valid LLM, since the Llm can only be created by a successful completion.
+  # Returns the Llm model instance that will be used.
+  # May return nil if the set LLM has never been used, as Llm is created only after the first completion or when verified by a superuser.
   def llm_in_use
-    model = user.setting.llm_model_name.presence ? user.setting.llm_model_name : ENV["DEFAULT_MODEL"]
-    api = user.setting.llm_api_base_uri.presence ? user.setting.llm_api_base_uri : ENV["OPENAI_API_BASE_URL"]
-    llm = Llm.find_by(model: model, api_provider: api)
-    llm ? llm : completions.last&.llm
-    # May return nil if the set LLM has never been used and the conversation is empty, as Llm is created only after the first completion.
+    model = user.setting.llm_model_name.presence || ENV["DEFAULT_MODEL"]
+    api = user.setting.llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"]
+    Llm.find_by(model: model, api_provider: api)
+  end
+
+  def llm_in_use_name
+    llm_in_use&.model || user.setting.llm_model_name.presence || ENV["DEFAULT_MODEL"] || "No LLM set."
   end
 
   def audio_input_supported?

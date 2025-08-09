@@ -18,7 +18,7 @@
                 data-action="click->tts-stream#toggleAutoRead"
                 ></sl-icon-button>
           <% end %>
-          <span class="text-dim text-sm"><%= conversation.llm_in_use&.model || current_user.settings.llm_model_name %></span>
+          <span class="text-dim text-sm"><%= conversation.llm_in_use_name %></span>
         </div>
         <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
       </div>
