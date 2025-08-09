@@ -5,7 +5,6 @@
     <% if current_user.role_teacher? %>
       <sl-tab slot="nav" panel="api">LLM API</sl-tab>
       <sl-tab slot="nav" panel="speech">Speech</sl-tab>
-      <sl-tab slot="nav" panel="llm">LLMs</sl-tab>
     <% end %>
     <sl-tab slot="nav" panel="account">Account</sl-tab>
 
@@ -18,9 +17,6 @@
         <%= render "user_settings/speech", settings: current_user.settings %>
       </sl-tab-panel>
 
-      <sl-tab-panel name="llm">
-        <%= render "user_settings/llm" %>
-      </sl-tab-panel>
     <% end %>
     
     <sl-tab-panel name="account" active><!--set as active so that it shows up after devise form submission-->

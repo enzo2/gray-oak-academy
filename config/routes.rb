@@ -83,7 +83,7 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :llms, only: [ :update ]
+    resources :llms, only: [ :index, :update ]
   end
 
   namespace :student do
