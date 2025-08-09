@@ -1,17 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { modelsPath: String }
-  static targets = [ "modelCombobox", "reasoningModelCombobox" ] 
+  static values = { modelsPath: String, supportedUris: Array }
+  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint" ]
 
   connect() {
     //console.log("LLM Settings controller connected");
-    // Optional: If the URI field might be pre-filled on page load,
-    // you might want to trigger an initial update.
-    // const initialUri = this.element.querySelector('input[role="combobox"]')?.value;
-    // if (initialUri) {
-    //   this.updateModels({ target: { value: initialUri }, type: 'connect' }); // Simulate event
-    // }
+    const initialUri = document.getElementById("setting_llm_api_base_uri-hw-hidden-field").value
+    if (initialUri) {
+      this.updateModels({ detail: { value: initialUri }, type: 'initial' });
+    }
   }
 
   /**
@@ -21,21 +19,29 @@ export default class extends Controller {
   updateModels(event) {
     let apiUri = "";
 
-    if (event.type === 'hw-combobox:clear') {
-      apiUri = "";
-    } else if (event.detail && typeof event.detail.display !== 'undefined') {
-      apiUri = event.detail.display || "";
-    } else if (event.target && typeof event.target.value !== 'undefined') {
-      apiUri = event.target.value || "";
-    } else if (event.type === 'connect' && event.target?.value) {
-      apiUri = event.target.value || "";
-    } else {
-      console.warn("Could not determine API URI from event:", event);
-      this.clearAllComboboxes();
-      return;
+    switch (event.type) {
+      case 'hw-combobox:selection':
+        // This event provides the clean value directly. This is the most reliable source.
+        apiUri = event.detail.value || "";
+        break;
+      case 'hw-combobox:clear':
+        // This event fires when the combobox is cleared.
+        apiUri = "";
+        break;
+      case "initial":
+        // This is a custom event type for initial load.
+        apiUri = event.detail.value || "";
+        break;
+      default:
+        // This handles the `input` event (user typing) and `connect`.
+        // In these cases, we only have the visible display text, which may include the emoji.
+        // We must clean it to get a valid URI.
+        apiUri = (event.target.value || "").replace(/✅$/, '').trim();
+        break;
     }
 
     const newUrl = `${this.modelsPathValue}?api_uri=${encodeURIComponent(apiUri)}`;
+    this.toggleSharedTokenHint(apiUri);
 
     if (this.hasModelComboboxTarget) {
       this.updateComboboxSource(this.modelComboboxTarget, newUrl);
@@ -55,6 +61,7 @@ export default class extends Controller {
 
     if (comboboxController) {
       comboboxController.asyncSrcValue = newUrl;
+      //console.log(`New URL for combobox ${targetElement.id}:`, newUrl);
       comboboxController.clear();
       //console.log(`Updated ${targetElement.id} asyncSrcValue to: ${newUrl}`);
     } else {
@@ -76,22 +83,23 @@ export default class extends Controller {
     }
   }
 
-
   /**
-   * Checks if a newly entered model name is being selected.
-   * Triggered by the 'hw-combobox:selection' event on the model combobox.
+   * Toggle the shared-token hint based on whether the selected URI is a SupportedApi
    */
-  checkNewModel(event) {
-    // Check the detail provided by the hw-combobox:selection event
-    const isNew = event.detail?.isNewAndAllowed || false;
-    const modelName = event.detail?.display || event.target?.value || "Unknown"; // Get display value
+  toggleSharedTokenHint(apiUri) {
+    if (!this.hasSharedTokenHintTarget) return;
 
-    //console.log("Model selection event:", event.type, "Model:", modelName, "Is new?", isNew);
+    const normalized = (apiUri || "").trim();
+    // Ensure trailing slash for comparison consistency
+    const normalizedWithSlash = normalized.length > 0 && !normalized.endsWith("/") ? `${normalized}/` : normalized;
 
-    if (isNew) {
-      // Make sure this alert doesn't block execution if not needed,
-      // or consider a less intrusive notification.
-      alert(`You've entered a new model name ('${modelName}'). Please ensure it works correctly and save it if needed.`);
+    const supported = (this.supportedUrisValue || []).includes(normalizedWithSlash);
+
+    if (supported) {
+      this.sharedTokenHintTarget.classList.remove("hidden");
+    } else {
+      this.sharedTokenHintTarget.classList.add("hidden");
     }
   }
+
 }

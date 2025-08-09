@@ -79,7 +79,7 @@
 <%= link_to admin_student_path(current_user),
     class: "hover:underline block py-1 rounded #{'bg-slate-300 dark:bg-slate-700 pl-1' if @student&.id == current_user.id}" do %>
   <div class="flex flex-row items-center">
-    <sl-icon name="person-fill" class="mr-1"></sl-icon>Me as student
+    <sl-icon name="person-circle" class="mr-1"></sl-icon>Me as student
   </div>
 <% end %>
 

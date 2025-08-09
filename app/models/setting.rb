@@ -1,12 +1,15 @@
 class Setting < ApplicationRecord
   belongs_to :user
+  # user.settings is alias for user.setting
+
   # Settings is a JSONB column; so it is not necessary to perform a DB migration to change the settings fields
   # t.jsonb :settings, null: false, default: {}
 
   # Encrypt all settings in the DB
   encrypts :settings
 
-  # user.settings is alias for user.setting
+  before_validation :ensure_llm_api_base_uri_trailing_slash
+  before_validation :ensure_speech_api_base_uri_trailing_slash
 
   # add a store_accessor for each settings key to add methods to read/write it
   # e.g. user.settings.pref1="123", user.settings.save!
@@ -45,9 +48,6 @@ class Setting < ApplicationRecord
       end
     end
   end
-
-  before_validation :ensure_llm_api_base_uri_trailing_slash
-  before_validation :ensure_speech_api_base_uri_trailing_slash
 
   def speech_configured?
     speech_api_access_token.present?

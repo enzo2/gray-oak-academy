@@ -29,7 +29,8 @@ class Course < ApplicationRecord
   end
 
   def self.available_for_enrollment(student, teacher)
-    status_active.where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
+    # status_active.where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
+    status_active.where(teacher: teacher).includes(:enrollments).where.not(enrollments: { student: student })
   end
 
   private

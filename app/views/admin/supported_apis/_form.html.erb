@@ -1,0 +1,98 @@
+<%= form_with(model: [:admin, @supported_api], class: "space-y-4") do |f| %>
+  <% if @supported_api.errors.any? %>
+    <div class="mb-4 text-red-700 dark:text-red-300">
+      <%= pluralize(@supported_api.errors.count, "error") %> prevented saving:
+      <ul class="list-disc list-inside">
+        <% @supported_api.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :api_base_uri, "API base URL", class: "form-label" %>
+    <%= f.url_field :api_base_uri, class: "input-primary", placeholder: "https://openrouter.ai/api/v1/" %>
+    <p class="text-xs text-dim mt-1">Must be OpenAI-compatible. Example: https://openrouter.ai/api/v1/ </p>
+  </div>
+
+  <div>
+    <%= f.label :api_access_token, "Shared access token", class: "form-label" %>
+    <%= f.password_field :api_access_token, class: "input-primary", autocomplete: "off", placeholder: (@supported_api.persisted? ? "Leave blank to keep current token" : "Paste token (kept encrypted)") %>
+    <% if @supported_api.persisted? %>
+      <p class="text-xs text-dim mt-1">
+        <% if @supported_api.api_access_token.present? %>
+          Token: <span class="text-emerald-700 dark:text-emerald-300">Present</span> — leave blank to keep unchanged.
+        <% else %>
+          Token: <span class="text-stone-500">None</span>
+        <% end %>
+      </p>
+    <% else %>
+      <p class="text-xs text-dim mt-1">Stored with encryption. <b>Will be available for all teachers to use</b>.</p>
+    <% end %>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <%= f.check_box :enabled, class: "checkbox-primary" %>
+    <%= f.label :enabled, "Enabled for teacher use" %>
+  </div>
+
+  <div>
+    <%= f.label :notes, "Notes (optional)", class: "form-label" %>
+    <%= f.text_area :notes, class: "input-primary", rows: 3, placeholder: "Optional notes for admins" %>
+  </div>
+
+  <%# Only show inline verification box on NEW. For edit, use the dedicated section below. %>
+  <% if @supported_api.new_record? && current_user.role_superuser? %>
+    <div class="mt-4 p-3 border rounded">
+      <h4 class="font-semibold mb-2">Verify models now (comma or newline separated)</h4>
+      <%= text_area_tag :models_to_verify, nil, class: "input-primary w-full", rows: 3, placeholder: "e.g.\nopenai/gpt-4o-mini\nopenai/gpt-4o" %>
+      <p class="text-xs text-dim mt-1">On save, a background job will verify each model by issuing a minimal completion and will add it to the site-wide Models list if successful.</p>
+    </div>
+  <% end %>
+
+  <div class="mt-6">
+    <%= f.submit (@supported_api.persisted? ? "Update" : "Create"), class: "btn-primary" %>
+    <%= link_to "Cancel", admin_supported_apis_path, class: "btn-secondary ml-2" %>
+  </div>
+<% end %>
+
+<%# Edit-only extras %>
+<% if @supported_api.persisted? %>
+  <% if defined?(@verified_models) && @verified_models.present? %>
+    <div class="mt-6 p-3 border rounded">
+      <h4 class="font-semibold mb-2">Verified models for this provider</h4>
+      <table class="table-auto w-full">
+        <thead>
+          <tr class="bg-stone-50 dark:bg-stone-900">
+            <th class="px-2 py-1 text-left">Model</th>
+            <th class="px-2 py-1 text-left">Audio Input</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @verified_models.each_with_index do |llm, idx| %>
+            <tr class="<%= idx.odd? ? 'bg-stone-200 dark:bg-stone-700' : '' %>">
+              <td class="px-2 py-1"><%= llm.model %></td>
+              <td class="px-2 py-1"><%= llm.supports_audio_input ? "Yes" : "No" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <p class="text-xs text-dim mt-1">Only superusers can change site-wide audio flags.</p>
+    </div>
+  <% else %>
+    <p class="text-sm text-dim mt-4">No verified models yet for this provider.</p>
+  <% end %>
+
+  <div class="mt-6 p-3 border rounded">
+    <h4 class="font-semibold mb-2">Verify additional models</h4>
+    <%= form_with url: verify_models_admin_supported_api_path(@supported_api), method: :post, class: "space-y-2" do %>
+      <%= text_area_tag :models_to_verify, nil, class: "input-primary w-full", rows: 3, placeholder: "Model names (comma or newline separated)" %>
+      <div>
+        <%= submit_tag "Enqueue Verification", class: "btn-primary" %>
+      </div>
+    <% end %>
+    <p class="text-xs text-dim mt-1">This runs verification without changing the current Supported API details.</p>
+  </div>
+
+<% end %>

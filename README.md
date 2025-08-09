@@ -85,15 +85,13 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Create a teacher account using the teacher signup code. (To become a superuser, manually change your user_role from the console, `User.first.role_superuser!`.)
 - Go to Settings > Preferences if you want to change the model from what's specified in the environment variables. 
 - To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
-- Start by creating a course. To use the LLM to outline the course, save it and then press Generate Outline.
+- Go to Course Manager and create a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
 - When the lesson plan is ready, mark it as published. Be sure to add resources.
 - Add a student account from the teacher's dashboard or using the student signup code. 
 - The student can then go to their dashboard and try out the lesson.
 
 ## Feature ideas:
-- Switch to ruby_llm gem 
-- Add a superuser role for oversight of all teachers and students
 - Agentic/iterative curriculum design
    - Chat about curriculum + tool calls to edit
    - Automated resource finding/validation 

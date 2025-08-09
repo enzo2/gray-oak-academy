@@ -10,15 +10,15 @@
     </div>
   <% end %>
 
-  <div data-controller="llm-settings" data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>">
+  <div data-controller="llm-settings" data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>" data-llm-settings-supported-uris-value='<%= SupportedApi.selectable_uris.to_json %>'>
     <p class="mb-4 text-sm text-dim">
-        <i>Note: If you leave any of these blank, the default settings from environment variables will be used.</i>
+        <i>Note: If you leave any of these blank, the default settings will be used, if available.</i>
     </p>
 
     <div class="mb-1"> 
       <%= f.label :llm_api_base_uri, "LLM API base URI", class: "form-label" %>
       <%= f.combobox "llm_api_base_uri",
-                      Llm.list_api_base_uris,
+                      Llm.list_api_base_uri_options,
                       name_when_new: "setting[llm_api_base_uri]",
                       placeholder: "Select or enter API Base URI",
                       autocomplete: :list,
@@ -28,7 +28,7 @@
       Should look like: https://openrouter.ai/api/v1/
     </p>      
 
-    <details class="mb-4">
+    <details class="mb-2">
       <summary class="text-sm text-dim cursor-pointer mb-2">
         Which should I use?
       </summary>
@@ -41,12 +41,16 @@
         </p>
     </details>
 
+    <p data-llm-settings-target="sharedTokenHint" class="text-sm text-emerald-700 dark:text-emerald-300 mb-4 hidden">
+      A shared access token is available for this provider. Leave blank to use the shared token, or enter your own to override.
+    </p>
+
     <div class="">
       <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
       <%= f.text_field :llm_api_access_token, class: "input-primary" %>
     </div>
     <p class="text-sm text-dim mb-4">
-      Will be stored in the database with encryption. Ensure the app is run in a secure environment.
+      Will be stored in the database with encryption and only used for your account <% if current_user.role_teacher? %>and students<% end %>.
     </p>
 
     <div class="mb-4">
@@ -56,7 +60,7 @@
                       name_when_new: "setting[llm_model_name]",
                       placeholder: "Select or enter model name",
                       data: {
-                        action: "hw-combobox:selection->llm-settings#checkNewModel",
+                        action: "",
                         llm_settings_target: "modelCombobox"
                       } %>
       <p class="text-sm text-dim mt-1">
@@ -71,7 +75,7 @@
                       name_when_new: "setting[reasoning_model_name]",
                       placeholder: "Select or enter model name",
                       data: {
-                        action: "hw-combobox:selection->llm-settings#checkNewModel",
+                        action: "",
                         llm_settings_target: "reasoningModelCombobox"
                       }
                       %>

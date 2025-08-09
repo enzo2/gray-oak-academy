@@ -11,16 +11,23 @@ class OpenaiApiService
   # If a task system prompt is provided, it will be added to the conversation, along with the base system prompt, teaching principles, and generative guidelines.
   # If neither a system prompt message, nor a task system prompt is provided, the default system prompt will be used (base system prompt + teaching principles).
 
-  def initialize(current_user:, conversation: nil, access_token: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false)
-    # Don't initialize for orphaned students.
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false)
+    # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
+
+    # Raise error if called with any API overrides without all three present
+    if base_uri.present? || access_token.present? || model.present?
+      unless base_uri.present? && access_token.present? && model.present?
+        raise OpenAiError, "If API overrides are given, the base_uri, access_token, and model must all be present."
+      end
+    end
 
     @user = current_user
     @conversation = conversation
     @reasoning_model_flag = reasoning_model
-    @model = determine_model(reasoning_model)
-    @access_token = access_token.presence || default_access_token
-    @base_uri = current_user.settings.llm_api_base_uri.presence || default_base_uri
+    @base_uri = base_uri.presence || current_user.settings.llm_api_base_uri.presence || default_base_uri
+    @access_token = access_token.presence || determine_access_token
+    @model = model.presence || determine_model(reasoning_model)
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
     @tools = Tool.all.map(&:for_llm) if enable_tools # Load tools if enabled
@@ -111,7 +118,7 @@ class OpenaiApiService
 
       # If no stream handler was provided, process the response.
       check_for_refusal(response)
-      content = response.dig("choices", 0, "message", "content")
+      content = (response).dig("choices", 0, "message", "content").to_s
 
       # Remove all whitespace from prefill and content so they can be compared
       normalized_prefill = prefill&.gsub(/\s+/, "")
@@ -128,7 +135,7 @@ class OpenaiApiService
       check_content(content)
 
       # If JSON requested, parse and validate the content.
-      if response_format.dig(:type) == "json_schema" || response_format.dig(:type) == "json_object"
+      if response_format&.dig(:type) == "json_schema" || response_format&.dig(:type) == "json_object"
         parsed_content = parse_JSON(content)
         validate_JSON(parsed_content, schema) if schema.present?
         Rails.logger.debug "Validated JSON content: #{parsed_content}"
@@ -175,6 +182,22 @@ class OpenaiApiService
 
   private
 
+  def default_base_uri
+    ENV.fetch("OPENAI_API_BASE_URL") { raise "Base URL was neither entered in settings, nor set in ENV variable OPENAI_API_BASE_URL." }
+  end
+
+  def determine_access_token
+    # Prefer the user's own token
+    return @user.setting.llm_api_access_token if @user.setting.llm_api_access_token.present?
+
+    # Next, try a shared SupportedApi token that matches the selected base URI
+    provider = SupportedApi.selectable_for_teachers.find_by(api_base_uri: @base_uri)
+    return provider.api_access_token if provider&.api_access_token.present?
+
+    # Fallback to ENV
+    ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in OPENAI_API_KEY." }
+  end
+
   def determine_model(reasoning_model_flag)
     reasoning_model = @user.setting.reasoning_model_name.presence
     nonreasoning_model = @user.setting.llm_model_name.presence || ENV.fetch("DEFAULT_MODEL")
@@ -191,14 +214,6 @@ class OpenaiApiService
     end
   end
 
-  def default_access_token
-    @user.setting.llm_api_access_token.presence || ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in ENV variable OPENAI_API_KEY." }
-  end
-
-  def default_base_uri
-    ENV.fetch("OPENAI_API_BASE_URL") { raise "Base URL was neither entered in settings, nor set in ENV variable OPENAI_API_BASE_URL." }
-  end
-
   def create_client
     retry_options = { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
     OpenAI::Client.new(access_token: @access_token, uri_base: @base_uri) do |faraday|
@@ -210,6 +225,7 @@ class OpenaiApiService
   end
 
   def check_for_refusal(response)
+    return unless response.is_a?(Hash)
     refusal = response.dig("choices", 0, "message", "refusal")
     if refusal.present?
       Rails.logger.warning "LLM refused to fulfill the request with message: #{refusal}"

@@ -1,5 +1,6 @@
 module Admin
   class LlmsController < Admin::BaseController
+    # before_action :require_superuser   # TODO
     before_action :set_llm
 
     def update

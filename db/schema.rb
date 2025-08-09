@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_07_175812) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_08_002832) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -261,6 +261,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_07_175812) do
     t.index ["reportable_type", "reportable_id"], name: "index_student_reports_on_reportable"
     t.index ["student_id"], name: "index_student_reports_on_student_id"
     t.index ["teacher_id"], name: "index_student_reports_on_teacher_id"
+  end
+
+  create_table "supported_apis", force: :cascade do |t|
+    t.string "api_base_uri", null: false
+    t.text "api_access_token"
+    t.boolean "enabled", default: true, null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["api_base_uri"], name: "index_supported_apis_on_api_base_uri", unique: true
   end
 
   create_table "tools", force: :cascade do |t|

@@ -26,7 +26,19 @@ class Llm < ApplicationRecord
   # Returns the full list of API base URIs, including the defaults, and any others that have been used
   def self.list_api_base_uris
     custom_uris = Llm.pluck(:api_provider).uniq
-    (DEFAULT_API_BASE_URLS + custom_uris).uniq
+    supported_uris = SupportedApi.selectable_uris
+    (DEFAULT_API_BASE_URLS + supported_uris + custom_uris).uniq
+  end
+
+  # Options for the LLM API Base URI combobox with a visual marker for supported providers.
+  # Returns an array of [display, value] pairs, e.g. ["https://openrouter.ai/api/v1/ ✅", "https://openrouter.ai/api/v1/"]
+  def self.list_api_base_uri_options
+    uris = list_api_base_uris
+    supported = SupportedApi.selectable_uris
+    uris.map do |uri|
+      display = supported.include?(uri) ? "✅ #{uri}" : uri
+      [ display, uri ]
+    end
   end
 
   def self.list_models
