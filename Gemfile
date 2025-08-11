@@ -41,7 +41,7 @@ gem "faraday-retry"
 
 # LLM API access/wrappers
 gem "open_router", git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
-gem "ruby-openai"
+gem "ruby-openai", "< 8.3"
 # gem "ruby_llm"   # could add this but it's not fully developed yet, eg. lacks xAI, TTS
 
 # Vector Search

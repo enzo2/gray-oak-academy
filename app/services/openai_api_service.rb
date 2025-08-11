@@ -297,7 +297,8 @@ class OpenaiApiService
     stream_finished = false
     @usage_chunk = {}
 
-    Proc.new do |chunk|
+    # Return an outer Proc to pass to ruby-openai client
+    Proc.new do |chunk, _event|
       begin
         Rails.logger.debug "Stream chunk: #{chunk.inspect}"
 

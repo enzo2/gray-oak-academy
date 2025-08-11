@@ -33,8 +33,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - All system prompts can be customized (opinionated defaults included)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
-- Remembers API URLs and model names for easy switching
-- If LLM supports raw audio input, it will be used the first time, and then transcribed for later completions
+- Add multiple APIs and LLMs for teachers to choose from
+- If LLM supports raw audio input, it will be used and then transcribed for later completions
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
 - Dark/Light mode
