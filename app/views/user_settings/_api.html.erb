@@ -10,7 +10,13 @@
     </div>
   <% end %>
 
-  <div data-controller="llm-settings" data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>" data-llm-settings-supported-uris-value='<%= SupportedApi.selectable_uris.to_json %>'>
+  <div data-controller="llm-settings" 
+       data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>" 
+       data-llm-settings-supported-uris-value='<%= SupportedApi.selectable_uris.to_json %>' 
+       data-llm-settings-has-user-token-value="<%= settings.llm_api_access_token.present? %>" 
+       data-llm-settings-env-base-uri-value="<%= ensure_trailing_slash(ENV['OPENAI_API_BASE_URL']) %>"
+       data-llm-settings-env-key-present-value="<%= ENV['OPENAI_API_KEY'].present? %>"
+  >
     <p class="mb-4 text-sm text-dim">
         <i>Note: If you leave any of these blank, the default settings will be used, if available.</i>
     </p>
@@ -45,10 +51,34 @@
       A shared access token is available for this provider. Leave blank to use the shared token, or enter your own to override.
     </p>
 
-    <div class="">
-      <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
-      <%= f.text_field :llm_api_access_token, autocomplete: "off", class: "input-primary" %>
+    <div class="mb-2">
+      <p data-llm-settings-target="tokenStatus" class="text-sm text-dim">
+        <span data-llm-settings-target="statusPersonal" class="<%= settings.llm_api_access_token.present? ? '' : 'hidden' %>">
+          Using your personal access token
+          <% if settings.llm_api_access_token.present? %>
+            (<span class="font-mono"><%= settings.llm_api_access_token.first(4) %>...<%= settings.llm_api_access_token.last(2) %></span>)
+          <% end %>.
+        </span>
+        <span data-llm-settings-target="statusShared" class="hidden">
+          Using the shared access token for this provider.
+        </span>
+        <span data-llm-settings-target="statusEnv" class="hidden">
+          Default application token will be used if configured. Enter a token to override.
+        </span>
+        <span data-llm-settings-target="statusRequired" class="hidden">
+          This provider has no shared token. Enter your access token to use it.
+        </span>
+      </p>
+      <button type="button" class="btn-primary text-sm py-1 px-2 mt-2" data-llm-settings-target="tokenOverrideBtn" data-action="llm-settings#showTokenInput">
+        Override token
+      </button>
     </div>
+
+    <div data-llm-settings-target="tokenInputWrapper" class="hidden">
+      <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
+      <%= f.text_field :llm_api_access_token, autocomplete: "off", class: "input-primary", disabled: true, data: { llm_settings_target: "tokenInput" } %>
+    </div>
+
     <p class="text-sm text-dim mb-4">
       Will be stored in the database with encryption and only used for your account <% if current_user.role_teacher? %>and students<% end %>.
     </p>

@@ -1,8 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { modelsPath: String, supportedUris: Array }
-  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint" ]
+  static values = { modelsPath: String, supportedUris: Array, hasUserToken: Boolean, envBaseUri: String, envKeyPresent: Boolean }
+  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint", "tokenStatus", "statusPersonal", "statusShared", "statusEnv", "statusRequired", "tokenOverrideBtn", "tokenInputWrapper", "tokenInput" ]
 
   connect() {
     //console.log("LLM Settings controller connected");
@@ -10,6 +10,7 @@ export default class extends Controller {
     if (initialUri) {
       this.updateModels({ detail: { value: initialUri }, type: 'initial' });
     }
+    this.updateTokenStatus(initialUri || "");
   }
 
   /**
@@ -42,6 +43,7 @@ export default class extends Controller {
 
     const newUrl = `${this.modelsPathValue}?api_uri=${encodeURIComponent(apiUri)}`;
     this.toggleSharedTokenHint(apiUri);
+    this.updateTokenStatus(apiUri);
 
     if (this.hasModelComboboxTarget) {
       this.updateComboboxSource(this.modelComboboxTarget, newUrl);
@@ -99,6 +101,84 @@ export default class extends Controller {
       this.sharedTokenHintTarget.classList.remove("hidden");
     } else {
       this.sharedTokenHintTarget.classList.add("hidden");
+    }
+  }
+
+  /**
+   * Update token status UI based on current selection and whether user has a personal token saved.
+   * Logic:
+   * - If user has a personal token, show "personal" and hide others.
+   * - Else, if selected provider has shared token, show "shared".
+   * - Else, show "env" (default).
+   * Input field remains hidden + disabled until user clicks Override.
+   */
+  updateTokenStatus(apiUri) {
+    const hasPersonal = !!this.hasUserTokenValue;
+
+    const normalized = (apiUri || "").trim();
+    const normalizedWithSlash = normalized.length > 0 && !normalized.endsWith("/") ? `${normalized}/` : normalized;
+    const hasSharedForProvider = (this.supportedUrisValue || []).includes(normalizedWithSlash);
+
+    // ENV provider applicability:
+    const envBaseRaw = (this.envBaseUriValue || "").trim();
+    const envBaseNormalized = envBaseRaw.length > 0 && !envBaseRaw.endsWith("/") ? `${envBaseRaw}/` : envBaseRaw;
+    const usingEnvProvider = (normalizedWithSlash === "") || (envBaseNormalized && normalizedWithSlash === envBaseNormalized);
+
+    // Status visibility
+    if (this.hasStatusPersonalTarget) this.setHidden(this.statusPersonalTarget, !(hasPersonal));
+    if (this.hasStatusSharedTarget) this.setHidden(this.statusSharedTarget, !( !hasPersonal && hasSharedForProvider ));
+    if (this.hasStatusEnvTarget) this.setHidden(this.statusEnvTarget, !( !hasPersonal && !hasSharedForProvider && usingEnvProvider ));
+    if (this.hasStatusRequiredTarget) this.setHidden(this.statusRequiredTarget, !( !hasPersonal && !hasSharedForProvider && !usingEnvProvider ));
+
+    // Reset input hidden/disabled by default
+    if (this.hasTokenInputWrapperTarget) {
+      this.setHidden(this.tokenInputWrapperTarget, true);
+    }
+    if (this.hasTokenInputTarget) {
+      this.tokenInputTarget.disabled = true;
+      this.tokenInputTarget.value = "";
+    }
+    if (this.hasTokenOverrideBtnTarget) {
+      this.tokenOverrideBtnTarget.textContent = "Override token";
+    }
+
+    // Auto-show input when a token is required (no personal, no shared, and not using ENV provider)
+    const required = (!hasPersonal && !hasSharedForProvider && !usingEnvProvider);
+    if (required && this.hasTokenInputWrapperTarget && this.hasTokenInputTarget && this.hasTokenOverrideBtnTarget) {
+      this.tokenInputWrapperTarget.classList.remove("hidden");
+      this.tokenInputTarget.disabled = false;
+      this.tokenOverrideBtnTarget.textContent = "Cancel override";
+    }
+  }
+
+  /**
+   * Toggle token input visibility and enabled state.
+   * - Visible + enabled means user intends to change/clear token (blank clears).
+   * - Hidden + disabled means do not submit and do not change existing token.
+   */
+  showTokenInput() {
+    if (!this.hasTokenInputWrapperTarget || !this.hasTokenInputTarget || !this.hasTokenOverrideBtnTarget) return;
+
+    const isHidden = this.tokenInputWrapperTarget.classList.contains("hidden");
+    if (isHidden) {
+      this.tokenInputWrapperTarget.classList.remove("hidden");
+      this.tokenInputTarget.disabled = false;
+      this.tokenInputTarget.focus();
+      this.tokenOverrideBtnTarget.textContent = "Cancel override";
+    } else {
+      this.tokenInputWrapperTarget.classList.add("hidden");
+      this.tokenInputTarget.disabled = true;
+      this.tokenInputTarget.value = "";
+      this.tokenOverrideBtnTarget.textContent = "Override token";
+    }
+  }
+
+  setHidden(el, hidden) {
+    if (!el) return;
+    if (hidden) {
+      el.classList.add("hidden");
+    } else {
+      el.classList.remove("hidden");
     }
   }
 

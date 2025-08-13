@@ -11,4 +11,9 @@ module AdminHelper
       url # Return the original URL if it's invalid
     end
   end
+
+  def ensure_trailing_slash(url)
+    return url if url.blank? || url.end_with?("/")
+    "#{url}/"
+  end
 end
