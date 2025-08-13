@@ -76,7 +76,10 @@
 
     <div data-llm-settings-target="tokenInputWrapper" class="hidden">
       <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
-      <%= f.text_field :llm_api_access_token, autocomplete: "off", class: "input-primary", disabled: true, data: { llm_settings_target: "tokenInput" } %>
+      <%= f.text_field :llm_api_access_token, autocomplete: "off", class: "input-primary", 
+        disabled: true, 
+        placeholder: "Leave blank to use the default token",
+        data: { llm_settings_target: "tokenInput" } %>
     </div>
 
     <p class="text-sm text-dim mb-4">
