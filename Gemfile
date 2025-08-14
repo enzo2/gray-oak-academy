@@ -43,6 +43,7 @@ gem "faraday-retry"
 gem "open_router", git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
 gem "ruby-openai", "< 8.3"
 # gem "ruby_llm"   # could add this but it's not fully developed yet, eg. lacks xAI, TTS
+# https://github.com/rira100000000/ruby-gemini-api  a good ruby-openai style gem for gemini
 
 # Vector Search
 # gem "pgvector"
