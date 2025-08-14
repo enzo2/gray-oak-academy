@@ -56,24 +56,38 @@ class Setting < ApplicationRecord
 
   # Check if an LLM is configured
   def llm_configured?
-    (llm_api_base_uri.present? || ENV["OPENAI_API_BASE_URL"].present?) &&
-      (llm_api_access_token.present? || ENV["OPENAI_API_KEY"].present?) &&
-      (llm_model_name.present? || ENV["DEFAULT_MODEL"].present?)
+    # Effective base URI (user setting or ENV) and normalize trailing slash
+    base_uri = ensure_trailing_slash(llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+
+    has_base = base_uri.present?
+    has_model = llm_model_name.present? || ENV["DEFAULT_MODEL"].present?
+
+    # ENV key is only usable if the chosen base_uri matches the ENV base URI
+    env_base = ensure_trailing_slash(ENV["OPENAI_API_BASE_URL"])
+    env_key_usable = ENV["OPENAI_API_KEY"].present? && env_base.present? && has_base && (env_base == base_uri)
+
+    has_access_token =
+      llm_api_access_token.present? ||
+      (has_base && SupportedApi.selectable_for_teachers.exists?(api_base_uri: base_uri)) ||
+      env_key_usable
+
+    has_base && has_access_token && has_model
   end
 
   private
 
+  def ensure_trailing_slash(url)
+    return url if url.blank? || url.end_with?("/")
+    "#{url}/"
+  end
+
   def ensure_llm_api_base_uri_trailing_slash
     # Note: We are modifying the value directly using the store_accessor method
     # This ensures the change is saved to the JSONB column
-    if llm_api_base_uri.present? && !llm_api_base_uri.end_with?("/")
-      self.llm_api_base_uri = "#{llm_api_base_uri}/"
-    end
+    self.llm_api_base_uri = ensure_trailing_slash(llm_api_base_uri) if llm_api_base_uri.present?
   end
 
   def ensure_speech_api_base_uri_trailing_slash
-    if speech_api_base_uri.present? && !speech_api_base_uri.end_with?("/")
-      self.speech_api_base_uri = "#{speech_api_base_uri}/"
-    end
+    self.speech_api_base_uri = ensure_trailing_slash(speech_api_base_uri) if speech_api_base_uri.present?
   end
 end
