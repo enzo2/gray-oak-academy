@@ -6,8 +6,11 @@
 </div>
 
 <p class="text-sm text-dim mb-4">
-  Superusers can add shared OpenAI-compatible providers and verify models so teachers can use them without entering personal keys.
-  Admins can view enabled providers.
+  <% if current_user.role_superuser? %>
+    OpenAI-compatible APIs can be added with a shared API key for all teachers to use. 
+  <% elsif current_user.role_admin? %>
+    APIs listed here are available for use, if loaded with a shared API key. 
+  <% end %>
 </p>
 
 <% if @supported_apis.any? %>

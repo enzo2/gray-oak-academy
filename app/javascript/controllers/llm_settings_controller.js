@@ -6,7 +6,8 @@ export default class extends Controller {
 
   connect() {
     //console.log("LLM Settings controller connected");
-    const initialUri = document.getElementById("setting_llm_api_base_uri-hw-hidden-field").value
+    const hidden = document.getElementById("setting_llm_api_base_uri-hw-hidden-field");
+    const initialUri = (hidden && typeof hidden.value === "string") ? hidden.value : "";
     if (initialUri) {
       this.updateModels({ detail: { value: initialUri }, type: 'initial' });
     }
@@ -45,11 +46,13 @@ export default class extends Controller {
     this.toggleSharedTokenHint(apiUri);
     this.updateTokenStatus(apiUri);
 
+    const shouldClear = event.type !== 'initial';
+
     if (this.hasModelComboboxTarget) {
-      this.updateComboboxSource(this.modelComboboxTarget, newUrl);
+      this.updateComboboxSource(this.modelComboboxTarget, newUrl, shouldClear);
     }
     if (this.hasReasoningModelComboboxTarget) {
-      this.updateComboboxSource(this.reasoningModelComboboxTarget, newUrl);
+      this.updateComboboxSource(this.reasoningModelComboboxTarget, newUrl, shouldClear);
     }
   }
 
@@ -58,14 +61,22 @@ export default class extends Controller {
    * @param {HTMLElement} targetElement - The combobox element to update.
    * @param {string} newUrl - The new URL for the combobox's async source.
    */
-  updateComboboxSource(targetElement, newUrl) {
+  updateComboboxSource(targetElement, newUrl, shouldClear = true) {
     const comboboxController = this.application.getControllerForElementAndIdentifier(targetElement, "hw-combobox");
 
     if (comboboxController) {
-      comboboxController.asyncSrcValue = newUrl;
-      //console.log(`New URL for combobox ${targetElement.id}:`, newUrl);
-      comboboxController.clear();
-      //console.log(`Updated ${targetElement.id} asyncSrcValue to: ${newUrl}`);
+      const prevUrl = comboboxController.asyncSrcValue;
+      const srcChanged = prevUrl !== newUrl;
+
+      if (srcChanged) {
+        comboboxController.asyncSrcValue = newUrl;
+        //console.log(`Updated ${targetElement.id} asyncSrcValue to: ${newUrl}`);
+      }
+
+      if (shouldClear && srcChanged) {
+        comboboxController.clear();
+        //console.log(`Cleared ${targetElement.id} due to source change`);
+      }
     } else {
       console.error(`Could not find hw-combobox controller for target:`, targetElement);
     }
