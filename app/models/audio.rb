@@ -2,8 +2,10 @@ class Audio < ApplicationRecord
   belongs_to :message
   has_one_attached :file# , dependent: :purge_later   default is purge_later
 
-  # Gemini supports more audio formats types than OpenAI. OpenAI only wav and mp3.
+  # Gemini supports more audio formats types than OpenAI. OpenAI and OpenRouter, only wav and mp3.
   # Therefore, we will convert to wav for now. Ideally all providers should support webm with opus.
+  #
+  # Could experiment with the wav vs. mp3 conversion time, since smaller uploads preferable.
 
   def to_base64_wav
     return nil unless file.attached?

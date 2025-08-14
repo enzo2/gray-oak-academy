@@ -22,9 +22,9 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- Native LLM chat interface supporting images, native audio input, STT/TTS with auto-read
+- LLM chat supporting images, native audio input, STT/TTS with auto-read
 - Student lesson view with "chalkboard" (multipurpose canvas accessible by the LLM)
-- Teacher view with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
+- Teacher dashboard with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, lesson plans, and suggested resources
 - LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
 - LLM-generated student reports are fed into the next session, ensuring continuity and personalization
@@ -33,8 +33,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - All system prompts can be customized (opinionated defaults included)
 - Automated context limit tracking (when using OpenRouter)
 - Cost/token usage tracking
-- Add multiple APIs and LLMs for teachers to choose from
-- If LLM supports raw audio input, it will be used and then transcribed for later completions
+- API and token management: Preload multiple LLM APIs for teachers to choose from
+- If LLM supports raw audio input, it will be sent and then transcribed for later completions
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
 - Dark/Light mode
@@ -73,17 +73,18 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - For actual production use, retrieve the generated `/config/credentials/production.yml.enc` from the container's ephemeral filesystem and add it to your repository, so it will persist across restarts.
 
 ### Choosing an API:
-- Notably, Gemini API has a a free tier, an OpenAI-compatible endpoint, raw audio input, and 1+ megatoken context windows.
-- Built-in support for OpenRouter enables tracking actual costs and displays context window usage. OpenRouter also avoids token limits, and enables trying different providers/models easily. But no audio input. 
-- For heavy users, providers supporting automated prompt caching will reduce cost.
+- Any OpenAI-compatible API is supported. 
+- Built-in support for OpenRouter enables tracking actual costs and displays context window usage. OpenRouter also avoids token limits, enables trying different providers/models easily. 
+- Gemini API's OpenAI compatibility endpoint is another good option with free tier, raw audio support, and long context window models. 
+- For heavy users, providers supporting automated prompt caching may reduce cost.
 
 ### Choosing an LLM: 
 - For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
 - For outline/lesson generation, model must support structured outputs. Reasoning models are preferable, and you can set a separate reasoning model in settings.
 
 ## Getting Started
-- Create a teacher account using the teacher signup code. (To become a superuser, manually change your user_role from the console, `User.first.role_superuser!`.)
-- Go to Settings > Preferences if you want to change the model from what's specified in the environment variables. 
+- Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the console, `User.first.role_superuser!`.)
+- Go to Settings > Preferences and set your API, token and models.
 - To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
 - Go to Course Manager and create a course. To use the LLM to outline the course, save it and then press Generate Outline.
 - You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
