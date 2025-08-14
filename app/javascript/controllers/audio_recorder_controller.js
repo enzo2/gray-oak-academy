@@ -9,7 +9,7 @@ export default class extends Controller {
     sttAvailable: Boolean // Refers to whether the user has STT set up
   }
 
-  connect() {
+  async connect() {
     // By default, the recordButton is hidden. Check a series of requirements before initializing.
     if (!window.isSecureContext) {
       // If not secure, don't bother initializing, as MediaRecorder won't work.
@@ -25,6 +25,23 @@ export default class extends Controller {
       // Show error to the user if there is a setup error (audio-only, but no audio or STT available)
       if (this.audioSettingValue == "only") { alert("The lesson is set to audio-only, but speech input was not set up. Please notify your teacher.")}
     } else { 
+      // Before initializing, ensure at least one audio input device is available
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasMic = devices.some(d => d.kind === "audioinput");
+        if (!hasMic) {
+          console.info("No microphone detected on this device.");
+          if (this.audioSettingValue == "only") {
+            alert("The lesson is set to audio-only, but no microphone was detected on this device.");
+          }
+          return; // Skip initialization (mic button stays hidden)
+        }
+      } catch (e) {
+        console.warn("Failed to enumerate media devices.", e);
+        // Skip initialization to avoid a later NotFoundError
+        return;
+      }
+
       //Proceed with initialization
       this.textareaTarget.placeholder = (this.audioSettingValue == "only") ? "Record your message..." : "Type or record your message...";
       this.recordButtonTarget.classList.remove("hidden");
@@ -32,7 +49,7 @@ export default class extends Controller {
       this.mediaRecorder = null
       this.audioChunks = []
       this.recordingTimer = null
-      this.MAX_RECORDING_TIME = 40000 // 40 seconds in milliseconds
+      this.MAX_RECORDING_TIME = 60000 // 60 seconds in milliseconds
     }
   }
 
@@ -96,11 +113,15 @@ export default class extends Controller {
 
     } catch (err) {
       console.error("Error accessing microphone:", err)
-      alert(`Error: ${err.message}`)
+      const message = (err && err.name === "NotAllowedError")
+        ? "Microphone access was denied. Please allow microphone permissions for this site in your browser settings."
+        : "Could not access the microphone. Please try again.";
+      alert(message)
       this.isRecording = false
       this.recordButtonTarget.name = "mic"
       this.recordButtonTarget.classList.remove("text-red-500")
       this.helpTextTarget.innerText = this.helpTextTarget.dataset.defaultValue
+      this.helpTextTarget.classList.add("hidden")
     }
   }
 
