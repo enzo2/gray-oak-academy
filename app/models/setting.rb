@@ -71,8 +71,4 @@ class Setting < ApplicationRecord
     # This ensures the change is saved to the JSONB column
     self.llm_api_base_uri = ensure_trailing_slash(llm_api_base_uri) if llm_api_base_uri.present?
   end
-
-  def ensure_speech_api_base_uri_trailing_slash
-    self.speech_api_base_uri = ensure_trailing_slash(speech_api_base_uri) if speech_api_base_uri.present?
-  end
 end
