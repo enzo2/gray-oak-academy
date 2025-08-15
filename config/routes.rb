@@ -83,6 +83,9 @@ Rails.application.routes.draw do
       end
     end
 
+    # App-wide settings (singleton)
+    resource :app_setting, only: [ :edit, :update ]
+
     resources :llms, only: [ :index, :update ]
   end
 

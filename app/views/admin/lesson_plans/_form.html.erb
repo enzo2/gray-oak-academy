@@ -100,7 +100,7 @@
       Disabled: <i>Raw audio input disabled, but transcription allowed (if set up).</i><br>
       Enabled: <i>Raw audio input used if supported by the LLM.</i><br>
       Audio Only: <i>Text entry disabled. Raw audio used if supported, otherwise transcription. (Great for mobile device use, outdoors lessons, etc.)</i><br>
-    <%= link_to "Set up Speech API to ensure transcription is available.", edit_user_registration_path(), class: "link-primary", target: "_blank" unless current_user.setting.speech_configured? %>
+    <%= link_to "Set up Speech API to ensure transcription is available.", edit_user_registration_path(), class: "link-primary", target: "_blank" unless AppSetting.speech_configured? %>
     </p>
   </div>
   

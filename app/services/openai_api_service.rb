@@ -11,7 +11,7 @@ class OpenaiApiService
   # If a task system prompt is provided, it will be added to the conversation, along with the base system prompt, teaching principles, and generative guidelines.
   # If neither a system prompt message, nor a task system prompt is provided, the default system prompt will be used (base system prompt + teaching principles).
 
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false)
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false, log_completion: true)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
@@ -31,6 +31,7 @@ class OpenaiApiService
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
     @tools = Tool.all.map(&:for_llm) if enable_tools # Load tools if enabled
+    @log_completion = log_completion
 
     # Jobs without a task system prompt will use the base system prompt only
     @system_prompt = Prompt.full_system_prompt(user: current_user)
@@ -40,7 +41,7 @@ class OpenaiApiService
     end
   end
 
-  def complete(messages, response_format: nil, schema: nil, prefill: nil)
+  def complete(messages, response_format: nil, schema: nil, prefill: nil, temperature: 1)
     # inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
@@ -56,7 +57,7 @@ class OpenaiApiService
         parameters: {
           messages: messages,
           model: @model,
-          temperature: 1,
+          temperature: temperature,
           **(@tools.present? ? { tools: @tools } : {}),
           **(response_format.present? ? { response_format: response_format } : {}),
           stream: @stream_handler,
@@ -110,7 +111,7 @@ class OpenaiApiService
         total_tokens: @usage.dig("total_tokens")&.to_i,
         total_cost: @usage.dig("cost")&.to_f,
         cache_discount: @usage.dig("cache_discount")&.to_f
-      )
+      ) if @log_completion
 
       # If a stream handler was provided, stop here since the response was already handled
       # and will be blank. All processing should be done in the stream handler.

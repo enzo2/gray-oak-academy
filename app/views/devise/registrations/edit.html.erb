@@ -3,18 +3,13 @@
 
   <sl-tab-group class="[&::part(body)]:overflow-visible">
     <% if current_user.role_teacher? %>
-      <sl-tab slot="nav" panel="api">LLM API</sl-tab>
-      <sl-tab slot="nav" panel="speech">Speech</sl-tab>
+      <sl-tab slot="nav" panel="api">LLMs</sl-tab>
     <% end %>
     <sl-tab slot="nav" panel="account">Account</sl-tab>
 
     <% if current_user.role_teacher? %>
       <sl-tab-panel name="api">
         <%= render "user_settings/api", settings: current_user.settings %>
-      </sl-tab-panel>
-
-      <sl-tab-panel name="speech">
-        <%= render "user_settings/speech", settings: current_user.settings %>
       </sl-tab-panel>
     <% end %>
     

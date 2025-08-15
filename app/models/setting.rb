@@ -16,13 +16,9 @@ class Setting < ApplicationRecord
   store_accessor :settings, :llm_model_name
   store_accessor :settings, :llm_api_access_token
   store_accessor :settings, :llm_api_base_uri
-  store_accessor :settings, :speech_api_base_uri
-  store_accessor :settings, :speech_api_access_token
-  store_accessor :settings, :tts_model_name
-  store_accessor :settings, :tts_voice_name
-  store_accessor :settings, :tts_instructions
-  store_accessor :settings, :stt_model_name
   store_accessor :settings, :reasoning_model_name
+
+  # Removed: :speech_api_base_uri, :speech_api_access_token, :tts_model_name, :tts_voice_name, :tts_instructions, :stt_model_name
 
   # keys that should be inherited from the teacher's settings for students:
   INHERITED_SETTING_KEYS = %i[
@@ -30,12 +26,6 @@ class Setting < ApplicationRecord
     reasoning_model_name
     llm_api_access_token
     llm_api_base_uri
-    speech_api_base_uri
-    speech_api_access_token
-    tts_model_name
-    tts_voice_name
-    tts_instructions
-    stt_model_name
   ].freeze
 
   # Override the getter for each inherited setting key to return the teacher's setting, if the user is a student
@@ -47,11 +37,6 @@ class Setting < ApplicationRecord
         super()
       end
     end
-  end
-
-  def speech_configured?
-    speech_api_access_token.present?
-    # All speech settings have defaults except the access token. URI defaults to OpenAI.
   end
 
   # Check if an LLM is configured

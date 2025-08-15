@@ -173,8 +173,8 @@ class MessagesController < ApplicationController
     unless (message.conversation.user == current_user) || current_user.role_superuser?
       return head :forbidden
     end
-    unless current_user.settings.speech_configured?
-      Rails.logger.warn "Streaming speech requested but not configured for user #{current_user.id}"
+    unless AppSetting.speech_configured?
+      Rails.logger.warn "Streaming speech requested but not configured!"
       return head :not_implemented
     end
     unless message.role_assistant? && (message.content.present? || message.tool_calls.present?)

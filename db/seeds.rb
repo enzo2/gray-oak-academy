@@ -356,4 +356,19 @@ Prompt.find_or_create_by!(category: 'lesson_tutor_session') do |p|
   PROMPT
 end
 
+openai = SupportedApi.find_or_create_by!(api_base_uri: 'https://api.openai.com/v1/')
+SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
+SupportedApi.find_or_create_by!(api_base_uri: 'https://generativelanguage.googleapis.com/v1beta/openai/')
+
+# Create default AppSetting pointing at OpenAI (no token override by default)
+AppSetting.first_or_create!(
+  provider_supported_api_id: openai.id,
+  stt_method: "speech",
+  stt_model: "gpt-4o-mini-transcribe",
+  tts_model: "gpt-4o-mini-tts",
+  tts_voice: "verse",
+  tts_instructions: "Speak in a calm and friendly tone.",
+  singleton: true
+)
+
 puts "Seed data has been created successfully!"

@@ -74,7 +74,12 @@ module Admin
     end
 
     def supported_api_params
-      params.require(:supported_api).permit(:api_base_uri, :api_access_token, :enabled, :notes)
+      params.require(:supported_api).permit(
+        :api_base_uri,
+        :api_access_token,
+        :enabled,
+        :notes
+      )
     end
 
     def enqueue_verifications_if_any(supported_api, models_param)

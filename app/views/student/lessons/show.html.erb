@@ -9,7 +9,7 @@
     <!-- Lesson Info -->
     <div class="flex items-center justify-between space-x-2">
       <h1 class="text-xl font-semibold mb-1"><%= @lesson.title %></h1>
-      <% if current_user.setting.speech_configured? %>
+      <% if AppSetting.speech_configured? %>
           <sl-icon-button 
             id="auto-read-toggle"
             name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 

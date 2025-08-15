@@ -49,6 +49,10 @@ class Llm < ApplicationRecord
     supports_audio_input
   end
 
+  def self.list_selectable_audio_models
+    Llm.where(supports_audio_input: true, api_provider: SupportedApi.selectable_uris).order(:api_provider, :model)
+  end
+
   private
 
   # Sets a standard that API URIs will include the trailing slash

@@ -2,22 +2,48 @@
 class SpeechService
   require "faraday/retry" # needed?
   require "open3"
+  require "tempfile"
+  require "base64"
   include ActionView::Helpers::SanitizeHelper
   class SpeechServiceError < StandardError; end
 
   def initialize(current_user:)
     @user = current_user
-    # Check if speech is configured in user settings during initialization
-    unless @user.settings.speech_configured?
-      raise SpeechServiceError, "Speech is not configured in user settings."
+
+    # Load the singleton AppSetting (configured via Admin → App Settings).
+    app_setting = AppSetting.settings
+    unless app_setting
+      raise SpeechServiceError, "Speech is not configured. Please ask the webmaster to configure App Settings."
     end
 
-    @speech_access_token = @user.settings.speech_api_access_token
-    @speech_base_uri = @user.settings.speech_api_base_uri.presence || "https://api.openai.com/v1/"
-    @tts_model = @user.settings.tts_model_name.presence || "gpt-4o-mini-tts"
-    @tts_voice = @user.settings.tts_voice_name.presence || "verse"
-    @tts_instructions = @user.settings.tts_instructions.presence || "Speak in a calm and friendly tone."
-    @stt_model = @user.settings.stt_model_name.presence || "gpt-4o-mini-transcribe"
+    provider = app_setting.provider_supported_api
+
+    # Resolve base URI and token (token_override wins)
+    @speech_base_uri = provider&.api_base_uri
+    @speech_access_token = app_setting.effective_token
+
+    # TTS/STT defaults come from AppSetting (use resolver helpers to provide defaults)
+    @tts_model = app_setting.tts_model
+    @tts_voice = app_setting.tts_voice
+    @tts_instructions = app_setting.tts_instructions
+    @stt_via = app_setting.stt_method
+    @stt_model = app_setting.stt_model
+
+    # Determine chat STT model and base URI:
+    # If admin selected a specific Llm (stt_model_id), prefer that Llm's model name and api_provider.
+    if @stt_via == "chat" && app_setting.stt_model_id.present?
+      llm = Llm.find_by(id: app_setting.stt_model_id.to_i)
+      if llm
+        @stt_chat_model_name = llm.model
+        @stt_chat_api_base_uri = llm.api_provider
+      else
+        raise SpeechServiceError "STT via LLM selected, but selected stt_model_id #{app_setting.stt_model_id} not found."
+      end
+    else # using Speech API for STT
+      @stt_chat_model_name = app_setting.stt_model
+      @stt_chat_api_base_uri = provider&.api_base_uri
+    end
+
     @client = create_speech_client
   end
 
@@ -174,42 +200,12 @@ class SpeechService
   end
 
   # Speech-to-Text (transcription) method
+  # Accepts a file
   def transcribe(audio_file)
-    begin
-      response = @client.audio.transcribe(
-        parameters: {
-          model: @stt_model,
-          file: audio_file,  # No need to transcode first, API should handle webm or mp4.
-          response_format: "text"
-        }
-      )
-      response # Should be the transcribed text
-    rescue Faraday::BadRequestError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "BadRequestError in STT transcription: #{e.message}: #{error_message}"
-      raise SpeechServiceError, "Bad Request: #{e.message}: #{error_message}"
-    rescue Faraday::TimeoutError => e
-      Rails.logger.error "Faraday::TimeoutError in STT transcription: #{e.message}"
-      raise SpeechServiceError, "Speech API did not respond in time for STT."
-    rescue Faraday::ServerError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ServerError in STT transcription: #{e.message}: #{error_message}"
-      raise SpeechServiceError, "Server Error: #{e.message}: #{error_message}"
-    rescue Faraday::ClientError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ClientError in STT transcription: #{e.message}"
-      raise SpeechServiceError, "#{e.message}: #{error_message}"
-    rescue Faraday::UnauthorizedError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::UnauthorizedError in STT transcription: #{e.message}: #{error_message}"
-      raise SpeechServiceError, "Access key was unauthorized for STT transcription: #{error_message}"
-    rescue Faraday::ResourceNotFound => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ResourceNotFound error in STT transcription: #{e.message}: #{error_message}"
-      raise SpeechServiceError, "Resource not found: #{e.message}: #{error_message}"
-    rescue StandardError => e
-      Rails.logger.error "StandardError in STT transcription: #{e.message}"
-      raise e # Re-raise other standard errors
+    if @stt_via == "chat"
+      transcribe_via_chat(audio_file)
+    else
+      transcribe_via_speech_api(audio_file)
     end
   end
 
@@ -231,6 +227,122 @@ class SpeechService
       faraday.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
         logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')
       end
+    end
+  end
+
+  # Utility helpers for STT
+
+  def ensure_trailing_slash(url)
+    return url if url.blank? || url.end_with?("/")
+    "#{url}/"
+  end
+
+  # Resolve token for an OpenAI-compatible Chat provider (LLM-based transcription)
+  def resolve_llm_access_token(base_uri)
+    # Try a shared SupportedApi token that matches the selected base URI
+    provider = SupportedApi.selectable_for_teachers.find_by(api_base_uri: base_uri)
+    return provider.api_access_token if provider&.api_access_token.present?
+
+    # Fallback to ENV only if base URI matches
+    env_base = ensure_trailing_slash(ENV["OPENAI_API_BASE_URL"])
+    if ENV["OPENAI_API_KEY"].present? && env_base.present? && base_uri.present? && (env_base == base_uri)
+      return ENV["OPENAI_API_KEY"]
+    end
+
+    raise SpeechServiceError, "No access token available for Chat STT provider (#{base_uri})."
+  end
+
+  # Convert any input file to 24kHz mono wav and return Base64 string (delegates to AudioConverter)
+  def convert_file_to_base64_wav(input_path)
+    AudioConverter.convert_to_base64_wav(input_path)
+  end
+
+  # STT via the Speech API (legacy / OpenAI Speech API-compatible route)
+  def transcribe_via_speech_api(audio_file)
+    begin
+      response = @client.audio.transcribe(
+        parameters: {
+          model: @stt_model,
+          file: audio_file,  # No need to transcode first, API should handle webm or mp4.
+          response_format: "text"
+        }
+      )
+      response
+    rescue Faraday::BadRequestError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "BadRequestError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Bad Request: #{e.message}: #{error_message}"
+    rescue Faraday::TimeoutError => e
+      Rails.logger.error "Faraday::TimeoutError in STT transcription (Speech API): #{e.message}"
+      raise SpeechServiceError, "Speech API did not respond in time for STT."
+    rescue Faraday::ServerError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ServerError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Server Error: #{e.message}: #{error_message}"
+    rescue Faraday::ClientError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ClientError in STT transcription (Speech API): #{e.message}"
+      raise SpeechServiceError, "#{e.message}: #{error_message}"
+    rescue Faraday::UnauthorizedError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::UnauthorizedError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Access key was unauthorized for STT transcription: #{error_message}"
+    rescue Faraday::ResourceNotFound => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ResourceNotFound error in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Resource not found: #{e.message}: #{error_message}"
+    rescue StandardError => e
+      Rails.logger.error "StandardError in STT transcription (Speech API): #{e.message}"
+      raise e
+    end
+  end
+
+  # STT via Chat Completions with audio input (OpenAI-compatible)
+  def transcribe_via_chat(audio_file)
+    base_uri = @stt_chat_api_base_uri
+    model = @stt_chat_model_name
+    if base_uri.blank? || model.blank?
+      raise SpeechServiceError, "Chat STT is not fully configured (missing base URI or model)."
+    end
+
+    token = resolve_llm_access_token(base_uri)
+
+    # Convert to wav base64 for max compatibility
+    audio_b64 = convert_file_to_base64_wav(audio_file.path)
+    if audio_b64.blank?
+      raise SpeechServiceError, "Failed to process audio for Chat STT."
+    end
+
+    messages = [
+      { role: "system", content: "Transcribe the audio. Output only the transcript. Don't include timestamps." },
+      { role: "user", content: [ { type: "input_audio", input_audio: { data: audio_b64, format: "wav" } } ] }
+    ]
+
+    begin
+      service = OpenaiApiService.new(
+        current_user: @user,
+        conversation: nil,
+        access_token: token,
+        base_uri: base_uri,
+        model: model,
+        stream_handler: nil,
+        task_system_prompt: nil,
+        enable_tools: false,
+        reasoning_model: false,
+        log_completion: false
+      )
+
+      text = service.complete(messages, temperature: 0).to_s
+      if text.blank?
+        raise SpeechServiceError, "Empty transcription result from Chat STT."
+      end
+      text
+    rescue Faraday::BadRequestError => e
+      Rails.logger.error "BadRequestError in Chat STT: #{e.message}"
+      raise SpeechServiceError, "Bad Request: #{e.message}"
+    rescue OpenAiError => e
+      Rails.logger.error "OpenAiError in Chat STT: #{e.message}"
+      raise SpeechServiceError, e.message
     end
   end
 

@@ -19,9 +19,10 @@ class TranscribeAudioJob < ApplicationJob
     Rails.logger.info "TranscribeAudioJob: Starting transcription for Audio ID #{audio.id} (Message ID: #{message.id})"
     begin
       speech_service = SpeechService.new(current_user: user)
-      # Create a temporary file to pass to the service if needed, or pass content directly if service supports it
+      # Create a temporary file to pass to the service
       audio.file.open do |tempfile|
         transcription_text = speech_service.transcribe(tempfile)
+
         # Check if the transcription was successful
         raise SpeechService::SpeechServiceError, "Transcription failed: No text returned" if transcription_text.blank?
         Rails.logger.info "TranscribeAudioJob: Successfully transcribed Audio ID #{audio.id}"
