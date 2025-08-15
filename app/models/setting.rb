@@ -9,7 +9,6 @@ class Setting < ApplicationRecord
   encrypts :settings
 
   before_validation :ensure_llm_api_base_uri_trailing_slash
-  before_validation :ensure_speech_api_base_uri_trailing_slash
 
   # add a store_accessor for each settings key to add methods to read/write it
   # e.g. user.settings.pref1="123", user.settings.save!
