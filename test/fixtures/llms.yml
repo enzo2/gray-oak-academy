@@ -1,0 +1,7 @@
+one:
+  model: test-audio-model
+  api_provider: "https://api.example.com/"
+  context_length: 200000
+  supports_audio_input: true
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

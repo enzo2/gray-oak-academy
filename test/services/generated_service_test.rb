@@ -1,0 +1,185 @@
+require "test_helper"
+
+class ToolHandlerServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  def setup
+    ActiveJob::Base.queue_adapter = :test
+    @conversation = conversations(:student_conversation)
+    @message = Message.create!(conversation: @conversation, role: :user, content: "Requesting tool")
+  end
+
+  test "execute Chalkboard_URL broadcasts and creates tool message" do
+    # Ensure tool exists in DB so Tool.find_by can locate it
+    chalk_spec = {
+      "name" => "Chalkboard_URL",
+      "description" => "Updates the chalkboard iframe",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "url" => { "type" => "string", "description" => "URL to show" }
+        },
+        "required" => [ "url" ]
+      }
+    }
+    Tool.create!(specifications: chalk_spec)
+
+    service = ToolHandlerService.new(conversation: @conversation, message: @message)
+    tool_call = { id: "call-1", name: "Chalkboard_URL", arguments: { url: "https://example.com" }.to_json }
+
+    # Stub Turbo broadcasts to avoid real ActionCable traffic
+    Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+      clear_enqueued_jobs
+      service.execute_tool_call(tool_call)
+
+      # A tool message should be created and GetLlmCompletionJob enqueued
+      tool_messages = Message.where(role: "tool").order(created_at: :asc)
+      assert tool_messages.any?, "Expected at least one tool message to be created"
+      assert_enqueued_jobs 1, only: GetLlmCompletionJob
+      assert_includes tool_messages.last.content, "Chalkboard URL was changed"
+    end
+  end
+
+  test "execute Chalkboard_File raises tool message when resource missing" do
+    chalk_file_spec = {
+      "name" => "Chalkboard_File",
+      "description" => "Displays a file on the chalkboard",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "resource_id" => { "type" => "string", "description" => "ID of resource" }
+        },
+        "required" => [ "resource_id" ]
+      }
+    }
+    Tool.create!(specifications: chalk_file_spec)
+
+    service = ToolHandlerService.new(conversation: @conversation, message: @message)
+    tool_call = { id: "call-2", name: "Chalkboard_File", arguments: { resource_id: "nonexistent" }.to_json }
+
+    # Stub Turbo broadcast to avoid actual ActionCable usage
+    Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+      service.execute_tool_call(tool_call)
+      tool_message = Message.where(role: "tool").order(created_at: :desc).first
+      assert tool_message.present?, "Tool message should be created for errors"
+      assert_includes tool_message.content, "Resource not found", "Expected error message for missing resource"
+    end
+  end
+
+  test "execute Complete_Lesson creates StudentReport and broadcasts confirmation" do
+    # Create tool record so it can be found and validated
+    complete_spec = {
+      "name" => "Complete_Lesson",
+      "description" => "Marks lesson complete and generates report",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "score" => { "type" => "number", "description" => "Score" },
+          "comments" => { "type" => "string", "description" => "Comments" }
+        },
+        "required" => []
+      }
+    }
+    Tool.create!(specifications: complete_spec)
+
+    student = users(:student)
+    lesson = lessons(:one) || Lesson.first
+    lp = LessonProgress.find_or_create_by(student: student, lesson: lesson)
+    conv = lp.find_or_create_conversation(student)
+
+    msg = Message.create!(conversation: conv, role: :user, content: "Finish lesson")
+    service = ToolHandlerService.new(conversation: conv, message: msg)
+
+    args = { "score" => 0.9, "comments" => "Great job" }
+    tool_call = { id: "call-3", name: "Complete_Lesson", arguments: args.to_json }
+
+    # Stub broadcasting to avoid ActionCable during job creation
+    Turbo::StreamsChannel.stub(:broadcast_append_later_to, true) do
+      assert_difference("StudentReport.count", 1) do
+        service.execute_tool_call(tool_call)
+      end
+    end
+
+    report = StudentReport.order(created_at: :desc).first
+    assert_equal lp.id, report.reportable_id
+    assert_equal "lesson_progress", report.reportable_type.underscore, "Report should be associated with LessonProgress"
+    tool_message = Message.where(role: "tool", tool_call_id: "call-3").first
+    assert tool_message.present?
+    assert_includes tool_message.content, "Confirmation: Lesson completed"
+  end
+end
+
+class OpenaiApiServiceTest < ActiveSupport::TestCase
+  test "complete injects system prompt when missing and returns content" do
+    user = users(:admin)
+    # Build a fake client that responds to chat
+    fake_client = Object.new
+    def fake_client.chat(parameters:)
+      { "choices" => [ { "message" => { "content" => "LLM reply" } } ], "usage" => { "prompt_tokens" => 1, "completion_tokens" => 1, "total_tokens" => 2 } }
+    end
+
+    orig_new = OpenAI::Client.method(:new) rescue nil
+    OpenAI::Client.define_singleton_method(:new) { |*args, &blk| fake_client }
+    begin
+      service = OpenaiApiService.new(current_user: user, access_token: "tok", base_uri: "https://api.test/", model: "m1")
+      messages = [ { role: "user", content: "Hello" } ]
+      result = service.complete(messages, temperature: 0.5)
+      assert_equal "LLM reply", result
+    ensure
+      OpenAI::Client.define_singleton_method(:new, &orig_new.to_proc) if orig_new
+    end
+  end
+
+  test "complete raises OpenAiError on Faraday::TimeoutError" do
+    user = users(:admin)
+    fake_client = Object.new
+    def fake_client.chat(parameters:)
+      raise Faraday::TimeoutError.new("timeout")
+    end
+
+    orig_new = OpenAI::Client.method(:new) rescue nil
+    OpenAI::Client.define_singleton_method(:new) { |*args, &blk| fake_client }
+    begin
+      service = OpenaiApiService.new(current_user: user, access_token: "tok", base_uri: "https://api.test/", model: "m1")
+      messages = [ { role: "user", content: "Hello" } ]
+      assert_raises(OpenAiError) { service.complete(messages) }
+    ensure
+      OpenAI::Client.define_singleton_method(:new, &orig_new.to_proc) if orig_new
+    end
+  end
+end
+
+class PythonCodeExecutorServiceTest < ActiveSupport::TestCase
+  test "execute returns parsed JSON on success and error hash on failure" do
+    code = "print(1+1)"
+
+    # Successful path: create a response object that behaves like Net::HTTPSuccess
+    net_obj = Object.new
+    def net_obj.request(req)
+      Object.new.tap do |o|
+        def o.body; '{"final_expression":2,"success":true}'; end
+        def o.is_a?(klass); klass == Net::HTTPSuccess; end
+      end
+    end
+
+    orig_http_new = Net::HTTP.method(:new) rescue nil
+    Net::HTTP.define_singleton_method(:new) { |host, port| net_obj }
+    begin
+      result = PythonCodeExecutorService.execute(code)
+      assert result.is_a?(Hash)
+      assert_equal true, result["success"]
+    ensure
+      Net::HTTP.define_singleton_method(:new, &orig_http_new.to_proc) if orig_http_new
+    end
+
+    # Simulate network error
+    Net::HTTP.define_singleton_method(:new) { |host, port| raise "connection failed" }
+    begin
+      result = PythonCodeExecutorService.execute(code)
+      assert result.is_a?(Hash)
+      assert_includes result[:error] || result["error"], "connection failed"
+    ensure
+      Net::HTTP.define_singleton_method(:new, &orig_http_new.to_proc) if orig_http_new
+    end
+  end
+end
