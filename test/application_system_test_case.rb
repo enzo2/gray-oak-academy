@@ -7,7 +7,7 @@ module SystemTestAuthenticationHelpers
     fill_in "Password", with: password
     click_on "Log in"
     unless page.has_text?("Dashboard", wait: 5)
-      raise "Login did not complete as expected for user: \\#{user.email}"
+      raise "Login did not complete as expected for user: #{user.email}"
     end
   end
 end

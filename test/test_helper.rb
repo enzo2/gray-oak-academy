@@ -111,8 +111,8 @@ class ActiveSupport::TestCase
       admin_user = users(:admin) rescue User.find_by(email: "admin@example.com")
       if admin_user
         setting = admin_user.setting || admin_user.build_setting
+        setting.llm_api_base_uri = ENV["OPENAI_API_BASE_URL"]
         setting.llm_model_name = "test-audio-model"
-        setting.llm_api_base_uri = "https://api.example.com/"
         setting.save!
       end
 
