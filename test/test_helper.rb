@@ -115,8 +115,10 @@ class ActiveSupport::TestCase
         setting.llm_api_base_uri = "https://api.example.com/"
         setting.save!
       end
-    rescue StandardError
+
+    rescue StandardError => e
       # Fixtures may not be loaded yet in some contexts — ignore failures here.
+      puts "DEBUG: Error in ActiveSupport::TestCase setup: #{e.message}"
     end
   end
 end

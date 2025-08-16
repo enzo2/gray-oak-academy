@@ -96,21 +96,21 @@ class OpenaiApiService
       Rails.logger.debug "API response: #{response}"
 
       # Store the Completion record. Handle streaming and non-streaming cases.
-      @usage = @stream_handler ? @usage_chunk : response.dig("usage")
+      @usage = @stream_handler ? @usage_chunk : response&.dig("usage")
       Completion.create(
         conversation: @conversation,
-        model: @stream_handler ? (@finish_chunk&.dig("model") || @model) : (response.dig("model") || @model),
+        model: @stream_handler ? (@finish_chunk&.dig("model") || @model) : (response&.dig("model") || @model),
         api_provider: @base_uri,
         # model_provider: @usage.dig["provider_name"],
-        prompt_tokens: @usage.dig("prompt_tokens")&.to_i,
-        prompt_audio_tokens: @usage.dig("prompt_tokens_details", "audio_tokens")&.to_i,
-        cached_tokens: @usage.dig("prompt_tokens_details", "cached_tokens")&.to_i,
-        completion_tokens: @usage.dig("completion_tokens")&.to_i,
-        completion_audio_tokens: @usage.dig("completion_tokens_details", "audio_tokens")&.to_i,
-        reasoning_tokens: @usage.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
-        total_tokens: @usage.dig("total_tokens")&.to_i,
-        total_cost: @usage.dig("cost")&.to_f,
-        cache_discount: @usage.dig("cache_discount")&.to_f
+        prompt_tokens: @usage&.dig("prompt_tokens")&.to_i,
+        prompt_audio_tokens: @usage&.dig("prompt_tokens_details", "audio_tokens")&.to_i,
+        cached_tokens: @usage&.dig("prompt_tokens_details", "cached_tokens")&.to_i,
+        completion_tokens: @usage&.dig("completion_tokens")&.to_i,
+        completion_audio_tokens: @usage&.dig("completion_tokens_details", "audio_tokens")&.to_i,
+        reasoning_tokens: @usage&.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
+        total_tokens: @usage&.dig("total_tokens")&.to_i,
+        total_cost: @usage&.dig("cost")&.to_f,
+        cache_discount: @usage&.dig("cache_discount")&.to_f
       ) if @log_completion
 
       # If a stream handler was provided, stop here since the response was already handled
@@ -155,14 +155,14 @@ class OpenaiApiService
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ServerError #{e.message}: #{error_message}"
       raise OpenAiError, "The server encountered an error. Details: #{error_message}"
-    rescue Faraday::ClientError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ClientError #{e.message}"
-      raise OpenAiError, "The client encountered an error. Details: #{error_message}"
     rescue Faraday::UnauthorizedError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::UnauthorizedError #{e.message}: #{error_message}"
       raise OpenAiError, "The access key was unauthorized. Ask teacher to check it."
+    rescue Faraday::ClientError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ClientError #{e.message}"
+      raise OpenAiError, "The client encountered an error. Details: #{error_message}"
     rescue Faraday::ResourceNotFound => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ResourceNotFound error #{e.message}: #{error_message}"
@@ -170,8 +170,10 @@ class OpenaiApiService
     rescue Faraday::TooManyRequestsError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::TooManyRequestsError #{e.message}: #{error_message}"
-      raise
+      raise OpenAiError, "Too many requests. Details: #{error_message}"
     rescue StandardError => e
+      # Re-raise OpenAiError if it's already an OpenAiError, to avoid wrapping it in a generic message
+      raise e if e.is_a?(OpenAiError)
       Rails.logger.error "StandardError #{e.inspect}"
       # Rails.logger.error "Trace: #{e.backtrace.join("\n")}"
       raise OpenAiError, "An unexpected error occurred: #{e.message}"
@@ -233,16 +235,16 @@ class OpenaiApiService
     return unless response.is_a?(Hash)
     refusal = response.dig("choices", 0, "message", "refusal")
     if refusal.present?
-      Rails.logger.warning "LLM refused to fulfill the request with message: #{refusal}"
-      raise "Response refused with message: #{refusal}"
+      Rails.logger.warn "LLM refused to fulfill the request with message: #{refusal}"
+      raise OpenAiError, "Response refused with message: #{refusal}"
     end
   end
 
   def check_content(content)
     # Rails.logger.debug "Checking content: #{content}"
     if content.blank?
-      Rails.logger.warning "Empty response from LLM."
-      raise "Empty response from LLM."
+      Rails.logger.warn "Empty response from LLM."
+      raise OpenAiError, "Empty response from LLM."
     end
   end
 
@@ -252,7 +254,7 @@ class OpenaiApiService
     json_content = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)  # Try to rescue lack of structured output by removing things before and after the JSON
     Rails.logger.info "Extracted JSON: #{json_content}"
     unless json_content.present?
-      raise "No valid JSON found in the LLM response."
+      raise OpenAiError, "No valid JSON found in the LLM response."
     end
 
     # Parse the JSON
@@ -280,7 +282,7 @@ class OpenaiApiService
     unless schemer.valid?(parsed_content)
       errors = schemer.validate(parsed_content).to_a
       # Retry ?
-      raise "Please try again, or try a more intelligent LLM. Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
+      raise OpenAiError, "Please try again, or try a more intelligent LLM. Invalid JSON structure: #{errors.map { |e| e['error'] }.join(', ')}"
     end
   end
 

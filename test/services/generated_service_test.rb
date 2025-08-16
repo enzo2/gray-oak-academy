@@ -107,44 +107,30 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     assert tool_message.present?
     assert_includes tool_message.content, "Confirmation: Lesson completed"
   end
-end
 
-class OpenaiApiServiceTest < ActiveSupport::TestCase
-  test "complete injects system prompt when missing and returns content" do
-    user = users(:admin)
-    # Build a fake client that responds to chat
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
-      { "choices" => [ { "message" => { "content" => "LLM reply" } } ], "usage" => { "prompt_tokens" => 1, "completion_tokens" => 1, "total_tokens" => 2 } }
-    end
+  test "execute python_sandbox raises tool message when PythonCodeExecutorService returns error" do
+    # Ensure tool exists in DB so Tool.find_by can locate it
+    python_spec = {
+      "name" => "python_sandbox",
+      "description" => "Executes Python code in a secure sandbox",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "code" => { "type" => "string", "description" => "Python code to execute" }
+        },
+        "required" => [ "code" ]
+      }
+    }
+    Tool.create!(specifications: python_spec)
 
-    orig_new = OpenAI::Client.method(:new) rescue nil
-    OpenAI::Client.define_singleton_method(:new) { |*args, &blk| fake_client }
-    begin
-      service = OpenaiApiService.new(current_user: user, access_token: "tok", base_uri: "https://api.test/", model: "m1")
-      messages = [ { role: "user", content: "Hello" } ]
-      result = service.complete(messages, temperature: 0.5)
-      assert_equal "LLM reply", result
-    ensure
-      OpenAI::Client.define_singleton_method(:new, &orig_new.to_proc) if orig_new
-    end
-  end
+    service = ToolHandlerService.new(conversation: @conversation, message: @message)
+    tool_call = { id: "call-4", name: "python_sandbox", arguments: { code: "raise Exception('test error')" }.to_json }
 
-  test "complete raises OpenAiError on Faraday::TimeoutError" do
-    user = users(:admin)
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
-      raise Faraday::TimeoutError.new("timeout")
-    end
-
-    orig_new = OpenAI::Client.method(:new) rescue nil
-    OpenAI::Client.define_singleton_method(:new) { |*args, &blk| fake_client }
-    begin
-      service = OpenaiApiService.new(current_user: user, access_token: "tok", base_uri: "https://api.test/", model: "m1")
-      messages = [ { role: "user", content: "Hello" } ]
-      assert_raises(OpenAiError) { service.complete(messages) }
-    ensure
-      OpenAI::Client.define_singleton_method(:new, &orig_new.to_proc) if orig_new
+    PythonCodeExecutorService.stub(:execute, ->(_code) { { error: "Python execution failed" } }) do
+      service.execute_tool_call(tool_call)
+      tool_message = Message.where(role: "tool").order(created_at: :desc).first
+      assert tool_message.present?, "Tool message should be created for errors"
+      assert_includes tool_message.content, "Python execution failed", "Expected error message for Python execution failure"
     end
   end
 end

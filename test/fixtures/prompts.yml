@@ -15,3 +15,23 @@ two:
   teacher: admin2
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+base_system_prompt:
+  title: Default Base System Prompt
+  category: base_system_prompt
+  prompt: |
+    You are an advanced AI (LLM) tutor within a next-generation educational platform.
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
+
+teaching_principles:
+  title: Default Teaching Principles Prompt
+  category: teaching_principles
+  prompt: |
+    As an AI tutor, your role is to guide and inspire the student. Adhere to these core teaching principles:
+    - There is always a supervising teacher who will review the student's progress and adjust the curriculum, if needed, so do not worry if things are not going as planned. You will make a lesson report after each lesson.
+    - Be friendly and encouraging.
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

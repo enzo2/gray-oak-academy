@@ -30,4 +30,36 @@ class UserTest < ActiveSupport::TestCase
     assert_not @admin.valid?, "User should be invalid when teacher is themselves"
     assert_includes @admin.errors[:teacher], "cannot be yourself"
   end
+
+  test "validate_signup_code: requires a valid signup code for new users" do
+    # Test student signup
+    student = User.new(
+      first_name: "Test",
+      last_name: "Student",
+      email: "teststudent@example.com",
+      password: "password",
+      role: "student",
+      signup_code: ENV["STUDENT_SIGNUP_CODE"]
+    )
+    assert student.valid?
+
+    student.signup_code = "invalid"
+    assert_not student.valid?
+    assert_includes student.errors[:signup_code], "is invalid"
+
+    # Test teacher signup
+    teacher = User.new(
+      first_name: "Test",
+      last_name: "Teacher",
+      email: "testteacher@example.com",
+      password: "password",
+      role: "admin",
+      signup_code: ENV["TEACHER_SIGNUP_CODE"]
+    )
+    assert teacher.valid?
+
+    teacher.signup_code = "invalid"
+    assert_not teacher.valid?
+    assert_includes teacher.errors[:signup_code], "is invalid"
+  end
 end
