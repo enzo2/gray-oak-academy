@@ -14,7 +14,8 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     post conversation_messages_path(conversation), params: { message: { content: "Hi", images_data: images_data } }, as: :turbo_stream
     assert_response :success
 
-    msg = conversation.messages.order(created_at: :desc).first
+    conversation.reload
+    msg = conversation.messages.last
     assert_equal "Hi", msg.content
     assert_equal "user", msg.role
     assert msg.images.any?
@@ -33,7 +34,8 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_enqueued_jobs 1, only: GetLlmCompletionJob
 
-    msg = conversation.messages.order(created_at: :desc).first
+    conversation.reload
+    msg = conversation.messages.last
     assert_equal "user", msg.role
     assert msg.audios.any?
   end
@@ -50,7 +52,8 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_enqueued_jobs 1, only: GetLlmCompletionJob
 
-    msg = conversation.messages.order(created_at: :desc).first
+    conversation.reload
+    msg = conversation.messages.last
     assert_equal "user", msg.role
     assert msg.audios.any?
   end
@@ -67,7 +70,8 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_enqueued_jobs 1, only: GetLlmCompletionJob
 
-    msg = conversation.messages.order(created_at: :desc).first
+    conversation.reload
+    msg = conversation.messages.last
     assert_equal "user", msg.role
     assert msg.audios.any?
   end
@@ -75,6 +79,8 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
   test "create_transcribed_message transcribes via SpeechService and enqueues completion" do
     user = users(:student)
     conversation = conversations(:student_generic_conversation)
+    # Start with a fresh conversation
+    conversation.messages.destroy_all
     sign_in(user)
 
     audio_file = fixture_file_upload("files/sample.wav", "audio/wav") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/wav", original_filename: "sample.wav")
@@ -88,7 +94,8 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
       post transcribed_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
       assert_response :success
       assert_enqueued_jobs 1, only: GetLlmCompletionJob
-      msg = conversation.messages.order(created_at: :desc).first
+      conversation.reload
+      msg = conversation.messages.last
       assert_equal "Hello transcribed", msg.content
     end
   end
@@ -138,16 +145,6 @@ end
 class StudentLessonsIntegrationTest < ActionDispatch::IntegrationTest
   test "starting a lesson creates LessonProgress and Conversation for student" do
     student = users(:student)
-    # Ensure the student's teacher has an LLM configured so the lesson page does not redirect
-    # teacher = student.teacher
-    # if teacher
-    #  setting = teacher.setting || teacher.build_setting
-    #  setting.llm_model_name = "test-audio-model"
-    #  setting.llm_api_base_uri = "https://api.example.com/"
-    # Ensure teacher has an access token so llm_configured? returns true in tests
-    #  setting.llm_api_access_token = "test-token"
-    #  setting.save! rescue nil
-    # end
     sign_in(student)
 
     lesson = lessons(:three)

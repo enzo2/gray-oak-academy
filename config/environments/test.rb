@@ -53,4 +53,5 @@ Rails.application.configure do
   config.action_controller.raise_on_missing_callback_actions = true
 
   config.active_record.encryption.encrypt_fixtures = false # https://github.com/rails/rails/issues/48601
+  config.active_record.encryption.support_unencrypted_data = true
 end
