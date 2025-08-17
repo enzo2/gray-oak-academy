@@ -4,7 +4,7 @@ include ActionDispatch::TestProcess::FixtureFile
 class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
   test "sending a message with image attachment creates message and image" do
     user = users(:student)
-    conversation = conversations(:student_conversation)
+    conversation = conversations(:student_generic_conversation)
 
     sign_in(user)
     images_data = [
@@ -23,7 +23,7 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
   test "create_audio_message enqueues GetLlmCompletionJob and creates placeholder (wav)" do
     user = users(:student)
-    conversation = conversations(:student_conversation)
+    conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
     audio_file = fixture_file_upload("files/sample.wav", "audio/wav") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/wav", original_filename: "sample.wav")
@@ -40,7 +40,7 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
   test "create_audio_message enqueues GetLlmCompletionJob and creates placeholder (webm)" do
     user = users(:student)
-    conversation = conversations(:student_conversation)
+    conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
     audio_file = fixture_file_upload("files/sample.webm", "audio/webm") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/webm", original_filename: "sample.webm")
@@ -57,7 +57,7 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
   test "create_audio_message enqueues GetLlmCompletionJob and creates placeholder (mp4)" do
     user = users(:student)
-    conversation = conversations(:student_conversation)
+    conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
     audio_file = fixture_file_upload("files/sample.mp4", "audio/mp4") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/mp4", original_filename: "sample.mp4")
@@ -74,7 +74,7 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
 
   test "create_transcribed_message transcribes via SpeechService and enqueues completion" do
     user = users(:student)
-    conversation = conversations(:student_conversation)
+    conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
     audio_file = fixture_file_upload("files/sample.wav", "audio/wav") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/wav", original_filename: "sample.wav")
@@ -139,18 +139,18 @@ class StudentLessonsIntegrationTest < ActionDispatch::IntegrationTest
   test "starting a lesson creates LessonProgress and Conversation for student" do
     student = users(:student)
     # Ensure the student's teacher has an LLM configured so the lesson page does not redirect
-    teacher = student.teacher
-    if teacher
-      setting = teacher.setting || teacher.build_setting
-      setting.llm_model_name = "test-audio-model"
-      setting.llm_api_base_uri = "https://api.example.com/"
-      # Ensure teacher has an access token so llm_configured? returns true in tests
-      setting.llm_api_access_token = "test-token"
-      setting.save! rescue nil
-    end
+    # teacher = student.teacher
+    # if teacher
+    #  setting = teacher.setting || teacher.build_setting
+    #  setting.llm_model_name = "test-audio-model"
+    #  setting.llm_api_base_uri = "https://api.example.com/"
+    # Ensure teacher has an access token so llm_configured? returns true in tests
+    #  setting.llm_api_access_token = "test-token"
+    #  setting.save! rescue nil
+    # end
     sign_in(student)
 
-    lesson = lessons(:one) || Lesson.first
+    lesson = lessons(:three)
     # Ensure no progress exists for this student/lesson
     LessonProgress.where(student: student, lesson: lesson).delete_all
 
@@ -166,7 +166,7 @@ end
 class TtsAndAudioRecorderIntegrationTest < ActionDispatch::IntegrationTest
   test "tts_stream returns not implemented when speech not configured and streams when configured" do
     # Create an assistant message to stream
-    conv = conversations(:student_conversation)
+    conv = conversations(:student_generic_conversation)
     msg = Message.create!(conversation: conv, role: :assistant, content: "Speak this text")
 
     user = conv.user

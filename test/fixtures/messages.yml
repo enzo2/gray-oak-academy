@@ -1,0 +1,17 @@
+admin_message:
+  conversation: teacher_generic_conversation
+  role: user
+  content: "Hi"
+  created_at: <%= Time.current %>
+
+student_message:
+  conversation: student_lesson_conversation
+  role: assistant
+  content: "Hello student! Ready to begin?"
+  created_at: <%= Time.current %>
+
+student_message:
+  conversation: student_generic_conversation
+  role: user
+  content: "Hi"
+  created_at: <%= Time.current %>

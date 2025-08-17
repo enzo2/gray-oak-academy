@@ -4,7 +4,7 @@ class MessageInputTest < ApplicationSystemTestCase
   def setup
     @student = users(:student)
     sign_in @student
-    @conversation = conversations(:student_conversation)
+    @conversation = conversations(:student_generic_conversation)
   end
 
   test "sending a message with image attachment via file input" do

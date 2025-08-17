@@ -1,5 +1,5 @@
 one:
-  model: test-audio-model
+  model: <%= ENV["DEFAULT_MODEL"] %>
   api_provider: <%= ENV["OPENAI_API_BASE_URL"] %>
   context_length: 200000
   supports_audio_input: true

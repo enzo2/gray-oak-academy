@@ -35,3 +35,12 @@ teaching_principles:
   teacher:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+lesson_tutor_session:
+  title: Default Lesson Tutor Session Prompt
+  category: lesson_tutor_session
+  prompt: |
+    You will act as an in-lesson tutor for the student. Provide clear, scaffolded guidance and brief explanations.
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

@@ -18,6 +18,15 @@ two:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
+three:
+  title: Lesson 3
+  approx_duration_min: 45
+  goals: Learn multiplication
+  course: two
+  position: 3
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
+
 audio_lesson:
   title: Lesson 3 (audio-only)
   approx_duration_min: 20

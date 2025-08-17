@@ -102,23 +102,3 @@ class ActionDispatch::IntegrationTest
   include IntegrationTestAuthenticationHelpers
   include IntegrationRouteHelpers
 end
-
-# Ensure admin teacher has audio-capable LLM settings applied at runtime (avoids encrypted fixture issues)
-class ActiveSupport::TestCase
-  setup do
-    begin
-      # Prefer the fixtures helper if available; fall back to finding the admin by email.
-      admin_user = users(:admin) rescue User.find_by(email: "admin@example.com")
-      if admin_user
-        setting = admin_user.setting || admin_user.build_setting
-        setting.llm_api_base_uri = ENV["OPENAI_API_BASE_URL"]
-        setting.llm_model_name = "test-audio-model"
-        setting.save!
-      end
-
-    rescue StandardError => e
-      # Fixtures may not be loaded yet in some contexts — ignore failures here.
-      puts "DEBUG: Error in ActiveSupport::TestCase setup: #{e.message}"
-    end
-  end
-end

@@ -20,6 +20,15 @@ two:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
+three:
+  content: {}
+  status: published
+  lesson: three
+  teacher: admin2
+  chalkboard_enabled: true
+  audio: disabled
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
 
 audio_only:
   content: {}

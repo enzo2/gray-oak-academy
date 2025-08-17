@@ -5,7 +5,7 @@ class GetLlmCompletionJobTest < ActiveSupport::TestCase
 
   def setup
     ActiveJob::Base.queue_adapter = :test
-    @conversation = conversations(:student_conversation)
+    @conversation = conversations(:student_generic_conversation)
     @user = @conversation.user
   end
 
@@ -123,7 +123,7 @@ end
 class TranscribeAudioJobTest < ActiveSupport::TestCase
   test "transcribes audio, updates message, and destroys audio record" do
     # Create a conversation/message/audio pair
-    conv = conversations(:student_conversation)
+    conv = conversations(:student_generic_conversation)
     msg = Message.create!(conversation: conv, role: :user, content: "")
     audio = Audio.create!(message: msg, content_type: "audio/wav")
 
@@ -154,7 +154,7 @@ class TranscribeAudioJobTest < ActiveSupport::TestCase
 
   test "transcribes mp4 audio (aac) and updates message" do
     # Create a conversation/message/audio pair with mp4 content_type
-    conv = conversations(:student_conversation)
+    conv = conversations(:student_generic_conversation)
     msg = Message.create!(conversation: conv, role: :user, content: "")
     audio = Audio.create!(message: msg, content_type: "audio/mp4")
 
@@ -185,7 +185,7 @@ class TranscribeAudioJobTest < ActiveSupport::TestCase
 
   test "transcribes webm audio (opus) and updates message" do
     # Create a conversation/message/audio pair with webm content_type
-    conv = conversations(:student_conversation)
+    conv = conversations(:student_generic_conversation)
     msg = Message.create!(conversation: conv, role: :user, content: "")
     audio = Audio.create!(message: msg, content_type: "audio/webm")
 

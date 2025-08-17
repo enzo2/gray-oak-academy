@@ -14,6 +14,7 @@ end
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthenticationHelpers
+  include ActiveJob::TestHelper
 
   if ENV["CAPYBARA_SERVER_PORT"]
     served_by host: "rails-app", port: ENV["CAPYBARA_SERVER_PORT"]

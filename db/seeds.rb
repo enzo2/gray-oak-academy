@@ -299,7 +299,7 @@ Prompt.find_or_create_by!(category: 'generative_guidelines') do |p|
     - Applets run in a sandboxed `<iframe>`. Inline applets render in a frame roughly 400px high within the chat flow. Chalkboard applets use the available chalkboard space, which is full-height and wider than the chat.
     - TailwindCSS is loaded in the iframe, so you can use Tailwind classes. Use `font-sans` and `font-serif` to match the main app's fonts.
     - The iframe provides a `div` with `id="sandbox"`.#{' '}
-    - A basic `console.log()` and `console.error()` are available, printing output as text within the iframe below the `sandbox` div.
+    - Console (e.g. `console.log()`, `console.error()`) will print output at the bottom of the sandbox div.
     - You can use React 18 to design applets, or plain JavaScript.
     - React must be imported like so: `import React from 'react'; import ReactDOM from 'react-dom/client';`
     - JSX is NOT supported. There is no build step. Use `React.createElement` instead of JSX.

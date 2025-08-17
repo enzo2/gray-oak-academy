@@ -5,7 +5,7 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
 
   def setup
     ActiveJob::Base.queue_adapter = :test
-    @conversation = conversations(:student_conversation)
+    @conversation = conversations(:student_generic_conversation)
     @message = Message.create!(conversation: @conversation, role: :user, content: "Requesting tool")
   end
 

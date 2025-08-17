@@ -17,7 +17,7 @@ end
 class ConversationModelTest < ActiveSupport::TestCase
   test "context_usage calculation and llm_in_use fallback to ENV" do
     user = users(:student)
-    conversation = conversations(:student_conversation)
+    conversation = conversations(:student_generic_conversation)
 
     # Remove teacher inheritance for this test so settings operate on this user directly
     user.update_column(:teacher_id, nil) rescue nil
@@ -74,7 +74,7 @@ class MessageModelTest < ActiveSupport::TestCase
 
   def setup
     ActiveJob::Base.queue_adapter = :test
-    @conversation = conversations(:student_conversation)
+    @conversation = conversations(:student_generic_conversation)
   end
 
   test "for_completion_with_media formats text, image, and audio correctly" do

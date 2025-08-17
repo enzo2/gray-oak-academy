@@ -1,7 +1,14 @@
-student_conversation:
+student_generic_conversation:
   user: student
-  title: Generic Test Conversation (Student)
+  title: Generic Conversation (student)
 
-admin_conversation:
+teacher_generic_conversation:
   user: admin
-  title: Generic Test Conversation (Admin)
+  title: Generic Conversation (teacher)
+
+
+student_lesson_conversation:
+  user: student
+  title: Test Conversation (Student Lesson)
+  lesson_progress: one
+  created_at: <%= Time.current %>

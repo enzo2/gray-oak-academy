@@ -4,19 +4,13 @@ class AudioAndTtsTest < ApplicationSystemTestCase
   def setup
     @student = users(:student)
     sign_in @student
-    @conversation = conversations(:student_conversation)
+    @conversation = conversations(:student_generic_conversation)
   end
 
   test "audio recording and transcription works" do
-    # Ensure STT is configured for the test user
-    @student.setting.update!(
-      llm_model_name: "test-audio-model",
-      llm_api_base_uri: "https://api.example.com/",
-      llm_api_access_token: "test-token"
-    )
     AppSetting.first.update!(
       stt_method: "speech",
-      stt_model: "whisper-1",
+      stt_model: "stt-model",
       provider_supported_api_id: SupportedApi.find_by(api_base_uri: "https://api.example.com/").id
     )
 
@@ -48,12 +42,6 @@ class AudioAndTtsTest < ApplicationSystemTestCase
   end
 
   test "TTS playback works" do
-    # Ensure TTS is configured for the test user
-    @student.setting.update!(
-      llm_model_name: "test-audio-model",
-      llm_api_base_uri: "https://api.example.com/",
-      llm_api_access_token: "test-token"
-    )
     AppSetting.first.update!(
       tts_model: "tts-1",
       tts_voice: "alloy",

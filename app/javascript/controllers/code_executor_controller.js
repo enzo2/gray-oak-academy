@@ -177,8 +177,52 @@ export default class extends Controller {
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
           body { margin: 0; padding: 10px; font-family: "Inter", "Segoe UI", Optima, Futura, "Gill Sans MT", "Gill Sans", sans-serif; color: #333; }
-          .error { color: red; font-weight: bold; }
-          #sandbox { min-height: 50px; } /* Ensure sandbox div has some height */
+          #sandbox { 
+            min-height: 350px;
+            max-height: 100%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+          }
+          /* Console styles */
+          .console-log { 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+            margin: 4px 0;
+            font-size: 0.8em;
+            line-height: 1;
+            word-break: break-word;
+            white-space: pre-wrap;
+          }
+          .console-error { 
+            color: #dc2626; 
+            font-weight: 500;
+            background: rgba(220, 38, 38, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+          }
+          .console-warn { 
+            color: #d97706;
+            background: rgba(217, 119, 6, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+          }
+          .console-info { 
+            color: #2563eb;
+            background: rgba(37, 99, 235, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+          }
+          .console-debug { 
+            color: #6b7280;
+          }
+          .console-object { 
+            background: #f3f4f6;
+            padding: 8px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            margin: 4px 0;
+            border: 1px solid #e5e7eb;
+          }
         </style>
         <style type="text/tailwindcss">      
           @theme { --font-sans: "InterVariable", sans-serif; --font-serif: "Merriweather", serif; }    
@@ -194,25 +238,74 @@ export default class extends Controller {
             }
           }
         </script>
+        <script>
+          // Override console
+          window.console = {
+            _format: function(args, className) {
+              const logElement = document.createElement('div');
+              logElement.className = 'console-log ' + (className || '');
+              
+              args.forEach(arg => {
+                if (arg instanceof Error) {
+                  const errorDiv = document.createElement('div');
+                  errorDiv.className = 'console-error';
+                  errorDiv.textContent = arg.toString();
+                  if (arg.stack) {
+                    const stackDiv = document.createElement('pre');
+                    stackDiv.className = 'console-debug';
+                    stackDiv.textContent = arg.stack;
+                    errorDiv.appendChild(stackDiv);
+                  }
+                  logElement.appendChild(errorDiv);
+                } else if (typeof arg === 'object') {
+                  try {
+                    const objDiv = document.createElement('div');
+                    objDiv.className = 'console-object';
+                    objDiv.textContent = JSON.stringify(arg, null, 2);
+                    logElement.appendChild(objDiv);
+                  } catch (e) {
+                    logElement.textContent += '[Circular Object]';
+                  }
+                } else {
+                  const span = document.createElement('span');
+                  span.textContent = String(arg) + ' ';
+                  logElement.appendChild(span);
+                }
+              });
+              
+              // Wait for sandbox to be available
+              const appendLog = () => {
+                const sandbox = document.getElementById('sandbox');
+                if (sandbox) {
+                  sandbox.appendChild(logElement);
+                } else {
+                  // If sandbox not available yet, retry in 10ms
+                  setTimeout(appendLog, 10);
+                }
+              };
+              appendLog();
+            },
+            log: function(...args) {
+              this._format(args);
+            },
+            error: function(...args) {
+              this._format(args, 'console-error');
+            },
+            warn: function(...args) {
+              this._format(args, 'console-warn');
+            },
+            info: function(...args) {
+              //this._format(args, 'console-info');
+            },
+            debug: function(...args) {
+              // Ignore debug logs.
+            }
+          };
+        </script>
       </head>
       <body>
         <div id="sandbox"></div>
         <script type="module">
-          // Simple console override
-          const console = {
-            log: (...args) => {
-              const logElement = document.createElement('div');
-              logElement.textContent = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
-              document.getElementById('sandbox').appendChild(logElement);
-            },
-            error: (...args) => {
-              const errorElement = document.createElement('div');
-              errorElement.textContent = 'Error: ' + args.map(arg => arg instanceof Error ? arg.message : (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
-              errorElement.className = 'error';
-              document.getElementById('sandbox').appendChild(errorElement);
-            }
-          };
-
           const codeToExecute = ${codeLiteral};
           const blob = new Blob([codeToExecute], { type: 'text/javascript' });
           const moduleUrl = URL.createObjectURL(blob);
