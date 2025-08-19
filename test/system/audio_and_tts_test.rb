@@ -31,11 +31,12 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     }) do
       # Click the record button
       find("#recordButton").click
+      sleep 0.1
       assert_selector '#recordButton[name="stop-circle"]'
       assert_text "Recording"
 
       # Simulate recording for a short period
-      sleep 1
+      sleep 0.5
 
       # Click stop to send the message
       find("#recordButton").click
