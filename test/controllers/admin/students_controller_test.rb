@@ -11,7 +11,7 @@ class Admin::StudentsControllerTest < ActionDispatch::IntegrationTest
     post adopt_admin_student_path(admin.id)
 
     # Controller redirects with 422 on failure
-    assert_response :unprocessable_content
+    assert_response :unprocessable_entity
     assert_equal admin_students_url, response.location
 
     # Flash should surface the model validation message

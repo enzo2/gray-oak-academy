@@ -46,7 +46,7 @@ module Admin
         redirect_to admin_student_path(@student), status: :see_other
       else
         flash[:error] = @student.errors.full_messages.to_sentence
-        redirect_to admin_students_path, status: :unprocessable_content
+        redirect_to admin_students_path, status: :unprocessable_entity
       end
     end
 
