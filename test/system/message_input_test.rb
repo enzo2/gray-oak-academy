@@ -95,7 +95,7 @@ class MessageInputTest < ApplicationSystemTestCase
     # Fill in the URL dialog
     # Use a local test image served by the Rails test server to avoid external network issues.
     base = URI.parse(page.current_url)
-    local_url = "#{base.scheme}://#{base.host}:#{base.port}/test_images/logo_1024.jpg"
+    local_url = "#{base.scheme}://#{base.host}:#{base.port}/test_images/sample.png"
     fill_sl_input_by_placeholder("Enter full image URL (https://...)", local_url)
     find("sl-button", text: "Submit").click
 
@@ -121,7 +121,8 @@ class MessageInputTest < ApplicationSystemTestCase
     # Simulate pasting an image by dispatching a paste event
     page.execute_script(<<~JS, content_field)
       const targetElement = arguments[0];
-      const blob = new Blob(['fake image data'], { type: 'image/png' });
+      const data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+      const blob = await fetch(data).then(res => res.blob());
       const file = new File([blob], 'pasted_image.png', { type: 'image/png' });
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
@@ -133,7 +134,6 @@ class MessageInputTest < ApplicationSystemTestCase
       });
       targetElement.dispatchEvent(pasteEvent);
     JS
-    perform_enqueued_jobs # Ensure image processing is done
 
     # Wait for preview to show the pasted image
     assert_selector '#previewArea img[alt="Image 1"]', wait: 2

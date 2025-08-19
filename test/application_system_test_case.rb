@@ -10,6 +10,8 @@ Capybara.register_driver :headless_chrome_with_media do |app|
     --use-fake-device-for-media-stream
     --autoplay-policy=no-user-gesture-required
     --no-sandbox
+    --allow-insecure-localhost
+    --mute-audio
     --disable-dev-shm-usage
     --window-size=1400,1400
   ].each { |arg| options.add_argument(arg) }
@@ -28,6 +30,8 @@ Capybara.register_driver :remote_headless_chrome_with_media do |app|
     --use-fake-device-for-media-stream
     --autoplay-policy=no-user-gesture-required
     --no-sandbox
+    --allow-insecure-localhost
+    --mute-audio
     --disable-dev-shm-usage
     --window-size=1400,1400
   ].each { |arg| options.add_argument(arg) }
@@ -71,5 +75,45 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     driven_by :remote_headless_chrome_with_media
   else
     driven_by :headless_chrome_with_media
+  end
+
+  # Return browser console logs (Selenium). Example usage in tests:
+  #   logs = console_logs
+  #   puts logs.map(&:message)
+  def console_logs
+    begin
+      browser = page.driver.browser
+      # Prefer the manage.logs interface if available
+      if browser.respond_to?(:manage) && browser.manage.respond_to?(:logs)
+        browser.manage.logs.get(:browser)
+      elsif browser.respond_to?(:logs)
+        # Some drivers expose logs directly
+        browser.logs.get(:browser)
+      else
+        []
+      end
+    rescue StandardError => e
+      Rails.logger.debug "Failed to fetch browser logs: #{e.class}: #{e.message}"
+      []
+    end
+  end
+
+  # Print browser console logs after each system test run to aid debugging.
+  def teardown
+    super
+    begin
+      logs = console_logs
+      unless logs.nil? || logs.empty?
+        puts "==== BROWSER CONSOLE LOGS ===="
+        logs.each do |entry|
+          # Selenium log entry may respond to .level, .message, .timestamp depending on driver
+          msg = entry.respond_to?(:message) ? entry.message : entry.to_s
+          puts msg
+        end
+        puts "==== END BROWSER CONSOLE LOGS ===="
+      end
+    rescue StandardError => e
+      Rails.logger.debug "Failed to print browser logs in teardown: #{e.class}: #{e.message}"
+    end
   end
 end

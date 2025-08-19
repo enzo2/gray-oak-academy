@@ -160,7 +160,7 @@ export default class extends Controller {
       formData.append('images_data', imagesDataField.value);
     }
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 
     // Choose endpoint based on audioPermitted value
     const endpoint = this.audioInputPermittedValue

@@ -7,6 +7,10 @@ class SpeechService
   include ActionView::Helpers::SanitizeHelper
   class SpeechServiceError < StandardError; end
 
+  class << self
+    attr_accessor :default_conn
+  end
+
   def initialize(current_user:)
     @user = current_user
 
@@ -53,11 +57,12 @@ class SpeechService
   # 2) Send the chunks to ffmpeg to transmux to WebM/opus that the browser can stream with MSE (https://github.com/w3c/media-source/issues/245)
   # 3) Yield the audio chunks to the controller so they can be re-streamed using ActionController:Live.
   # 4) The Stimulus controller plays the stream as soon as it starts receiving chunks.
-  def tts_stream(text, &block)
+  def tts_stream(text, connection: nil, &block)
     text = sanitize_tts_text(text) # in case wasn't done yet
     return if text.blank?
 
-    conn = Faraday.new(url: @speech_base_uri) do |faraday|
+    conn = connection || self.class.default_conn
+    conn ||= Faraday.new(url: @speech_base_uri) do |faraday|
       faraday.request :authorization, "Bearer", @speech_access_token
       faraday.request :retry, { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
       faraday.response :raise_error # Raise errors for 4xx/5xx responses
@@ -120,6 +125,7 @@ class SpeechService
         end
 
         # Make the API request with streaming response handling
+        data_streamed = false
         response = conn.post(endpoint) do |req|
           req.headers["Content-Type"] = "application/json"
           req.headers["Transfer-Encoding"] = "chunked" # Not needed, but included for clarity
@@ -131,12 +137,27 @@ class SpeechService
           req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
             # Skip writing if client disconnected or pipe closed
             next if @client_disconnected || ffmpeg_stdin.closed?
+            data_streamed = true
 
             begin
               ffmpeg_stdin.write(chunk)
             rescue Errno::EPIPE
               Rails.logger.debug "ffmpeg stdin pipe closed prematurely."
             end
+          end
+        end
+
+        # If adapter didn't stream via on_data, write response.body now (e.g., Faraday::Adapter::Test)
+        unless @client_disconnected || ffmpeg_stdin.closed? || data_streamed
+          body = response.body
+          if body.respond_to?(:read)
+            while (c = body.read(8192))
+              ffmpeg_stdin.write(c)
+            end
+          elsif body.respond_to?(:each)
+            body.each { |c| ffmpeg_stdin.write(c) }
+          elsif body
+            ffmpeg_stdin.write(body.to_s)
           end
         end
 

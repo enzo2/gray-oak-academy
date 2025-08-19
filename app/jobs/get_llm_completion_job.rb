@@ -144,6 +144,7 @@ class GetLlmCompletionJob < ApplicationJob
     # Send a final message update as workaround for Turbo::Streams::ActionBroadcastJob being processed out-of-order
     # Message.find_by(id: message_id)&.broadcast_updated
     # Rails.logger.debug "Sent final message update for # #{message_id}"
+
     # Send custom event to the client signalling end of stream (e.g. to trigger TTS)
     Rails.logger.debug("Broadcasting completion finished event to conversation: #{conversation.id}")
     Turbo::StreamsChannel.broadcast_action_to(
