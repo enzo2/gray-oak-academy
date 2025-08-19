@@ -4,13 +4,13 @@ admin_message:
   content: "Hi"
   created_at: <%= Time.current %>
 
-student_message:
+student_message_assistant:
   conversation: student_lesson_conversation
   role: assistant
   content: "Hello student! Ready to begin?"
   created_at: <%= Time.current %>
 
-student_message:
+student_message_user:
   conversation: student_generic_conversation
   role: user
   content: "Hi"

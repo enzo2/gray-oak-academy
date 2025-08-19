@@ -20,8 +20,8 @@ class Message < ApplicationRecord
   def broadcast_created
     return if role_tool? # Don't broadcast tool messages, as they are only shown to the LLM.
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
-    # Could change to broadcast_append_to (synchronous) if any issues with the assistant reply appearing before the user message
-    broadcast_append_later_to(
+    # broadcast_append_later_to seems to work without misordering messages, but keep it synchronous
+    broadcast_append_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
       target: "#{dom_id(conversation)}",

@@ -6,7 +6,6 @@ teacher_generic_conversation:
   user: admin
   title: Generic Conversation (teacher)
 
-
 student_lesson_conversation:
   user: student
   title: Test Conversation (Student Lesson)

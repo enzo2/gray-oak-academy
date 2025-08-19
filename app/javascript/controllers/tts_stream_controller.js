@@ -404,15 +404,19 @@ export default class extends Controller {
          button.dataset.originalIconName = originalIconName;
       }
       button.name = '';
+      try { button.setAttribute('name', ''); } catch (e) {}
     } else if (state === 'playing') {
       button.classList.remove('hidden');
       if (spinner) spinner.classList.add('hidden');
       button.name = 'stop-circle';
+      try { button.setAttribute('name', 'stop-circle'); } catch (e) {}
     } else { // idle or error
       button.classList.remove('hidden');
       button.disabled = false;
       if (spinner) spinner.classList.add('hidden');
-      button.name = button.dataset.originalIconName || originalIconName || 'soundwave';
+      const iconName = button.dataset.originalIconName || originalIconName || 'soundwave';
+      button.name = iconName;
+      try { button.setAttribute('name', iconName); } catch (e) {}
       delete button.dataset.originalIconName;
     }
   }
@@ -434,12 +438,14 @@ export default class extends Controller {
   }
 
   // Handle user toggle for auto-read
-  toggleAutoRead(event) {
+    toggleAutoRead(event) {
     this.autoReadValue = !this.autoReadValue;
     
     const iconButton = document.getElementById('auto-read-toggle');
     if (iconButton) {
-      iconButton.name = this.autoReadValue ? 'volume-up' : 'volume-mute';
+      const autoName = this.autoReadValue ? 'volume-up' : 'volume-mute';
+      iconButton.name = autoName;
+      try { iconButton.setAttribute('name', autoName); } catch (e) {}
     }
     if (this.autoReadValue) {
       this.autoReadLatestMessage();

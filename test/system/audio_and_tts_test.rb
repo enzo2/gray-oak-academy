@@ -13,8 +13,10 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       stt_model: "stt-model",
       provider_supported_api_id: SupportedApi.find_by(api_base_uri: "https://api.example.com/").id
     )
+    assert @conversation.stt_available?
 
     visit conversation_path(@conversation)
+    sleep 1 # Give time for Turbo Streams to connect and page to load
 
     # Stub SpeechService to return transcription
     SpeechService.stub(:new, ->(**_kwargs) {
@@ -35,6 +37,8 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       find("#recordButton").click
       assert_selector '#recordButton[name="mic"]'
       assert_no_text "Recording...press stop to send message."
+      perform_enqueued_jobs # Ensure the transcription job runs
+      sleep 1 # Allow time for the DOM to settle after background jobs and broadcasts
 
       # Wait for the transcribed message to appear
       assert_selector ".message-content", text: "This is a test transcription.", wait: 10
@@ -47,12 +51,15 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       tts_voice: "alloy",
       provider_supported_api_id: SupportedApi.find_by(api_base_uri: "https://api.example.com/").id
     )
+    assert @conversation.tts_available?
 
     visit conversation_path(@conversation)
+    sleep 1 # Give time for Turbo Streams to connect and page to load
 
     # Simulate LLM sending an assistant message
     message = Message.create!(conversation: @conversation, role: :assistant, content: "Hello, this is a test message for TTS.")
-    message.broadcast_created
+    perform_enqueued_jobs # Ensure the message is broadcast and rendered
+    sleep 1 # Allow time for the DOM to settle after background jobs and broadcasts
 
     # Stub SpeechService to simulate streaming audio
     SpeechService.stub(:new, ->(**_kwargs) {

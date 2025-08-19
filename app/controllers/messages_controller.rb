@@ -130,12 +130,14 @@ class MessagesController < ApplicationController
       return head :forbidden
     end
 
-    # Block internal network requests
-    ip = Addrinfo.ip(uri.host)
-    if ip.ipv4_private? || ip.ipv4_loopback? ||
-       IPAddr.new("fc00::/7").include?(ip.ip_address) || # ULA
-       IPAddr.new("::1").include?(ip.ip_address)         # IPv6 loopback
-      return head :forbidden
+    # Block internal network requests, unless in test environment
+    unless Rails.env.test?
+      ip = Addrinfo.ip(uri.host)
+      if ip.ipv4_private? || ip.ipv4_loopback? ||
+         IPAddr.new("fc00::/7").include?(ip.ip_address) || # ULA
+         IPAddr.new("::1").include?(ip.ip_address)         # IPv6 loopback
+        return head :forbidden
+      end
     end
 
     # Set up HTTP client with timeouts

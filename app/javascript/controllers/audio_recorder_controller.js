@@ -66,6 +66,7 @@ export default class extends Controller {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       this.recordButtonTarget.classList.add("text-red-500")
       this.recordButtonTarget.name = "stop-circle" // Change icon to stop
+      this.recordButtonTarget.setAttribute("name", "stop-circle");
       this.helpTextTarget.textContent = "Recording...press stop to send message."
       this.helpTextTarget.classList.remove("hidden")
       this.isRecording = true
@@ -94,6 +95,7 @@ export default class extends Controller {
         stream.getTracks().forEach(track => track.stop()) // Stop microphone access
         this.isRecording = false
         this.recordButtonTarget.name = "mic" // Change icon back to mic
+        this.recordButtonTarget.setAttribute("name", "mic");
         this.recordButtonTarget.classList.remove("text-red-500")
         this.helpTextTarget.innerText = this.helpTextTarget.dataset.defaultValue
         this.helpTextTarget.classList.add("hidden")
@@ -119,6 +121,7 @@ export default class extends Controller {
       alert(message)
       this.isRecording = false
       this.recordButtonTarget.name = "mic"
+      this.recordButtonTarget.setAttribute("name", "mic");
       this.recordButtonTarget.classList.remove("text-red-500")
       this.helpTextTarget.innerText = this.helpTextTarget.dataset.defaultValue
       this.helpTextTarget.classList.add("hidden")
