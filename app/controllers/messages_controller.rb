@@ -25,7 +25,7 @@ class MessagesController < ApplicationController
       "#{dom_id(@message.conversation)}_message_form",
       partial: "messages/form",
       locals: { conversation: @message.conversation, error: e.message }
-    ), status: :unprocessable_entity
+    ), status: :unprocessable_content
   end
 
 
@@ -60,7 +60,7 @@ class MessagesController < ApplicationController
       GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message
     else
       @message.destroy
-      render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_entity
+      render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_content
     end
   rescue StandardError => e
     # Attempt to destroy the potentially created message if an error occurred after its creation
@@ -99,13 +99,13 @@ class MessagesController < ApplicationController
         @message.destroy
         broadcast_flash(conversation, "Failed to save message: #{@message.errors.full_messages.join(', ')}")
         Rails.logger.error "Failed to save message: #{@message.errors.full_messages.join(', ')}"
-        render json: { error: "Failed to save message", details: @message.errors.full_messages }, status: :unprocessable_entity
+        render json: { error: "Failed to save message", details: @message.errors.full_messages }, status: :unprocessable_content
       end
     rescue SpeechService::SpeechServiceError => e
       @message.destroy
       Rails.logger.error "STT failed: #{e.message}"
       broadcast_flash(conversation, "Transcription failed: #{e.message}")
-      render json: { error: "Transcription failed", details: e.message }, status: :unprocessable_entity
+      render json: { error: "Transcription failed", details: e.message }, status: :unprocessable_content
     rescue StandardError => e
       @message.destroy
       Rails.logger.error "Unexpected error during STT: #{e.message}"

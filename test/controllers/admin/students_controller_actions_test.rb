@@ -63,7 +63,7 @@ class Admin::StudentsControllerActionsTest < ActionDispatch::IntegrationTest
       }, as: :turbo_stream
     end
 
-    assert_response :unprocessable_entity
+    assert_response :unprocessable_content
     assert_match /First name can&#39;t be blank/, response.body
   end
 

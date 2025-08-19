@@ -23,8 +23,8 @@ module Admin
       else
         flash.now[:error] = @student.errors.full_messages.to_sentence
         respond_to do |format|
-          format.turbo_stream { render "update_new_student_modal", status: :unprocessable_entity }
-          format.html { redirect_to admin_students_path, status: :unprocessable_entity }
+          format.turbo_stream { render "update_new_student_modal", status: :unprocessable_content }
+          format.html { redirect_to admin_students_path, status: :unprocessable_content }
         end
       end
     end
@@ -46,7 +46,7 @@ module Admin
         redirect_to admin_student_path(@student), status: :see_other
       else
         flash[:error] = @student.errors.full_messages.to_sentence
-        redirect_to admin_students_path, status: :unprocessable_entity
+        redirect_to admin_students_path, status: :unprocessable_content
       end
     end
 

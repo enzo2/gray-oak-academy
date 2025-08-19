@@ -32,7 +32,7 @@ module Admin
         end
       else
         respond_to do |format|
-          format.turbo_stream { render :create, status: :unprocessable_entity }
+          format.turbo_stream { render :create, status: :unprocessable_content }
         end
       end
     end
@@ -44,7 +44,7 @@ module Admin
       if @resource.update(resource_params)
         redirect_to admin_resources_path
       else
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 

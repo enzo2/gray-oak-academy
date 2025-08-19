@@ -18,7 +18,7 @@ module Admin
         redirect_to admin_tools_path
       else
         respond_to do |format|
-          format.turbo_stream { render :update, status: :unprocessable_entity }
+          format.turbo_stream { render :update, status: :unprocessable_content }
         end
       end
     end

@@ -21,7 +21,7 @@ module Admin
         end
       else
         respond_to do |format|
-          format.turbo_stream { render :create, status: :unprocessable_entity }
+          format.turbo_stream { render :create, status: :unprocessable_content }
         end
       end
     end
@@ -39,7 +39,7 @@ module Admin
         end
       else
         respond_to do |format|
-          format.turbo_stream { render :update, status: :unprocessable_entity }
+          format.turbo_stream { render :update, status: :unprocessable_content }
         end
       end
     end

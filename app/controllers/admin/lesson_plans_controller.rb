@@ -13,7 +13,7 @@ module Admin
         redirect_to edit_admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), status: :see_other
       else
         flash[:error] = "Failed to update lesson plan."
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 

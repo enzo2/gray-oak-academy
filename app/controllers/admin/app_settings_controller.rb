@@ -11,7 +11,7 @@ module Admin
         redirect_to admin_app_setting_path, notice: "App settings updated."
       else
         flash.now[:error] = "Failed to update app settings."
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 

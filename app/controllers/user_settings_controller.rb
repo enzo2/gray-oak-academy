@@ -10,7 +10,7 @@ class UserSettingsController < ApplicationController
     else
       flash.now[:error] = "Settings were not updated."
       respond_to do |format|
-        format.turbo_stream { render :update, status: :unprocessable_entity }
+        format.turbo_stream { render :update, status: :unprocessable_content }
       end
     end
   end

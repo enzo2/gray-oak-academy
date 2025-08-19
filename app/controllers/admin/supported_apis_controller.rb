@@ -24,7 +24,7 @@ module Admin
         redirect_to admin_supported_apis_path, notice: "Supported API created."
       else
         flash.now[:error] = "Failed to create Supported API."
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -42,7 +42,7 @@ module Admin
         redirect_to admin_supported_apis_path, notice: "Supported API updated."
       else
         flash.now[:error] = "Failed to update Supported API."
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
