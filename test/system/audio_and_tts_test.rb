@@ -169,7 +169,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
 
       assert_selector tts_button_selector, visible: true, wait: 5
       find(tts_button_selector).click
-      sleep 0.5 # Allow time for the click event to be processed (fails on CI but not locally)
+      sleep 1 # Allow time for the click event to be processed (fails on CI but not locally)
 
       # Assert button state changes to playing (when Audio 'playing' fires)
       assert_selector "#message_#{message.id}_buttons sl-icon-button[name='stop-circle']", wait: 5
