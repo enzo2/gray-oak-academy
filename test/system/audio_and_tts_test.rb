@@ -7,7 +7,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     @conversation = conversations(:student_generic_conversation)
   end
 
-  test "audio recording for transcription works" do
+  test "recording and submitting for transcription works" do
     AppSetting.first.update!(
       stt_method: "speech", stt_model: "stt-model", tts_model: "tts-1", tts_voice: "alloy",
       provider_supported_api_id: SupportedApi.find_by(api_base_uri: "https://api.example.com/").id
@@ -44,7 +44,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     end
   end
 
-  test "audio recording for transcription works with chat STT and no Speech API" do
+  test "recording and submitting for transcription works with chat STT and no Speech API" do
     # Configure Chat STT without Speech API provider/token so TTS remains unavailable.
     app_setting = AppSetting.first
     app_setting.update!(
@@ -75,8 +75,8 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
       # Simulate recording for a short period
-      sleep 0.5
-      assert_selector '#recordButton[name="stop-circle"]'
+      sleep 1
+      assert_selector '#recordButton[name="stop-circle"]', wait: 3
       assert_text "Recording"
 
       # Click stop to send the message
@@ -85,27 +85,65 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       assert_no_text "Recording"
 
       # Wait for the transcribed message to appear
-      assert_selector ".message-content", text: "Chat STT transcription.", wait: 2
+      assert_selector ".message-content", text: "Chat STT transcription.", wait: 5
     end
   end
 
-  # UNFINISHED
-  test "audio recording for raw audio message completion works" do
+  test "recording and submitting raw audio message completion works without STT configured" do
+    # Ensure STT is NOT configured
+    AppSetting.first.update!(
+      stt_method: "speech",
+      stt_model: nil,
+      provider_supported_api_id: nil,
+      token_override: nil,
+      tts_model: nil,
+      tts_voice: nil
+    )
+    refute AppSetting.stt_configured?
+
+    # But ensure the conversation's LLM supports audio input
     Llm.update_all(supports_audio_input: true)
     assert @conversation.audio_input_permitted?
 
     visit conversation_path(@conversation)
-    # Click the record button
-    assert_selector '#recordButton[name="mic"]', wait: 3
-    find("#recordButton").click
-    # Simulate recording for a short period
-    sleep 1
-    assert_selector '#recordButton[name="stop-circle"]'
-    assert_text "Recording"
-    find("#recordButton").click
-    assert_selector '#recordButton[name="mic"]'
-    assert_no_text "Recording"
-    perform_enqueued_jobs
+
+    # Stub OpenaiApiService to avoid external network calls and Stub SpeechService to return transcription
+    OpenaiApiService.stub(:new, ->(**_kwargs) {
+      Object.new.tap do |o|
+        # complete should be a no-op for streaming tests here (GetLlmCompletionJob will not raise)
+        def o.complete(*_args); ""; end
+      end
+    }) do
+      SpeechService.stub(:new, ->(**_kwargs) {
+        Object.new.tap do |o|
+          def o.transcribe(_file); "This is a test transcription from conversation LLM."; end
+          def o.sanitize_tts_text(text); text; end
+        end
+      }) do
+        # Click the record button
+        assert_selector '#recordButton[name="mic"]', wait: 3
+        find("#recordButton").click
+        # Simulate recording for a short period
+        sleep 1
+        assert_selector '#recordButton[name="stop-circle"]'
+        assert_text "Recording"
+
+        # Click stop to send the message
+        find("#recordButton").click
+        assert_selector '#recordButton[name="mic"]'
+        assert_no_text "Recording"
+        sleep 0.5
+        perform_enqueued_jobs # GetLlmCompletionJob runs...
+        sleep 0.5
+        perform_enqueued_jobs # then TranscribeAudioJob
+
+        # Wait for the "Transcribing..." message to disappear, indicating the update has been broadcast
+        assert_no_text "Transcribing...", wait: 5
+
+        # Wait for the transcribed message to appear
+        assert_selector ".message-content", text: "This is a test transcription from conversation LLM.", wait: 5
+      end
+    end
   end
 
   test "TTS playback works" do

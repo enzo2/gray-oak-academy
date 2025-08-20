@@ -1,6 +1,6 @@
 one:
   model: <%= ENV["DEFAULT_MODEL"] %>
-  api_provider: <%= ENV["OPENAI_API_BASE_URL"] %>
+  api_provider: <%= ENV["OPENAI_API_BASE_URL"].to_s.end_with?('/') ? ENV["OPENAI_API_BASE_URL"] : "#{ENV['OPENAI_API_BASE_URL']}/" %>
   context_length: 200000
   supports_audio_input: true
   created_at: <%= Time.now %>
