@@ -43,6 +43,7 @@ class Conversation < ApplicationRecord
   end
 
   # Check if the current LLM supports audio input, and the conversation is set to allow it.
+  # This will determine whether the client posts to the audio endpoint or the transcription endpoint.
   def audio_input_permitted?
     audio_input_supported? && audio_setting != "disabled"
   end

@@ -18,7 +18,7 @@ class TranscribeAudioJob < ApplicationJob
 
     Rails.logger.info "TranscribeAudioJob: Starting transcription for Audio ID #{audio.id} (Message ID: #{message.id})"
     begin
-      speech_service = SpeechService.new(current_user: user)
+      speech_service = SpeechService.new(current_user: user, conversation: message.conversation)
       # Create a temporary file to pass to the service
       audio.file.open do |tempfile|
         transcription_text = speech_service.transcribe(tempfile)
@@ -34,8 +34,7 @@ class TranscribeAudioJob < ApplicationJob
         audio.destroy # this will also purge_later the file
         Rails.logger.info "TranscribeAudioJob: Purged Audio ID #{audio.id}"
 
-        # Broadcast the updated message to the conversation once the audio is destroyed
-        # message.broadcast_updated
+        # No need to broadcast here; the message update will trigger the callback to broadcast
       end
 
     rescue SpeechService::SpeechServiceError => e

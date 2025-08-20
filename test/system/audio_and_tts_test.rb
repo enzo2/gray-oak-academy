@@ -99,7 +99,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     assert_selector '#recordButton[name="mic"]', wait: 3
     find("#recordButton").click
     # Simulate recording for a short period
-    sleep 0.5
+    sleep 1
     assert_selector '#recordButton[name="stop-circle"]'
     assert_text "Recording"
     find("#recordButton").click

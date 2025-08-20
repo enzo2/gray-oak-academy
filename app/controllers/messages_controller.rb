@@ -57,7 +57,7 @@ class MessagesController < ApplicationController
       respond_to do |format|
         format.turbo_stream { render :create } # Render the turbo_stream view to show a placeholder for the assistant reply
       end
-      GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message
+      GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message (will also handle transcription)
     else
       @message.destroy
       render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_content
@@ -86,7 +86,7 @@ class MessagesController < ApplicationController
 
     # Run STT using SpeechService
     begin
-      speech_service = SpeechService.new(current_user: current_user)
+      speech_service = SpeechService.new(current_user: current_user, conversation: conversation)
       transcription = speech_service.transcribe(params[:audio].tempfile)
       @message.content = transcription
       if @message.save # This will broadcast the updated message
@@ -183,7 +183,7 @@ class MessagesController < ApplicationController
       return head :no_content
     end
 
-    speech_service = SpeechService.new(current_user: current_user)
+    speech_service = SpeechService.new(current_user: current_user, conversation: message.conversation)
     text_to_speak = speech_service.sanitize_tts_text(message.content) # Don't speak tool calls for now
     if text_to_speak.blank?
       return head :no_content

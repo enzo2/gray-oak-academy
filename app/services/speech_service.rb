@@ -11,8 +11,9 @@ class SpeechService
     attr_accessor :default_conn
   end
 
-  def initialize(current_user:)
+  def initialize(current_user:, conversation: nil)
     @user = current_user
+    @conversation = conversation
 
     app_setting = AppSetting.settings
     unless app_setting
@@ -40,7 +41,7 @@ class SpeechService
         @stt_chat_model_name = llm.model
         @stt_chat_api_base_uri = llm.api_provider
       else
-        raise SpeechServiceError, "STT via LLM selected, but selected stt_model_id #{app_setting.stt_model_id} not found."
+        raise SpeechServiceError, "STT via LLM was set up, but selected stt_model_id #{app_setting.stt_model_id} not found."
       end
     else # using Speech API for STT
       @stt_model = app_setting.stt_model.presence
@@ -225,9 +226,22 @@ class SpeechService
   # Accepts a file
   def transcribe(audio_file)
     if @stt_via == "chat" && @stt_chat_api_base_uri.present? && @stt_chat_model_name.present?
-      transcribe_via_chat(audio_file)
-    else
+      # Use LLM-based chat STT via shared helper
+      transcribe_with_llm(audio_file: audio_file,
+                          base_uri: @stt_chat_api_base_uri,
+                          model: @stt_chat_model_name,
+                          context: "Chat STT")
+    elsif @stt_via != "chat" && @client && @stt_model.present?
       transcribe_via_speech_api(audio_file)
+    elsif @conversation&.audio_input_permitted?
+      # If STT is not configured, we can still fall back to the current conversation's LLM if it supports audio input.
+      Rails.logger.warn "STT not configured, falling back to conversation's audio LLM for transcription."
+      transcribe_with_llm(audio_file: audio_file,
+                          base_uri: @conversation.llm_in_use.api_provider,
+                          model: @conversation.llm_in_use.model,
+                          context: "conversation LLM")
+    else
+      raise SpeechServiceError, "STT is not configured and no fallback audio LLM is available."
     end
   end
 
@@ -319,24 +333,17 @@ class SpeechService
     end
   end
 
-  # STT via Chat Completions with audio input (OpenAI-compatible)
-  def transcribe_via_chat(audio_file)
-    base_uri = @stt_chat_api_base_uri
-    model = @stt_chat_model_name
-    if base_uri.blank? || model.blank?
-      raise SpeechServiceError, "Chat STT is not fully configured (missing base URI or model)."
-    end
-
+  # Shared helper to transcribe audio using an LLM/chat completion provider.
+  def transcribe_with_llm(base_uri:, model:, audio_file:, context: nil)
     token = resolve_llm_access_token(base_uri)
 
-    # Convert to wav base64 for max compatibility
     audio_b64 = convert_file_to_base64_wav(audio_file.path)
     if audio_b64.blank?
-      raise SpeechServiceError, "Failed to process audio for Chat STT."
+      raise SpeechServiceError, "Failed to process audio for #{context || ''} transcription."
     end
 
     messages = [
-      { role: "system", content: "Transcribe the audio. Output only the transcript. Don't include timestamps." },
+      { role: "system", content: "Transcribe the audio. Output only the transcript. Don't include timestamps or other metadata; only the human-readable transcript." },
       { role: "user", content: [ { type: "input_audio", input_audio: { data: audio_b64, format: "wav" } } ] }
     ]
 
@@ -356,14 +363,14 @@ class SpeechService
 
       text = service.complete(messages, temperature: 0).to_s
       if text.blank?
-        raise SpeechServiceError, "Empty transcription result from Chat STT."
+        raise SpeechServiceError, "Empty transcription result from #{context || 'LLM'}."
       end
       text
     rescue Faraday::BadRequestError => e
-      Rails.logger.error "BadRequestError in Chat STT: #{e.message}"
+      Rails.logger.error "BadRequestError in #{context || 'LLM'} transcription: #{e.message}"
       raise SpeechServiceError, "Bad Request: #{e.message}"
     rescue OpenAiError => e
-      Rails.logger.error "OpenAiError in Chat STT: #{e.message}"
+      Rails.logger.error "OpenAiError in #{context || 'LLM'} transcription: #{e.message}"
       raise SpeechServiceError, e.message
     end
   end
