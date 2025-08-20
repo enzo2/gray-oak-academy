@@ -155,7 +155,7 @@ class MessageInputTest < ApplicationSystemTestCase
 
     # Add an image first
     find('sl-icon-button[name="images"]').click
-    sleep 0.05 # Allow menu to open
+    sleep 0.2 # Allow menu to open
     find('sl-menu-item[value="file"]').click
     # Attach a dummy image file
     find('input[data-new-message-target="fileInput"]', visible: false, wait: 20).attach_file(Rails.root.join("test/fixtures/files/sample.png"))
