@@ -102,3 +102,13 @@ class ActionDispatch::IntegrationTest
   include IntegrationTestAuthenticationHelpers
   include IntegrationRouteHelpers
 end
+
+# Load test support helpers (small modules under test/support/)
+Dir[File.join(__dir__, "support", "**", "*.rb")].sort.each { |f| require f }
+
+# Include TestSupport helpers into Integration and System test bases so they are available
+# to integration/job/system tests without requiring them individually.
+if defined?(TestSupport::SpeechStubs)
+  ActionDispatch::IntegrationTest.include TestSupport::SpeechStubs
+  ApplicationSystemTestCase.include TestSupport::SpeechStubs if defined?(ApplicationSystemTestCase)
+end

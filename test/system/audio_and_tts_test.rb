@@ -21,12 +21,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     visit conversation_path(@conversation)
 
     # Stub SpeechService to return transcription
-    SpeechService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |o|
-        def o.transcribe(_file); "This is a test transcription."; end
-        def o.sanitize_tts_text(text); text; end
-      end
-    }) do
+    stub_speech_service(transcription: "This is a test transcription.") do
       # Click the record button
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
@@ -66,12 +61,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     visit conversation_path(@conversation)
 
     # Stub SpeechService to return transcription
-    SpeechService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |o|
-        def o.transcribe(_file); "Chat STT transcription."; end
-        def o.sanitize_tts_text(text); text; end
-      end
-    }) do
+    stub_speech_service(transcription: "Chat STT transcription.") do
       # Click the record button
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
@@ -115,27 +105,21 @@ class AudioAndTtsTest < ApplicationSystemTestCase
         def o.complete(*_args); ""; end
       end
     }) do
-      SpeechService.stub(:new, ->(**_kwargs) {
-        Object.new.tap do |o|
-          def o.transcribe(_file); "This is a test transcription from conversation LLM."; end
-          def o.sanitize_tts_text(text); text; end
-        end
-      }) do
+        stub_speech_service(transcription: "This is a test transcription from conversation LLM.") do
         # Click the record button
         assert_selector '#recordButton[name="mic"]', wait: 3
         find("#recordButton").click
         # Simulate recording for a short period
-        sleep 1
-        assert_selector '#recordButton[name="stop-circle"]'
+        assert_selector '#recordButton[name="stop-circle"]', wait: 3
         assert_text "Recording"
 
         # Click stop to send the message
         find("#recordButton").click
         assert_selector '#recordButton[name="mic"]'
         assert_no_text "Recording"
-        sleep 0.5
+        sleep 0.1
         perform_enqueued_jobs # GetLlmCompletionJob runs...
-        sleep 0.5
+        sleep 0.1
         perform_enqueued_jobs # then TranscribeAudioJob
 
         # Wait for the "Transcribing..." message to disappear, indicating the update has been broadcast
@@ -160,26 +144,9 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     # Simulate LLM sending an assistant message
     message = Message.create!(conversation: @conversation, role: :assistant, content: "Hello, this is a test message for TTS.")
     perform_enqueued_jobs # Ensure the message is broadcast and rendered
-    sleep 1 # Allow time for the DOM to settle after background jobs and broadcasts
+    assert_selector "#message_#{message.id}_buttons", wait: 5
 
-    # Use Faraday::Adapter::Test to simulate provider returning a valid WebM/Opus stream
-    require "faraday"
-
-    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.post("/audio/speech") do |_env|
-        body = File.binread(Rails.root.join("test/fixtures/files/sample.webm"))
-        [ 200, { "Content-Type" => "audio/webm" }, body ]
-      end
-    end
-
-    conn = Faraday.new(url: "https://api.example.com/") do |b|
-      b.adapter :test, stubs
-    end
-
-    begin
-      # Inject test connection so SpeechService uses it instead of building a real Faraday client
-      SpeechService.default_conn = conn
-
+    with_faraday_tts_stub(fixture: "test/fixtures/files/sample.webm") do
       # Wait for the TTS button to appear and be enabled
       tts_button_selector = "#message_#{message.id}_buttons sl-icon-button[name='volume-up']"
 
@@ -207,14 +174,6 @@ class AudioAndTtsTest < ApplicationSystemTestCase
 
       # Assert button state eventually changes back to idle (volume-up) when playback ends
       assert_selector "#message_#{message.id}_buttons sl-icon-button[name='volume-up']", wait: 10
-    ensure
-      SpeechService.default_conn = nil
-      Faraday.default_connection = nil
-      begin
-        stubs.verify_stubbed_calls
-      rescue StandardError
-        # ignore verification errors in CI flake scenarios
-      end
     end
   end
 end

@@ -68,6 +68,7 @@ end
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include SystemTestAuthenticationHelpers
   include ActiveJob::TestHelper
+  include TestSupport::SpeechStubs if defined?(TestSupport::SpeechStubs)
 
   if ENV["CAPYBARA_SERVER_PORT"]
     served_by host: "rails-app", port: ENV["CAPYBARA_SERVER_PORT"]
