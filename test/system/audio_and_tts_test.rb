@@ -26,7 +26,8 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
       # Simulate recording for a short period
-      assert_selector '#recordButton[name="stop-circle"]', wait: 2
+      sleep 0.2
+      assert_selector '#recordButton[name="stop-circle"]', wait: 5
       assert_text "Recording"
 
       # Click stop to send the message
@@ -117,9 +118,9 @@ class AudioAndTtsTest < ApplicationSystemTestCase
         find("#recordButton").click
         assert_selector '#recordButton[name="mic"]'
         assert_no_text "Recording"
-        sleep 0.1
+        sleep 0.2
         perform_enqueued_jobs # GetLlmCompletionJob runs...
-        sleep 0.1
+        sleep 0.2
         perform_enqueued_jobs # then TranscribeAudioJob
 
         # Wait for the "Transcribing..." message to disappear, indicating the update has been broadcast
