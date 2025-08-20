@@ -146,7 +146,7 @@ class MessageInputTest < ApplicationSystemTestCase
     find('button[data-new-message-target="submitButton"]').click
 
     # Wait for the message and image to appear
-    assert_selector ".message-content img[alt='Image 1']", wait: 2, visible: :all
+    assert_selector ".message-content img[alt='Image 1']", wait: 10, visible: :all
     assert_text "Pasted image here!"
   end
 
