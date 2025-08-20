@@ -89,6 +89,7 @@ class MessageInputTest < ApplicationSystemTestCase
 
     # Click the images menu button
     find('sl-icon-button[name="images"]').click
+    sleep 0.05
     # Click "Link to URL"
     find('sl-menu-item[value="url"]').click
 

@@ -120,7 +120,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
         assert_no_text "Recording"
         sleep 0.2
         perform_enqueued_jobs # GetLlmCompletionJob runs...
-        sleep 0.2
+        sleep 0.5
         perform_enqueued_jobs # then TranscribeAudioJob
 
         # Wait for the "Transcribing..." message to disappear, indicating the update has been broadcast
