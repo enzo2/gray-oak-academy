@@ -14,41 +14,39 @@ class SpeechService
   def initialize(current_user:)
     @user = current_user
 
-    # Load the singleton AppSetting (configured via Admin → App Settings).
     app_setting = AppSetting.settings
     unless app_setting
-      raise SpeechServiceError, "Speech is not configured. Please ask the webmaster to configure App Settings."
+      raise SpeechServiceError, "Please ask the webmaster to configure App Settings."
     end
 
-    provider = app_setting.provider_supported_api
+    # Resolve base URI and token for Speech API
 
-    # Resolve base URI and token (token_override wins)
-    @speech_base_uri = provider&.api_base_uri
-    @speech_access_token = app_setting.effective_token
+    if AppSetting.speech_configured?
+      @speech_base_uri = app_setting.provider_base_uri
+      @speech_access_token = app_setting.effective_token
 
-    # TTS/STT defaults come from AppSetting (use resolver helpers to provide defaults)
-    @tts_model = app_setting.tts_model
-    @tts_voice = app_setting.tts_voice
-    @tts_instructions = app_setting.tts_instructions
-    @stt_via = app_setting.stt_method
-    @stt_model = app_setting.stt_model
+      @tts_model = app_setting.tts_model.presence
+      @tts_voice = app_setting.tts_voice.presence
+      @tts_instructions = app_setting.tts_instructions.presence || "Speak in a calm and friendly tone."
+
+    end
+
+    @stt_via = app_setting.stt_method # Should never be blank since default "speech" is initialized in db seeds
 
     # Determine chat STT model and base URI:
-    # If admin selected a specific Llm (stt_model_id), prefer that Llm's model name and api_provider.
     if @stt_via == "chat" && app_setting.stt_model_id.present?
       llm = Llm.find_by(id: app_setting.stt_model_id.to_i)
       if llm
         @stt_chat_model_name = llm.model
         @stt_chat_api_base_uri = llm.api_provider
       else
-        raise SpeechServiceError "STT via LLM selected, but selected stt_model_id #{app_setting.stt_model_id} not found."
+        raise SpeechServiceError, "STT via LLM selected, but selected stt_model_id #{app_setting.stt_model_id} not found."
       end
     else # using Speech API for STT
-      @stt_chat_model_name = app_setting.stt_model
-      @stt_chat_api_base_uri = provider&.api_base_uri
+      @stt_model = app_setting.stt_model.presence
+      # Client is only used for STT, since TTS uses Faraday directly for streaming
+      @client = create_speech_client if @speech_base_uri && @speech_access_token
     end
-
-    @client = create_speech_client
   end
 
   # There is no point using ruby-openai client for TTS, as the response time is so slow without chunked transfer encoding.
@@ -58,6 +56,9 @@ class SpeechService
   # 3) Yield the audio chunks to the controller so they can be re-streamed using ActionController:Live.
   # 4) The Stimulus controller plays the stream as soon as it starts receiving chunks.
   def tts_stream(text, connection: nil, &block)
+    unless @speech_base_uri && @speech_access_token && @tts_model && @tts_voice
+      raise SpeechServiceError, "Speech API is not configured. Please ask the webmaster to configure App Settings."
+    end
     text = sanitize_tts_text(text) # in case wasn't done yet
     return if text.blank?
 
@@ -223,7 +224,7 @@ class SpeechService
   # Speech-to-Text (transcription) method
   # Accepts a file
   def transcribe(audio_file)
-    if @stt_via == "chat"
+    if @stt_via == "chat" && @stt_chat_api_base_uri.present? && @stt_chat_model_name.present?
       transcribe_via_chat(audio_file)
     else
       transcribe_via_speech_api(audio_file)

@@ -3,13 +3,13 @@
 <div class="flex flex-col h-full max-w-full"
      data-controller="tts-stream"
      data-tts-stream-auto-read-value="<%= conversation.auto_read_default %>"
-     data-tts-stream-speech-configured-value="<%= conversation.tts_available? %>"
+     data-tts-stream-speech-configured-value="<%= AppSetting.tts_configured? %>"
      data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
   <div id="conversation-header">
     <% if conversation.lesson_progress.nil? %>
       <div class="flex justify-between items-center space-x-4 mb-1">
         <div class="flex justify-start items-center space-x-2">
-          <% if conversation.tts_available? %>
+          <% if AppSetting.tts_configured? %>
               <sl-icon-button 
                 id="auto-read-toggle"
                 name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 

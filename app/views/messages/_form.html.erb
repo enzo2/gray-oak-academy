@@ -9,7 +9,7 @@
         new_message_audio_setting_value: audio_setting, # Refers to whether audio input is disabled/enabled/enforced for the conversation/lesson.
         audio_recorder_audio_setting_value: audio_setting, 
         audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?, # Refers to whether the LLM supports raw audio input, and audio_setting is not disabled.
-        audio_recorder_stt_available_value: conversation.stt_available?, # Refers to whether the user has STT set up.
+        audio_recorder_stt_available_value: AppSetting.stt_configured?,
         audio_recorder_conversation_id_value: conversation.id
       }
   ) do |form| %>

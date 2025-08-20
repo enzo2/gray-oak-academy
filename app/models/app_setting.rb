@@ -36,12 +36,29 @@ class AppSetting < ApplicationRecord
     provider_supported_api&.api_base_uri
   end
 
-  # TTS/Speech considered configured if app-wide AppSetting is present and has a provider + token.
+  # Checks whether Speech API (OpenAI-compatible) is configured for TTS/STT
   def self.speech_configured?
     app_setting = self.first
-    return false unless app_setting && app_setting.provider_base_uri.present?
-    if app_setting.effective_token.present?
-      true
+    app_setting&.provider_base_uri.present? && app_setting&.effective_token.present?
+  end
+
+  def self.tts_configured?
+    # Currently, Speech API is the only way to provide TTS.
+    self.speech_configured?
+  end
+
+  # STT can be done via Speech API, or audio LLMs. Webmaster must choose.
+  def self.stt_configured?
+    app_setting = self.first
+    return false unless app_setting
+
+    case app_setting.stt_method
+    when "speech" # Using Speech API for STT
+      app_setting.provider_base_uri.present? &&
+      app_setting.effective_token.present? &&
+      app_setting.stt_model.present?
+    when "chat" # Using LLM for STT
+      app_setting.stt_model_id.present?
     else
       false
     end

@@ -7,15 +7,15 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     @conversation = conversations(:student_generic_conversation)
   end
 
-  test "audio recording and transcription works" do
+  test "audio recording for transcription works" do
     AppSetting.first.update!(
       stt_method: "speech", stt_model: "stt-model", tts_model: "tts-1", tts_voice: "alloy",
       provider_supported_api_id: SupportedApi.find_by(api_base_uri: "https://api.example.com/").id
     )
-    # Make sure the conversation will use transcription (not raw audio upload) in this test.
+    # Make sure the conversation will use transcription endpoint (not raw audio upload) in this test.
     # Some fixtures default LLMs to support audio input; force-disable audio input for this test run.
     Llm.update_all(supports_audio_input: false)
-    assert @conversation.stt_available?
+    assert AppSetting.stt_configured?
 
     visit conversation_path(@conversation)
 
@@ -31,7 +31,6 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       find("#recordButton").click
       # Simulate recording for a short period
       sleep 0.5
-      take_screenshot
       assert_selector '#recordButton[name="stop-circle"]'
       assert_text "Recording"
 
@@ -39,11 +38,74 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       find("#recordButton").click
       assert_selector '#recordButton[name="mic"]'
       assert_no_text "Recording"
-      perform_enqueued_jobs # Ensure the transcription job runs
 
       # Wait for the transcribed message to appear
       assert_selector ".message-content", text: "This is a test transcription.", wait: 2
     end
+  end
+
+  test "audio recording for transcription works with chat STT and no Speech API" do
+    # Configure Chat STT without Speech API provider/token so TTS remains unavailable.
+    app_setting = AppSetting.first
+    app_setting.update!(
+      stt_method: "chat",
+      stt_model_id: Llm.first.id,
+      provider_supported_api_id: nil,
+      token_override: nil,
+      tts_model: nil,
+      tts_voice: nil
+    )
+
+    # Force the conversation to use transcription endpoint (not raw audio upload)
+    Llm.update_all(supports_audio_input: false)
+
+    assert AppSetting.stt_configured?
+    refute AppSetting.speech_configured?
+
+    visit conversation_path(@conversation)
+
+    # Stub SpeechService to return transcription
+    SpeechService.stub(:new, ->(**_kwargs) {
+      Object.new.tap do |o|
+        def o.transcribe(_file); "Chat STT transcription."; end
+        def o.sanitize_tts_text(text); text; end
+      end
+    }) do
+      # Click the record button
+      assert_selector '#recordButton[name="mic"]', wait: 3
+      find("#recordButton").click
+      # Simulate recording for a short period
+      sleep 0.5
+      assert_selector '#recordButton[name="stop-circle"]'
+      assert_text "Recording"
+
+      # Click stop to send the message
+      find("#recordButton").click
+      assert_selector '#recordButton[name="mic"]'
+      assert_no_text "Recording"
+
+      # Wait for the transcribed message to appear
+      assert_selector ".message-content", text: "Chat STT transcription.", wait: 2
+    end
+  end
+
+  # UNFINISHED
+  test "audio recording for raw audio message completion works" do
+    Llm.update_all(supports_audio_input: true)
+    assert @conversation.audio_input_permitted?
+
+    visit conversation_path(@conversation)
+    # Click the record button
+    assert_selector '#recordButton[name="mic"]', wait: 3
+    find("#recordButton").click
+    # Simulate recording for a short period
+    sleep 0.5
+    assert_selector '#recordButton[name="stop-circle"]'
+    assert_text "Recording"
+    find("#recordButton").click
+    assert_selector '#recordButton[name="mic"]'
+    assert_no_text "Recording"
+    perform_enqueued_jobs
   end
 
   test "TTS playback works" do
@@ -51,7 +113,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       stt_method: "speech", stt_model: "stt-model", tts_model: "tts-1", tts_voice: "alloy",
       provider_supported_api_id: SupportedApi.find_by(api_base_uri: "https://api.example.com/").id
     )
-    assert @conversation.tts_available?
+    assert AppSetting.tts_configured?
 
     visit conversation_path(@conversation)
     # sleep 1 # Give time for Turbo Streams to connect and page to load
