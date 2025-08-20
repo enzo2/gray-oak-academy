@@ -14,7 +14,8 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     )
     # Make sure the conversation will use transcription endpoint (not raw audio upload) in this test.
     # Some fixtures default LLMs to support audio input; force-disable audio input for this test run.
-    Llm.update_all(supports_audio_input: false)
+    llm = @conversation.llm_in_use
+    llm&.update!(supports_audio_input: false)
     assert AppSetting.stt_configured?
 
     visit conversation_path(@conversation)
@@ -30,8 +31,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
       # Simulate recording for a short period
-      sleep 0.5
-      assert_selector '#recordButton[name="stop-circle"]'
+      assert_selector '#recordButton[name="stop-circle"]', wait: 2
       assert_text "Recording"
 
       # Click stop to send the message
@@ -57,7 +57,8 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     )
 
     # Force the conversation to use transcription endpoint (not raw audio upload)
-    Llm.update_all(supports_audio_input: false)
+    llm = @conversation.llm_in_use
+    llm&.update!(supports_audio_input: false)
 
     assert AppSetting.stt_configured?
     refute AppSetting.speech_configured?
@@ -75,7 +76,6 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
       # Simulate recording for a short period
-      sleep 1
       assert_selector '#recordButton[name="stop-circle"]', wait: 3
       assert_text "Recording"
 
@@ -102,7 +102,8 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     refute AppSetting.stt_configured?
 
     # But ensure the conversation's LLM supports audio input
-    Llm.update_all(supports_audio_input: true)
+    llm = @conversation.llm_in_use
+    llm&.update!(supports_audio_input: true)
     assert @conversation.audio_input_permitted?
 
     visit conversation_path(@conversation)

@@ -17,7 +17,7 @@ Since this is a major shift in educational approach (although it's old-fashioned
 
 Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. However, prompted well, the LLM is positioned to improve upon the supervising teacher's curriculum and capabilities, both in the planning and execution phases. Try the app, and you'll see what I mean.
 
-*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's still early and doesn't have much test coverage.
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling.
 
 ## Features
 - Self-hostable with docker
