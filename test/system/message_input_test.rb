@@ -64,7 +64,8 @@ class MessageInputTest < ApplicationSystemTestCase
 
     # Click the images menu button
     find('sl-icon-button[name="images"]').click
-    sleep 0.1 # Wait for the menu to open
+    sleep 0.2 # Wait for the menu to open
+    assert_selector 'sl-menu-item[value="file"]', visible: true, wait: 5
     # Click "Upload Image"
     find('sl-menu-item[value="file"]').click
 

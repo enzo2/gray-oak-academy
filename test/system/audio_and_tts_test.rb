@@ -169,7 +169,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
 
       assert_selector tts_button_selector, visible: true, wait: 5
       find("sl-icon-button[name='volume-up']").click
-      sleep 3
+      # sleep 1
       take_screenshot
       # Assert button state changes to playing (when Audio 'playing' fires)
       assert_selector "#message_#{message.id}_buttons sl-icon-button[name='stop-circle']", wait: 10
