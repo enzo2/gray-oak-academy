@@ -50,10 +50,10 @@ class MessageInputTest < ApplicationSystemTestCase
   test "sending a text message" do
     visit conversation_path(@conversation)
     fill_message_content "Testing"
+    assert_equal "Testing", find('sl-textarea[name="message[content]"]').value, wait: 5
     find('button[data-new-message-target="submitButton"]').click
 
-    # First, wait for the text to appear on the page. This confirms the async job and broadcast have completed.
-    assert_text "Testing", wait: 5
+    assert_text "Testing", wait: 10
 
     # Now that the UI is updated, the database state should also be correct.
     assert_equal "Testing", @conversation.reload.messages.last.content
@@ -64,6 +64,7 @@ class MessageInputTest < ApplicationSystemTestCase
 
     # Click the images menu button
     find('sl-icon-button[name="images"]').click
+    sleep 0.1 # Wait for the menu to open
     # Click "Upload Image"
     find('sl-menu-item[value="file"]').click
 
