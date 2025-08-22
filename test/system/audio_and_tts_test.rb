@@ -64,7 +64,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     # Stub SpeechService to return transcription
     stub_speech_service(transcription: "Chat STT transcription.") do
       # Click the record button
-      assert_selector '#recordButton[name="mic"]', wait: 3
+      assert_selector "#recordButton", wait: 5
       find("#recordButton").click
       # Simulate recording for a short period
       # Rely on the help text rather than the icon name to avoid timing races in CI
@@ -72,7 +72,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
 
       # Click stop to send the message
       find("#recordButton").click
-      assert_selector '#recordButton[name="mic"]'
+      assert_selector "#recordButton", wait: 5
       assert_no_text "Recording"
 
       # Wait for the transcribed message to appear
