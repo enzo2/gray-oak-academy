@@ -167,13 +167,9 @@ class AudioAndTtsTest < ApplicationSystemTestCase
         puts "Failed to dispatch llm-completion-finished event: #{e.class}: #{e.message}"
       end
       assert_selector tts_button_selector, visible: true, wait: 5
-      # Click the TTS button scoped to this message to avoid hitting another message's button in CI
       find(tts_button_selector).click
-      # sleep 1
-      take_screenshot
       # Assert button state changes to playing (when Audio 'playing' fires)
       assert_selector "#message_#{message.id}_buttons sl-icon-button[name='stop-circle']", wait: 10
-      take_screenshot
       # Assert button state eventually changes back to idle (volume-up) when playback ends
       assert_selector "#message_#{message.id}_buttons sl-icon-button[name='volume-up']", wait: 10
     end
