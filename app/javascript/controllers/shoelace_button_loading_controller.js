@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Adds 'loading' attribute to shoelace submit button when form submitted
+// Adds 'loading' attribute to shoelace submit buttons when form submitted
 export default class extends Controller {
   connect() {
     this.element.addEventListener("turbo:submit-start", this.startLoading);

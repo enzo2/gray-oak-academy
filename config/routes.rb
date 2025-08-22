@@ -19,7 +19,7 @@ Rails.application.routes.draw do
   patch "user_settings", to: "user_settings#update"
   get "user_settings/llm_models", to: "user_settings#llm_models"
 
-  resources :conversations, only: [ :index, :show, :create, :destroy ] do
+  resources :conversations, only: [ :index, :show, :create, :update, :destroy ] do
     resources :messages, only: [ :create ]
     post "audio_messages", to: "messages#create_audio_message"
     post "transcribed_messages", to: "messages#create_transcribed_message"

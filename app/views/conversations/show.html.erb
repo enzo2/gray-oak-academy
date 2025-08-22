@@ -1,17 +1,21 @@
-<div class="flex flex-row gap-4 px-2 md:px-4 pt-2 h-[calc(100dvh-2.5rem)]">
-  <!-- Chats Column (Collapsible Sidebar) -->
+<!-- Horizontal flexbox container (sidebar, chat, chalkboard) -->
+<div class="flex flex-row gap-2 pt-2 px-2 md:px-3 h-[calc(100dvh-2.5rem)]" data-controller="drawer collapsible">
+
+  <!-- Chats Column (Collapsible Sidebar) - for mouse devices -->
   <div class="not-any-pointer-fine:hidden flex-none border-r border-stone-500 transition-all duration-150 ease-in-out w-8 hover:w-32 group">
     <!-- Sidebar header with icon -->
     <div class="flex items-center justify-left h-12 group-hover:justify-between">
-      <sl-icon name="list" class="group-hover:hidden"></sl-icon>
+      <sl-icon name="layout-text-sidebar-reverse" class="pl-1 md:pl-0 group-hover:hidden"></sl-icon>
       <h3 class="text-lg hidden group-hover:block">Chats</h3>
+      <!--
       <div class="hidden group-hover:block">
         <%= link_to conversations_path,
             data: { turbo_method: :post },
-            class: "" do %>
-          <sl-icon-button name="plus-circle"></sl-icon-button>
+            class: "text-lg" do %>
+          <sl-icon-button name="plus-square"></sl-icon-button>
         <% end %>
       </div>
+      -->
     </div>
     <!-- Chat list (hidden when collapsed) -->
     <div class="mb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-2 overflow-hidden" id="conversation-list">
@@ -19,8 +23,97 @@
     </div>
   </div>
 
+  <!-- Chats drawer (for touch devices)> -->
+  <sl-drawer placement="start" class="" data-drawer-target="drawer" data-drawer-id="1">
+    <sl-icon-button slot="header-actions" name="plus-square" href="<%= conversations_path %>"></sl-icon-button>
+    <script>//add data-turbo-method="post" to the <a> inside the shadowDOM of the slot="header-actions" sl-icon-button
+      customElements.whenDefined('sl-icon-button').then(() => {
+        // Wait for the next frame to ensure shadowRoot is populated
+        requestAnimationFrame(() => {
+          const button = document.querySelector('sl-icon-button[slot="header-actions"]');
+          if (button && button.shadowRoot) {
+            const anchor = button.shadowRoot.querySelector('a');
+            if (anchor) {
+              anchor.setAttribute('data-turbo-method', 'post');
+            }
+          }
+        });
+      });
+    </script>
+    <h3 class="text-2xl font-semibold mb-4">Chats</h3>
+    <div id="" class=" text-xl">
+      <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
+    </div>
+  </sl-drawer>
+
   <!-- Conversation Column -->
-  <div class="min-w-0 grow max-w-[40rem] xl:max-2xl:max-w-[32rem] h-full" id="conversation-panel">
+  <div class="grow 
+              min-w-0 max-w-[40rem] xl:max-2xl:max-w-[32rem] 
+              h-full 
+              flex flex-col" id="conversation-panel">
+    <!-- Chat navigation bar -->
+    <div class="flex flex-row justify-between text-lg">
+      <div><!-- Left buttons -->
+        <sl-icon-button name="layout-text-sidebar-reverse" class="any-pointer-fine:hidden" aria-label="Open chats" 
+                        data-action="click->drawer#open" data-drawer-id="1"></sl-icon-button> <!-- Touchscreen-only chats sidebar button -->
+        <%= link_to conversations_path,
+            data: { turbo_method: :post },
+            class: "" do %>
+          <sl-icon-button name="plus-square"></sl-icon-button>
+        <% end %>
+      </div>
+      <div><!-- Right buttons -->
+        <sl-icon-button data-collapsible-target="button" name="chevron-down" aria-controls="conversation-details" aria-expanded="false" label="Details" 
+          data-action="click->collapsible#toggle"></sl-icon-button>
+        <% if AppSetting.tts_configured? %>
+          <sl-icon-button 
+            id="auto-read-toggle"
+            name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+            label="Auto-read" 
+            class="text-xl [&::part(base)]:pt-2"
+            data-action="click->tts-stream#toggleAutoRead"
+            ></sl-icon-button>
+        <% end %>
+        <sl-dropdown class="" placement="bottom-end">
+          <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
+          <sl-menu>
+            <sl-menu-item data-action="click->drawer#showDialog" data-dialog-id="<%= dom_id(@conversation) %>_rename_dialog">
+              <%# The rename sl-dialog is defined in the _list partial %>
+              <div class="flex items-center">
+                <sl-icon name="pencil" label="Rename conversation" class=""></sl-icon>
+                <span class="pl-2">Rename</span>
+              </div>
+            </sl-menu-item>
+            <sl-menu-item onclick="this.children[0].click">
+              <%= button_to conversation_path(@conversation), method: :delete, 
+                    data: { turbo_method: :delete, turbo_confirm: "Are you sure?" } do %>
+                <div class="flex items-center">
+                  <sl-icon name="trash" label="Delete conversation" class="hover:text-red-700"></sl-icon>
+                  <span class="pl-2">Delete</span>
+                </div>
+              <% end %>
+            </sl-menu-item>
+          </sl-menu>
+        </sl-dropdown>
+      </div>
+    </div>
+
+    <div id="conversation-details" data-collapsible-target="panel" class="hidden">
+      <div class="flex justify-between items-center space-x-4 mb-1">
+        <div class="flex justify-start items-center space-x-2">
+          <span class="text-dim text-sm"><%= @conversation.llm_in_use_name %></span>
+        </div>
+        <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
+      </div>
+
+      <%= turbo_frame_tag "context-usage-bar" do %>
+        <%= render partial: "conversations/context_usage_bar", locals: { context_usage: @conversation.context_usage } %>
+      <% end %>
+      
+    </div>
+
+    <hr class="border-stone-500">
+
     <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
   </div>
 

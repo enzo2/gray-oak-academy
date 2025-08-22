@@ -28,7 +28,7 @@ import "@shoelace-style/shoelace/details";
 import "@shoelace-style/shoelace/copy-button";
 import "@shoelace-style/shoelace/tree";
 import "@shoelace-style/shoelace/tree-item";
+import "@shoelace-style/shoelace/drawer";
 
 import "katex";
 import "katex-auto-render";
-

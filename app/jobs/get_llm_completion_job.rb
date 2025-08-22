@@ -57,9 +57,11 @@ class GetLlmCompletionJob < ApplicationJob
     # Method to flush the message content buffer
     flush_buffer = ->(force: false) do
       return if content_buffer.empty?
-      if force || (Time.current - last_update_time > update_interval)
-        message.update!(content: message.content + content_buffer)
-        content_buffer = ""
+      if force || message.nil? || (Time.current - last_update_time > update_interval)
+        message ||= conversation.messages.build(role: "assistant")
+        message.content = (message.persisted? ? message.content : "") + content_buffer
+        message.save! # This will broadcast the new or updated message via callbacks in the model
+        content_buffer = "" # Clear the buffer after flushing
         last_update_time = Time.current
         Rails.logger.debug "Flushed message content buffer to DB"
       end
@@ -68,9 +70,6 @@ class GetLlmCompletionJob < ApplicationJob
     # Return a proc that handles the streamed response
     Proc.new do |chunk|
       begin
-        # Create the empty message if it doesn't exist yet. This will broadcast the message.
-        message ||= conversation.messages.create!(role: "assistant", content: "")
-
         # Check if the chunk contains tool calls, and accumulate them by index
         if chunk.dig("delta", "tool_calls").present?
           Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
@@ -109,7 +108,7 @@ class GetLlmCompletionJob < ApplicationJob
           end
           tool_calls_buffer.clear # Clear buffer for subsequent tool calls
         elsif chunk.dig("delta", "content")&.length&. > 0
-          # For standard content, append the new chunk to the message's content
+          # For standard content, append the new chunk to the buffer
           Rails.logger.debug "Content chunk: #{chunk.inspect}"
           content_buffer += chunk.dig("delta", "content")
           flush_buffer.call

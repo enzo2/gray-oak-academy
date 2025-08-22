@@ -1,36 +1,14 @@
 <%= turbo_stream_from "#{dom_id(conversation)}" %>
 
-<div class="flex flex-col h-full max-w-full"
+
+<div class="grow overflow-hidden h-full max-w-full
+            flex flex-col"
      data-controller="tts-stream"
      data-tts-stream-auto-read-value="<%= conversation.auto_read_default %>"
      data-tts-stream-speech-configured-value="<%= AppSetting.tts_configured? %>"
      data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
-  <div id="conversation-header">
-    <% if conversation.lesson_progress.nil? %>
-      <div class="flex justify-between items-center space-x-4 mb-1">
-        <div class="flex justify-start items-center space-x-2">
-          <% if AppSetting.tts_configured? %>
-              <sl-icon-button 
-                id="auto-read-toggle"
-                name="<%= conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-                label="Auto-read" 
-                class="text-xl [&::part(base)]:pt-2"
-                data-action="click->tts-stream#toggleAutoRead"
-                ></sl-icon-button>
-          <% end %>
-          <span class="text-dim text-sm"><%= conversation.llm_in_use_name %></span>
-        </div>
-        <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
-      </div>
-    <% end %>
 
-    <%= turbo_frame_tag "context-usage-bar" do %>
-      <%= render partial: "conversations/context_usage_bar", locals: { context_usage: conversation.context_usage } %>
-    <% end %>
-  
-    <hr class="border-stone-500">
-  </div>
-
+  <!-- Conversation -->
   <div class="grow overflow-y-auto overflow-x-hidden pr-4" 
        id="<%= dom_id(conversation) %>"
        data-controller="conversation"

@@ -1,10 +1,10 @@
 # For generic LLM chats, not lessons.
 class ConversationsController < ApplicationController
-  before_action :set_conversation, only: [ :show, :destroy ]
+  before_action :set_conversation, only: [ :show, :update, :destroy ]
   before_action :require_llm_configured, only: [ :index, :show ]
 
   def index
-    # For now, redirect to the most recent generic conversation
+    # Redirect to the most recent generic conversation
     conversation = current_user.conversations.generic.order(created_at: :desc).first
     if conversation
       redirect_to conversation_path(conversation)
@@ -27,12 +27,20 @@ class ConversationsController < ApplicationController
     redirect_to conversation_path(@conversation) # Show the new conversation.
   end
 
+
+  def update
+    # Only the title can be updated.
+    if @conversation.update(conversation_params)
+      redirect_to conversation_path(@conversation), notice: "Conversation updated."
+    else
+      redirect_to conversation_path(@conversation), status: :unprocessable_content, alert: "Failed to update conversation."
+    end
+  end
+
   def destroy
     @conversation.destroy
     set_conversations # Refresh the list of conversations
-    respond_to do |format|
-      format.turbo_stream
-    end
+    redirect_to conversations_path
   end
 
   private
@@ -67,5 +75,9 @@ class ConversationsController < ApplicationController
       break title unless current_user.conversations.exists?(title: title)
       counter += 1
     end
+  end
+
+  def conversation_params
+    params.require(:conversation).permit(:title)
   end
 end

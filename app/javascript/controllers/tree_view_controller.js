@@ -1,5 +1,7 @@
 import { Controller } from "@hotwired/stimulus";
 
+// From Rails Blocks
+
 export default class extends Controller {
   static targets = ["icon", "content"];
   static values = {

@@ -31,6 +31,7 @@ pin "@shoelace-style/shoelace/details", to: "https://cdn.jsdelivr.net/npm/@shoel
 pin "@shoelace-style/shoelace/copy-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/copy-button/copy-button.js"
 pin "@shoelace-style/shoelace/tree", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree/tree.js"
 pin "@shoelace-style/shoelace/tree-item", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree-item/tree-item.js"
+pin "@shoelace-style/shoelace/drawer", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/drawer/drawer.js"
 
 pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.js"
 pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"

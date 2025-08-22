@@ -1,36 +1,52 @@
 <%# We want the page fill the viewport, minus the header height, without any scrollbar or excess at the bottom %>
-<div class="flex h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] overflow-hidden">
+<div class="flex h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] overflow-hidden"
+    data-controller="collapsible">
   <!-- Conversation Column -->
   <div class="h-full min-w-0 
               grow xl:max-2xl:max-w-[32rem] 2xl:max-w-[40rem]
-              px-2 md:px-4 pt-2 
+              px-2 md:px-4
               flex flex-col 
               border-r border-stone-200 dark:border-stone-700">
     <!-- Lesson Info -->
     <div class="flex items-center justify-between space-x-2">
-      <h1 class="text-xl font-semibold mb-1"><%= @lesson.title %></h1>
-      <% if AppSetting.speech_configured? %>
-          <sl-icon-button 
-            id="auto-read-toggle"
-            name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-            label="Auto-read" 
-            class="text-xl [&::part(base)]:pt-2"
-            onclick="window.dispatchEvent(new Event('toggleAutoRead'))">
-          </sl-icon-button>
-      <% end %>
+      <div><!-- Left title -->
+       <h1 class="text-xl font-semibold"><%= @lesson.title %></h1>
+      </div>
+      <div><!-- Right buttons -->
+        <sl-dropdown class="" placement="bottom-end">
+          <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
+          <sl-menu>
+          <% if AppSetting.speech_configured? %>
+            <sl-menu-item onclick="window.dispatchEvent(new Event('toggleAutoRead'))">
+              <div class="flex items-center justify-start">
+                <sl-icon-button 
+                  id="auto-read-toggle"
+                  name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+                  label="Auto-read" 
+                  class="text-xl [&::part(base)]:pt-2">
+                </sl-icon-button>
+                <span class="pl-2">Auto-read</span>
+              </div>
+            </sl-menu-item>
+          <% end %>
+          </sl-menu>
+        </sl-dropdown>
+      </div>
     </div>
 
     <% if @conversation.messages.length < 2 %>
-      <div class="flex-none flex items-center gap-2 mb-1" id="lesson-duration">
-        <sl-icon name="clock" class="text-stone-500"></sl-icon>
-        <span class="text-sm text-stone-600 dark:text-stone-400">Approx. <%= @lesson.approx_duration_min %> minutes</span>
-      </div>
+    <div class="flex-none flex items-center gap-2 mb-1" id="lesson-duration">
+      <sl-icon name="clock" class="text-stone-500"></sl-icon>
+      <span class="text-sm text-stone-600 dark:text-stone-400">Approx. <%= @lesson.approx_duration_min %> minutes</span>
+    </div>
     <% end %>
 
+    <hr class="border-stone-500">
+
     <!-- Conversation -->
-    <div class="grow overflow-hidden">   
+       
       <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
-    </div>
+  
   </div>
 
   <!-- Chalkboard Area - remainder of space - grow as needed -->
