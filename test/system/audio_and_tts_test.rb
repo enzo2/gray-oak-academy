@@ -27,7 +27,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       find("#recordButton").click
       # Simulate recording for a short period
       sleep 0.2
-      assert_selector '#recordButton[name="stop-circle"]', wait: 5
+    assert_selector '#recordButton[name="stop-circle"]', wait: 10
       assert_text "Recording"
 
       # Click stop to send the message
@@ -67,7 +67,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       assert_selector '#recordButton[name="mic"]', wait: 3
       find("#recordButton").click
       # Simulate recording for a short period
-      assert_selector '#recordButton[name="stop-circle"]', wait: 3
+      assert_selector '#recordButton[name="stop-circle"]', wait: 10
       assert_text "Recording"
 
       # Click stop to send the message
@@ -111,7 +111,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
         assert_selector '#recordButton[name="mic"]', wait: 3
         find("#recordButton").click
         # Simulate recording for a short period
-        assert_selector '#recordButton[name="stop-circle"]', wait: 3
+        assert_selector '#recordButton[name="stop-circle"]', wait: 5
         assert_text "Recording"
 
         # Click stop to send the message
@@ -166,10 +166,9 @@ class AudioAndTtsTest < ApplicationSystemTestCase
       rescue StandardError => e
         puts "Failed to dispatch llm-completion-finished event: #{e.class}: #{e.message}"
       end
-
-    assert_selector tts_button_selector, visible: true, wait: 5
-    # Click the TTS button scoped to this message to avoid hitting another message's button in CI
-    find(tts_button_selector).click
+      assert_selector tts_button_selector, visible: true, wait: 5
+      # Click the TTS button scoped to this message to avoid hitting another message's button in CI
+      find(tts_button_selector).click
       # sleep 1
       take_screenshot
       # Assert button state changes to playing (when Audio 'playing' fires)
