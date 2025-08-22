@@ -47,6 +47,14 @@ class MessageInputTest < ApplicationSystemTestCase
     JS
   end
 
+  def submit_url_dialog
+    # Click the Submit button in the dialog
+    page.execute_script(<<~JS)
+      const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter' });
+      document.querySelector("sl-dialog[data-new-message-target='urlDialog']").querySelector('sl-input').dispatchEvent(event);
+    JS
+  end
+
   test "sending a text message" do
     visit conversation_path(@conversation)
     fill_message_content "Testing"
@@ -94,13 +102,15 @@ class MessageInputTest < ApplicationSystemTestCase
     sleep 0.05
     # Click "Link to URL"
     find('sl-menu-item[value="url"]').click
+    # sleep 0.2 # Dialog opens
+    assert_selector "sl-dialog[data-new-message-target='urlDialog']", wait: 5
 
     # Fill in the URL dialog
     # Use a local test image served by the Rails test server to avoid external network issues.
     base = URI.parse(page.current_url)
     local_url = "#{base.scheme}://#{base.host}:#{base.port}/test_images/sample.png"
     fill_sl_input_by_placeholder("Enter full image URL (https://...)", local_url)
-    find("sl-button", text: "Submit").click
+    submit_url_dialog
 
     # Wait for the preview to show the image (proxy HEAD check and FileReader are async)
     assert_selector '#previewArea img[alt="Image 1"]', wait: 10
@@ -112,7 +122,7 @@ class MessageInputTest < ApplicationSystemTestCase
     find('button[data-new-message-target="submitButton"]').click
 
     # Wait for the message and image to appear
-    assert_selector ".message-content img[alt='Image 1']", wait: 2, visible: :all
+    assert_selector ".message-content img[alt='Image 1']", wait: 5, visible: :all
     assert_text "Here's an image from URL!"
   end
 

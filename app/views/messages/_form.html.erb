@@ -110,7 +110,10 @@
   </div>
 
   <sl-dialog label="Add image via URL" class="" data-new-message-target="urlDialog">
-    <sl-input data-new-message-target="urlInput" data-action="keydown.enter->new-message#handleUrlInput:prevent" placeholder="Enter full image URL (https://...)" class=""></sl-input>
+    <sl-input data-new-message-target="urlInput" 
+              data-action="keydown.enter->new-message#handleUrlInput:prevent" 
+              placeholder="Enter full image URL (https://...)" 
+              class=""></sl-input>
     <sl-button slot="footer" data-action="click->new-message#handleUrlInput">Submit</sl-button>
   </sl-dialog>
 <% end %>
