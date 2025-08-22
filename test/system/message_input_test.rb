@@ -99,7 +99,8 @@ class MessageInputTest < ApplicationSystemTestCase
 
     # Click the images menu button
     find('sl-icon-button[name="images"]').click
-    sleep 0.05
+    sleep 0.1 # Wait for the menu to open
+    assert_selector 'sl-menu-item[value="url"]', visible: true, wait: 5
     # Click "Link to URL"
     find('sl-menu-item[value="url"]').click
     # sleep 0.2 # Dialog opens
