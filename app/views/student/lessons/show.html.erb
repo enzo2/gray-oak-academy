@@ -1,6 +1,6 @@
 <%# We want the page fill the viewport, minus the header height, without any scrollbar or excess at the bottom %>
 <div class="flex h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] overflow-hidden"
-    data-controller="collapsible">
+    data-controller="drawer chalkboard">
   <!-- Conversation Column -->
   <div class="h-full min-w-0 
               grow xl:max-2xl:max-w-[32rem] 2xl:max-w-[40rem]
@@ -13,6 +13,14 @@
        <h1 class="text-xl font-semibold"><%= @lesson.title %></h1>
       </div>
       <div><!-- Right buttons -->
+        <sl-icon-button
+            name="easel"
+            class="xl:hidden"
+            label="Open chalkboard"
+            aria-label="Open chalkboard"
+            data-action="click->drawer#open"
+            data-drawer-id="chalkboard">
+          </sl-icon-button>
         <sl-dropdown class="" placement="bottom-end">
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
           <sl-menu>
@@ -51,6 +59,17 @@
 
   <!-- Chalkboard Area - remainder of space - grow as needed -->
   <% if @lesson.lesson_plan&.chalkboard_enabled? %>
+    <!-- Chalkboard Column (desktop) -->
     <%= render partial: "shared/chalkboard" %>
+
+    <%# Mobile Chalkboard Drawer - mobile-first overlay for small screens %>
+    <sl-drawer style="--size: 100dvw;--header-spacing:0;--body-spacing:0rem;--footer-spacing:0;" 
+              placement="end" data-drawer-target="drawer" data-drawer-id="chalkboard" >
+
+      <div class="h-full">
+        <%# Single-instance host where the chalkboard DOM will be moved into for mobile %>
+        <div data-chalkboard-target="host" class="flex flex-col h-full bg-slate-100 dark:bg-stone-900"></div>
+      </div>
+    </sl-drawer>
   <% end %>
 </div>

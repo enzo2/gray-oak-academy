@@ -153,8 +153,9 @@ class MessageInputTest < ApplicationSystemTestCase
     assert_selector '#previewArea img[alt="Image 1"]', wait: 2
     # Type a message
     fill_message_content "Pasted image here!"
-    sleep 0.05 # Allow submit button to become enabled
-    assert_selector 'button[data-new-message-target="submitButton"]', wait: 1
+    assert_equal "Pasted image here!", find('sl-textarea[name="message[content]"]').value, wait: 5
+    sleep 0.1 # Allow submit button to become enabled
+    assert_selector 'button[data-new-message-target="submitButton"]', wait: 5
     # Submit the form
     find('button[data-new-message-target="submitButton"]').click
 

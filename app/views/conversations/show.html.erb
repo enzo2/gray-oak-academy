@@ -1,5 +1,5 @@
 <!-- Horizontal flexbox container (sidebar, chat, chalkboard) -->
-<div class="flex flex-row gap-2 pt-2 px-2 md:px-3 h-[calc(100dvh-2.5rem)]" data-controller="drawer collapsible">
+<div class="flex flex-row gap-2 pt-2 px-2 md:px-3 h-[calc(100dvh-2.5rem)]" data-controller="drawer collapsible chalkboard">
 
   <!-- Chats Column (Collapsible Sidebar) - for mouse devices -->
   <div class="not-any-pointer-fine:hidden flex-none border-r border-stone-500 transition-all duration-150 ease-in-out w-8 hover:w-32 group">
@@ -61,18 +61,27 @@
             class: "" do %>
           <sl-icon-button name="plus-square"></sl-icon-button>
         <% end %>
+        <%# Mobile chalkboard button - visible on smaller screens, hidden on xl+ %>
+        <sl-icon-button
+          name="easel"
+          class="xl:hidden"
+          label="Open chalkboard"
+          aria-label="Open chalkboard"
+          data-action="click->drawer#open"
+          data-drawer-id="chalkboard">
+        </sl-icon-button>
       </div>
       <div><!-- Right buttons -->
         <sl-icon-button data-collapsible-target="button" name="chevron-down" aria-controls="conversation-details" aria-expanded="false" label="Details" 
           data-action="click->collapsible#toggle"></sl-icon-button>
         <% if AppSetting.tts_configured? %>
-          <sl-icon-button 
-            id="auto-read-toggle"
-            name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-            label="Auto-read" 
-            class="text-xl [&::part(base)]:pt-2"
-            data-action="click->tts-stream#toggleAutoRead"
-            ></sl-icon-button>
+        <sl-icon-button 
+          id="auto-read-toggle"
+          name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+          label="Auto-read" 
+          class="text-xl [&::part(base)]:pt-2"
+          onclick="window.dispatchEvent(new Event('toggleAutoRead'))"
+          data-action="click->tts-stream#toggleAutoRead"></sl-icon-button>
         <% end %>
         <sl-dropdown class="" placement="bottom-end">
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
@@ -117,6 +126,16 @@
     <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
   </div>
 
-  <!-- Chalkboard Column -->
+  <!-- Chalkboard Column (desktop) -->
   <%= render partial: "shared/chalkboard" %>
+
+  <%# Mobile Chalkboard Drawer - mobile-first overlay for small screens %>
+  <sl-drawer style="--size: 100dvw;--header-spacing:4px;--body-spacing:0rem;--footer-spacing:0;" 
+             placement="end" data-drawer-target="drawer" data-drawer-id="chalkboard">
+
+    <div class="h-full">
+      <%# Single-instance host where the chalkboard DOM will be moved into for mobile %>
+      <div data-chalkboard-target="host" class="flex flex-col h-full bg-slate-100 dark:bg-stone-900"></div>
+    </div>
+  </sl-drawer>
 </div>
