@@ -94,9 +94,10 @@ class GetLlmCompletionJob < ApplicationJob
         # Finalize and execute tool calls when finish reason indicates tool call completion
         if chunk["finish_reason"] == "tool_calls"
           flush_buffer.call(force: true) # Ensure any remaining content is flushed before handling tools
-          broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
+          message ||= conversation.messages.build(role: "assistant", content: "") # Create message if not already created (i.e. if there was no content)
           final_tool_calls = tool_calls_buffer.values.sort_by { |tc| tc[:id].to_s }
           message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
+          broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
           Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
           final_tool_calls.each do |tool_call|
             tool_handler = ToolHandlerService.new(conversation: conversation, message: message)

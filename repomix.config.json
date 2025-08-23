@@ -21,7 +21,10 @@
     "useGitignore": true,
     "useDefaultPatterns": true,
     "customPatterns": [
-      "public/*.html"
+      "public/*.html",
+      "*.wav", "*.webm", "*.mp4",       
+      "*.woff2",
+      "*.jpg", "*.jpeg", "*.png", "*.gif", "*.svg"
     ]
   },
   "security": {

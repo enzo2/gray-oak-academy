@@ -4,6 +4,7 @@
             flex justify-start gap-2">
   <%# TTS button %>
   <%# Will be hidden by default, and enabled by the TTS Stimulus controller if the browser requirements are met %>
+  <%# Not needed if no content present, eg. only contains a tool call %>
   <% if message.role_assistant? && message.content.present? && AppSetting.tts_configured? %>
     
     <sl-icon-button 
