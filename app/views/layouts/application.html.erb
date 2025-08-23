@@ -20,8 +20,8 @@
 		
     <!--
     <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    -->
+     -->
+   <%= favicon_link_tag 'logo_icon_negative.svg', type: "image/svg+xml" %>
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= combobox_style_tag %>
@@ -34,25 +34,26 @@
   <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
     <header class="h-10 border-b border-stone-400"> <%# h-10 = 2.5rem %>
       <nav class="flex justify-between items-center">
-        <div class="pl-2" id="nav-left-items">
-            <%= link_to root_path, class: "flex flex-row space-x-2" do %>
-              <%= image_tag "logo_icon.svg", size: "30", class: "bg-stone-100 dark:hidden" %>
-              <%= image_tag "logo_icon_negative.svg", size: "30", class: "hidden dark:block bg-stone-800" %>
-              <span class="text-xl font-bold font-serif hidden sm:inline"><%= ENV["APP_NAME"] %></span>
-            <% end %>
+        <div class="pl-2 flex flex-row space-x-2 items-center" id="nav-left-items">
+          <%= link_to root_path, class: "flex flex-row space-x-2" do %>
+            <%= image_tag "logo_icon.svg", size: "30", class: "bg-stone-100 dark:hidden" %>
+            <%= image_tag "logo_icon_negative.svg", size: "30", class: "hidden dark:block bg-stone-800" %>
+            <span class="text-xl font-bold font-serif hidden md:inline"><%= ENV["APP_NAME"] %></span>
+          <% end %>
+          <%= yield :header_buttons  %>
         </div>
 
         <div class="flex items-center [&_a:hover]:underline" id="nav-right-items">
           <% if user_signed_in? %>
-            <sl-dropdown class="md:hidden pr-2" placement="bottom-end" skidding="50">
-              <sl-icon-button name="list" label="Main Menu" slot="trigger" class="text-2xl"></sl-icon-button>
+            <sl-dropdown class="sm:hidden" placement="bottom-end" skidding="50">
+              <sl-icon-button name="three-dots-vertical" label="Main Menu" slot="trigger" class="text-2xl"></sl-icon-button>
               <sl-menu>
                 <sl-menu-item onclick="this.children[0].click"><a href="<%= root_path %>">Dashboard</a></sl-menu-item>
                 <sl-menu-item onclick="this.children[0].click"><a href="<%= edit_user_registration_path %>">Settings</a></sl-menu-item>
                 <sl-menu-item onclick="this.children[0].click"><%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete } %></sl-menu-item>
               </sl-menu>
             </sl-dropdown>
-            <div class="space-x-4 hidden md:block pr-4">
+            <div class="space-x-4 hidden sm:block pr-4">
               <%= link_to "Dashboard", root_path, class: "" %>
               <%= link_to "Settings", edit_user_registration_path, class: "" %>
               <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
