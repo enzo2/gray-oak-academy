@@ -1,14 +1,4 @@
 GIT
-  remote: https://github.com/enzo2/open_router.git
-  revision: b260f16def6f4737e9a7924f295df9d6c73e5a26
-  specs:
-    open_router (0.3.3)
-      activesupport (>= 6.0)
-      event_stream_parser (>= 1)
-      faraday (>= 1)
-      faraday-multipart (>= 1)
-
-GIT
   remote: https://github.com/rack/rack-attack.git
   revision: 467770882daa6f3865cc207c8b5dfdbc4028d7cb
   branch: main
@@ -240,6 +230,11 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.9-x86_64-linux-musl)
       racc (~> 1.4)
+    open_router (0.3.3)
+      activesupport (>= 6.0)
+      dotenv (>= 2)
+      faraday (>= 1)
+      faraday-multipart (>= 1)
     orm_adapter (0.5.0)
     parallel (1.27.0)
     parser (3.3.9.0)
@@ -445,7 +440,7 @@ DEPENDENCIES
   json-repair
   json_schemer
   markdown_views
-  open_router!
+  open_router
   pg
   propshaft
   puma (< 7)

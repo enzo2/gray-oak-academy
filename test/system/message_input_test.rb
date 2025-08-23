@@ -59,6 +59,8 @@ class MessageInputTest < ApplicationSystemTestCase
     visit conversation_path(@conversation)
     fill_message_content "Testing"
     assert_equal "Testing", find('sl-textarea[name="message[content]"]').value, wait: 5
+    sleep 0.05 # Allow submit button to become enabled
+    assert_selector 'button[data-new-message-target="submitButton"]', wait: 5
     find('button[data-new-message-target="submitButton"]').click
 
     assert_text "Testing", wait: 10
