@@ -8,11 +8,11 @@
               flex flex-col 
               border-r border-stone-200 dark:border-stone-700">
     <!-- Lesson Info -->
-    <div class="flex items-center justify-between space-x-2">
+    <div class="flex items-center justify-between space-x-2 text-xl">
       <div><!-- Left title -->
-       <h1 class="text-xl font-semibold"><%= @lesson.title %></h1>
+       <h1 class="font-semibold"><%= @lesson.title %></h1>
       </div>
-      <div><!-- Right buttons -->
+      <div class="flex flex-row items-center"><!-- Right buttons -->
         <sl-icon-button
             name="easel"
             class="xl:hidden"
@@ -20,7 +20,7 @@
             aria-label="Open chalkboard"
             data-action="click->drawer#open"
             data-drawer-id="chalkboard">
-          </sl-icon-button>
+        </sl-icon-button>
         <sl-dropdown class="" placement="bottom-end">
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
           <sl-menu>

@@ -13,13 +13,14 @@ export default class extends Controller {
     this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
   }
 
+  /* It's annoying to autofocus on mobile since the keyboard pops up 
   async contentFieldTargetConnected() {
-    //Focus the input for ease of use
     await Promise.allSettled([
       customElements.whenDefined('sl-textarea')
     ]);
-    this.contentFieldTarget.focus()
-  }
+    //this.contentFieldTarget.focus()
+  } */
+    
 
   toggleSubmitButton() {
     //console.log("toggleSubmitButton")

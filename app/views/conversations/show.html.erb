@@ -1,5 +1,5 @@
 <!-- Horizontal flexbox container (sidebar, chat, chalkboard) -->
-<div class="flex flex-row gap-2 pt-2 px-2 md:px-3 h-[calc(100dvh-2.5rem)]" data-controller="drawer collapsible chalkboard">
+<div class="flex flex-row gap-2 px-2 md:px-3 h-[calc(100dvh-2.5rem)]" data-controller="drawer collapsible chalkboard">
 
   <!-- Chats Column (Collapsible Sidebar) - for mouse devices -->
   <div class="not-any-pointer-fine:hidden flex-none border-r border-stone-500 transition-all duration-150 ease-in-out w-8 hover:w-32 group">
@@ -52,8 +52,8 @@
               h-full 
               flex flex-col" id="conversation-panel">
     <!-- Chat navigation bar -->
-    <div class="flex flex-row justify-between text-lg">
-      <div><!-- Left buttons -->
+    <div class="flex flex-row justify-between text-xl">
+      <div class="flex flex-row items-center"><!-- Left buttons -->
         <sl-icon-button name="layout-text-sidebar-reverse" class="any-pointer-fine:hidden" aria-label="Open chats" 
                         data-action="click->drawer#open" data-drawer-id="1"></sl-icon-button> <!-- Touchscreen-only chats sidebar button -->
         <%= link_to conversations_path,
@@ -71,7 +71,7 @@
           data-drawer-id="chalkboard">
         </sl-icon-button>
       </div>
-      <div><!-- Right buttons -->
+      <div class="flex flex-row items-center"><!-- Right buttons -->
         <sl-icon-button data-collapsible-target="button" name="chevron-down" aria-controls="conversation-details" aria-expanded="false" label="Details" 
           data-action="click->collapsible#toggle"></sl-icon-button>
         <% if AppSetting.tts_configured? %>
@@ -84,7 +84,7 @@
           data-action="click->tts-stream#toggleAutoRead"></sl-icon-button>
         <% end %>
         <sl-dropdown class="" placement="bottom-end">
-          <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
+          <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-xl"></sl-icon-button>
           <sl-menu>
             <sl-menu-item data-action="click->drawer#showDialog" data-dialog-id="<%= dom_id(@conversation) %>_rename_dialog">
               <%# The rename sl-dialog is defined in the _list partial %>
@@ -112,7 +112,7 @@
         <div class="flex justify-start items-center space-x-2">
           <span class="text-dim text-sm"><%= @conversation.llm_in_use_name %></span>
         </div>
-        <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Use a wider screen for chalkboard.</div>
+        <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Wider screen recommended for chalkboard.</div>
       </div>
 
       <%= turbo_frame_tag "context-usage-bar" do %>
