@@ -47,7 +47,9 @@
 
       <% if message.tool_calls.present? %> 
         <span class="mt-2 font-sans text-stone-500 dark:text-stone-400">
-          Used <%= "tool".pluralize(message.tool_calls.count) %>: <%= message.tool_calls.map { |tool_call| tool_call.dig("function","name") }.join(", ") %>
+          Used <%= "tool".pluralize(message.tool_calls.count) %>:
+          <%= friendly_tool_name(message.tool_calls.map { |tool_call| tool_call.dig("function","name") }.
+              join(", ")) %>
         </span>
       <% end %>
     <% end %>

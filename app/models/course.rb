@@ -33,6 +33,27 @@ class Course < ApplicationRecord
     status_active.where(teacher: teacher).includes(:enrollments).where.not(enrollments: { student: student })
   end
 
+  def for_llm
+    {
+      id: self.id,
+      title: self.title,
+      summary: self.summary,
+      grade_level: self.grade_level,
+      status: self.status,
+      outline: self.outline,
+      lessons: self.lessons.map do |l|
+        {
+          id: l.id,
+          title: l.title,
+          goals: l.goals,
+          approx_duration_min: l.approx_duration_min,
+          position: l.position,
+          plan_status: l.lesson_plan&.status
+        }
+      end
+    }
+  end
+
   private
 
   def validate_outline_format

@@ -1,6 +1,6 @@
 class Lesson < ApplicationRecord
   belongs_to :course
-  acts_as_list scope: :course
+  acts_as_list scope: :course # t.integer "position"
   has_one :teacher, through: :course
   has_one :lesson_plan, dependent: :destroy
   has_many :students, through: :course, inverse_of: :lessons
@@ -27,5 +27,28 @@ class Lesson < ApplicationRecord
   # LessonProgress is created when the student starts the lesson
   def find_or_create_progress(student)
     LessonProgress.find_or_create_by(student: student, lesson: self)
+  end
+
+  def for_llm
+    lp = lesson_plan
+    {
+      lesson: {
+        id: self.id,
+        title: self.title,
+        goals: self.goals,
+        approx_duration_min: self.approx_duration_min,
+        position: self.position,
+        course_id: self.course_id
+      },
+      lesson_plan: (lp ? {
+        id: lp.id,
+        status: lp.status,
+        content: lp.content,
+        suggested_resources: lp.suggested_resources,
+        linked_resources: lp.resources.format_collection(pretty: false),
+        audio: lp.audio,
+        chalkboard_enabled: lp.chalkboard_enabled
+      } : nil)
+    }
   end
 end

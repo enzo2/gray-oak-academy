@@ -7,7 +7,7 @@ class Resource < ApplicationRecord
   validate :single_presence_of_file_or_uri
 
   # For a collection of Resources, format the data as JSON so it can be provided to the LLM
-  def self.format_collection
+  def self.format_collection(pretty: true)
     resources_data = all.map do |resource|
       resource_info = {
         "Description" => resource.description
@@ -23,7 +23,11 @@ class Resource < ApplicationRecord
       resource_info
     end
     resources_data << { "No Resources" => "No resources are yet linked to this lesson." } if resources_data.empty?
-    JSON.pretty_generate(resources_data)
+    if pretty
+      JSON.pretty_generate(resources_data)
+    else
+      resources_data.to_json
+    end
   end
 
   private

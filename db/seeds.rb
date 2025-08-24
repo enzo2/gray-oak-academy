@@ -11,7 +11,7 @@ Tool.find_or_create_by!(name: 'Chalkboard_URL') do |tool|
       properties: {
         url: {
           type: "string",
-          description: "The URL to load in the chalkboard iframe. Must begin with 'http://' or 'https://'. May adjust for obvious errors in formatting or query parameters. Do not send HTML. Only use URLs included in the lesson plan or resources; do not invent, guess, or attempt to recall URLs."
+          description: "The URL to load in the chalkboard iframe. Must begin with 'https://'. May adjust for obvious errors in formatting or query parameters. Do not send HTML. Only use URLs included in the lesson plan or resources; do not invent, guess, or attempt to recall URLs."
         }
       },
       required: [ "url" ]
@@ -81,6 +81,174 @@ Tool.find_or_create_by!(name: 'python_sandbox') do |tool|
         }
       },
       required: [ "code" ]
+    }
+  }
+end
+
+# ---- Agentic curriculum tool seeds ----
+Tool.find_or_create_by!(name: 'list_students') do |tool|
+  tool.specifications = {
+    name: "list_students",
+    description: "List all students assigned to the current teacher (id, name, email).",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'list_courses') do |tool|
+  tool.specifications = {
+    name: "list_courses",
+    description: "List courses for the current teacher (id, title, grade_level, status).",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'get_course_details') do |tool|
+  tool.specifications = {
+    name: "get_course_details",
+    description: "Get course details including outline and lessons.",
+    parameters: {
+      type: "object",
+      properties: {
+        "course_id" => { "type" => "string", "description" => "ID of the course" }
+      },
+      "required" => [ "course_id" ]
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'get_lesson_details') do |tool|
+  tool.specifications = {
+    name: "get_lesson_details",
+    description: "Get a lesson and its full lesson plan.",
+    parameters: {
+      type: "object",
+      properties: {
+        "lesson_id" => { "type" => "string", "description" => "ID of the lesson" }
+      },
+      "required" => [ "lesson_id" ]
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'get_student_reports') do |tool|
+  tool.specifications = {
+    name: "get_student_reports",
+    description: "Retrieve all reports for a given student (grouped and formatted).",
+    parameters: {
+      type: "object",
+      properties: {
+        "student_id" => { "type" => "string", "description" => "ID of the student" }
+      },
+      "required" => [ "student_id" ]
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'create_course') do |tool|
+  tool.specifications = {
+    name: "create_course",
+    description: "Create a new course for the teacher.",
+    strict_mode: true,
+    parameters: {
+      type: "object",
+      properties: {
+        "title" => { "type" => "string", "description" => "Course title" },
+        "summary" => { "type" => "string", "description" => "Brief summary of the course" },
+        "grade_level" => { "type" => "string", "description" => "Target grade level (e.g. 'K', '9')" }
+      },
+      "required" => [ "title", "summary", "grade_level" ],
+      "additionalProperties" => false
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'update_lesson') do |tool|
+  tool.specifications = {
+    name: "update_lesson",
+    description: "Update a lesson and REPLACE its lesson_plan.content. Always call get_lesson_details first.",
+    strict_mode: true,
+    parameters: {
+      type: "object",
+      properties: {
+        "lesson_id" => { "type" => "integer", "description" => "ID of the lesson to update" },
+        "title" => { "type" => "string", "description" => "New title" },
+        "goals" => { "type" => "string", "description" => "New goals" },
+        "approx_duration_min" => { "type" => "integer", "description" => "Duration in minutes (integer > 0)" },
+        "lesson_plan" => {
+          "type" => "object",
+          "description" => "LessonPlan fields: content is required for replacement",
+          "properties" => {
+            "content" => {
+              "type" => "array",
+              "description" => "Complete replacement content array of objects with single key => string value",
+              "items" => {
+                "type" => "object",
+                "minProperties" => 1,
+                "maxProperties" => 1,
+                "additionalProperties" => { "type" => "string", "minLength" => 1 }
+              }
+            },
+            "suggested_resources" => {
+              "type" => "array",
+              "description" => "Optional suggested resources",
+              "items" => {
+                "type" => "object",
+                "minProperties" => 1,
+                "maxProperties" => 1,
+                "additionalProperties" => { "type" => "string", "minLength" => 1 }
+              }
+            },
+            "status" => { "type" => "string", "description" => "draft or published (optional)", "enum" => [ "draft", "published" ] },
+            "chalkboard_enabled" => { "type" => "boolean", "description" => "Enable chalkboard (optional - default true)" },
+            "audio" => { "type" => "string", "description" => "Audio setting (disabled|enabled|audio-only)", "enum" => [ "disabled", "enabled", "audio-only" ] }
+          },
+          "required" => [ "content" ],
+          "additionalProperties" => false
+        }
+      },
+      "required" => [ "lesson_id", "title", "goals", "approx_duration_min", "lesson_plan" ],
+      "additionalProperties" => false
+    }
+  }
+end
+
+# generate tools (schema-driven) - these will run the jobs synchronously (perform_now) and return the created/updated objects
+Tool.find_or_create_by!(name: 'generate_course_lessons') do |tool|
+  tool.specifications = {
+    name: "generate_course_lessons",
+    description: "Ask the LLM to generate lessons for the given course. This may take time; the tool blocks until the job completes.",
+    strict_mode: true,
+    parameters: {
+      type: "object",
+      properties: {
+        "course_id" => { "type" => "integer", "description" => "ID of the course" }
+      },
+      "required" => [ "course_id" ],
+      "additionalProperties" => false
+    }
+  }
+end
+
+Tool.find_or_create_by!(name: 'generate_lesson_plan') do |tool|
+  tool.specifications = {
+    name: "generate_lesson_plan",
+    description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). Blocks until the job completes.",
+    strict_mode: true,
+    parameters: {
+      type: "object",
+      properties: {
+        "lesson_id" => { "type" => "integer", "description" => "ID of the lesson" }
+      },
+      "required" => [ "lesson_id" ],
+      "additionalProperties" => false
     }
   }
 end
@@ -333,7 +501,15 @@ Prompt.find_or_create_by!(category: 'teacher_assistant') do |p|
   p.title = "Default Teacher Assistant Chat"
   p.prompt = <<~PROMPT
     You are now assisting the teacher (or sysadmin) in a chat format, outside of any specific lesson.#{' '}
-    There is no lesson plan or resource list available, so do not attempt to navigate to any URLs or resources.\n
+    Don't use the Chalkboard_File or Chalkboard_URL tools, since these are only applicable during a lesson.
+    You have access to tools that allow you to read courses, lessons, lesson plans, and student reports,#{' '}
+    and to create or update curriculum artifacts.#{' '}
+    Follow these rules for agentic curriculum development:
+    1. Always use read tools (get_course_details, get_lesson_details, get_student_reports, list_courses, list_students) to fetch current state before proposing edits. This is critical to avoid unintentionally overwriting existing data.
+    2. For any write action (create_course, update_lesson) summarize the proposed changes in plain language and ask the teacher for explicit confirmation.
+    3. update_lesson REPLACES the full lesson_plan.content array — do not attempt partial edits. Always call get_lesson_details first to fetch the current lesson plans, then call update_lesson with the complete replacement.
+    4. When asked about a student, call list_students to disambiguate identities; never guess student IDs.
+    5. Return tool arguments as concise JSON only; avoid extraneous commentary in tool calls.
   PROMPT
 end
 

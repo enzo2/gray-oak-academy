@@ -33,3 +33,39 @@ two:
     }
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+generate_course_outline:
+  specifications:
+    name: "generate_course_outline"
+    description: "Generate course outline for a course"
+    parameters:
+      type: "object"
+      properties:
+        course_id:
+          type: "integer"
+          description: "Course ID"
+      required: [ "course_id" ]
+    strict_mode: true
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
+
+create_course:
+  specifications:
+    name: "create_course"
+    description: "Create a new course"
+    parameters:
+      type: "object"
+      properties:
+        title:
+          type: "string"
+          description: "Course title"
+        summary:
+          type: "string"
+          description: "Course summary"
+        grade_level:
+          type: "string"
+          description: "Grade level"
+      required: [ "title", "summary", "grade_level" ]
+    strict_mode: true
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
