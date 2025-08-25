@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:latest
+    image: postgres:17
     restart: unless-stopped
     networks:
     - default
