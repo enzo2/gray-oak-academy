@@ -184,6 +184,24 @@ class ToolHandlerService
       end
     end
 
+    # Schema-level validation (strict, nested, and additionalProperties) using JSONSchemer
+    begin
+      param_schema = tool.specifications.dig("parameters")
+      if param_schema.present?
+        schemer = JSONSchemer.schema(param_schema)
+        unless schemer.valid?(parsed_arguments)
+          errors = schemer.validate(parsed_arguments).map do |e|
+            ptr = e["data_pointer"].presence || "#"
+            "#{ptr}: #{e['error']}"
+          end
+          raise ToolExecutionError, "Arguments failed schema validation: #{errors.first(5).join('; ')}"
+        end
+      end
+    rescue JSON::Schema::Error => e
+      # If a tool was seeded with an invalid schema, surface a clear error
+      raise ToolExecutionError, "Tool parameter schema invalid: #{e.message}"
+    end
+
     # Return the validated and parsed arguments
     parsed_arguments
   end
@@ -492,29 +510,75 @@ class ToolHandlerService
     raise ToolExecutionError, "Permission denied" unless lesson.course.teacher == current_teacher
 
     Lesson.transaction do
+      # Update lesson fields
       lesson.title = @args["title"] if @args["title"].present?
       lesson.goals = @args["goals"] if @args["goals"].present?
       lesson.approx_duration_min = @args["approx_duration_min"].to_i if @args["approx_duration_min"].present?
       lesson.save!
 
+      # Build/find lesson plan
       lp = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher, status: "draft")
-      plan_args = @args["lesson_plan"] || {}
-      unless plan_args["content"].is_a?(Array)
-        raise ToolExecutionError, "lesson_plan.content is required and must be an array"
+
+      # Expect flattened, explicit arrays:
+      # lesson_plan_content: [{ "type": "...", "details": "..." }, ...] (REQUIRED)
+      content_items = @args["lesson_plan_content"]
+      unless content_items.is_a?(Array)
+        raise ToolExecutionError, "content is required and must be an array"
       end
 
-      lp.content = plan_args["content"]
-      lp.suggested_resources = plan_args["suggested_resources"] if plan_args["suggested_resources"].is_a?(Array)
-      lp.status = plan_args["status"] if plan_args["status"].present?
-      lp.audio = plan_args["audio"] if plan_args["audio"].present?
-      lp.chalkboard_enabled = !!plan_args["chalkboard_enabled"] if plan_args.key?("chalkboard_enabled")
+      # suggested_resources: [{ "type": "...", "description": "..." }, ...] (OPTIONAL)
+      suggested_items = @args["suggested_resources"]
+
+      # Convert to persisted JSONB shape: [{ "Type" => "Details" }, ...]
+      begin
+        lp.content = content_items.map do |i|
+          t = i["type"]
+          d = i["details"]
+          if t.blank? || d.blank?
+            raise ToolExecutionError, "Each content item must include non-empty 'type' and 'details'"
+          end
+          { t => d }
+        end
+
+        if suggested_items.present?
+          unless suggested_items.is_a?(Array)
+            raise ToolExecutionError, "suggested_resources must be an array when provided"
+          end
+          lp.suggested_resources = suggested_items.map do |i|
+            t = i["type"]
+            desc = i["description"]
+            if t.blank? || desc.blank?
+              raise ToolExecutionError, "Each suggested resource must include non-empty 'type' and 'description'"
+            end
+            { t => desc }
+          end
+        else
+          # Preserve or reset to [] explicitly if nil
+          lp.suggested_resources ||= []
+        end
+      rescue => e
+        raise ToolExecutionError, e.message
+      end
+
+      # Optional lesson plan fields
+      lp.status = @args["lesson_plan_status"] if @args.key?("lesson_plan_status")
+      lp.audio = @args["audio"] if @args.key?("audio")
+      lp.chalkboard_enabled = !!@args["chalkboard_enabled"] if @args.key?("chalkboard_enabled")
+
       lp.teacher = current_teacher if lp.teacher_id.nil?
       lp.save!
 
       create_tool_message(JSON.pretty_generate({
         status: "ok",
         lesson: { id: lesson.id, title: lesson.title, goals: lesson.goals, approx_duration_min: lesson.approx_duration_min },
-        lesson_plan: { id: lp.id, status: lp.status, content: lp.content, suggested_resources: lp.suggested_resources, audio: lp.audio, chalkboard_enabled: lp.chalkboard_enabled }
+        lesson_plan: {
+          id: lp.id,
+          status: lp.status,
+          content: lp.content,
+          suggested_resources: lp.suggested_resources,
+          audio: lp.audio,
+          chalkboard_enabled: lp.chalkboard_enabled
+        }
       }))
     end
   end

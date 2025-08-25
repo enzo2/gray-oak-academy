@@ -22,12 +22,14 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- LLM chat supporting images, native audio input, STT/TTS with auto-read
-- Student lesson view with "chalkboard" (multipurpose canvas accessible by the LLM)
-- Teacher dashboard with full curriculum management: Courses, Lessons, Lesson Plans, and Resources
+- LLM chat supports images, native audio input, STT/TTS with auto-read
+- Student lesson view with "chalkboard" (multipurpose frame accessible by the LLM)
+- Curriculum management: Courses, Lessons, Lesson Plans, and Resources
 - One-click LLM generation of course outlines, lesson list, lesson plans, and suggested resources
+- Agentic curriculum editing (can also be done manually)
 - LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
 - LLM-generated student reports are fed into the next session, ensuring continuity and personalization
+- Speech-only lesson option to relieve screen time
 
 ### More cool stuff
 - All system prompts can be customized (opinionated defaults included)
