@@ -19,7 +19,6 @@ class Course < ApplicationRecord
             }
     validate :validate_outline_format
 
-
   def enrolled_in?(student)
     enrollments.exists?(student: student)
   end
@@ -30,7 +29,9 @@ class Course < ApplicationRecord
 
   def self.available_for_enrollment(student, teacher)
     # status_active.where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
-    status_active.where(teacher: teacher).includes(:enrollments).where.not(enrollments: { student: student })
+    status_active
+      .where(teacher: teacher)
+      .where.not(id: student.courses.select(:id))
   end
 
   def for_llm

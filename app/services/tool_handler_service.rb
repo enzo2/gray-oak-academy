@@ -163,6 +163,16 @@ class ToolHandlerService
       else
         Rails.logger.debug "Skipping strict validation for parameter '#{param_name}' with type '#{expected_type}'"
       end
+
+      # Additional enum validation when an 'enum' is specified in the parameter schema.
+      # This guards against typos such as "publshed" for enum-backed fields like status.
+      if param_spec["enum"] && parsed_arguments.key?(param_name)
+        allowed_values = param_spec["enum"]
+        # Allow numeric coercion already performed above to match enum types
+        unless allowed_values.include?(parsed_arguments[param_name])
+          raise ToolExecutionError, "Parameter '#{param_name}' must be one of: #{allowed_values.join(', ')}"
+        end
+      end
     end
 
     # Enforce strict_mode: reject unexpected parameters when strict_mode is set on the Tool
@@ -182,7 +192,7 @@ class ToolHandlerService
 
   def runaway_tool_call_limit_exceeded?(limit = 10)
     # Determine the timestamp of the most recent user message in the conversation.
-    last_user = @conversation.messages.where(role: "user").order(created_at: :desc).limit(1).first
+    last_user = @conversation.messages.where(role: "user").order(created_at: :desc).first
 
     if last_user
       # Count assistant/tool messages after the last user message.
@@ -217,19 +227,49 @@ class ToolHandlerService
 
     # Resolve host to IP addresses and ensure none are private/reserved
     begin
+      # If the host is an IP literal (e.g. "192.0.2.1" or "2001:db8::1"), validate it directly first.
+      ip_literal = begin
+        IPAddr.new(host)
+      rescue StandardError
+        nil
+      end
+
+      # Expanded set of private/reserved ranges to reject
+      private_ranges = [
+        IPAddr.new("0.0.0.0/8"),
+        IPAddr.new("10.0.0.0/8"),
+        IPAddr.new("100.64.0.0/10"),
+        IPAddr.new("127.0.0.0/8"),
+        IPAddr.new("169.254.0.0/16"),
+        IPAddr.new("172.16.0.0/12"),
+        IPAddr.new("192.0.0.0/24"),
+        IPAddr.new("192.0.2.0/24"),
+        IPAddr.new("192.88.99.0/24"),
+        IPAddr.new("192.168.0.0/16"),
+        IPAddr.new("198.18.0.0/15"),
+        IPAddr.new("198.51.100.0/24"),
+        IPAddr.new("203.0.113.0/24"),
+        IPAddr.new("224.0.0.0/4"),
+        IPAddr.new("240.0.0.0/4"),
+        IPAddr.new("::/128"),      # unspecified
+        IPAddr.new("::1/128"),     # loopback
+        IPAddr.new("fe80::/10"),   # link-local
+        IPAddr.new("fc00::/7")     # unique local addresses
+      ]
+
+      if ip_literal
+        # Reject if the literal is in a private/reserved range
+        return false if private_ranges.any? { |r| r.include?(ip_literal) }
+        # If it's a public IP literal, accept (no DNS lookup needed)
+        return true
+      end
+
       addrs = Resolv.getaddresses(host)
       if addrs.empty?
         Rails.logger.debug "No addresses resolved for host: #{host}"
         return false
       end
-      private_ranges = [
-        IPAddr.new("10.0.0.0/8"),
-        IPAddr.new("172.16.0.0/12"),
-        IPAddr.new("192.168.0.0/16"),
-        IPAddr.new("127.0.0.0/8"),
-        IPAddr.new("::1/128"),
-        IPAddr.new("fc00::/7")
-      ]
+
       addrs.each do |a|
         ip = IPAddr.new(a) rescue nil
         next unless ip
@@ -290,12 +330,24 @@ class ToolHandlerService
 
   def execute_chalkboard_file
     resource_id = @args["resource_id"]
-
-    # No authorization check here; assume the LLM is only aware of the appropriate resources.
-
     # Find the resource
     resource = Resource.find_by(id: resource_id)
     raise ToolExecutionError, "Resource not found with ID: #{resource_id}" unless resource
+
+    # Ensure the resource is available for the user, unless it's public
+    if resource.teacher.present?
+      if @user.role_student?
+        # Students can only access resources belonging to their teacher
+        unless @user.teacher == resource.teacher
+          raise ToolExecutionError, "Permission denied: resource does not belong to your teacher"
+        end
+      else
+        # Teachers can only access their own resources
+        unless @user == resource.teacher
+          raise ToolExecutionError, "Permission denied: resource does not belong to you"
+        end
+      end
+    end
 
     # Check if the resource has a file attached
     raise ToolExecutionError, "Resource does not have a file attached" unless resource.file.attached?
@@ -342,20 +394,34 @@ class ToolHandlerService
   end
 
   def execute_list_students
+    # Teacher-only tool
     students = current_teacher.students.select(:id, :first_name, :last_name, :email)
     payload = students.map { |s| { id: s.id, name: s.name, email: s.email } }
     create_tool_message(JSON.pretty_generate(payload))
   end
 
   def execute_list_courses
-    courses = current_teacher.taught_courses.select(:id, :title, :grade_level, :status)
+    if @user.role_student?
+      # Students can only list their own courses
+      courses = @user.enrollments.in_progress.includes(:course).map(&:course)
+    else
+      # Teachers can list their taught courses
+      courses = current_teacher.taught_courses.select(:id, :title, :grade_level, :status)
+    end
     create_tool_message(JSON.pretty_generate(courses.as_json(only: [ :id, :title, :grade_level, :status ])))
   end
 
   def execute_get_course_details
     course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.includes(:lessons).find_by(id: course_id)
+    course = current_teacher.taught_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
+
+    if @user.role_student?
+      enrollment = @user.enrollments.find_by(course: course)
+      raise ToolExecutionError, "Permission denied; user not enrolled in this course" unless enrollment
+    else
+      # Teachers can view other teachers' courses
+    end
 
     create_tool_message(JSON.pretty_generate(course.for_llm))
   end
@@ -364,7 +430,16 @@ class ToolHandlerService
     lesson_id = @args["lesson_id"].to_i
     lesson = Lesson.find_by(id: lesson_id)
     raise ToolExecutionError, "Lesson not found" unless lesson
-    raise ToolExecutionError, "Permission denied" unless lesson.course.teacher == current_teacher
+
+    # Students can view lessons if enrolled in the course
+    if @user.role_student?
+      enrollment = @user.enrollments.find_by(course: lesson.course)
+      raise ToolExecutionError, "Permission denied; user not enrolled in this course" unless enrollment
+    end
+    unless lesson.course.teacher == current_teacher
+      # Teachers can only view their own lessons
+      raise ToolExecutionError, "Permission denied, course does not belong to the current user"
+    end
 
     create_tool_message(JSON.pretty_generate(lesson.for_llm))
   end
@@ -383,6 +458,7 @@ class ToolHandlerService
       raise ToolExecutionError, "Student not found" unless student
     end
 
+    # Reports will include both lesson reports and course reports
     reports = student.student_reports.where(teacher: current_teacher).order(created_at: :desc)
 
     payload = {
@@ -394,6 +470,7 @@ class ToolHandlerService
   end
 
   def execute_create_course
+    # Teacher-only tool
     title = @args["title"]
     summary = @args["summary"]
     grade = @args["grade_level"]
@@ -408,6 +485,7 @@ class ToolHandlerService
   end
 
   def execute_update_lesson
+    # Teacher-only tool
     lesson_id = @args["lesson_id"].to_i
     lesson = Lesson.find_by(id: lesson_id)
     raise ToolExecutionError, "Lesson not found" unless lesson
@@ -443,6 +521,7 @@ class ToolHandlerService
 
   # ---- Generator tools (blocking) ----
   def execute_generate_course_outline
+    # Teacher-only tool
     course_id = @args["course_id"].to_i
     course = current_teacher.taught_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
@@ -459,6 +538,7 @@ class ToolHandlerService
   end
 
   def execute_generate_course_lessons
+    # Teacher-only tool
     course_id = @args["course_id"].to_i
     course = current_teacher.taught_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
@@ -475,6 +555,7 @@ class ToolHandlerService
   end
 
   def execute_generate_lesson_plan
+    # Teacher-only tool
     lesson_id = @args["lesson_id"].to_i
     lesson = Lesson.find_by(id: lesson_id)
     raise ToolExecutionError, "Lesson not found" unless lesson

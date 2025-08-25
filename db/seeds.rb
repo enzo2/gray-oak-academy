@@ -117,7 +117,7 @@ Tool.find_or_create_by!(name: 'get_course_details') do |tool|
     parameters: {
       type: "object",
       properties: {
-        "course_id" => { "type" => "string", "description" => "ID of the course" }
+        "course_id" => { "type" => "integer", "description" => "ID of the course" }
       },
       "required" => [ "course_id" ]
     }
@@ -131,7 +131,7 @@ Tool.find_or_create_by!(name: 'get_lesson_details') do |tool|
     parameters: {
       type: "object",
       properties: {
-        "lesson_id" => { "type" => "string", "description" => "ID of the lesson" }
+        "lesson_id" => { "type" => "integer", "description" => "ID of the lesson" }
       },
       "required" => [ "lesson_id" ]
     }
@@ -145,7 +145,7 @@ Tool.find_or_create_by!(name: 'get_student_reports') do |tool|
     parameters: {
       type: "object",
       properties: {
-        "student_id" => { "type" => "string", "description" => "ID of the student" }
+        "student_id" => { "type" => "integer", "description" => "ID of the student" }
       },
       "required" => [ "student_id" ]
     }
@@ -321,7 +321,7 @@ Prompt.find_or_create_by!(category: 'generate_course_outline') do |p|
     }
     Ensure the outline is comprehensive and suitable for the grade level.#{' '}
     Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
-    Do not use formatting such as markdown or bullet points. Use plain text.
+    Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
   PROMPT
 end
 
@@ -332,6 +332,7 @@ Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
     The course has been outlined:
     {course_outline}
     The next step is to develop the list of lessons.
+    Existing lessons in this course: {existing_lessons}
     Please generate a list of lessons for the course in JSON format as a "lessons" object containing an array of objects.
     For each lesson, include the title (string), goals (string), and suggested duration in minutes (integer).
     Lessons do not need to exactly correspond to outline topics one-to-one; for example, smaller topics could be grouped into a single lesson, or larger topics could be broken down into multiple lessons.
@@ -350,7 +351,7 @@ Prompt.find_or_create_by!(category: 'generate_lessons') do |p|
         }, ...
       ]
     }
-    Do not use formatting such as markdown or bullet points. Use plain text.
+    Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
   PROMPT
 end
 
@@ -407,6 +408,7 @@ Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
     Do not assume the supervising teacher will be present during the lesson itself.
     Other lessons in this course, which do not need to overlap with this one, include:
       {other_lessons}
+    Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
   PROMPT
 end
 

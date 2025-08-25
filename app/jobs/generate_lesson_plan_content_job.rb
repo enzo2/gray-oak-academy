@@ -62,22 +62,29 @@ class GenerateLessonPlanContentJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: CONTENT_SCHEMA
+          json_schema: CONTENT_SCHEMA[:schema]
         },
-        schema: CONTENT_SCHEMA,
+        schema: CONTENT_SCHEMA[:schema],
         prefill: "{\"lesson_plan\": ["
       )
 
       # Update the lesson plan with the generated content (Stored as array in JSONB column.)
+      unless parsed_content["lesson_plan"].is_a?(Array)
+        raise "Invalid response from LLM: 'lesson_plan' must be an array"
+      end
+
       extracted_lesson_plan = parsed_content["lesson_plan"].map do |item|
         { item["type"] => item["details"] }
       end
-      extracted_suggested_resources = parsed_content["suggested_resources"].map do |item|
+
+      resources_array = parsed_content["suggested_resources"] || []
+      extracted_suggested_resources = resources_array.map do |item|
         { item["type"] => item["description"] }
       end
+
       lesson_plan.update!(
         content: extracted_lesson_plan,
-        suggested_resources: extracted_suggested_resources || []
+        suggested_resources: extracted_suggested_resources
       )
 
       # Broadcast the updated lesson plan content

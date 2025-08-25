@@ -58,9 +58,9 @@ class GenerateCourseReportJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: REPORT_SCHEMA
+          json_schema: REPORT_SCHEMA[:schema]
         },
-        schema: REPORT_SCHEMA,
+        schema: REPORT_SCHEMA[:schema],
         prefill: "{"
       )
 

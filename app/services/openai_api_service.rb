@@ -147,7 +147,7 @@ class OpenaiApiService
     rescue Faraday::BadRequestError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
-      raise OpenAiError, "The server rejected the request. Details: #{error_message}"
+      raise OpenAiError, "The server rejected the request. #{error_message}"
     rescue Faraday::TimeoutError => e
       Rails.logger.error "Faraday::TimeoutError #{e.message}"
       raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
@@ -249,9 +249,16 @@ class OpenaiApiService
   end
 
   def parse_JSON(content)
-    # Extract valid JSON from the response
-    # Rails.logger.debug "Parsing JSON from LLM response: #{content}"
-    json_content = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)  # Try to rescue lack of structured output by removing things before and after the JSON
+    # LLM may insist on wrapping JSON in a markdown block. Use that if present.
+    code_block_json = nil
+    code_block_regex = /```(?:json)?\s*([\s\S]*?)\s*```/i
+    code_blocks = content.scan(code_block_regex)
+    if code_blocks.any?
+      code_block_json = code_blocks.last.first.strip
+    end
+    # Try to rescue bad responses by removing things before and after the JSON
+    match_json = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
+    json_content = code_block_json.presence || match_json.presence || content.strip
     Rails.logger.info "Extracted JSON: #{json_content}"
     unless json_content.present?
       raise OpenAiError, "No valid JSON found in the LLM response."
@@ -266,7 +273,7 @@ class OpenaiApiService
       begin
         Rails.logger.info "Invalid JSON in LLM response, attempting to repair"
         repaired_content = JSON.repair(json_content)
-        Rails.logger.info "Repaired JSON: #{parsed_content}"
+        Rails.logger.info "Repaired JSON: #{repaired_content}"
         parsed_content = JSON.parse(repaired_content)
       rescue JSON::ParserError => e
         raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"

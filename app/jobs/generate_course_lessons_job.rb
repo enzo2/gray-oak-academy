@@ -28,11 +28,17 @@ class GenerateCourseLessonsJob < ApplicationJob
   }
 
   def perform(course, current_user)
+    existing_titles = course.lessons.pluck(:title)
+    existing_list = "None"
+    if existing_titles.any?
+      existing_list = "\n" + existing_titles.map.with_index(1) { |t, i| "#{i}. #{t}" }.join("\n")
+    end
     customized_prompt = Prompt.get_prompt(category: "generate_lessons", user: current_user)
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)
       .gsub("{grade_level}", course.grade_level)
       .gsub("{course_outline}", course.outline.to_json)
+      .gsub("{existing_lessons}", existing_list)
 
     # Prepare messages for the LLM
     messages = [ { role: "user", content: customized_prompt } ]
@@ -47,13 +53,17 @@ class GenerateCourseLessonsJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: LESSONS_SCHEMA
+          json_schema: LESSONS_SCHEMA[:schema]
         },
-        schema: LESSONS_SCHEMA,
+        schema: LESSONS_SCHEMA[:schema],
         prefill: "{\"lessons\": ["
       )
 
-      # Create lessons for the course
+      # Create lessons for the course, skipping duplicates and validating the response shape.
+      unless parsed_content["lessons"].is_a?(Array)
+        raise "Invalid response from LLM: 'lessons' must be an array"
+      end
+
       parsed_content["lessons"].each do |lesson|
         course.lessons.create!(
           title: lesson["title"],
