@@ -87,9 +87,10 @@ end
 
 # ---- Agentic curriculum tool seeds ----
 Tool.find_or_create_by!(name: 'list_students') do |tool|
+  tool.access = :admin
   tool.specifications = {
     name: "list_students",
-    description: "List all students assigned to the current teacher (id, name, email).",
+    description: "List all students assigned to the current teacher (id, name).",
     parameters: {
       type: "object",
       properties: {},
@@ -127,7 +128,7 @@ end
 Tool.find_or_create_by!(name: 'get_lesson_details') do |tool|
   tool.specifications = {
     name: "get_lesson_details",
-    description: "Get a lesson and its full lesson plan.",
+    description: "Get a lesson and its full lesson plan. Always call this before updating a lesson.",
     parameters: {
       type: "object",
       properties: {
@@ -153,9 +154,10 @@ Tool.find_or_create_by!(name: 'get_student_reports') do |tool|
 end
 
 Tool.find_or_create_by!(name: 'create_course') do |tool|
+  tool.access = :admin   # Can make this student-access later once student-directed courses are supported
   tool.specifications = {
     name: "create_course",
-    description: "Create a new course for the teacher.",
+    description: "Create a new course.",
     strict_mode: true,
     parameters: {
       type: "object",
@@ -171,6 +173,7 @@ Tool.find_or_create_by!(name: 'create_course') do |tool|
 end
 
 Tool.find_or_create_by!(name: 'update_lesson') do |tool|
+  tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
   tool.specifications = {
     name: "update_lesson",
     description: "Update a lesson and REPLACE its lesson_plan.content. Always call get_lesson_details first.",
@@ -222,6 +225,7 @@ end
 
 # generate tools (schema-driven) - these will run the jobs synchronously (perform_now) and return the created/updated objects
 Tool.find_or_create_by!(name: 'generate_course_lessons') do |tool|
+  tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
   tool.specifications = {
     name: "generate_course_lessons",
     description: "Ask the LLM to generate lessons for the given course. This may take time; the tool blocks until the job completes.",
@@ -238,6 +242,7 @@ Tool.find_or_create_by!(name: 'generate_course_lessons') do |tool|
 end
 
 Tool.find_or_create_by!(name: 'generate_lesson_plan') do |tool|
+  tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
   tool.specifications = {
     name: "generate_lesson_plan",
     description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). Blocks until the job completes.",
@@ -407,7 +412,7 @@ Prompt.find_or_create_by!(category: 'generate_lesson_plan') do |p|
     Ensure the content is appropriate for the grade level.
     Do not assume the supervising teacher will be present during the lesson itself.
     Other lessons in this course, which do not need to overlap with this one, include:
-      {other_lessons}
+    {other_lessons}
     Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
   PROMPT
 end

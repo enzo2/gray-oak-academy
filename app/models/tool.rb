@@ -10,6 +10,8 @@ class Tool < ApplicationRecord
 
   validates :specifications, presence: true
   validates :name, uniqueness: true
+  enum :access, { student: "student", admin: "admin", superuser: "superuser" }, prefix: true
+  validates :access, presence: true
   validate :valid_specifications
 
   def for_llm
@@ -18,6 +20,14 @@ class Tool < ApplicationRecord
       "type": "function",
       "function": specifications
     }
+  end
+
+  def self.enabled_for_user(user)
+    if user.role_student?
+      where(access: :student)
+    elsif user.role_teacher?
+      all
+    end
   end
 
   private

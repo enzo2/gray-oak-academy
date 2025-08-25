@@ -30,7 +30,7 @@ class OpenaiApiService
     @model = model.presence || determine_model(reasoning_model)
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
-    @tools = Tool.all.map(&:for_llm) if enable_tools # Load tools if enabled
+    @tools = Tool.enabled_for_user(@user).map(&:for_llm) if enable_tools
     @log_completion = log_completion
 
     # Jobs without a task system prompt will use the base system prompt only
