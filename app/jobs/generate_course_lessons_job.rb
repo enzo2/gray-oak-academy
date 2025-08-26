@@ -28,11 +28,15 @@ class GenerateCourseLessonsJob < ApplicationJob
   }
 
   def perform(course, current_user)
+    # Accomodate existing lessons
     existing_titles = course.lessons.pluck(:title)
     existing_list = "None"
     if existing_titles.any?
       existing_list = "\n" + existing_titles.map.with_index(1) { |t, i| "#{i}. #{t}" }.join("\n")
     end
+    # Ensure there is a course outline
+    raise "Course outline is blank. Outline needed to generate lessons." if course.outline.blank?
+
     customized_prompt = Prompt.get_prompt(category: "generate_lessons", user: current_user)
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)

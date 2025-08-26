@@ -85,6 +85,18 @@ class ToolHandlerService
     end
   end
 
+  def execute_tool_calls(tool_calls)
+    tool_calls.each do |tc|
+      execute_tool_call({
+        id: tc[:id],
+        name: tc.dig(:function, :name),
+        arguments: tc.dig(:function, :arguments)
+      })
+    end
+    # Enqueue a single follow-up completion job after processing all tool calls
+    GetLlmCompletionJob.perform_later(conversation: @conversation)
+  end
+
   private
 
   # Tolerant JSON parse + schema-aware coercion for common primitive types.
@@ -698,8 +710,5 @@ class ToolHandlerService
       content: content,
       tool_call_id: @tool_call_id
     )
-    # Allow the LLM to continue with the tool result.
-    # Concurrency control is in place per conversation, so the original job will finish first (e.g. if multiple tools were called)
-    GetLlmCompletionJob.perform_later(conversation: @conversation)
   end
 end

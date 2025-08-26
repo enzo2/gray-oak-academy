@@ -99,14 +99,8 @@ class GetLlmCompletionJob < ApplicationJob
           message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
           broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
           Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
-          final_tool_calls.each do |tool_call|
-            tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
-            tool_handler.execute_tool_call({
-              name: tool_call[:function][:name],
-              arguments: tool_call[:function][:arguments],
-              id: tool_call[:id]
-            })
-          end
+          tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
+          tool_handler.execute_tool_calls(final_tool_calls)
           tool_calls_buffer.clear # Clear buffer for subsequent tool calls
         elsif chunk.dig("delta", "content")&.length&. > 0
           # For standard content, append the new chunk to the buffer
