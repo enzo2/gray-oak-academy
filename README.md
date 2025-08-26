@@ -15,7 +15,7 @@ Since this is a major shift in educational approach (although it's old-fashioned
 
 **Gray Oak Academy is a prototype of this system.**
 
-Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. However, prompted well, the LLM is positioned to improve upon the supervising teacher's curriculum and capabilities, both in the planning and execution phases. Try the app, and you'll see what I mean.
+Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on "screen time" and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. However, prompted well, the LLM is positioned to improve upon the supervising teacher's curriculum and capabilities, both in the planning and execution phases.
 
 *Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling.
 
@@ -25,8 +25,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - LLM chat supports images, native audio input, STT/TTS with auto-read
 - Student lesson view with "chalkboard" (multipurpose frame accessible by the LLM)
 - Curriculum management: Courses, Lessons, Lesson Plans, and Resources
-- One-click LLM generation of course outlines, lesson list, lesson plans, and suggested resources
-- Agentic curriculum editing (can also be done manually)
+- Edit curriculum with LLM assistance, or manually
+- One-click generation of course outlines, lesson list, lesson plans, and suggested resources
 - LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
 - LLM-generated student reports are fed into the next session, ensuring continuity and personalization
 - Speech-only lesson option to relieve screen time
@@ -88,26 +88,24 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the console, `User.first.role_superuser!`.)
 - Go to Settings > Preferences and set your API, token and models.
 - To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
-- Go to Course Manager and create a course. To use the LLM to outline the course, save it and then press Generate Outline.
-- You can then create lessons and lesson plans, again optionally using the LLM. Obviously, review everything first. 
-- When the lesson plan is ready, mark it as published. Be sure to add resources.
+- Create a course using the Course Manager, or by asking the LLM. Next, generate a course outline.
+- You can then create lessons and lesson plans, again optionally using the LLM. 
+- When the first lesson plan is ready, mark it as published. Be sure to add resources. (Obviously, for actual use, review everything first.) 
 - Add a student account from the teacher's dashboard or using the student signup code. 
-- The student can then go to their dashboard and try out the lesson.
+- The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
-- Agentic/iterative curriculum design
-   - Chat about curriculum + tool calls to edit
+- Improve curriculum design:
+   - web search / open textbook / deep research support
    - Automated resource finding/validation 
-   - Agent with web search / deep research support
-   - Pre-prepared applets
+   - Prepared applets
 - MCP support
 - Resource tagging, archive
 - Camera input/snapshots (e.g. show the LLM your desk)
-- Mobile-first chalkboard
-- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student)
-- Student feedback tool at end of lessons
 - Teacher alerts, notifications, mobile push, etc. 
 - Student analytics (time spent, etc.)
+- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student)
+- Student feedback tool at end of lessons
 - Hide more advanced settings/features under a Power User setting
 - Python applets (pyodide iframe)
 - Speed up audio input with ffmpeg to reduce cost

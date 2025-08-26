@@ -20,6 +20,8 @@ class Message < ApplicationRecord
   def broadcast_created
     return if role_tool? # Don't broadcast tool messages, as they are only shown to the LLM.
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
+    # Remove any temporary new message placeholder
+    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
     # broadcast_append_later_to seems to work without misordering messages, but keep it synchronous
     broadcast_append_to(
       "#{dom_id(conversation)}",
@@ -27,8 +29,6 @@ class Message < ApplicationRecord
       target: "#{dom_id(conversation)}",
       locals: { message: self }
     )
-    # Remove any temporary new message placeholder
-    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
   end
 
   def broadcast_updated

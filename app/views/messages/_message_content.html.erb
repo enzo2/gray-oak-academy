@@ -43,7 +43,7 @@
     <% if message.content.blank? && message.tool_calls.nil? %>
       <sl-spinner></sl-spinner>
     <% else %>
-      <%= markdown(message.content) %>
+      <%= markdown(message.content) if message.content.present? %>
 
       <% if message.tool_calls.present? %> 
         <span class="mt-2 font-sans text-stone-500 dark:text-stone-400">

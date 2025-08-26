@@ -23,7 +23,7 @@ class ToolHandlerService
       # Authorization: ensure caller is allowed to run this tool.
       if @user.role_student?
         # Tools only teachers should be allowed to call
-        teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_lesson]
+        teacher_only_tools = %w[List_Students Generate_Course_Outline Generate_Course_Lessons Generate_Lesson_Plan Create_Course Update_Lesson]
         if teacher_only_tools.include?(tool.name)
           raise ToolExecutionError, "Permission denied: students are not allowed to call '#{tool.name}'"
         end
@@ -47,29 +47,29 @@ class ToolHandlerService
         execute_chalkboard_file
       when "Complete_Lesson"
         execute_complete_lesson
-      when "python_sandbox"
+      when "Python_Sandbox"
         execute_python_code_executor
-      when "list_students"
+      when "List_Students"
         execute_list_students
-      when "list_courses"
+      when "List_Courses"
         execute_list_courses
-      when "get_course_details"
+      when "Get_Course_Details"
         execute_get_course_details
-      when "get_lesson_details"
+      when "Get_Lesson_Details"
         execute_get_lesson_details
-      when "get_student_reports"
+      when "Get_Student_Reports"
         execute_get_student_reports
-      when "generate_course_outline"
+      when "Generate_Course_Outline"
         execute_generate_course_outline
-      when "generate_course_lessons"
+      when "Generate_Course_Lessons"
         execute_generate_course_lessons
-      when "generate_lesson_plan"
+      when "Generate_Lesson_Plan"
         execute_generate_lesson_plan
-      when "create_course"
+      when "Create_Course"
         execute_create_course
-      when "update_course"
+      when "Update_Course"
         execute_update_course
-      when "update_lesson"
+      when "Update_Lesson"
         execute_update_lesson
       else
         raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented!"
@@ -391,9 +391,6 @@ class ToolHandlerService
   end
 
   def execute_python_code_executor
-    # May take a while, so broadcast a temporary message which will render a spinner
-    # Will be removed once the actual response is broadcast
-    broadcast_placeholder
     code = @args["code"]
     result = PythonCodeExecutorService.execute(code)
     if result["error"] # I.e. HTTP error from terrarium
@@ -691,15 +688,6 @@ class ToolHandlerService
       "#{dom_id(@conversation)}",
       target: "#{dom_id(@conversation)}",
       partial: "student/lessons/lesson_completed"
-    )
-  end
-
-  def broadcast_placeholder
-    Turbo::StreamsChannel.broadcast_append_to(
-      "#{dom_id(@conversation)}",
-      target: "#{dom_id(@conversation)}",
-      partial: "messages/message",
-      locals: { message: Message.new(role: :assistant, content: "") }
     )
   end
 

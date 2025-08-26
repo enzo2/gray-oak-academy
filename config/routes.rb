@@ -20,6 +20,9 @@ Rails.application.routes.draw do
   get "user_settings/llm_models", to: "user_settings#llm_models"
 
   resources :conversations, only: [ :index, :show, :create, :update, :destroy ] do
+    member do
+      delete :clear
+    end
     resources :messages, only: [ :create ]
     post "audio_messages", to: "messages#create_audio_message"
     post "transcribed_messages", to: "messages#create_transcribed_message"

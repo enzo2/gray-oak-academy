@@ -93,7 +93,16 @@
                 <span class="pl-2">Rename</span>
               </div>
             </sl-menu-item>
-            <sl-menu-item onclick="this.children[0].click">
+            <sl-menu-item onclick="this.querySelector('button').click();">
+              <%= button_to clear_conversation_path(@conversation), method: :delete, 
+                  data: { turbo_method: :delete, turbo_confirm: 'This will delete all messages in the conversation.' } do %>
+                <div class="flex items-center">
+                  <sl-icon name="eraser" label="Clear conversation" class="hover:text-red-700"></sl-icon>
+                  <span class="pl-2">Clear</span>
+                </div>
+              <% end %>
+            </sl-menu-item>
+            <sl-menu-item onclick="this.querySelector('button').click();">
               <%= button_to conversation_path(@conversation), method: :delete, 
                     data: { turbo_method: :delete, turbo_confirm: "Are you sure?" } do %>
                 <div class="flex items-center">

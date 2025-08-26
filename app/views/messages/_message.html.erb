@@ -11,10 +11,17 @@
   <%= render partial: "messages/message_buttons", locals: { message: message } %>
 <% end %>
 
-<%# If this is a user message, and it's the last message in the conversation,
-    also render a placeholder for the assistant reply (spinner will show).
+<%# Render a placeholder for the assistant reply (spinner will show).
     The placeholder will be removed by the broadcast of the real assistant message. %>
-<% if message.role_user? && message.persisted? && message.conversation.messages.last == message %>
-  <%# This is recursive once, but seems to work. %>
-  <%= render "messages/message", message: Message.new(role: :assistant, content: "") %>
+<% if message.persisted? &&
+      (
+        # Show placeholder when the last message is a user message (assistant reply incoming)
+        (message.conversation.messages.last == message && message.role_user?) ||
+        # Assistant message that contains tool_calls: show placeholder if this is the last assistant message
+        # (tool messages may be appended after; we still want the assistant placeholder until final assistant reply)
+        (message.role_assistant? && message.tool_calls&.any? && message.conversation.messages.where(role: "assistant").last == message)
+      ) %>
+  <%# This is recursive once, since we are inside the message partial already, but stopped by the .persisted? check. %>
+  <% Rails.logger.debug "placeholder added" %>
+  <%= render "messages/message", message: Message.new(role: :assistant) %>
 <% end %>

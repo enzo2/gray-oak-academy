@@ -489,11 +489,12 @@ export default class extends Controller {
         // Auto-read if enabled
         if (this.autoReadValue) this.play({ currentTarget: targetButton })
         
-      } else if (retryCount < 10) { // Retry up to 1 seconds
+      } else if (retryCount < 20) { // Retry up to 2 seconds
         //console.log(`Button target for message ID ${messageIdFromEvent} not found. Retrying (${retryCount + 1})/10...`);
         setTimeout(() => processButton(retryCount + 1), 100); // Wait 100ms before retrying
       } else {
-        console.error(`Could not find button target for completed message ID: ${messageIdFromEvent} after ${retryCount} retries. Was it rendered?`);
+        // Fail silently, since it may not have any buttons (e.g. tool use message)
+        //console.error(`Could not find button target for completed message ID: ${messageIdFromEvent} after ${retryCount} retries. Was it rendered?`);
       }
     };
     // Start the process

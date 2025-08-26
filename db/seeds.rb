@@ -70,9 +70,9 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'python_sandbox')
+tool = Tool.find_or_initialize_by(name: 'Python_Sandbox')
 tool.specifications = {
-  name: "python_sandbox",
+  name: "Python_Sandbox",
   description: "Executes Python code in a secure sandbox and returns the result. Use for any mathematical or data processing task beyond simple arithmetic. std_out and std_err are returned. File/image access is not available.",
   parameters: {
     type: "object",
@@ -89,10 +89,10 @@ tool.save!
 
 # ---- Agentic curriculum tool seeds (strict schemas) ----
 
-tool = Tool.find_or_initialize_by(name: 'list_students')
+tool = Tool.find_or_initialize_by(name: 'List_Students')
 tool.access = :admin
 tool.specifications = {
-  name: "list_students",
+  name: "List_Students",
   description: "List all students assigned to the current teacher (id, name).",
   strict_mode: true,
   parameters: {
@@ -104,9 +104,9 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'list_courses')
+tool = Tool.find_or_initialize_by(name: 'List_Courses')
 tool.specifications = {
-  name: "list_courses",
+  name: "List_Courses",
   description: "List courses for the current teacher (id, title, grade_level, status).",
   strict_mode: true,
   parameters: {
@@ -118,9 +118,9 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'get_course_details')
+tool = Tool.find_or_initialize_by(name: 'Get_Course_Details')
 tool.specifications = {
-  name: "get_course_details",
+  name: "Get_Course_Details",
   description: "Get course details including outline and lessons list.",
   strict_mode: true,
   parameters: {
@@ -134,9 +134,9 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'get_lesson_details')
+tool = Tool.find_or_initialize_by(name: 'Get_Lesson_Details')
 tool.specifications = {
-  name: "get_lesson_details",
+  name: "Get_Lesson_Details",
   description: "Get a lesson and its full lesson plan. Always call this before updating a lesson.",
   strict_mode: true,
   parameters: {
@@ -150,9 +150,9 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'get_student_reports')
+tool = Tool.find_or_initialize_by(name: 'Get_Student_Reports')
 tool.specifications = {
-  name: "get_student_reports",
+  name: "Get_Student_Reports",
   description: "Retrieve all reports for a given student (grouped and formatted).",
   strict_mode: true,
   parameters: {
@@ -166,10 +166,10 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'create_course')
+tool = Tool.find_or_initialize_by(name: 'Create_Course')
 tool.access = :admin   # Can make this student-access later once student-directed courses are supported
 tool.specifications = {
-  name: "create_course",
+  name: "Create_Course",
   description: "Create a new course. Always call list_courses first.",
   strict_mode: true,
   parameters: {
@@ -186,10 +186,10 @@ tool.specifications = {
 tool.save!
 
 # Flattened, explicit schema aligned with job semantics (type/details; type/description)
-tool = Tool.find_or_initialize_by(name: 'update_lesson')
+tool = Tool.find_or_initialize_by(name: 'Update_Lesson')
 tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
 tool.specifications = {
-  name: "update_lesson",
+  name: "Update_Lesson",
   description: "Update a lesson and REPLACE its lesson plan content. Always call get_lesson_details first.",
   strict_mode: true,
   parameters: {
@@ -242,10 +242,10 @@ tool.specifications = {
 tool.save!
 
 # Update course tool (similar semantics to update_lesson but operates at the course level)
-tool = Tool.find_or_initialize_by(name: 'update_course')
+tool = Tool.find_or_initialize_by(name: 'Update_Course')
 tool.access = :admin
 tool.specifications = {
-  name: "update_course",
+  name: "Update_Course",
   description: "Update a course's basic fields and optionally replace its outline. Always call get_course_details first.",
   strict_mode: true,
   parameters: {
@@ -276,10 +276,10 @@ tool.specifications = {
 tool.save!
 
 # Generator tools (schema-driven; blocking; strict)
-tool = Tool.find_or_initialize_by(name: 'generate_course_outline')
+tool = Tool.find_or_initialize_by(name: 'Generate_Course_Outline')
 tool.access = :admin
 tool.specifications = {
-  name: "generate_course_outline",
+  name: "Generate_Course_Outline",
   description: "Ask the LLM to generate a course outline for the given course. This may take time; the tool blocks until the job completes.",
   strict_mode: true,
   parameters: {
@@ -293,10 +293,10 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'generate_course_lessons')
+tool = Tool.find_or_initialize_by(name: 'Generate_Course_Lessons')
 tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
 tool.specifications = {
-  name: "generate_course_lessons",
+  name: "Generate_Course_Lessons",
   description: "Ask the LLM to generate lessons for the given course. This may take time; the tool blocks until the job completes. This will not overwrite existing lessons, but will take them into account.",
   strict_mode: true,
   parameters: {
@@ -310,10 +310,10 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'generate_lesson_plan')
+tool = Tool.find_or_initialize_by(name: 'Generate_Lesson_Plan')
 tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
 tool.specifications = {
-  name: "generate_lesson_plan",
+  name: "Generate_Lesson_Plan",
   description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). This may take time; blocks until the job completes. Do not call if the lesson already has content unless you intend to overwrite it.",
   strict_mode: true,
   parameters: {
@@ -570,10 +570,11 @@ p.title = "Default Teacher Assistant Chat"
 p.prompt = <<~PROMPT
   You are now assisting the teacher in a chat format, outside of any specific lesson.
   Don't use the Chalkboard_File or Chalkboard_URL tools, since these are only applicable during a lesson.
-  You have access to tools that allow you to manage the curriculum.
-  The teacher also has access to the Course Manager, Students, and Resources dashboards, where they can manage the curriculum by hand, either manually or using generators.
-  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals). Finally, each lesson plan can be generated. Resources can be linked to lesson plans before or after plan generation. Lesson plans are executed by the LLM tutor with the student.
+  You are here for any kind of chat--it doesn't need to pertain to this app, teaching, or the curriculum.
 
+  You can serve as a curriculum-building assistant; you have access to tools that allow you to manage the curriculum for the teacher.
+  The teacher, also, has access to the Course Manager, Students, and Resources dashboards, where they can manage the curriculum by hand, either manually or using generators.
+  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals). Finally, each lesson plan can be generated. Resources can be linked to lesson plans before or after plan generation. Lesson plans are executed by the LLM tutor with the student.
   Follow these rules for agentic curriculum development:
   1. Always use read tools (get_course_details, get_lesson_details, get_student_reports, list_courses, list_students) to fetch current state before proposing edits. This is critical to avoid unintentionally overwriting existing data.
   2. For any write action (create_course, update_lesson) summarize the proposed changes in plain language and ask the teacher for explicit confirmation.

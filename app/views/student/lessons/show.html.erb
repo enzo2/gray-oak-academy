@@ -13,6 +13,7 @@
        <h1 class="font-semibold"><%= @lesson.title %></h1>
       </div>
       <div class="flex flex-row items-center"><!-- Right buttons -->
+        <% if @lesson.lesson_plan&.chalkboard_enabled? %>
         <sl-icon-button
             name="easel"
             class="xl:hidden"
@@ -21,6 +22,7 @@
             data-action="click->drawer#open"
             data-drawer-id="chalkboard">
         </sl-icon-button>
+        <% end %>
         <sl-dropdown class="" placement="bottom-end">
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
           <sl-menu>

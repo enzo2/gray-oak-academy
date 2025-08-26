@@ -74,10 +74,10 @@ class GetLlmCompletionJob < ApplicationJob
         if chunk.dig("delta", "tool_calls").present?
           Rails.logger.debug "Tool call chunk: #{chunk.inspect}"
           chunk.dig("delta", "tool_calls").each do |tool_call|
-            idx = tool_call["index"] || 0
+            idx = (tool_call.dig("index") || 0).to_i
             # Initialize the tool call entry in the buffer if this is the first chunk for this tool call
             tool_calls_buffer[idx] ||= {
-              type: tool_call["type"] || "function",
+              type: tool_call.dig("type") || "function",
               # Gemini OpenAI Compatibility API bug workaround - it gives an empty string as ID, but needs one later or gives a 400 error
               id: tool_call["id"].blank? ? "call_#{SecureRandom.alphanumeric(24)}" : tool_call["id"],
               function: {
@@ -94,8 +94,8 @@ class GetLlmCompletionJob < ApplicationJob
         # Finalize and execute tool calls when finish reason indicates tool call completion
         if chunk["finish_reason"] == "tool_calls"
           flush_buffer.call(force: true) # Ensure any remaining content is flushed before handling tools
-          message ||= conversation.messages.build(role: "assistant", content: "") # Create message if not already created (i.e. if there was no content)
-          final_tool_calls = tool_calls_buffer.values.sort_by { |tc| tc[:id].to_s }
+          message ||= conversation.messages.build(role: "assistant") # Create message if not already created (i.e. if there was no content)
+          final_tool_calls = tool_calls_buffer.sort_by { |idx, _tc| idx }.map { |_idx, tc| tc } # Order by the index
           message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
           broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
           Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"

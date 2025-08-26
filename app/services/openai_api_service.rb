@@ -242,6 +242,7 @@ class OpenaiApiService
 
   def check_content(content)
     # Rails.logger.debug "Checking content: #{content}"
+    # Gemini often returns a blank response.
     if content.blank?
       Rails.logger.warn "Empty response from LLM."
       raise OpenAiError, "Empty response from LLM."
