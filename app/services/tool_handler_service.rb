@@ -13,6 +13,8 @@ class ToolHandlerService
   end
 
   def execute_tool_call(tool_call)
+    @tool_call_id = tool_call[:id]
+
     begin
       # Find the tool by name
       tool = Tool.find_by(name: tool_call[:name])
@@ -30,12 +32,11 @@ class ToolHandlerService
       # Prevent runaway tool-call loops: disallow executing new tools if the conversation
       # already has too many consecutive tool messages without an intervening user message.
       if runaway_tool_call_limit_exceeded?(10)
-        raise ToolExecutionError, "Permission denied: tool call limit reached for this conversation"
+        raise ToolExecutionError, "Permission denied: consecutive tool call limit reached. User must confirm before next tool call."
       end
 
       # Validate arguments against tool specifications
       @args = validate_and_parse_arguments(tool, tool_call[:arguments])
-      @tool_call_id = tool_call[:id]
 
       # Execute the tool based on its name.
       # Ensure each tool method calls create_tool_message upon completion.
@@ -66,6 +67,8 @@ class ToolHandlerService
         execute_generate_lesson_plan
       when "create_course"
         execute_create_course
+      when "update_course"
+        execute_update_course
       when "update_lesson"
         execute_update_lesson
       else
@@ -210,19 +213,17 @@ class ToolHandlerService
 
   def runaway_tool_call_limit_exceeded?(limit = 10)
     # Determine the timestamp of the most recent user message in the conversation.
-    last_user = @conversation.messages.where(role: "user").order(created_at: :desc).first
-
+    last_user = @conversation.messages.where(role: "user").reorder(created_at: :desc).first
     if last_user
       # Count assistant/tool messages after the last user message.
       recent_count = @conversation.messages.where("created_at > ?", last_user.created_at)
-                                          .where(role: [ "assistant", "tool" ])
+                                          .where(role: "tool")
                                           .count
     else
       # No user messages at all — count assistant/tool messages
-      recent_count = @conversation.messages.order(created_at: :desc)
-                                          .where(role: [ "assistant", "tool" ]).count
+      recent_count = @conversation.messages.where(role: "tool").count
     end
-
+    Rails.logger.warn "Tool calls exceeded limit: #{recent_count} >= #{limit}" if recent_count >= limit
     recent_count >= limit
   end
 
@@ -499,6 +500,44 @@ class ToolHandlerService
       create_tool_message(JSON.pretty_generate({ status: "ok", course: course.as_json(only: [ :id, :title, :summary, :grade_level, :status ]) }))
     else
       raise ToolExecutionError, "Validation failed: #{course.errors.full_messages.join(', ')}"
+    end
+  end
+
+  def execute_update_course
+    # Teacher-only tool
+    course_id = @args["course_id"].to_i
+    course = current_teacher.taught_courses.find_by(id: course_id)
+    raise ToolExecutionError, "Course not found" unless course
+
+    Course.transaction do
+      # Update basic course fields if provided
+      course.title = @args["title"] if @args["title"].present?
+      course.summary = @args["summary"] if @args["summary"].present?
+      course.grade_level = @args["grade_level"] if @args["grade_level"].present?
+
+      # If an outline is provided, expect an array of { "topic": "...", "description": "..." }
+      if @args.key?("outline")
+        outline_items = @args["outline"]
+        unless outline_items.is_a?(Array)
+          raise ToolExecutionError, "outline must be an array"
+        end
+
+        begin
+          course.outline = outline_items.map do |it|
+            topic = it["topic"]
+            desc = it["description"]
+            if topic.blank? || desc.blank?
+              raise ToolExecutionError, "Each outline item must include non-empty 'topic' and 'description'"
+            end
+            { topic => desc }
+          end
+        rescue => e
+          raise ToolExecutionError, e.message
+        end
+      end
+
+      course.save!
+      create_tool_message(JSON.pretty_generate({ status: "ok", course: course.for_llm }))
     end
   end
 

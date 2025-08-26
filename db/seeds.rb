@@ -177,7 +177,7 @@ tool.specifications = {
     properties: {
       "title" => { "type" => "string", "description" => "Course title" },
       "summary" => { "type" => "string", "description" => "Brief summary of the course" },
-      "grade_level" => { "type" => "string", "description" => "Target grade level (e.g. 'K', '9')" }
+      "grade_level" => { "type" => "string", "description" => "Target grade level. Must be 'K' or an integer" }
     },
     "required" => [ "title", "summary", "grade_level" ],
     "additionalProperties" => false
@@ -236,6 +236,40 @@ tool.specifications = {
       "audio" => { "type" => "string", "description" => "Audio input setting (disabled|enabled|audio-only) (optional; default enabled) (disabled: allows STT input. enabled: allows raw audio input, for supported LLMs. audio-only: allows STT/audio and disables text/keyboard input)", "enum" => [ "disabled", "enabled", "audio-only" ] }
     },
     "required" => [ "lesson_id", "title", "goals", "approx_duration_min" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+# Update course tool (similar semantics to update_lesson but operates at the course level)
+tool = Tool.find_or_initialize_by(name: 'update_course')
+tool.access = :admin
+tool.specifications = {
+  name: "update_course",
+  description: "Update a course's basic fields and optionally replace its outline. Always call get_course_details first.",
+  strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "course_id" => { "type" => "integer", "description" => "ID of the course to update" },
+      "title" => { "type" => "string", "description" => "New course title" },
+      "summary" => { "type" => "string", "description" => "New course summary" },
+      "grade_level" => { "type" => "string", "description" => "Target grade level (e.g. 'K', '9')" },
+      "outline" => {
+        "type" => "array",
+        "description" => "Complete replacement outline array; each item has 'topic' and 'description'.",
+        "items" => {
+          "type" => "object",
+          "properties" => {
+            "topic" => { "type" => "string" },
+            "description" => { "type" => "string" }
+          },
+          "required" => [ "topic", "description" ],
+          "additionalProperties" => false
+        }
+      }
+    },
+    "required" => [ "course_id" ],
     "additionalProperties" => false
   }
 }
