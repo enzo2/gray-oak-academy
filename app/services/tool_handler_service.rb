@@ -456,6 +456,7 @@ class ToolHandlerService
 
   def execute_get_lesson_details
     lesson_id = @args["lesson_id"].to_i
+    show_on_chalkboard = @args["show_on_chalkboard"]
     lesson = Lesson.find_by(id: lesson_id)
     raise ToolExecutionError, "Lesson not found" unless lesson
 
@@ -469,7 +470,14 @@ class ToolHandlerService
       raise ToolExecutionError, "Permission denied, course does not belong to the current user"
     end
 
-    create_tool_message(JSON.pretty_generate(lesson.for_llm))
+    output = JSON.pretty_generate(lesson.for_llm)
+    # Optionally render the lesson and lesson plan to the chalkboard as markdown
+    if show_on_chalkboard == false
+      create_tool_message(output)
+    else
+      broadcast_chalkboard_lesson(lesson)
+      create_tool_message(output + "\n\nAlso sending these details to chalkboard now for display: done.")
+    end
   end
 
   def execute_get_student_reports
@@ -629,6 +637,9 @@ class ToolHandlerService
         }
       }))
     end
+
+    # Broadcast the updated lesson to the chalkboard by default
+    broadcast_chalkboard_lesson(lesson)
   end
 
   # ---- Generator tools (blocking) ----
@@ -695,6 +706,15 @@ class ToolHandlerService
     )
   end
 
+  def broadcast_chalkboard_lesson(lesson)
+    Turbo::StreamsChannel.broadcast_update_to(
+      "#{dom_id(@conversation)}",
+      target: "chalkboard",
+      partial: "lessons/chalkboard_markdown",
+      locals: { lesson: lesson }
+    )
+  end
+
   def broadcast_lesson_completed
     Turbo::StreamsChannel.broadcast_append_later_to(
       "#{dom_id(@conversation)}",
@@ -702,6 +722,7 @@ class ToolHandlerService
       partial: "student/lessons/lesson_completed"
     )
   end
+
 
   def create_tool_message(content)
     Message.create!(

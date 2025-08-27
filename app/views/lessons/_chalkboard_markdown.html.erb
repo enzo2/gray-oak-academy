@@ -1,0 +1,53 @@
+<div class="chalkboard-markdown prose dark:prose-invert max-w-none p-4">
+  <%= markdown do %>
+    <%# Plain-text markdown partial for chalkboard rendering. Expects a local `lesson` variable. %>
+    <% lp = lesson.lesson_plan %>
+    # <%= lesson.title %>
+
+    **Goals:** <%= lesson.goals %>
+    **Duration:** <%= lesson.approx_duration_min %> minutes
+
+    <% if lp && lp.content.present? %>
+    ## Lesson Plan
+    <% lp.content.each do |item| %>
+    - **<%= h(item.keys.first || "Item") %>**: <%= item.values.first.to_s.strip.gsub(/\r\n?/, "\n").gsub(/\n+/, "\n\n") %>
+    <% end %>
+    <% else %>
+    _No lesson plan content available._
+    <% end %>
+
+    <% if lp && lp.suggested_resources.present? %>
+    ## Suggested Resources
+    <% lp.suggested_resources.each do |res| %>
+    - **<%= h(res.keys.first || "Resource") %>**: <%= res.values.first.to_s %>
+    <% end %>
+    <% end %>
+
+    <%# Linked resources associated with the lesson plan (explicit resource records) %>
+    <% if lp && lp.resources.any? %>
+    ## Linked Resources
+    <% lp.resources.each do |r| %>
+    - <%# Show category/description and available identifier/uri/file info %>
+      **<%= h(r.category.presence || "Resource") %>**:
+      <% if r.uri.present? %>
+        URI: <%= r.uri %>
+      <% end %>
+      <% if r.file.attached? %>
+        File: <%= r.file.filename.to_s %> (resource id: <%= r.id %>)
+      <% end %>
+      <% if r.description.present? %>
+        Description: <%= r.description %>
+      <% end %>
+    <% end %>
+    <% else %>
+    _No linked resources for this lesson._
+    <% end %>
+
+    **Audio:** <%= lp.audio %>
+
+    <% if lp && lp.chalkboard_enabled == false %>
+    _Note: Chalkboard disabled for this lesson plan._
+    <% end %>
+
+  <% end %>
+</div>
