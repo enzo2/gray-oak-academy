@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rack/rack-attack.git
-  revision: 467770882daa6f3865cc207c8b5dfdbc4028d7cb
+  revision: 4606efbe5ec8dfef5ab824fd03797ed67396ecb7
   branch: main
   specs:
     rack-attack (6.7.0)
