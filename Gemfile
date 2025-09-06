@@ -4,7 +4,7 @@ source "https://rubygems.org"
 # gem "dotenv-rails", groups: [ :development, :test ]
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.2"
+gem "rails", "< 8.1"
 gem "propshaft"
 gem "pg" # Use postgresql as the database for Active Record
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
@@ -41,7 +41,7 @@ gem "faraday-retry"
 
 # LLM API access/wrappers
 gem "open_router"# , git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
-gem "ruby-openai", "< 8.3"
+gem "ruby-openai", "< 8.4"
 # gem "ruby_llm"   # could add this but it's not fully developed yet, eg. lacks xAI, TTS
 # https://github.com/rira100000000/ruby-gemini-api  a good ruby-openai style gem for gemini
 

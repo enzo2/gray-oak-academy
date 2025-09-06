@@ -58,13 +58,12 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - `git clone` the repository to your machine. 
 - Docker is needed. (Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise the app will be super slow.)
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
-- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Caveat: If you want to try microphone input using your phone over the same LAN, choose the Devcontainer, since the development environment includes SSL by default using a self-signed certificate.)
+- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Exception: If you want to try speech input using your phone over the same LAN, use Devcontainer since it sets up a self-signed SSL certificate that you'll need.)
 
 ### Development: 
 - Create `/.devcontainer/.env.development` following `/.devcontainer/.env.development.example`. 
 - Open with VSCode, etc., and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
-- Optionally, add the automatically generated `/config/certs/root-ca.crt` to your browser's trusted certificates.
-- Run `rails server`. Visit https://localhost:3000. 
+- Run `rails server`. Visit http://localhost:3000. To access from other devices over the same LAN, visit https://your-machine-ip:3001 (note: you will get a self-signed root CA warning).
 
 ### Production:
 - *Note: The default setup is not secure. It just runs the Puma server. The minimum option for serving publically would be to enable Thruster, Rails' basic proxy with Let's Encrypt support, in the Dockerfile. You'll also need to adjust SSL settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
@@ -76,8 +75,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ### Choosing an API:
 - Any OpenAI-compatible API is supported. 
-- Built-in support for OpenRouter enables tracking actual costs and displays context window usage. OpenRouter also avoids token limits, enables trying different providers/models easily. 
-- Gemini API's OpenAI compatibility endpoint is another good option with free tier, raw audio support, and long context window models. 
+- Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. They also allow BYOK.
+- Gemini API's OpenAI compatibility endpoint is a good option with free tier, raw audio support, and long context window models.
 - For heavy users, providers supporting automated prompt caching may reduce cost.
 
 ### Choosing an LLM: 
