@@ -14,6 +14,7 @@ class LessonPlan < ApplicationRecord
   enum :status, { draft: "draft", published: "published" }, prefix: true
   # "archived" status also available in the enum column, but can't think of a use case
 
+  # Hybrid setting for audio input: see conversation.rb for definitions
   enum :audio, { disabled: "disabled", enabled: "enabled", only: "audio-only" }, prefix: true
 
   # Allow blank content if still new draft

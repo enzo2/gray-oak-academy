@@ -27,19 +27,14 @@ module Admin
     end
 
     def edit
-       respond_to do |format|
-        format.turbo_stream
-       end
     end
 
     def update
       if @course.update(course_params)
-        respond_to do |format|
-          format.turbo_stream
-        end
+        redirect_to admin_courses_path, status: :see_other
       else
         respond_to do |format|
-          format.turbo_stream { render :update, status: :unprocessable_content }
+          format.html { render :edit, status: :unprocessable_content }
         end
       end
     end

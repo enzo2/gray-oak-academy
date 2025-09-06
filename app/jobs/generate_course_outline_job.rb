@@ -74,7 +74,7 @@ class GenerateCourseOutlineJob < ApplicationJob
     # Broadcast the updated course row via Turbo Streams
     renderer = ApplicationController.renderer_with_signed_in_user(current_user)
     html = renderer.render(
-      template: "admin/courses/edit",
+      template: "admin/courses/edit", formats: [ :turbo_stream ],
       layout: false,
       locals: { course: course }
     )

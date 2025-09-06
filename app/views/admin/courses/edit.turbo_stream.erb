@@ -1,5 +1,6 @@
 <%
-  #Helper since it may be called from controller with instance vars, or from Job with local vars
+  #Helper since it could be called from controller with instance vars, or from Job with local vars
+  #Currently only called from Job
   course = local_assigns[:course] || @course if defined?(@course)
 %>
 <%= turbo_stream.update(course) do %>

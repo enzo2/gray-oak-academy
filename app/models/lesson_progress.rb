@@ -22,8 +22,16 @@ class LessonProgress < ApplicationRecord
 
   scope :completed, -> { joins(:student_report).where(student_reports: { status: :completed }) }
 
+  def course # For convenience
+    lesson.course
+  end
+
   def lesson_plan # For convenience
     lesson.lesson_plan
+  end
+
+  def resources # For convenience
+    lesson_plan.resources
   end
 
   def build_task_system_prompt
@@ -33,16 +41,17 @@ class LessonProgress < ApplicationRecord
     # In the future it can also include student profile information gathered from other courses, or the teacher.
     # We don't include student age for pedagogical reasons, since we want students to advance beyond their age level.
     lesson_info = <<~LESSON_INFO
-      Course: #{lesson.course.title}
-      Grade Level: #{lesson.course.grade_level}
+      Course: #{course.title}
+      Grade Level: #{course.grade_level}
       Lesson Title: #{lesson.title}
       Goals: #{lesson.goals}
       Duration: #{lesson.approx_duration_min} minutes (just a guide; could be shorter)
       Lesson Plan:
-      #{lesson.lesson_plan.content}
+      #{lesson_plan.content}
       Resources marked as available:
-      #{lesson.lesson_plan.resources.format_collection}
-      Chalkboard enabled?: #{lesson.lesson_plan.chalkboard_enabled?}
+      #{resources.format_collection}
+      Chalkboard enabled?: #{lesson_plan.chalkboard_enabled?}
+      Audio setting: #{ (lesson_plan.audio == "audio-only" ? "Audio/Speech-only. Keyboard is disabled." : "Flexible: Student can type or use speech-to-text.") }
       Student's name: #{student.name}
       Student's progress in previous lessons in this course:
       #{student.enrollments.find_by(course: lesson.course)&.lesson_history_for_prompt}

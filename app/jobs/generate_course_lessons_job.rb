@@ -103,7 +103,7 @@ class GenerateCourseLessonsJob < ApplicationJob
       channel,
       target: "lessons-table-body",
       html: html)
-    Turbo::StreamsChannel.broadcast_remove_to(
+    Turbo::StreamsChannel.broadcast_remove_to( # The lessons list is now complete and we can get rid of the generate button
       channel, target: "generate-lessons")
   end
 

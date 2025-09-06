@@ -120,6 +120,7 @@ class OpenaiApiService
       # If no stream handler was provided, process the response.
       check_for_refusal(response)
       content = (response).dig("choices", 0, "message", "content").to_s
+      check_for_blank_content(content)
 
       # Remove all whitespace from prefill and content so they can be compared
       normalized_prefill = prefill&.gsub(/\s+/, "")
@@ -132,8 +133,6 @@ class OpenaiApiService
         Rails.logger.debug "Prefilling response with: #{prefill}"
         content = prefill + content
       end
-
-      check_content(content)
 
       # If JSON requested, parse and validate the content.
       if response_format&.dig(:type) == "json_schema" || response_format&.dig(:type) == "json_object"
@@ -240,7 +239,7 @@ class OpenaiApiService
     end
   end
 
-  def check_content(content)
+  def check_for_blank_content(content)
     # Rails.logger.debug "Checking content: #{content}"
     # Gemini often returns a blank response.
     if content.blank?
@@ -276,6 +275,8 @@ class OpenaiApiService
         repaired_content = JSON.repair(json_content)
         Rails.logger.info "Repaired JSON: #{repaired_content}"
         parsed_content = JSON.parse(repaired_content)
+      rescue JSON::JSONRepairError => e
+        raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
       rescue JSON::ParserError => e
         raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
       end

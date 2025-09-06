@@ -58,7 +58,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - `git clone` the repository to your machine. 
 - Docker is needed. (Note: If using Windows with WSL2 and Docker Desktop, clone into your WSL filesystem (e.g. \\wsl.localhost\Ubuntu), otherwise the app will be super slow.)
 - Choose an OpenAI-compatible LLM API. See below sections 'Choosing an API & LLM'.
-- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Caveat: If you want to try STT/voice input using your phone over the same LAN, choose the Devcontainer, since the development environment includes SSL by default using a self-signed certificate.)
+- Choose a development (Devcontainer) or production (Docker) environment. If you're just trying out the app, production should be slightly easier to set up. (Caveat: If you want to try microphone input using your phone over the same LAN, choose the Devcontainer, since the development environment includes SSL by default using a self-signed certificate.)
 
 ### Development: 
 - Create `/.devcontainer/.env.development` following `/.devcontainer/.env.development.example`. 
@@ -82,7 +82,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ### Choosing an LLM: 
 - For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
-- For outline/lesson generation, model must support structured outputs. Reasoning models are preferable, and you can set a separate reasoning model in settings.
+- In settings, you can add a reasoning model specifically for curriculum generation tasks. Model must support structured outputs. It should be a top-performing, large-sized model. (Even some flagship models may not be good enough!)
 
 ## Getting Started
 - Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the console, `User.first.role_superuser!`.)

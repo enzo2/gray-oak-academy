@@ -29,8 +29,8 @@
     <p class="block text-sm mb-2"><i>
       The content will be used by the LLM tutor to conduct the lesson.<br>
       As examples, you could specify knowledge, resources, exercises, teaching methods, generative applets, or evaluation criteria for the lesson.<br>
-      Referenced sources must be added and linked to the lesson plan below.<br>
-      To create a Reflection Lesson (i.e. an offline, recap, or debrief lesson), add an "Offline Activity" content item with clear instructions for the student to perform away from the device, followed by a "Reflection" or "Recap" content item with debrief prompts.</i></p>
+      Resources may be referenced in the plan, but must be linked to the lesson plan below.<br>
+      To create a reflection/recap/debrief lesson, add an "Offline Activity" content item with instructions for the student to perform away from the device, followed by a "Reflection" or "Recap" content item with debrief prompts.</i></p>
     <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
     <% content_data.each do |item| %>
       <div class="flex items-center mb-1 space-x-2">

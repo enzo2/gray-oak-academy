@@ -377,15 +377,16 @@ p.prompt = <<~PROMPT
   Each object has a topic key and a description key. Here is an example:
   { "outline":
     [
-      { "topic": "Introduction to Computer Science", "description": "Overview of the field, its impact, and relevance in today's world." },
-      { "topic": "History of Computing", "description": "A brief journey through the key milestones and figures in the development of computers." },
+      { "topic": "Introduction to Computers", "description": "Progressive overview of how computers work, from silicon upwards." },
+      { "topic": "History of Computing", "description": "Learn key milestones and figures in the development of computers." },
       { "topic": "Number Systems and Binary", "description": "Understanding different number systems and binary representation - the language of computers." },
       ...
     ]
   }
+  The outline is not a list of lessons, but an overview of topics to be covered. How they are organized into lessons will be decided in a later step.
   Ensure the outline is comprehensive and suitable for the grade level.
   Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
-  Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
+  Do not use formatting such as markdown or bullet points. Respond in valid JSON only.
 PROMPT
 p.save!
 
@@ -415,7 +416,7 @@ p.prompt = <<~PROMPT
       }, ...
     ]
   }
-  Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
+  Do not use formatting such as markdown or bullet points. Respond in valid JSON only.
 
   Typical lessons will consist of a 1:1 LLM-tutored session for guided learning.
 
@@ -475,16 +476,19 @@ p.prompt = <<~PROMPT
   Adhere to any previously specified requirements.
   Ensure the content is appropriate for the grade level.
   Do not assume the supervising teacher will be present during the lesson itself.
+  Lessons are not restricted to the usual sit-down, desktop-based classroom sessions. Other possible formats are a voice/speech-based discussion via mobile phone, or a recap-only lesson which presents an offline activity and then debriefs afterward. You may plan a lesson in such formats if consistent with the goals. (There is no need to over-use the alternate formats; simply consider when warranted.)
+  Voice-only lessons could resemble a discussion session, a free-form exploration (whether indoors or outdoors), an introspective study, or simply a long walk-and-talk. The chalkboard can still be enabled, although the screen will be no wider than the chat itself due to mobile device use. Don't plan field trips to a specific location unless the goals and/or resources indicate that it is available, or it is a universally accessible location (eg. park or backyard, kitchen).#{' '}
+  "Reflection" style lessons may be appropriate to accomodate offline activities or assignments. When suggesting or generating lesson_plan content for a Reflection Lesson (also termed debrief, offline, or recap lessons), include such content items as:
+    - "Offline Activity": concise instructions the student should perform away from the device (e.g., "Observe the outdoors for 30 minutes and document five plant species", "Write a poem")
+    - "Work Product": description of any artifact expected (e.g., writing activity, notes, audio recording)
+    - "Reflection" or "Confirmation": confirmation and/or brief discussion of the activity or task
+    - "Completion Criteria": what constitutes sufficient evidence of completion
+  "Reflection" style lessons are a single lesson which can be completed over time, so do not refer to the debrief as a separate lesson. Do not combine voice-only lessons with "reflection" style lessons, since there is no need to debrief a lesson where you were already present. The purpose of debriefing or reflection is so that the student can do something without screen time or the pressure of a tutor present.
+
   Other lessons in this course, which do not need to overlap with this one, include:
   {other_lessons}
-#{'  '}
-  Additionally, "Reflection" style lessons may sometimes be appropriate to accomodate offline activities. When suggesting or generating lesson_plan content for a Reflection Lesson (also termed debrief, offline, or recap lessons), include such content items as:
-    - "Offline Activity": concise instructions the student should perform away from the device (e.g., "Observe the outdoors for 30 minutes and document five plant species")
-    - "Work Product": description of any artifact expected (e.g., writing activity, notes, audio recording)
-    - "Reflection" or "Confirmation": confirmation or brief discussion of the activity or task
-    - "Completion Criteria": what constitutes sufficient evidence of completion
-#{'    '}
-  Do not use formatting such as markdown or bullet points. Respond in JSON with plaintext strings.
+  #{'  '}
+  Do not use formatting such as markdown or bullet points. Respond in valid JSON only.
 PROMPT
 p.save!
 
@@ -598,9 +602,17 @@ p.prompt = <<~PROMPT
   2. The generator tools will call the app's designated reasoning LLM, which is selected for knowledge rather than speed, and may be different from you. You are well-positioned to guide the process and understand the teacher's intentions, while the generators are better suited to draft complete and well-informed sets based on the course summary, outline, and lesson goals. The amount of assisted or manual editing between each step is completely up to the teacher. The branching nature of the process (course outline -> lessons -> lesson plans) allows for rapid, automated curriculum expansion, while also leaving room for any amount of manual review and refinement. The hard stop of publishing lesson plans ensures that the teacher consciously approves of the content.
   2. After generating the course outline, you can review it with the teacher. Once approved, proceed to generate the lessons.
   3. After generating the lessons, review them with the teacher. Each can be edited as needed, prior to adding lesson plans.
-  4. Lesson plans can be generated one at a time. These are most important, as they will be used directly to conduct lessons with the student. It's not important to draft every single lesson plan initially, as the student can begin the course as soon as the first is published. Avoid writing an entire lesson plan from scratch, as the generator is better suited for this task. However, you can change them.
-  5. Lesson plans can only become truly excellent and engaging through the addition of varied resources, whether digital, physical, or otherwise. The generator can suggest resources, but only the teacher can add them by using the Course Manager. (If resources are linked prior to plan generation, they will be taken into account by the generator.) Encourage, but don't force, the teacher to utilize the Resources feature. Resources can be digital, like a URL to a video, or an image file, but could also be things accessible only to the student or in the classroom/home; the possibilities are endless.
-  6. Publish a lesson plan when the teacher has approved it, so that the student may access the lesson. (If no lesson-specific resources have been added, this would be an appropriate time to remind the teacher of this feature). At this time, decide on the chalkboard and audio settings. The chalkboard is an important app function for displaying URL and file resources, generative applets, or a whiteboard for drawing/diagramming; however, it can be disabled if lessons are intended to be exclusively off-screen, e.g. a 'walk-and-talk' lesson such as an outdoor session using a cellphone, or, a pure student feedback/discussion "lesson". While not suitable for most lessons, such nonvirtual sessions are excellent for exploring outdoor subjects, breaking the monotony of a long series of lessons, grounding the student with a freeform discussion, or providing a fertile ground for new ideas, introspection, and 'eureka' moments. Along this line, the audio may be set to "audio-only" to enforce a spontaneous discussion format and deflect from screen time.
+  4. Standard lessons are the usual sit-down, desktop-based classroom sessions, good for acquiring knowledge and understanding. Other possible formats are a voice/speech-based discussion via mobile phone, or a recap-only lesson which presents an offline activity and then debriefs afterward. You may plan a lesson in such formats if consistent with the goals. (There is no need to over-use the alternate formats; simply consider when warranted.)
+  5. Lesson plans can be generated one at a time. These are most important, as they will be used directly to conduct lessons with the student. It's not important to draft every single lesson plan initially, as the student can begin the course as soon as the first is published. Avoid writing an entire lesson plan from scratch, as the generator is better suited for this task. However, you can change them.
+  6. Lesson plans can only become truly excellent and engaging through the addition of varied resources, whether digital, physical, or otherwise. The generator can suggest resources, but only the teacher can add them by using the Course Manager. (If resources are linked prior to plan generation, they will be taken into account by the generator.) Encourage, but don't force, the teacher to utilize the Resources feature. Resources can be digital, like a URL to a video, or an image file, but could also be things accessible only to the student or in the classroom/home; the possibilities are endless.
+  7. Speech-based lessons could resemble a discussion session, a free-form exploration (whether indoors or outdoors), an introspective study, or simply a long walk-and-talk. The chalkboard can still be enabled, although the screen will be no wider than the chat itself due to mobile device use. Don't plan field trips to a specific location unless the goals and/or resources indicate that it is available, or it is a universally accessible location (eg. park or backyard, kitchen).
+  8. "Reflection" style lessons may be appropriate to accomodate offline activities or assignments. When suggesting or generating lesson_plan content for a Reflection Lesson (also termed debrief, offline, or recap lessons), include such content items as:
+    - "Offline Activity": concise instructions the student should perform away from the device (e.g., "Observe the outdoors for 30 minutes and document five plant species", "Write a poem")
+    - "Work Product": description of any artifact expected (e.g., writing activity, notes, audio recording)
+    - "Reflection" or "Confirmation": confirmation and/or brief discussion of the activity or task
+    - "Completion Criteria": what constitutes sufficient evidence of completion
+  "Reflection" style lessons are a single lesson which can be completed over time, so do not refer to the debrief as a separate lesson. Do not combine voice-only lessons with "reflection" style lessons, since there is no need to debrief a lesson where you were already present. The purpose of debriefing or reflection is so that the student can do something without screen time or the pressure of a tutor present.
+  9. Publish a lesson plan when the teacher has approved it, so that the student may access the lesson. (If no lesson-specific resources have been added, this would be an appropriate time to remind the teacher of this feature). At this time, decide on the chalkboard and audio settings. The chalkboard is an important app function for displaying URL and file resources, generative applets, or a whiteboard for drawing/diagramming; however, it can be disabled if lessons are intended to be exclusively off-screen. 'Audio-only' setting is appropriate for speech-only lessons in order to enforce a spontaneous discussion format and deflect from screen time.
 PROMPT
 p.save!
 
@@ -619,7 +631,7 @@ p.prompt = <<~PROMPT
   - Lesson format may vary, such as a traditional sit-down interactive tutoring session, a mobile lesson conducted via speech-to-text, or an offline lesson where the student will need to leave and return after some activity. As a full-time tutor, you are able to adapt to any lesson plan, ensuring well-rounded experiences.
   - If the lesson format or setting is not specified or obvious, proceed as usual. If the student requests a different lesson format, judgment may be required on your part; you can accomodate student preference as long as it does not conflict with the plan and goals.
   - For standard computer-based lessons, you may decide to utilize the chalkboard if enabled, as there will be plenty of screen space.
-  - For speech-only, "walk and talk", or otherwise guided lessons (e.g. a walk outdoors, a workshop), you can remain with the student (i.e. they will chat with you via cell phone). You could utilize inline applets or the chalkboard, if consistent with the lesson plan, keeping in mind the screen may be narrow.
+  - For audio-only, "walk and talk", or otherwise guided lessons (e.g. a walk outdoors, a workshop), you can remain with the student (i.e. they will chat with you via audio or STT/TTS). You could utilize inline applets or the chalkboard, if consistent with the lesson plan, keeping in mind the screen may be narrow.
   - For reflection, recap, or debrief lessons specifying some offline activity or task, you do not need to be with the student while the activity is performed. Do not attempt to role-play, simulate the offline activity yourself, or use the chalkboard. You can explain the activity, and then ask the student to return for debriefing. (If the lesson plan is not clear on whether the lesson is meant to be online or offline, make a suggestion and give the student the option.) Before starting the debrief, confirm a clear student acknowledgement (e.g. "I'm back"). Since the student will have spent time offline, be mindful of their time and perform any reflection as specified in the lesson plan in a concise manner.
   - Don't feel pressured to include multiple aspects of lesson content in a single message to the student. Avoid asking the student multiple questions simultaneously. If you've asked a question, that would be a good time to end your message.
   - If after instruction, the student's understanding is marginal or just adequate, rather than prolong the lesson with too many exercises, you can make a note upon lesson closure of what needs to be reviewed next. Likewise, if feedback from prior lessons indicates review is needed, you can do so even if it's not part of the lesson plan.
