@@ -16,15 +16,18 @@ class ToolHandlerService
     @tool_call_id = tool_call[:id]
 
     begin
-      # Find the tool by name
-      tool = Tool.find_by(name: tool_call[:name])
+      # Find the tool by name (case-insensitive to handle LLM capitalization errors)
+      tool = Tool.where("name ILIKE ?", tool_call[:name]).first
       raise ToolExecutionError, "Tool '#{tool_call[:name]}' not found" unless tool
+
+      # Normalize name for internal comparisons and dispatch
+      tool_name = normalized_name(tool.name)
 
       # Authorization: ensure caller is allowed to run this tool.
       if @user.role_student?
         # Tools only teachers should be allowed to call
-        teacher_only_tools = %w[List_Students Generate_Course_Outline Generate_Course_Lessons Generate_Lesson_Plan Create_Course Update_Lesson]
-        if teacher_only_tools.include?(tool.name)
+        teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_course update_lesson]
+        if teacher_only_tools.include?(tool_name)
           raise ToolExecutionError, "Permission denied: students are not allowed to call '#{tool.name}'"
         end
       end
@@ -38,38 +41,38 @@ class ToolHandlerService
       # Validate arguments against tool specifications
       @args = validate_and_parse_arguments(tool, tool_call[:arguments])
 
-      # Execute the tool based on its name.
+      # Execute the tool based on its normalized name.
       # Ensure each tool method calls create_tool_message upon completion.
-      case tool.name
-      when "Chalkboard_URL"
+      case tool_name
+      when "chalkboard_url"
         execute_chalkboard_url
-      when "Chalkboard_File"
+      when "chalkboard_file"
         execute_chalkboard_file
-      when "Complete_Lesson"
+      when "complete_lesson"
         execute_complete_lesson
-      when "Python_Sandbox"
+      when "python_sandbox"
         execute_python_code_executor
-      when "List_Students"
+      when "list_students"
         execute_list_students
-      when "List_Courses"
+      when "list_courses"
         execute_list_courses
-      when "Get_Course_Details"
+      when "get_course_details"
         execute_get_course_details
-      when "Get_Lesson_Details"
+      when "get_lesson_details"
         execute_get_lesson_details
-      when "Get_Student_Reports"
+      when "get_student_reports"
         execute_get_student_reports
-      when "Generate_Course_Outline"
+      when "generate_course_outline"
         execute_generate_course_outline
-      when "Generate_Course_Lessons"
+      when "generate_course_lessons"
         execute_generate_course_lessons
-      when "Generate_Lesson_Plan"
+      when "generate_lesson_plan"
         execute_generate_lesson_plan
-      when "Create_Course"
+      when "create_course"
         execute_create_course
-      when "Update_Course"
+      when "update_course"
         execute_update_course
-      when "Update_Lesson"
+      when "update_lesson"
         execute_update_lesson
       else
         raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented!"
@@ -98,6 +101,10 @@ class ToolHandlerService
   end
 
   private
+
+  def normalized_name(name)
+    name.to_s.strip.downcase
+  end
 
   # Tolerant JSON parse + schema-aware coercion for common primitive types.
   def validate_and_parse_arguments(tool, arguments)

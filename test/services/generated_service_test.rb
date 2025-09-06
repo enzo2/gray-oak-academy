@@ -25,12 +25,12 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     Tool.create!(specifications: chalk_spec)
 
     service = ToolHandlerService.new(conversation: @conversation, message: @message)
-    tool_call = { id: "call-1", name: "Chalkboard_URL", arguments: { url: "https://example.com" }.to_json }
+    tool_calls = [ { id: "call-1", function: { name: "Chalkboard_URL", arguments: { url: "https://example.com" }.to_json } } ]
 
     # Stub Turbo broadcasts to avoid real ActionCable traffic
     Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
       clear_enqueued_jobs
-      service.execute_tool_call(tool_call)
+      service.execute_tool_calls(tool_calls)
 
       # A tool message should be created and GetLlmCompletionJob enqueued
       tool_messages = Message.where(role: "tool").order(created_at: :asc)
