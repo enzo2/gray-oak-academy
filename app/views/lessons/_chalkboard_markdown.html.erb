@@ -25,25 +25,25 @@
 
     <%# Linked resources associated with the lesson plan (explicit resource records) %>
     <% if lp && lp.resources.any? %>
-    ## Linked Resources
-    <% lp.resources.each do |r| %>
-    - <%# Show category/description and available identifier/uri/file info %>
-      **<%= h(r.category.presence || "Resource") %>**:
-      <% if r.uri.present? %>
-        URI: <%= r.uri %>
+      ## Linked Resources
+      <% lp.resources.each do |r| %>
+        - <%# Show category/description and available identifier/uri/file info %>
+          **<%= h(r.category.presence || "Resource") %>**:
+        <% if r.uri.present? %>
+          URI: <%= r.uri %>
+        <% end %>
+        <% if r.file.attached? %>
+          File: <%= r.file.filename.to_s %> (resource id: <%= r.id %>)
+        <% end %>
+        <% if r.description.present? %>
+          Description: <%= r.description %>
+        <% end %>
       <% end %>
-      <% if r.file.attached? %>
-        File: <%= r.file.filename.to_s %> (resource id: <%= r.id %>)
-      <% end %>
-      <% if r.description.present? %>
-        Description: <%= r.description %>
-      <% end %>
-    <% end %>
     <% else %>
-    _No linked resources for this lesson._
+      _No linked resources for this lesson._
     <% end %>
 
-    **Audio:** <%= lp.audio %>
+    <% if lp %> **Audio setting:** <%= lp.audio %> <% end %>
 
     <% if lp && lp.chalkboard_enabled == false %>
     _Note: Chalkboard disabled for this lesson plan._
