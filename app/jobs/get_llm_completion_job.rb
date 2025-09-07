@@ -91,18 +91,7 @@ class GetLlmCompletionJob < ApplicationJob
           end
         end
 
-        # Finalize and execute tool calls when finish reason indicates tool call completion
-        if chunk["finish_reason"] == "tool_calls"
-          flush_buffer.call(force: true) # Ensure any remaining content is flushed before handling tools
-          message ||= conversation.messages.build(role: "assistant") # Create message if not already created (i.e. if there was no content)
-          final_tool_calls = tool_calls_buffer.sort_by { |idx, _tc| idx }.map { |_idx, tc| tc } # Order by the index
-          message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
-          broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
-          Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
-          tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
-          tool_handler.execute_tool_calls(final_tool_calls)
-          tool_calls_buffer.clear # Clear buffer for subsequent tool calls
-        elsif chunk.dig("delta", "content")&.length&. > 0
+        if chunk.dig("delta", "content")&.length&. > 0
           # For standard content, append the new chunk to the buffer
           Rails.logger.debug "Content chunk: #{chunk.inspect}"
           content_buffer += chunk.dig("delta", "content")
@@ -111,10 +100,26 @@ class GetLlmCompletionJob < ApplicationJob
           Rails.logger.debug "Non-content chunk: #{chunk.inspect}"
         end
 
-        # When finished, broadcast the completion event to the client (e.g. to trigger TTS)
-        # (Already done for tool_calls)
-        if chunk["finish_reason"].present? && chunk["finish_reason"].length > 0 && chunk["finish_reason"] != "tool_calls"
+        # Check if the chunk contains images, and accumulate them
+        # Todo
+
+        # Finalize and execute tool calls when finish reason indicates tool call completion
+        if chunk["finish_reason"] == "tool_calls"
+          flush_buffer.call(force: true) # Ensure any remaining content is flushed before handling tools
+          message ||= conversation.messages.build(role: "assistant") # Create message if not already created (i.e. if there was no content)
+          final_tool_calls = tool_calls_buffer.sort_by { |idx, _tc| idx }.map { |_idx, tc| tc } # Order by the index
+          message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
+          check_for_blank_response(message)
+          broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
+          Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
+          tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
+          tool_handler.execute_tool_calls(final_tool_calls)
+          tool_calls_buffer.clear # Clear buffer for subsequent tool calls
+        elsif chunk["finish_reason"].present? && chunk["finish_reason"].length > 0
+          # When finished, broadcast the completion event to the client (e.g. to trigger TTS)
+          # (Already done for tool_calls)
           flush_buffer.call(force: true) # Force a final flush of the buffer
+          check_for_blank_response(message)
           broadcast_completion_finished(conversation, message.id)
         end
       rescue StandardError => e
@@ -132,6 +137,8 @@ class GetLlmCompletionJob < ApplicationJob
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
+    # Placeholder may have been added for the assistant reply. Remove it.
+    Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
   end
 
   def broadcast_completion_finished(conversation, message_id)
@@ -150,5 +157,15 @@ class GetLlmCompletionJob < ApplicationJob
       },
       content: { message_id: message_id }.to_json
     )
+  end
+
+  def check_for_blank_response(message)
+    content_blank = message.content.to_s.strip.blank?
+    tools_blank = message.tool_calls.nil? || message.tool_calls.empty?
+    if message.nil? || (content_blank && tools_blank)
+      Rails.logger.warn "Rejecting blank response from LLM"
+      message&.destroy if message&.persisted?
+      raise OpenAiError, "Empty response from LLM (no content or tools provided)."
+    end
   end
 end

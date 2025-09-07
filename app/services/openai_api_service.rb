@@ -77,6 +77,9 @@ class OpenaiApiService
             }
           } : {}),
 
+          # Set image generation for OpenRouter
+          # **(@image_generation_flag && @base_uri.include?("openrouter.ai") ? { modalities: [ "image", "text" ] } : {}),
+
           # Set thinking for Google OpenAI-compatibility API
           **(@reasoning_model_flag && @base_uri.include?("generativelanguage.googleapis.com") ? {
             extra_body: {
@@ -335,7 +338,7 @@ class OpenaiApiService
         # Check for refusal
         refusal = choices&.dig(0, "delta", "refusal")
         if refusal.present?
-          raise "Response refused with message: #{refusal}"
+          raise OpenAiError, "Response refused with message: #{refusal}"
         end
 
         # Call the actual handler with the LLM response

@@ -89,6 +89,7 @@ class ToolHandlerService
   end
 
   def execute_tool_calls(tool_calls)
+    return if tool_calls.empty?
     tool_calls.each do |tc|
       execute_tool_call({
         id: tc[:id],
