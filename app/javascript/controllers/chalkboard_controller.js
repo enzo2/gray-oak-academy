@@ -17,7 +17,7 @@ export default class extends Controller {
     if (this.containerTarget) {
       this._originalParent = this.containerTarget.parentNode;
       this._originalClasses = this.containerTarget.className;
-      console.log("Chalkboard container found. Cached original parent and classes.");
+      //console.log("Chalkboard container found. Cached original parent and classes.");
     } else {
       console.warn("Chalkboard container (#chalkboard_container) not found on connect.");
     }
@@ -52,8 +52,8 @@ export default class extends Controller {
     if (!this._originalParent) {
       this._originalParent = this.containerTarget.parentNode;
       this._originalClasses = this.containerTarget.className;
-      console.log("Original parent:", this._originalParent);
-      console.log("Original classes:", this._originalClasses);
+      //console.log("Original parent:", this._originalParent);
+      //console.log("Original classes:", this._originalClasses);
     }
 
     // Move the entire chalkboard container into the drawer host if present
@@ -73,7 +73,7 @@ export default class extends Controller {
     //}
 
     if (this._originalParent) {
-      console.log("Restoring chalkboard to original parent:", this._originalParent);
+      //console.log("Restoring chalkboard to original parent:", this._originalParent);
       this._originalParent.appendChild(this.containerTarget);
       if (typeof this._originalClasses === 'string') {
         this.containerTarget.className = this._originalClasses;

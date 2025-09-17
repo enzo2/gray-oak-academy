@@ -8,9 +8,6 @@ export default class extends Controller {
     //console.log("LLM Settings controller connected");
     const hidden = document.getElementById("setting_llm_api_base_uri-hw-hidden-field");
     const initialUri = (hidden && typeof hidden.value === "string") ? hidden.value : "";
-    if (initialUri) {
-      this.updateModels({ detail: { value: initialUri }, type: 'initial' });
-    }
     this.updateTokenStatus(initialUri || "");
   }
 
@@ -78,7 +75,7 @@ export default class extends Controller {
         //console.log(`Cleared ${targetElement.id} due to source change`);
       }
     } else {
-      console.error(`Could not find hw-combobox controller for target:`, targetElement);
+      console.warn(`Could not find hw-combobox controller for target:`, targetElement);
     }
   }
 

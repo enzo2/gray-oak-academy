@@ -16,7 +16,7 @@ class Image < ApplicationRecord
   # Convert attached image to base64
   def to_base64
     if file.attached?
-      resized_image = file.variant(resize_to_limit: [ 1024, 1024 ]).processed # Downscale image before base64 conversion
+      resized_image = file.variant(resize_to_limit: [ 512, 512 ]).processed # Downscale image before base64 conversion
       Base64.strict_encode64(resized_image.download)
     else
       Rails.logger.warn "No file attached to image #{id}"
@@ -26,7 +26,6 @@ class Image < ApplicationRecord
 
   def base64_for_LLM
     return nil unless file.attached?
-    # content_type = file.content_type      should already be correct
     "data:#{content_type};base64,#{to_base64}"
   end
 
