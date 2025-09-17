@@ -331,7 +331,7 @@ tool.save!
 tool = Tool.find_or_initialize_by(name: 'Generate_Image')
 tool.specifications = {
   name: "Generate_Image",
-  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Ideal for infographics, simple diagrams, encouraging images. DO NOT use to attempt to re-create existing/well-known photographs, portraits, or artwork.",
+  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Ideal for infographics, simple diagrams, encouraging images. DO NOT use to attempt to re-create existing/well-known photographs, portraits, or artwork. Once the image is generated, it will be inserted into the conversation; there's no need to copy, rewrite or reinsert it.",
   strict_mode: true,
   parameters: {
     type: "object",

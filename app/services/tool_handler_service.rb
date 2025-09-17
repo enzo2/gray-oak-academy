@@ -776,7 +776,7 @@ class ToolHandlerService
       raise ToolExecutionError, "Error saving image: #{e.message}"
     end
 
-    create_tool_message("Image generation done. 1 image inserted into the conversation.")
+    create_tool_message("Image generation done. 1 image inserted into the conversation as an assistant message. Do not copy or rewrite the image, as it is already part of the conversation.")
   end
 
   def create_tool_message(content)
