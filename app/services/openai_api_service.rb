@@ -11,7 +11,7 @@ class OpenaiApiService
   # If a task system prompt is provided, it will be added to the conversation, along with the base system prompt, teaching principles, and generative guidelines.
   # If neither a system prompt message, nor a task system prompt is provided, the default system prompt will be used (base system prompt + teaching principles).
 
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false, log_completion: true)
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false, image_generation: false, log_completion: true)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
@@ -25,12 +25,15 @@ class OpenaiApiService
     @user = current_user
     @conversation = conversation
     @reasoning_model_flag = reasoning_model
+    @image_generation_flag = image_generation
     @base_uri = base_uri.presence || current_user.settings.llm_api_base_uri.presence || default_base_uri
     @access_token = access_token.presence || determine_access_token
     @model = model.presence || determine_model(reasoning_model)
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
-    @tools = Tool.enabled_for_user(@user).map(&:for_llm) if enable_tools
+    @tools = Tool.enabled_for_user(@user)
+                 .map(&:for_llm)
+                 .reject { |tool| tool.dig("function", "name") == "Generate_Image" && !@base_uri.include?("openrouter.ai") } if enable_tools
     @log_completion = log_completion
 
     # Jobs without a task system prompt will use the base system prompt only
@@ -78,7 +81,7 @@ class OpenaiApiService
           } : {}),
 
           # Set image generation for OpenRouter
-          # **(@image_generation_flag && @base_uri.include?("openrouter.ai") ? { modalities: [ "image", "text" ] } : {}),
+          **(@image_generation_flag && @base_uri.include?("openrouter.ai") ? { modalities: [ "image", "text" ] } : {}),
 
           # Set thinking for Google OpenAI-compatibility API
           **(@reasoning_model_flag && @base_uri.include?("generativelanguage.googleapis.com") ? {
@@ -122,7 +125,14 @@ class OpenaiApiService
 
       # If no stream handler was provided, process the response.
       check_for_refusal(response)
+      images = response.dig("choices", 0, "message", "images")
       content = (response).dig("choices", 0, "message", "content").to_s
+
+      # If image generation was requested and images are present, return the message (with images)
+      if @image_generation_flag && images.present?
+        return response.dig("choices", 0, "message")
+      end
+
       check_for_blank_content(content)
 
       # Remove all whitespace from prefill and content so they can be compared
@@ -137,7 +147,8 @@ class OpenaiApiService
         content = prefill + content
       end
 
-      # If JSON requested, parse and validate the content.
+      # Return the response content.
+      # If JSON requested, parse and validate first.
       if response_format&.dig(:type) == "json_schema" || response_format&.dig(:type) == "json_object"
         parsed_content = parse_JSON(content)
         validate_JSON(parsed_content, schema) if schema.present?

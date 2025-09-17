@@ -12,6 +12,15 @@ Rails.application.configure do
     hsts: false # Don't enforce HSTS in development
   }
 
+  # Avoid specifying a default, since puma is set up with both 3000(http)
+  # and 3001 (https) for testing with mobile devices over LAN.
+  # Eg. use relative URLs for Active Storage representations.
+  # Not an issue in production since we have a single domain and protocol.
+  # config.action_controller.default_url_options = { host: "localhost", port: 3000, protocol: "http" }
+
+  # Set localhost to be used by links generated in mailer templates.
+  config.action_mailer.default_url_options = { host: "localhost", port: 3000, protocol: "http" }
+
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
@@ -51,12 +60,6 @@ Rails.application.configure do
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
-
-  # NOTE: this may change in rails 8.1
-  config.action_controller.default_url_options = { host: "localhost", port: 3000 }
-
-  # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
   config.action_mailer.delivery_method = :smtp
 

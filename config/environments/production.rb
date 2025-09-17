@@ -1,13 +1,11 @@
 require "active_support/core_ext/integer/time"
 
+# Settings specified here will take precedence over those in config/application.rb.
 Rails.application.configure do
-  # Settings specified here will take precedence over those in config/application.rb.
-
-  # NOTE: this may change in rails 8.1
-  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "https" }
-
+  # NOTE: this may change, see https://github.com/rails/rails/issues/39566
+  config.action_controller.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "http" }
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "https" }
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "http" }
 
   # Redirect all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = false
@@ -16,6 +14,9 @@ Rails.application.configure do
   # Specifically, sets HTTP_X_FORWARDED_PROTO to "https" and HTTP_X_FORWARDED_PORT to "443".
   # This is useful if you're terminating SSL at the load balancer or proxy level.
   config.assume_ssl = false
+
+  # Skip http-to-https redirect for the default health check endpoint.
+  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Code is not reloaded between requests.
   config.enable_reloading = false
@@ -40,9 +41,6 @@ Rails.application.configure do
 
   # Don't include muPDF previewer.
   config.active_storage.previewers.delete(ActiveStorage::Previewer::MuPDFPreviewer) if defined?(ActiveStorage::Previewer::MuPDFPreviewer)
-
-  # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]

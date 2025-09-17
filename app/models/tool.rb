@@ -17,17 +17,19 @@ class Tool < ApplicationRecord
   def for_llm
     # return the tool in OpenAI format
     {
-      "type": "function",
-      "function": specifications
+      "type" => "function",
+      "function" => specifications
     }
   end
 
   def self.enabled_for_user(user)
-    if user.role_student?
+    allowed = if user.role_student?
       where(access: :student)
     elsif user.role_teacher?
       all
     end
+   # Remove the image generation tool unless the image gen LLM is set up in AppSetting
+   AppSetting.image_generation_configured? ? allowed : allowed.where.not(name: "Generate_Image")
   end
 
   private

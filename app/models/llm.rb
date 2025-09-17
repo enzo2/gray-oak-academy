@@ -49,8 +49,24 @@ class Llm < ApplicationRecord
     supports_audio_input
   end
 
+  def supports_image_input?
+    supports_image_input
+  end
+
+  def supports_image_output?
+    # Only support image models if the model can do image editing, since we use a 2-pass approach.
+    supports_image_input && supports_image_output
+  end
+
   def self.list_selectable_audio_models
     Llm.where(supports_audio_input: true, api_provider: SupportedApi.selectable_uris).order(:api_provider, :model)
+  end
+
+  # Return selectable image-capable models - only OpenRouter supported
+  def self.list_selectable_image_models
+    openrouter = SupportedApi.selectable_for_teachers.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
+    return [] unless openrouter
+    Llm.where(supports_image_input: true, supports_image_output: true, api_provider: openrouter.api_base_uri).order(:model)
   end
 
   private

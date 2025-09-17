@@ -33,8 +33,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ### More cool stuff
 - All system prompts can be customized (opinionated defaults included)
-- Automated context limit tracking (when using OpenRouter)
-- Cost/token usage tracking
+- OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
 - If LLM supports raw audio input, it will be sent and then transcribed for later completions
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
@@ -82,6 +81,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 ### Choosing an LLM: 
 - For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
 - In settings, you can add a reasoning model specifically for curriculum generation tasks. Model must support structured outputs. It should be a top-performing, large-sized model. (Even some flagship models may not be good enough!)
+- For image generation, while models are advancing, they are still totally unsuitable for educational uses like accurately labelled diagrams, infographics, etc. For now, the app implements a 2-pass generation to allow image in/out models to self-correct to some extent. 
 
 ## Getting Started
 - Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the console, `User.first.role_superuser!`.)
@@ -110,7 +110,6 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Speed up audio input with ffmpeg to reduce cost
 - Consider RAG (pgvector + neighbor gem), but might not be needed since inexpensive long-context LLMs are now available
 - Experiment with live/realtime APIs for voice lessons
-- Image output support (OpenAI Images API, Gemini API) for generative diagrams, infographics, student inspiration, etc. (once models have improved sufficiently)
 
 ## Contributor guidelines:
 Maintain the core app principles:

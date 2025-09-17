@@ -16,8 +16,6 @@ class VerifySupportedApiModelsJob < ApplicationJob
       return
     end
 
-    # supported_api must have an api_access_token
-
     models.each do |model|
       begin
         # Minimal non-streaming call with explicit overrides so it doesn't rely on user settings

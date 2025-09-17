@@ -3,7 +3,7 @@
 </div>
 
 <p class="mb-4 text-sm text-dim">
-  Verified LLMs are shown on a per-API basis. Please set whether audio input is supported for each combination.<br>
+  Verified LLMs are shown on a per-API basis. Please set whether raw audio input is supported for each combination.<br>
   If an API has been <%= link_to "added for teachers to use", admin_supported_apis_path, class: 'underline' %>, a checkbox is shown.<br>
   To add another model, verify it from the API dashboard or just chat with it.
 </p>
@@ -31,11 +31,13 @@
 <% if @llms.any? %>
   <table class="table-auto">
     <thead>
-      <tr class="bg-stone-50 dark:bg-stone-900">
-        <th class="px-2 py-1 text-left">Model</th>
-        <th class="px-2 py-1 text-left">Provider (✅=Supported)</th>
-        <th class="px-2 py-1 text-right">Audio Input</th>
-      </tr>
+    <tr class="bg-stone-50 dark:bg-stone-900">
+      <th class="px-2 py-1 text-left">Model</th>
+      <th class="px-2 py-1 text-left">Provider (✅=Shared)</th>
+      <th class="px-2 py-1 text-right">Audio Input</th>
+      <th class="px-2 py-1 text-right">Image Input</th>
+      <th class="px-2 py-1 text-right">Image Output</th>
+    </tr>
     </thead>
     <tbody>
       <% @llms.each_with_index do |llm, idx| %>
@@ -47,7 +49,7 @@
               <% if is_supported %>
                 <%= link_to "✅", edit_admin_supported_api_path(SupportedApi.find_by(api_base_uri: llm.api_provider.to_s)), class: "ml-2" %>
               <% end %>
-            </td>
+          </td>
           <td class="px-2 py-1 text-right">
             <% if current_user.role_superuser? %>
               <%= form_with(model: llm, url: admin_llm_path(llm), method: :patch, data: { turbo_stream: true }) do |f| %>
@@ -63,8 +65,13 @@
                       } %>
               <% end %>
             <% else %>
-              <%= llm.supports_audio_input ? "Yes" : "No" %>
+              <%= case llm.supports_audio_input? when true then "Yes" when false then "No" else "" end %>
             <% end %>
+          <td class="px-2 py-1 text-right">
+            <%= case llm.supports_image_input? when true then "Yes" when false then "No" else "" end %>
+          </td>
+          <td class="px-2 py-1 text-right">
+            <%= case llm.supports_image_output? when true then "Yes" when false then "No" else "" end %>
           </td>
         </tr>
       <% end %>
@@ -73,3 +80,8 @@
 <% else %>
   <p class="text-sm text-dim">No LLM models found for the current filters.</p>
 <% end %>
+
+<p class="text-dim text-xs mt-2">
+  Image capability is only shown for OpenRouter.<br>
+  Audio capability is automatically updated for OpenRouter. For other APIs, you must set manually (eg. Google OpenAI-compatible API).
+</p>

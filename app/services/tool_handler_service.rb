@@ -74,6 +74,8 @@ class ToolHandlerService
         execute_update_course
       when "update_lesson"
         execute_update_lesson
+      when "generate_image"
+        execute_generate_image
       else
         raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented!"
       end
@@ -731,6 +733,51 @@ class ToolHandlerService
     )
   end
 
+  def execute_generate_image
+    prompt = @args["prompt"]
+    raise ToolExecutionError, "Missing required parameter: prompt" unless prompt.present?
+
+    begin
+      results = ImageGenerationService.generate(user: @user, prompt: prompt)
+    rescue OpenAiError => e
+      raise ToolExecutionError, "Image generation failed: #{e.message}"
+    rescue => e
+      raise ToolExecutionError, "Error during image generation: #{e.message}"
+    end
+
+    unless results.is_a?(Tempfile)
+      raise ToolExecutionError, "Image generation did not return a valid Tempfile."
+    end
+
+    begin
+      assistant_message = @conversation.messages.create!(role: "assistant", content: "")
+      timestamp = Time.current.to_i
+      filename = "generated-#{timestamp}.jpg"
+
+      image = assistant_message.images.build
+      image.file.attach(
+        io: results,
+        filename: filename,
+        content_type: "image/jpeg"
+      )
+      image.save!
+
+      # Close the Tempfile after attachment to free resources
+      results.close
+      results.unlink
+
+      # Rebroadcast the message
+      assistant_message.broadcast_updated
+    rescue => e
+      # If something failed while saving images, remove the assistant message and its attachments
+      assistant_message&.destroy
+      results&.close if results.respond_to?(:close)
+      results&.unlink if results.respond_to?(:unlink)
+      raise ToolExecutionError, "Error saving image: #{e.message}"
+    end
+
+    create_tool_message("Image generation done. 1 image inserted into the conversation.")
+  end
 
   def create_tool_message(content)
     Message.create!(

@@ -11,7 +11,8 @@ class AppSetting < ApplicationRecord
                  :tts_model,
                  :tts_voice,
                  :tts_instructions,
-                 :token_override
+                 :token_override,
+                 :image_llm_id
 
   validates :singleton, inclusion: { in: [ true, false ] }
 
@@ -34,6 +35,18 @@ class AppSetting < ApplicationRecord
   # Returns provider base URI if configured
   def provider_base_uri
     provider_supported_api&.api_base_uri
+  end
+
+  # Image generation configuration
+  def image_llm
+    return nil unless image_llm_id.present?
+    Llm.find_by(id: image_llm_id.to_i)
+  end
+
+  def image_effective_token
+    return nil unless image_llm.present?
+    provider = SupportedApi.selectable_for_teachers.find_by(api_base_uri: image_llm.api_provider)
+    provider&.api_access_token
   end
 
   # Checks whether Speech API (OpenAI-compatible) is configured for TTS/STT
@@ -62,5 +75,12 @@ class AppSetting < ApplicationRecord
     else
       false
     end
+  end
+
+  def self.image_generation_configured?
+    app_setting = self.first
+    app_setting&.image_llm.present? &&
+    app_setting.image_llm.supports_image_output? &&
+    app_setting.image_effective_token.present?
   end
 end

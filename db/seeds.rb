@@ -328,6 +328,23 @@ tool.specifications = {
 }
 tool.save!
 
+tool = Tool.find_or_initialize_by(name: 'Generate_Image')
+tool.specifications = {
+  name: "Generate_Image",
+  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Ideal for infographics, simple diagrams, encouraging images. DO NOT use to attempt to re-create existing/well-known photographs, portraits, or artwork.",
+  strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "prompt" => { "type" => "string", "description" => "Text prompt describing the desired image. Should be detailed and specific." }
+    },
+    "required" => [ "prompt" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+###################################################################
 # ---- Default prompts (teacher_id: nil only; update-in-place) ----
 
 p = Prompt.find_or_initialize_by(category: 'base_system_prompt', teacher_id: nil)
@@ -643,18 +660,27 @@ p.save!
 # ---- Supported APIs and AppSetting ----
 
 openai = SupportedApi.find_or_create_by!(api_base_uri: 'https://api.openai.com/v1/')
-SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
+openrouter = SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
 SupportedApi.find_or_create_by!(api_base_uri: 'https://generativelanguage.googleapis.com/v1beta/openai/')
 
 # Create default AppSetting pointing at OpenAI (no token override by default)
 AppSetting.first_or_create!(
+  singleton: true,
   provider_supported_api_id: openai.id,
   stt_method: "speech",
   stt_model: "gpt-4o-mini-transcribe",
   tts_model: "gpt-4o-mini-tts",
   tts_voice: "verse",
   tts_instructions: "Speak in a calm and friendly tone.",
-  singleton: true
 )
+
+# ---- Seed OpenRouter image-capable LLM ----
+llm = Llm.find_or_create_by!(api_provider: openrouter.api_base_uri, model: 'google/gemini-2.5-flash-image-preview')
+begin
+  UpdateOpenrouterModelMetadataJob.perform_now(llm)
+rescue
+  puts "Failed to update OpenRouter model metadata for image generation LLM."
+end
+# Don't add it to AppSetting yet, as the user would have to first add an OpenRouter shared token.
 
 puts "Seed data has been created successfully!"

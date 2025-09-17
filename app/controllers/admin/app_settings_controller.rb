@@ -8,7 +8,7 @@ module Admin
 
     def update
       if @setting.update(app_setting_params)
-        redirect_to admin_app_setting_path, notice: "App settings updated."
+        redirect_to edit_admin_app_setting_path, notice: "App settings updated."
       else
         flash.now[:error] = "Failed to update app settings."
         render :edit, status: :unprocessable_content
@@ -34,7 +34,8 @@ module Admin
         :tts_model,
         :tts_voice,
         :tts_instructions,
-        :token_override
+        :token_override,
+        :image_llm_id
       )
     end
   end

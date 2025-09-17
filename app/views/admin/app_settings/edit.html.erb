@@ -74,16 +74,36 @@
     <div data-stt-settings-target="chatWrapper" class="hidden">
       <%= f.label :stt_model_id, "LLM for transcriptions", class: "form-label" %>
       <% llms = Llm.list_selectable_audio_models %>
-      <% grouped = llms.group_by { |llm| (URI.parse(llm.api_provider).host rescue llm.api_provider) }.transform_values do |arr|
-           arr.map { |llm| [llm.model, llm.id] }
-         end %>
-      <%= f.select :stt_model_id,
-            grouped_options_for_select(grouped, @setting&.stt_model_id),
-            { include_blank: "Select a model" },
-            class: "input-primary",
-            data: { stt_settings_target: "chatInput" } %>
+      <% groups = llms.group_by { |llm| (URI.parse(llm.api_provider).host rescue llm.api_provider) }.to_a %>
+      <%= f.grouped_collection_select :stt_model_id,
+            groups,
+            :last,
+            :first,
+            :id,
+            :model,
+            { include_blank: "Select a model", selected: @setting&.stt_model_id },
+            { class: "input-primary", data: { stt_settings_target: "chatInput" } } %>
       <p class="text-xs text-dim mt-1">LLMs supporting audio input can be used for transcription.</p>
     </div>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-4">Image</h2>
+
+  <div>
+    <%= f.label :image_llm_id, "Image generation model", class: "form-label" %>
+    <% image_llms = Llm.list_selectable_image_models %>
+    <% image_groups = image_llms.group_by { |llm| (URI.parse(llm.api_provider).host rescue llm.api_provider) }.to_a %>
+    <%= f.grouped_collection_select :image_llm_id,
+          image_groups,
+          :last,
+          :first,
+          :id,
+          :model,
+          { include_blank: "Select a model", selected: @setting&.image_llm_id },
+          { class: "input-primary" } %>
+    <p class="text-xs text-dim mt-1">
+      Only verified OpenRouter models that support image input & output are shown.
+    </p>
   </div>
 
   <div class="mt-6">
