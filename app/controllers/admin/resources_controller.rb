@@ -12,6 +12,7 @@ module Admin
 
     def new
       @resource = Resource.new
+      @resource.build_applet
     end
 
     def create
@@ -38,6 +39,7 @@ module Admin
     end
 
     def edit
+      @resource.build_applet unless @resource.applet
     end
 
     def update
@@ -65,7 +67,7 @@ module Admin
     end
 
     def resource_params
-      params.require(:resource).permit(:category, :description, :uri, :file, :include_by_default)
+      params.expect(resource: [ :category, :description, :uri, :file, :include_by_default, applet_attributes: [ :id, :title, :code, :_destroy ] ])
     end
   end
 end

@@ -331,7 +331,7 @@ tool.save!
 tool = Tool.find_or_initialize_by(name: 'Generate_Image')
 tool.specifications = {
   name: "Generate_Image",
-  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Ideal for infographics, simple diagrams, encouraging images. DO NOT use to attempt to re-create existing/well-known photographs, portraits, or artwork. Once the image is generated, it will be inserted into the conversation; there's no need to copy, rewrite or reinsert it.",
+  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Use with caution for infographics, diagrams, or other factual material, as any text in the image will likely be malformed. Ideal for encouraging images, inspiration, illustrations, conceptual drawings, or setting a mood through imagery. Do not attempt to re-create existing/well-known photographs, portraits, or artwork. Once the image is generated, it will be inserted into the conversation; there's no need to copy, rewrite or reinsert it.",
   strict_mode: true,
   parameters: {
     type: "object",
@@ -381,7 +381,7 @@ p.prompt = <<~PROMPT
   - Do not assign homework consisting of problem sets, preparing a presentation, etc. If more practice is felt to be needed, suggest it, but don't require it.
   - You are a language model, so don't attempt any complex math calculations without using a code execution environment like Python or JS.
   - Incorporate practical mini-projects that allow students to build and create. Encourage them to apply their knowledge in tangible ways and develop real-world skills.
-  - *Do not* assign large projects (i.e. takes more than an hour), course-end presentations, group projects, lengthy research projects, term papers, and the like. The student will benefit most from simply proceeding through a balanced set of lessons.
+  - *Do not* assign large projects, course-end presentations, group projects, lengthy research projects, term papers, and the like. The student will benefit most from simply proceeding through a balanced set of lessons. If a long project may be beneficial (e.g. building something, writing a story, conducting an experiment), suggest it as an extracurricular activity, or divide it across lessons.
   - You can discuss these teaching principles if asked, but you don't need to volunteer information or brag about your qualities.
 PROMPT
 p.save!
@@ -575,9 +575,9 @@ p.prompt = <<~PROMPT
   - Three.js and p5.js are available via: `import * as THREE from 'three';`, `import p5 from 'p5';`
   - You can use APIs like Fullscreen, Pointer Lock, Promise, Audio, Canvas, WebGL, Web Animations, etc, but do not access the microphone or camera.
   - Ensure your applet code is self-contained or uses standard browser APIs. Avoid external libraries unless listed here as available, or the exact URL is provided.
-  - Do not invent or assume URLs for images, datasets, or other external resources, unless explicitly provided as a lesson resource.
+  - Do not invent or assume URLs for images, datasets, or other external resources, unless explicitly provided as a lesson resource. There is no image library available; consider using unicode emoji.
   - You cannot interact with sandboxed applets, so include all required functionality and UI/UX within the code itself.
-  - Typically, a more comfortable and friendly applet UI/UX is desirable; however, a more utilitarian approach may be appropriate for older students or simple applets.
+  - Typically, a more comfortable and friendly applet UI/UX is desirable; however, a more utilitarian approach may be appropriate for older students or complex apps.
 PROMPT
 p.save!
 

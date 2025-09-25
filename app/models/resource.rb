@@ -1,10 +1,14 @@
 class Resource < ApplicationRecord
   has_and_belongs_to_many :lesson_plans
   has_one_attached :file
-  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :resources, optional: true
-  # If Teacher is deleted, we won't delete their resources
+  has_one :applet, dependent: :destroy
+  accepts_nested_attributes_for :applet, allow_destroy: true, reject_if: :all_blank
 
-  validate :single_presence_of_file_or_uri
+  belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :resources, optional: true
+  # If Teacher is deleted, we won't delete their resources, since they may be useful to other teachers
+  # todo: orphaned resources reassignment / view app-wide resources
+
+  validate :single_presence_of_payload
 
   # For a collection of Resources, format the data as JSON so it can be provided to the LLM
   def self.format_collection(pretty: true)
@@ -20,6 +24,11 @@ class Resource < ApplicationRecord
         resource_info["filename"] = resource.file.filename.to_s
         resource_info["content_type"] = resource.file.content_type
       end
+      if resource.applet.present?
+        resource_info["Applet"] = "Yes"
+        resource_info["applet_title"] = resource.applet.title
+        resource_info["applet_code"] = resource.applet.code
+      end
       resource_info
     end
     resources_data << { "No Resources" => "No resources are yet linked to this lesson." } if resources_data.empty?
@@ -32,9 +41,14 @@ class Resource < ApplicationRecord
 
   private
 
-  def single_presence_of_file_or_uri
-    if file.attached? && uri.present?
-      errors.add(:base, "File and URI cannot both be present.")
+  def single_presence_of_payload
+    payloads = [
+      file.attached?,
+      uri.present?,
+      applet.present? && !applet.marked_for_destruction?
+    ].count(true)
+    if payloads > 1
+      errors.add(:base, "Only one payload variety (File, URI, or Applet) can be present.")
     end
   end
 end

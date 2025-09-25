@@ -17,48 +17,80 @@
 
   <p class="text-sm text-dim mb-4">
     Resources allow you to add your own content to lessons.<br>
-    They can include content displayable on the chalkboard by the LLM: videos, websites, PDFs, images. (Other files can be uploaded, but only a download link will be shown.) <br>
-    You could also reference external resources available to the student, e.g. book, tool, workshop, demonstration, software, 3D printer, local expert. 
+    They can include content displayable on the chalkboard by the LLM: <b>videos, websites, PDFs, images, applets</b>. (Other file types can be uploaded, and a download link will be shown.) <br>
+    Or, you can include <b>only a description</b> to reference external resources available to the student, e.g. book, tool, workshop, demonstration, software, person.
   </p>
 
-  <div class="mb-4">
-    <%= form.label :category, "Category (optional)", class: "form-label" %>
-    <%= form.text_field :category, class: "input-primary", required: false %>
-  </div>
+  <%# If this resource already has an associated persisted applet, lock category to "Applet" %>
+  <% if resource.applet&.persisted? %>
+    <div class="mb-4">
+      <%= form.label :category, "Category", class: "form-label" %>
+      Applet
+      <%= form.hidden_field :category, value: "Applet" %>
+    </div>
+  <% else %>
+    <div class="mb-4">
+      <%= form.label :category, "Category (optional)", class: "form-label" %>
+      <%= form.text_field :category, class: "input-primary", required: false %>
+    </div>
+  <% end %>
 
   <div class="mb-4">
     <%= form.label :description, class: "form-label" %>
     <%= form.text_area :description, rows: 4, class: "input-primary", required: true %>
   </div>
 
-  <div class="mb-2">
-    <%= form.label :uri, "URL (optional)", class: "form-label" %>
-    <%= form.url_field :uri, class: "input-primary" %>
-  </div>
-  <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
-    Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
-  </p>
+  <hr class="hr-primary mb-2">
 
-  <sl-dialog style="--width: 50vw;" data-embed-checker-target="dialog" label="Embed checker">
-      <p>Make sure the site loads correctly. Many sites do not allow embedding.</p>
-      <iframe width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
-  </sl-dialog>
+  <% unless resource.applet&.persisted? %>
+    <div class="mb-2">
+      <%= form.label :uri, "URL (optional)", class: "form-label" %>
+      <%= form.url_field :uri, class: "input-primary" %>
+    </div>
+    <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
+      Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
+    </p>
+    <sl-dialog style="--width: 50vw;" data-embed-checker-target="dialog" label="Embed checker">
+        <p>Make sure the site loads correctly. Many sites do not allow embedding.</p>
+        <iframe width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
+    </sl-dialog>
+
+    <hr class="hr-primary mb-2">
+  <% end %>
+
+  <% unless resource.applet&.persisted? %>
+    <div class="mb-4">
+      <% if resource.file.attached? && resource.file.persisted? %>
+        <%= form.label :file, "Current File", class: "form-label" %>
+        <%= link_to resource.file.filename, rails_blob_path(resource.file, disposition: "attachment") %>
+        <%= link_to delete_file_admin_resource_path(resource),
+                    class: "inline-block",
+                    data: {
+                      turbo_method: :delete,
+                      turbo_confirm: "Are you sure you want to delete this file?"
+                    } do %>
+          <sl-icon name="trash"></sl-icon>
+        <% end %>
+      <% else %>
+        <%= form.label :file, "File (optional)", class: "form-label" %>
+        <%= form.file_field :file, class: "input-primary" %>
+      <% end %>
+    </div>
+    <hr class="hr-primary mb-2">
+  <% end %>
 
   <div class="mb-4">
-    <% if resource.file.attached? && resource.file.persisted? %>
-      <%= form.label :file, "Current File", class: "form-label" %>
-      <%= link_to resource.file.filename, rails_blob_path(resource.file, disposition: "attachment") %>
-      <%= link_to delete_file_admin_resource_path(resource), 
-                  class: "inline-block", 
-                  data: { 
-                    turbo_method: :delete,
-                    turbo_confirm: "Are you sure you want to delete this file?"
-                  } do %>
-        <sl-icon name="trash"></sl-icon>
-      <% end %>
-    <% else %>
-      <%= form.label :file, "File (optional)", class: "form-label" %>
-      <%= form.file_field :file, class: "input-primary" %>
+    <% applet = resource.applet || resource.build_applet %>
+    <%= form.fields_for :applet, applet do |applet_form| %>
+      <%= applet_form.label :title, "Applet Title (for JavaScript applets)", class: "form-label" %>
+      <%= applet_form.text_field :title, class: "input-primary mb-2" %>
+
+      <%= applet_form.label :code, "Applet Code", class: "form-label" %>
+      <%= applet_form.text_area :code, rows: 10, class: "input-primary font-mono text-xs", placeholder: "Due to special requirements, only use applets generated by LLM in this app." %>
+      <p class="text-sm text-dim mt-1 ">
+        <i>To generate compatible applets, have the LLM in this app write them, save the applet, and then convert them to a resource from the Applets dashboard.</i>
+      </p>
+      <hr class="hr-primary my-2">
     <% end %>
   </div>
 

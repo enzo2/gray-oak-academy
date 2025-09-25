@@ -33,7 +33,11 @@ Rails.application.routes.draw do
 
   resources :enrollments, only: [ :show ]
 
-  resources :applets
+  resources :applets do
+    member do
+      post :save_as_resource
+    end
+  end
 
   namespace :admin do
     get "dashboard", as: :root, to: "dashboard#dashboard"

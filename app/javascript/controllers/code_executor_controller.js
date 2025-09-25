@@ -82,7 +82,7 @@ export default class extends Controller {
 
   createArchiveButton(rawCode) {
     return this._createButton(
-      "Archive",
+      "Save",
       "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-stone-300 dark:bg-stone-700 border border-stone-400 dark:border-stone-500 hover:border-stone-600 dark:hover:border-stone-400 rounded",
       () => this.archiveApplet(rawCode)
     );
@@ -330,7 +330,7 @@ export default class extends Controller {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     if (!csrfToken) {
         console.error("CSRF token not found");
-        alert('Error: CSRF token missing. Cannot archive applet.');
+        alert('Error: CSRF token missing. Cannot save applet.');
         return;
     }
 
@@ -344,12 +344,12 @@ export default class extends Controller {
     })
     .then(response => {
       if (response.ok) {
-        alert('Applet archived successfully!');
+        alert('Applet saved successfully!');
         // Optionally: Disable archive button or change its appearance
       } else {
         response.text().then(text => {
-           console.error('Failed to archive applet:', response.status, text);
-           alert(`Failed to archive applet. Status: ${response.status}`);
+           console.error('Failed to save applet:', response.status, text);
+           alert(`Failed to save applet. Status: ${response.status}`);
         });
       }
     })

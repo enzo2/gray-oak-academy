@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_26_143000) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_22_014723) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -69,6 +69,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_26_143000) do
     t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "resource_id"
+    t.index ["resource_id"], name: "index_applets_on_resource_id"
     t.index ["user_id"], name: "index_applets_on_user_id"
   end
 
@@ -315,6 +317,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_26_143000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "applets", "resources"
   add_foreign_key "applets", "users"
   add_foreign_key "audios", "messages"
   add_foreign_key "completions", "conversations", on_delete: :nullify

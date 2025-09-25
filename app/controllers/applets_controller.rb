@@ -1,5 +1,5 @@
 class AppletsController < ApplicationController
-  before_action :set_applet, only: [ :show, :destroy ]
+  before_action :set_applet, only: [ :show, :destroy, :save_as_resource ]
 
   # Request is made from the Stimulus controller.
   # It would be simpler to use a form submission so we can respond with a turbo_stream template & flash message.
@@ -28,6 +28,21 @@ class AppletsController < ApplicationController
     flash.now[:success] = "Applet deleted!"
     respond_to do |format|
       format.turbo_stream
+    end
+  end
+
+  def save_as_resource
+    resource = Resource.new(
+      category: "Applet",
+      teacher: current_user
+    )
+    resource.applet = @applet
+    if resource.save
+      flash[:success] = "Applet saved as resource!"
+      redirect_to admin_resources_path
+    else
+      flash[:error] = resource.errors.full_messages.join(", ")
+      redirect_to applets_path
     end
   end
 
