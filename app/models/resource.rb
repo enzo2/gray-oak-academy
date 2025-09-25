@@ -8,6 +8,22 @@ class Resource < ApplicationRecord
   # If Teacher is deleted, we won't delete their resources, since they may be useful to other teachers
   # todo: orphaned resources reassignment / view app-wide resources
 
+  # If description is blank, provide a default depending on the payload type
+  before_validation do
+    if description.blank?
+      if file.attached?
+        self.description = "File: #{file.filename}"
+      elsif uri.present?
+        self.description = "Link: #{uri}"
+      elsif applet.present? && !applet.marked_for_destruction?
+        self.description = "Applet: #{applet.title}"
+      end
+    end
+  end
+
+  # Ensure nested applet created/updated through Resource gets a user assigned.
+  before_validation :assign_applet_user, if: -> { applet.present? && !applet.marked_for_destruction? }
+
   validate :single_presence_of_payload
 
   # For a collection of Resources, format the data as JSON so it can be provided to the LLM
@@ -40,6 +56,12 @@ class Resource < ApplicationRecord
   end
 
   private
+
+  def assign_applet_user
+    return unless applet.present? && !applet.marked_for_destruction?
+    # Prefer the resource's teacher (set in controller) but do not override an existing user.
+    applet.user ||= teacher
+  end
 
   def single_presence_of_payload
     payloads = [

@@ -12,7 +12,6 @@ module Admin
 
     def new
       @resource = Resource.new
-      @resource.build_applet
     end
 
     def create
@@ -21,6 +20,7 @@ module Admin
       @lesson_plan = LessonPlan.find(params[:resource].delete(:lesson_plan_id)) if params[:resource][:lesson_plan_id].present?
       @resource = Resource.new(resource_params)
       @resource.teacher = current_user
+      @resource.category = "Applet" if @resource.applet
 
       if @resource.save
         if @lesson_plan
@@ -39,7 +39,6 @@ module Admin
     end
 
     def edit
-      @resource.build_applet unless @resource.applet
     end
 
     def update
@@ -67,7 +66,8 @@ module Admin
     end
 
     def resource_params
-      params.expect(resource: [ :category, :description, :uri, :file, :include_by_default, applet_attributes: [ :id, :title, :code, :_destroy ] ])
+      params.expect(resource: [ :category, :description, :uri, :file, :include_by_default, applet_attributes: [ :id, :title, :code ] ])
+      # Could add _destroy for applet_attributes if want to allow deleting applets, but makes sense to delete the whole resource
     end
   end
 end
