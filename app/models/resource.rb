@@ -41,7 +41,6 @@ class Resource < ApplicationRecord
         resource_info["content_type"] = resource.file.content_type
       end
       if resource.applet.present?
-        resource_info["Applet"] = "Yes"
         resource_info["applet_title"] = resource.applet.title
         resource_info["applet_code"] = resource.applet.code
       end

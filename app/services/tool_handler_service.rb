@@ -350,6 +350,7 @@ class ToolHandlerService
 
     raise ToolExecutionError, "No active lesson found for this conversation" unless lesson
     raise ToolExecutionError, "No student found for this conversation" unless student
+    raise ToolExecutionError, "This lesson already was completed and has a report." if lesson_progress&.student_report&.status_completed?
 
     # Create the student report
     StudentReport.create!(
@@ -366,7 +367,7 @@ class ToolHandlerService
 
     # Broadcast completion message to the conversation
     broadcast_lesson_completed
-    create_tool_message("Confirmation: Lesson completed and student report generated successfully. (Any further messages will not be reflected in the progress report.)")
+    create_tool_message("Confirmation: Lesson completed and student report generated successfully. Any further conversation will not be reflected in the progress report. Don't attempt to continue the lesson, but inform that you're still available for any questions. If the student decides to continue, you can engage, but inform them that any progress won't be reflected in future lessons.")
   end
 
   def execute_chalkboard_file
