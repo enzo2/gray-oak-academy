@@ -1,23 +1,40 @@
 # Gray Oak Academy
 
 ## Background and Purpose
-Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, meant to realize the rather old idea that the future of education is 1-on-1 private tutoring conducted by AI. This app allows anyone to easily build lesson plans or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executeing those lesson plans using any LLM.
+Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designed to realize the rather old idea that the future of education is 1-on-1 private tutoring conducted by AI. This app allows anyone to easily build lesson plans or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executing those lesson plans using any LLM. It addresses numerous emerging problems in education:
 
-"Do my homework for me" is the status quo of the GPT era, now widely considered a crisis in education. The answer has been to promote LLMs as study assistants—an incremental improvement. However, by deliberately and carefully teaching *through* the LLM, the potentional for academic dishonesty or wasted effort is excluded. Just as a private tutor would readily discern when a student is struggling or disinterested, an LLM conducting a lesson will always try to hold the student's interest until he or she has grasped the point. The need for homework and exams will diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. After lessons, students will feel satisfied that their new knowledge is practical and useful. The supervising (human) teacher will be freed up to spend time seeking out learning resources, incorporating more memorable experiences, refining the curriculum, and mentoring individual students. 
+* **Superiority of 1:1 Tutoring**: [Some say by a lot, some say by a little](https://scholar.google.com/scholar?hl=en&q=2+sigma+problem), but most would agree that private tutoring is the best form of education, and LLMs can do it. Yet, implementing a true LLM tutor is not trivial. Slapping a "Tutor Mode" button onto a standard LLM chat only works for highly motivated students who know what they need to learn. 
 
-Since this is a major shift in educational approach (although it's old-fashioned from another perspective!), take a moment to consider what such a system ought to look like. For a high quality LLM tutor, the minimum feature set of the "LLM wrapper" includes:
-1. Curriculum management, so that a supervising teacher can specify what is being taught by the LLM, with arbitrary specificity.
-2. Learning resource management, to (1) enable use of resources that are not part of an LLM's knowledge base (e.g. books, videos, websites, software), and (2) bridge the LLM into the physical world, allowing reference to items, tools, even human resources. 
-3. Prompt transparency: a strong set of teacher-editable prompts defining the methodology, principles, and values for the LLM to follow. 
-4. Student context: prompts include information on previous lessons and student performance, enabling fluid progression and personalization.
-5. Multimodal input and output, comparable to a human tutor sitting across the desk (perhaps with a webcam view of the desk), as well as adaptability via generative UI and sandboxed code execution. 
-6. Because some lessons are better taught away from a computer, through casual conversation, or even outdoors, it should support speech-only mode for mobile phone use (i.e. "walk and talk"), as well as entirely offline, debrief-only lessons.
+  *Solution*: A flexible wrapper around LLM tutoring with prompt and curriculum management, lesson resources, multimodal chat, generative applets, and student progress tracking. Tell the LLM what to teach, how to do it, who it's teaching, what resources are available, and when to stop.
 
-**Gray Oak Academy is a prototype of this system.**
+* **Cheating, Apathy and Boredom**: "Do my homework for me" is the status quo of the GPT era, now widely considered a crisis in education. The underlying problem is that school can be long, repetitive, impersonal&mdash;and homework is insult upon injury. The answer has been to promote LLMs as study assistants—an incremental improvement.
 
-Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home- or small-group schooling, the supervisory teacher (or parent) remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. However, prompted well, the LLM is positioned to improve upon the supervising teacher's curriculum and capabilities, both in the planning and execution phases.
+  *Solution*: By deliberately teaching *through* the LLM, the potential for academic dishonesty or wasted effort is excluded. The need for homework and exams will diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. Like a private tutor, the LLM will identify a struggling or disinterest student, and find ways to hold their attention. Once the student has achieved mastery, they move on. After lessons, students will feel satisfied that their new knowledge is practical and useful.
 
-*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling.
+* **Local Curriculum Control**: To put it mildly, many parents will not be happy to hand their child to a centralized AI system. For K-12, complete local control must be at the core of an AI tutor.
+
+  *Solution*: Gray Oak Academy does not contain a built-in curriculum or knowledge graph. It has a strong default set of teacher-editable prompts defining the methodology, principles, and values for the LLM to follow. The combination of prompt transparency and lesson plan control provides assurance to users (whether homeschooling parents, private schools, or school districts) that overfitted LLMs are not left to their own devices to generate a curriculum out of a Silicon Valley&ndash;approved worldview. 
+
+* **The Role of Teachers**: Some suppose that teachers should take on a non-academic role in an LLM-tutored world. With a superintelligent tutor for every child, what's left to do? 
+
+  *Solution*: Intelligence has been commoditized, but teachers remain invaluable. The supervising teacher (or parent) is the individual who has authority to define the LLM's prompts and curriculum. But now, he or she has more time to bring beauty, delight, and contentment into the lives of youth however they see fit: to spend time seeking out learning resources (both digital and physical), incorporating more memorable experiences, mentoring individual students and helping them to gain not only knowledge, but wisdom. 
+
+* **Ensloppification**: AI image, video, and audio generation can undoubtedly be used to create memorable educational material. This can be helpful, but it also leads to a proliferation of inaccurate, superficial, mind-numbing content, when primary sources should be used instead. 
+
+  *Solution*: The supervising teacher is responsible for adding appropriate media as resources. Image generation is available to the LLM, but it's instructed how to use it responsibly for encouragement rather than factual purposes.
+
+* **Screen Time**:  The LLM can and should be bridged into the real world by linking resources like tools, demonstrations, even human resources. However, some lessons are better taught away from the computer, or through casual conversation. Some activities should not be tutored at all.
+
+  *Solution*: Raw audio input, STT, and TTS are combined to enable voice-only lessons without the high cost of realtime models. This enables learning in any setting, like "walk-and-talk" or workshops. Going further, "offline" lessons are encouraged, where the student is given an activity and debriefed afterward.
+
+* **Vendor Lock-in**: LLMs are constantly changing in intelligence, personality, and relevant traits like sycophancy. It should be easy to switch models. In addition, for privacy, Zero Data Retention is needed.
+
+  *Solution*: Both the API and model are user-configurable. Any OpenAI-compatible API can be used. Special support is provided for OpenRouter, which makes it particularly easy to try different models, providers, and configure Zero Data Retention. 
+
+
+Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home&ndash; or small&ndash;group schooling, the supervisory teacher or parent remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. 
+
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's a prototype.
 
 ## Features
 - Self-hostable with docker
@@ -25,8 +42,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - LLM chat supports images, native audio input, STT/TTS with auto-read
 - Student lesson view with "chalkboard" (multipurpose frame accessible by the LLM)
 - Curriculum management: Courses, Lessons, Lesson Plans, and Resources
-- Edit curriculum with LLM assistance, or manually
-- One-click generation of course outlines, lesson list, lesson plans, and suggested resources
+- Edit curriculum with LLM assistance, or manually. Easy first-drafting with one-click generation of course outlines, lesson list, lesson plans, and suggested resources.
 - LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
 - LLM-generated student reports are fed into the next session, ensuring continuity and personalization
 - Speech-only and offline/debrief lesson options to reduce screen time
@@ -97,7 +113,6 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Improve curriculum design:
    - web search / open textbook / deep research support
    - Automated resource finding/validation 
-   - Prepared applets
 - MCP support
 - Resource tagging, archive
 - Camera input/snapshots (e.g. show the LLM your desk)
