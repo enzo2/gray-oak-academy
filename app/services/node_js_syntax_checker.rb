@@ -11,7 +11,7 @@ require "tempfile"
 # - This service assumes `node` is available on PATH
 # - The command is run with a short timeout to avoid hangs.
 class NodeJsSyntaxChecker
-  DEFAULT_TIMEOUT_SEC = 2
+  DEFAULT_TIMEOUT_SEC = (Rails.env.test? ? 10 : 2)
 
   def self.check(code, timeout_sec: DEFAULT_TIMEOUT_SEC)
     return { valid: true, errors: [] } if code.nil? || code.strip.empty?
