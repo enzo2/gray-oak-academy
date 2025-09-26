@@ -38,6 +38,12 @@ class ToolHandlerService
         raise ToolExecutionError, "Permission denied: consecutive tool call limit reached. User must confirm before next tool call."
       end
 
+      # List of teacher-only tools for additional restriction
+      teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_course update_lesson list_applets get_applet update_applet save_applet_as_resource run_applet_on_chalkboard]
+      if tool_name.in?(teacher_only_tools) && !@user.role_teacher?
+        raise ToolExecutionError, "Permission denied: this tool is only available to teachers"
+      end
+
       # Validate arguments against tool specifications
       @args = validate_and_parse_arguments(tool, tool_call[:arguments])
 
@@ -56,6 +62,16 @@ class ToolHandlerService
         execute_list_students
       when "list_courses"
         execute_list_courses
+      when "list_applets"
+        execute_list_applets
+      when "get_applet"
+        execute_get_applet
+      when "update_applet"
+        execute_update_applet
+      when "save_applet_as_resource"
+        execute_save_applet_as_resource
+      when "run_applet_on_chalkboard"
+        execute_run_applet_on_chalkboard
       when "get_course_details"
         execute_get_course_details
       when "get_lesson_details"
@@ -778,6 +794,115 @@ class ToolHandlerService
     end
 
     create_tool_message("Image generation done. 1 image inserted into the conversation as an assistant message. Do not copy or rewrite the image, as it is already part of the conversation.")
+  end
+
+  # ---- Applets tools ----
+  def execute_list_applets
+    applets = current_teacher.applets.order(created_at: :desc).limit(100)
+    payload = applets.map { |a| { id: a.id, title: a.title, created_at: a.created_at } }
+    create_tool_message(JSON.pretty_generate(payload))
+  end
+
+  def execute_get_applet
+    applet_id = @args["applet_id"].to_i
+    applet = current_teacher.applets.find_by(id: applet_id)
+    raise ToolExecutionError, "Applet not found" unless applet
+    payload = { id: applet.id, title: applet.title, code: applet.code, created_at: applet.created_at, updated_at: applet.updated_at }
+    create_tool_message(JSON.pretty_generate(payload))
+  end
+
+  def execute_update_applet
+    applet_id = @args["applet_id"].to_i
+    applet = current_teacher.applets.find_by(id: applet_id)
+    raise ToolExecutionError, "Applet not found" unless applet
+
+    # If code is provided, check syntax first
+    if @args.key?("code") && @args["code"].present?
+      syntax_check = NodeJsSyntaxChecker.check(@args["code"])
+      unless syntax_check[:valid]
+        raise ToolExecutionError, "JavaScript syntax errors: #{syntax_check[:errors].join('; ')}"
+      end
+      applet.code = @args["code"]
+    end
+
+    if @args.key?("title")
+      applet.title = @args["title"]
+    end
+
+    if applet.changed?
+      applet.save!
+      create_tool_message(JSON.pretty_generate({ status: "ok", applet: { id: applet.id, title: applet.title, code: applet.code, created_at: applet.created_at, updated_at: applet.updated_at } }))
+    else
+      create_tool_message("No changes made to the applet.")
+    end
+  end
+
+  def execute_save_applet_as_resource
+    applet_id = @args["applet_id"].to_i
+    lesson_id = @args["lesson_id"]
+
+    # Find the applet under teacher
+    applet = current_teacher.applets.find_by(id: applet_id)
+    raise ToolExecutionError, "Applet not found" unless applet
+
+    # Verify lesson_plan if provided
+    lesson_plan = nil
+    if lesson_id.present?
+      lesson = Lesson.find_by(id: lesson_id)
+      raise ToolExecutionError, "Lesson not found" unless lesson
+      raise ToolExecutionError, "Permission denied, lesson does not belong to the current user" unless lesson.teacher == current_teacher
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher)
+    end
+
+    # Reuse existing resource if the applet already has one
+    if applet.resource.present?
+      resource = applet.resource
+
+      # Ensure metadata is consistent
+      resource.category = "Applet"
+      resource.description = "Applet: #{applet.title}" if resource.description.blank?
+      resource.save! if resource.changed?
+    else
+      # Create resource
+      resource = Resource.create!(
+        teacher: current_teacher,
+        category: "Applet",
+        description: "Applet: #{applet.title}",
+        applet: applet
+      )
+    end
+
+    # Link to lesson plan if provided
+    if lesson_plan
+      lesson_plan.save! if lesson_plan.new_record?
+      unless lesson_plan.resources.exists?(id: resource.id)
+        lesson_plan.resources << resource
+      end
+    end
+
+    payload = {
+      status: "ok",
+      resource: { id: resource.id, category: resource.category, description: resource.description },
+      lesson_id: lesson_plan&.id
+    }
+    create_tool_message(JSON.pretty_generate(payload))
+  end
+
+  def execute_run_applet_on_chalkboard
+    applet_id = @args["applet_id"].to_i
+    applet = current_teacher.applets.find_by(id: applet_id)
+    raise ToolExecutionError, "Applet not found" unless applet
+
+    # Broadcast to chalkboard
+    Turbo::StreamsChannel.broadcast_update_to(
+      "conversation_#{@conversation.id}",
+      target: "chalkboard",
+      partial: "shared/chalkboard_applet",
+      locals: { code: applet.code }
+    )
+
+    Rails.logger.debug("Chalkboard updated with stored applet: #{applet.title}")
+    create_tool_message("Chalkboard updated with stored applet: #{applet.title}")
   end
 
   def create_tool_message(content)

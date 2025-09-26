@@ -94,7 +94,7 @@ tool.access = :admin
 tool.specifications = {
   name: "List_Students",
   description: "List all students assigned to the current teacher (id, name).",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {},
@@ -108,7 +108,7 @@ tool = Tool.find_or_initialize_by(name: 'List_Courses')
 tool.specifications = {
   name: "List_Courses",
   description: "List courses for the current teacher (id, title, grade_level, status).",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {},
@@ -122,7 +122,7 @@ tool = Tool.find_or_initialize_by(name: 'Get_Course_Details')
 tool.specifications = {
   name: "Get_Course_Details",
   description: "Get course details including outline and lessons list.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -138,7 +138,7 @@ tool = Tool.find_or_initialize_by(name: 'Get_Lesson_Details')
 tool.specifications = {
   name: "Get_Lesson_Details",
   description: "Get a lesson and its full lesson plan. Always call this before updating a lesson.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -155,7 +155,7 @@ tool = Tool.find_or_initialize_by(name: 'Get_Student_Reports')
 tool.specifications = {
   name: "Get_Student_Reports",
   description: "Retrieve all reports for a given student (grouped and formatted).",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -172,7 +172,7 @@ tool.access = :admin   # Can make this student-access later once student-directe
 tool.specifications = {
   name: "Create_Course",
   description: "Create a new course. Always call list_courses first.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -192,7 +192,7 @@ tool.access = :admin   # Can make this student-access later once student-directe
 tool.specifications = {
   name: "Update_Lesson",
   description: "Update a lesson and REPLACE its lesson plan content. Always call get_lesson_details first.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -248,7 +248,7 @@ tool.access = :admin
 tool.specifications = {
   name: "Update_Course",
   description: "Update a course's basic fields and optionally replace its outline. Always call get_course_details first.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -282,7 +282,7 @@ tool.access = :admin
 tool.specifications = {
   name: "Generate_Course_Outline",
   description: "Ask the LLM to generate a course outline for the given course. This may take time; the tool blocks until the job completes.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -299,7 +299,7 @@ tool.access = :admin   # Can make this student-access later once student-directe
 tool.specifications = {
   name: "Generate_Course_Lessons",
   description: "Ask the LLM to generate lessons for the given course. Ensure the course has a complete outline first. This may take time; the tool blocks until the job completes. Most useful for new courses without any lessons yet; although this tool will not overwrite existing lessons.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -316,7 +316,7 @@ tool.access = :admin   # Can make this student-access later once student-directe
 tool.specifications = {
   name: "Generate_Lesson_Plan",
   description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). This may take time; blocks until the job completes. Do not call if the lesson already has content, unless you intend to overwrite it.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
@@ -332,13 +332,101 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Image')
 tool.specifications = {
   name: "Generate_Image",
   description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Use with caution for infographics, diagrams, or other factual material, as any text in the image will likely be malformed. Ideal for encouraging images, inspiration, illustrations, conceptual drawings, or setting a mood through imagery. Do not attempt to re-create existing/well-known photographs, portraits, or artwork. Once the image is generated, it will be inserted into the conversation; there's no need to copy, rewrite or reinsert it.",
-  strict_mode: true,
+  # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
       "prompt" => { "type" => "string", "description" => "Text prompt describing the desired image. Should be detailed and specific." }
     },
     "required" => [ "prompt" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+# ---- Applets management tools (teacher-only, strict schemas) ----
+
+tool = Tool.find_or_initialize_by(name: 'List_Applets')
+tool.access = :admin
+tool.specifications = {
+  name: "List_Applets",
+  description: "List applets created by the teacher (id, title, created_at). Useful for finding applets to reuse or edit. Limited to most recent 100 applets.",
+  # strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false
+  }
+}
+tool.save!
+
+tool = Tool.find_or_initialize_by(name: 'Get_Applet')
+tool.access = :admin
+tool.specifications = {
+  name: "Get_Applet",
+  description: "Retrieve a specific applet by ID (owned by the teacher). Returns title, code, and metadata.",
+  # strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "applet_id" => { "type" => "integer", "description" => "ID of the applet" }
+    },
+    "required" => [ "applet_id" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+tool = Tool.find_or_initialize_by(name: 'Update_Applet')
+tool.access = :admin
+tool.specifications = {
+  name: "Update_Applet",
+  description: "Update a specific applet's title and/or code (owned by the teacher). Validates JavaScript syntax before saving.",
+  # strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "applet_id" => { "type" => "integer", "description" => "ID of the applet" },
+      "title" => { "type" => "string", "description" => "New title (optional)" },
+      "code" => { "type" => "string", "description" => "New code (optional). Include the full applet code." }
+    },
+    "required" => [ "applet_id" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+tool = Tool.find_or_initialize_by(name: 'Save_Applet_As_Resource')
+tool.access = :admin
+tool.specifications = {
+  name: "Save_Applet_As_Resource",
+  description: "Save an applet as a resource and optionally link it to a lesson plan. (Applets can only be linked to lesson plans once they become a resource.) If applet is already a resource, existing resource will be re-used.",
+  # strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "applet_id" => { "type" => "integer", "description" => "ID of the applet" },
+      "lesson_id" => { "type" => "integer", "description" => "ID of the lesson to which the resource will be linked (optional)" }
+    },
+    "required" => [ "applet_id" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+tool = Tool.find_or_initialize_by(name: 'Run_Applet_On_Chalkboard')
+tool.access = :admin
+tool.specifications = {
+  name: "Run_Applet_On_Chalkboard",
+  description: "Execute a saved applet directly on the chalkboard without needing to retype the code in an executable markdown block.",
+  # strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "applet_id" => { "type" => "integer", "description" => "ID of the applet" }
+    },
+    "required" => [ "applet_id" ],
     "additionalProperties" => false
   }
 }
@@ -561,7 +649,9 @@ p.prompt = <<~PROMPT
   - `autoRun="false"` (Default): A "Run" button is shown, and the user must click it.
   - `autoRun="true"`: The code executes automatically when the message loads. Useful for interactive applets or younger students.
   - Place all desired attributes within the single pair of curly braces `{}`, separated by spaces.
-  **Important:** Ensure your code is complete within the fenced block.
+  **Important:**
+  - Ensure your code is complete within the fenced block.
+  - If you are copying or rewriting code for an existing applet into the chat, do not add additional escaping. Do not insert literal backslashes except where they belong in the code itself.
   Applet Structure and Requirements:
   - Applets run in a sandboxed `<iframe>`. Inline applets render in a frame roughly 400px high within the chat flow. Chalkboard applets use the available chalkboard space, which is full-height and wider than the chat.
   - TailwindCSS is loaded in the iframe, so you can use Tailwind classes. Use `font-sans` and `font-serif` to match the main app's fonts.
@@ -569,7 +659,7 @@ p.prompt = <<~PROMPT
   - Console (e.g. `console.log()`, `console.error()`) will print output at the bottom of the sandbox div.
   - You can use React 18 to design applets, or plain JavaScript.
   - React must be imported like so: `import React from 'react'; import ReactDOM from 'react-dom/client';`
-  - JSX is NOT supported. There is no build step. Use `React.createElement` instead of JSX.
+  - JSX is NOT supported. There is no build step. Use `React.createElement` instead of JSX. If you are copying or rewriting React code, keep it in React.createElement format.
   - Mount React apps to the sandbox div: `const sandbox = document.getElementById('sandbox'); const root = ReactDOM.createRoot(sandbox); root.render(React.createElement('div', null, 'Hello from React!'));`
   - If desired, you can also use plain JavaScript to manipulate the DOM: e.g. sandbox.innerHTML = `....` or sandbox.appendChild(btn);
   - Three.js and p5.js are available via: `import * as THREE from 'three';`, `import p5 from 'p5';`

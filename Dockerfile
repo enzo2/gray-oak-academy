@@ -16,7 +16,8 @@ WORKDIR /rails
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y curl \
     libjemalloc2 postgresql-client \
-    ffmpeg libvips poppler-utils && \
+    ffmpeg libvips poppler-utils \
+    nodejs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment

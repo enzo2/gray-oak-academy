@@ -1,7 +1,7 @@
 class Resource < ApplicationRecord
   has_and_belongs_to_many :lesson_plans
   has_one_attached :file
-  has_one :applet, dependent: :destroy
+  has_one :applet, dependent: :destroy, validate: true
   accepts_nested_attributes_for :applet, allow_destroy: true, reject_if: :all_blank
 
   belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :resources, optional: true
