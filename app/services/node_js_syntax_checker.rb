@@ -8,7 +8,7 @@ require "tempfile"
 # It returns a hash of { valid: bool, errors: [messages] }.
 #
 # Notes:
-# - This service assumes `node` is available on PATH (devcontainer / dev machine).
+# - This service assumes `node` is available on PATH
 # - The command is run with a short timeout to avoid hangs.
 class NodeJsSyntaxChecker
   DEFAULT_TIMEOUT_SEC = 2

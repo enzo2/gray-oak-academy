@@ -39,12 +39,11 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 ## Features
 - Self-hostable with docker
 - Works with any OpenAI-compatible API (including locally hosted)
-- LLM chat supports images, native audio input, STT/TTS with auto-read
-- Student lesson view with "chalkboard" (multipurpose frame accessible by the LLM)
-- Curriculum management: Courses, Lessons, Lesson Plans, and Resources
-- Edit curriculum with LLM assistance, or manually. Easy first-drafting with one-click generation of course outlines, lesson list, lesson plans, and suggested resources.
-- LLM can create and run Javascript applets, display files and URLs, and decide when the lesson is complete
-- LLM-generated student reports are fed into the next session, ensuring continuity and personalization
+- Highly configurable LLM tutoring: design your own curriculum with Courses, Lessons, Resources, Applets
+- Rapid yet deliberate curriculum planning: Use a thinking LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
+- Integrated multimodal LLM chat for teachers and students, with images, STT/TTS/auto-read (no need for costly realtime models), and "chalkboard" (multipurpose frame accessible by the LLM)
+- LLM can create/run Javascript applets, display files and URLs, finish lessons, and generate student reports
+- Student reports are fed into the next session, ensuring continuity and personalization
 - Speech-only and offline/debrief lesson options to reduce screen time
 
 ### More cool stuff
@@ -52,6 +51,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
 - If LLM supports raw audio input, it will be sent and then transcribed for later completions
+- Markdown and KaTeX support
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
 - Dark/Light mode
@@ -114,11 +114,11 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
    - web search / open textbook / deep research support
    - Automated resource finding/validation 
 - MCP support
+- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student)
+- Student analytics (time spent, etc.)
 - Resource tagging, archive
 - Camera input/snapshots (e.g. show the LLM your desk)
 - Teacher alerts, notifications, mobile push, etc. 
-- Student analytics (time spent, etc.)
-- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student)
 - Student feedback tool at end of lessons
 - Hide more advanced settings/features under a Power User setting
 - Python applets (pyodide iframe)
