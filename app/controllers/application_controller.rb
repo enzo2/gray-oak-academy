@@ -39,7 +39,7 @@ class ApplicationController < ActionController::Base
   def manifest
     response.headers["Content-Type"] = "application/manifest+json; charset=utf-8"
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate" if Rails.env.development?
-    render template: "pwa/manifest", formats: [ :json ]
+    render template: "pwa/manifest", formats: [ :json ], layout: false
   end
 
   # Provide a renderer with a signed-in user to be able to render template views outside controllers

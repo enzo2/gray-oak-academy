@@ -50,11 +50,11 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - All system prompts can be customized (opinionated defaults included)
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
-- If LLM supports raw audio input, it will be sent and then transcribed for later completions
+- If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
-- Dark/Light mode
+- Dark/Light mode, and PWA support
 
 ### Frameworks/Tooling
  - Rails 8.0, Ruby 3.4, Postgres

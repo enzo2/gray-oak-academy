@@ -5,11 +5,19 @@
       "src": "<%= asset_path('logo_512.png') %>",
       "type": "image/png",
       "sizes": "512x512"
+      "purpose": "any"
     },
     {
-      "src": "<%= asset_path('logo_196.png') %>",
+      "src": "<%= asset_path('maskable_icon_512.png') %>",
       "type": "image/png",
-      "sizes": "196x196"
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "<%= asset_path('maskable_icon_192.png') %>",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "<%= asset_path('logo_icon.svg') %>",
@@ -19,7 +27,8 @@
     }
   ],
   "start_url": "/",
-  "display": "standalone",
   "scope": "/",
-  "background_color": "#292524"
+  "display": "standalone",
+  "background_color": "#292524",
+  "theme_color": "#485340"
 }
