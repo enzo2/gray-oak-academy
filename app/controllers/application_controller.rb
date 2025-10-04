@@ -5,6 +5,10 @@ class ApplicationController < ActionController::Base
   # Authenticate entire app
   before_action :authenticate_user!
   before_action :configure_permitted_parameters, if: :devise_controller?
+  # Allow unauthenticated access to PWA assets (manifest & service worker)
+  skip_before_action :authenticate_user!, only: %i[manifest] # service_worker]
+  # Exempt the service worker endpoint from CSRF protection
+  # protect_from_forgery except: :service_worker
 
   def require_superuser
     unless current_user.role_superuser?
@@ -29,6 +33,13 @@ class ApplicationController < ActionController::Base
     else
       redirect_to new_user_session_path
     end
+  end
+
+  # Serve PWA manifest
+  def manifest
+    response.headers["Content-Type"] = "application/manifest+json; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate" if Rails.env.development?
+    render template: "pwa/manifest", formats: [ :json ]
   end
 
   # Provide a renderer with a signed-in user to be able to render template views outside controllers

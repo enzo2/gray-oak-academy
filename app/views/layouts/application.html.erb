@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title><%= content_for(:title) || ENV["APP_NAME"] %></title>
-    <meta property="og:title" content="<%= ENV["APP_NAME"] %>">
+    <title><%= content_for(:title) || ENV["APP_NAME"] || "Gray Oak Academy" %></title>
+    <meta property="og:title" content="<%= ENV["APP_NAME"] || "Gray Oak Academy" %>">
     <meta property="og:type" content="website">
     <meta name="robots" content="noindex, nofollow, noarchive">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="no">
-    <meta name="mobile-web-app-capable" content="no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta
+      name="theme-color"
+      content="#f5f5f4"
+      media="(prefers-color-scheme: light)" />
+    <meta
+      name="theme-color"
+      content="#292524"
+      media="(prefers-color-scheme: dark)" />
     <meta name="turbo-refresh-method" content="morph">
     <meta name="turbo-refresh-scroll" content="preserve">
     <%= csrf_meta_tags %>
@@ -16,7 +24,7 @@
     <%= yield :head %>
 
  		<%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-		<%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+		<%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 		
     <!--
     <link rel="icon" href="/icon.png" type="image/png">
@@ -38,7 +46,7 @@
           <%= link_to root_path, class: "flex flex-row space-x-2" do %>
             <%= image_tag "logo_icon.svg", size: "30", class: "bg-stone-100 dark:hidden" %>
             <%= image_tag "logo_icon_negative.svg", size: "30", class: "hidden dark:block bg-stone-800" %>
-            <span class="text-xl font-bold font-serif hidden md:inline"><%= ENV["APP_NAME"] %></span>
+            <span class="text-xl font-bold font-serif hidden md:inline"><%= ENV["APP_NAME"] || "Gray Oak Academy" %></span>
           <% end %>
           <%= yield :header_buttons  %>
         </div>

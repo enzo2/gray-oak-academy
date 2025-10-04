@@ -1,22 +1,25 @@
 {
-  "name": "GrayOakAcademy",
+  "name": "<%= ENV["APP_NAME"] || "Gray Oak Academy" %>",
   "icons": [
     {
-      "src": "/icon.png",
+      "src": "<%= asset_path('logo_512.png') %>",
       "type": "image/png",
       "sizes": "512x512"
     },
     {
-      "src": "/icon.png",
+      "src": "<%= asset_path('logo_196.png') %>",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
+      "sizes": "196x196"
+    },
+    {
+      "src": "<%= asset_path('logo_icon.svg') %>",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "monochrome"
     }
   ],
   "start_url": "/",
   "display": "standalone",
   "scope": "/",
-  "description": "GrayOakAcademy.",
-  "theme_color": "red",
-  "background_color": "red"
+  "background_color": "#292524"
 }
