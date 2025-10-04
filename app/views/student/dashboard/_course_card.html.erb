@@ -15,7 +15,7 @@
       <% end %>
     <% elsif enrollment.has_available_lesson? %>
       <%= link_to student_lesson_path(enrollment.next_available_lesson), 
-            target: "_blank", class: "inline-block btn-primary text-sm" do %>
+            class: "inline-block btn-primary text-sm" do %>
         <div class="flex items-center">
           <sl-icon name="check-circle-fill" class="text-blue-700"></sl-icon>
           <span>&nbsp;<%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start next" %> lesson</span>
