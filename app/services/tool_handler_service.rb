@@ -40,51 +40,9 @@ class ToolHandlerService
 
       # Execute the tool based on its normalized name.
       # Ensure each tool method calls create_tool_message upon completion.
-      case tool_name
-      when "chalkboard_url"
-        execute_chalkboard_url
-      when "chalkboard_file"
-        execute_chalkboard_file
-      when "complete_lesson"
-        execute_complete_lesson
-      when "python_sandbox"
-        execute_python_code_executor
-      when "list_students"
-        execute_list_students
-      when "list_courses"
-        execute_list_courses
-      when "list_applets"
-        execute_list_applets
-      when "get_applet"
-        execute_get_applet
-      when "update_applet"
-        execute_update_applet
-      when "save_applet_as_resource"
-        execute_save_applet_as_resource
-      when "run_applet_on_chalkboard"
-        execute_run_applet_on_chalkboard
-      when "get_course_details"
-        execute_get_course_details
-      when "get_lesson_details"
-        execute_get_lesson_details
-      when "get_student_reports"
-        execute_get_student_reports
-      when "generate_course_outline"
-        execute_generate_course_outline
-      when "generate_course_lessons"
-        execute_generate_course_lessons
-      when "generate_lesson_plan"
-        execute_generate_lesson_plan
-      when "create_course"
-        execute_create_course
-      when "update_course"
-        execute_update_course
-      when "update_lesson"
-        execute_update_lesson
-      when "generate_image"
-        execute_generate_image
-      when "delegate_to_frontier_llm"
-        execute_delegate_to_frontier_llm
+      method_name = :"execute_#{tool_name}"
+      if respond_to?(method_name, true)
+        send(method_name)
       else
         raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented!"
       end
@@ -427,7 +385,7 @@ class ToolHandlerService
     create_tool_message("Chalkboard updated with file: #{filename} (#{file_type})")
   end
 
-  def execute_python_code_executor
+  def execute_python_sandbox
     code = @args["code"]
     result = PythonCodeExecutorService.execute(code)
     if result["error"] # I.e. HTTP error from terrarium
