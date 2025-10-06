@@ -39,7 +39,7 @@ class ToolHandlerService
       end
 
       # List of teacher-only tools for additional restriction
-      teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_course update_lesson list_applets get_applet update_applet save_applet_as_resource run_applet_on_chalkboard]
+      teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_course update_lesson list_applets get_applet update_applet save_applet_as_resource run_applet_on_chalkboard delegate_to_frontier_llm]
       if tool_name.in?(teacher_only_tools) && !@user.role_teacher?
         raise ToolExecutionError, "Permission denied: this tool is only available to teachers"
       end
@@ -92,6 +92,8 @@ class ToolHandlerService
         execute_update_lesson
       when "generate_image"
         execute_generate_image
+      when "delegate_to_frontier_llm"
+        execute_delegate_to_frontier_llm
       else
         raise ToolExecutionError, "Tool '#{tool.name}' execution not implemented!"
       end
@@ -903,6 +905,28 @@ class ToolHandlerService
 
     Rails.logger.debug("Chalkboard updated with stored applet: #{applet.title}")
     create_tool_message("Chalkboard updated with stored applet: #{applet.title}")
+  end
+
+  # ---- Delegate to Frontier LLM tool ----
+  def execute_delegate_to_frontier_llm
+    prompt = @args["prompt"]
+    raise ToolExecutionError, "Missing required parameter: prompt" unless prompt.present?
+
+    begin
+      # Run the delegation job synchronously; caller is expected to wait for completion
+      result = DelegateToFrontierLlmJob.perform_now(current_teacher, prompt)
+      create_tool_message(<<~CONTENT
+        Frontier LLM response complete.
+        This response has not yet been shown to the user, executed, or otherwise acted upon; this remains your decision.
+        Executable markdown blocks are not executed yet, since tool messages are not shown to the user.
+        Response:
+        #{result}
+      CONTENT
+      )
+    rescue StandardError => e
+      Rails.logger.error "DelegateToFrontierLlmJob error: #{e.message}"
+      raise ToolExecutionError, "Failed to delegate to reasoning LLM: #{e.message}"
+    end
   end
 
   def create_tool_message(content)

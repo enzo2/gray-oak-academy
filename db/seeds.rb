@@ -432,6 +432,25 @@ tool.specifications = {
 }
 tool.save!
 
+tool = Tool.find_or_initialize_by(name: 'Delegate_To_Frontier_LLM')
+tool.access = :admin
+tool.specifications = {
+  name: "Delegate_To_Frontier_LLM",
+  description: "Delegate a task to the reasoning LLM. Accepts a text prompt and returns the LLM's text response. Suitable for text-based queries like: writing a Javascript applet, performing an analysis, creating a problem set, creative writing, curriculum critique, or any task worth the tradeoff of latency & higher cost for higher intelligence/creativity/knowledge. Avoid using for tasks with existing dedicated jobs (e.g., generating course outlines, lessons, or lesson plans). Reasoning LLM does NOT have tool use, app or DB access, so do not request that it perform any action whatsoever. The system prompt containing teaching and generative guidelines will be included automatically; so you do not need to repeat the instructions for executable JS applets. However, conversation history, student or curriculum context will not be included in the prompt--you determine what context to provide. This tool will execute synchronously and block the conversation until complete. The result is not shown to the user, nor is any code executed; it is up to you to decide how to use the result. As examples, if an executable JS applet was requested, you must copy it into a markdown code block in the conversation to execute it; if a problem set was requested, you could copy it into the conversation, or save it as a resource.",
+  parameters: {
+    type: "object",
+    properties: {
+      prompt: {
+        type: "string",
+        description: "The text prompt to send to the reasoning LLM. Must be a complete, standalone prompt containing all necessary context for the task. Be very specific."
+      }
+    },
+    required: [ "prompt" ],
+    additionalProperties: false
+  }
+}
+tool.save!
+
 ###################################################################
 # ---- Default prompts (teacher_id: nil only; update-in-place) ----
 
@@ -469,7 +488,7 @@ p.prompt = <<~PROMPT
   - Do not assign homework consisting of problem sets, preparing a presentation, etc. If more practice is felt to be needed, suggest it, but don't require it.
   - You are a language model, so don't attempt any complex math calculations without using a code execution environment like Python or JS.
   - Incorporate practical mini-projects that allow students to build and create. Encourage them to apply their knowledge in tangible ways and develop real-world skills.
-  - *Do not* assign large projects, course-end presentations, group projects, lengthy research projects, term papers, and the like. The student will benefit most from simply proceeding through a balanced set of lessons. If a long project may be beneficial (e.g. building something, writing a story, conducting an experiment), suggest it as an extracurricular activity, or divide it across lessons.
+  - *Do not* assign course-end presentations, group projects, lengthy research projects, term papers, and the like. The student will benefit most from simply proceeding through a balanced set of lessons. If a long project may be beneficial (e.g. building something, writing a story, conducting an experiment),divide it across one or more dedicated lessons (such as debrief-style lessons), or suggest it as an extracurricular activity.
   - You can discuss these teaching principles if asked, but you don't need to volunteer information or brag about your qualities.
 PROMPT
 p.save!
@@ -634,7 +653,7 @@ p.prompt = <<~PROMPT
 
   You can create executable, generative applets in JS. This is useful for creating interactive exercises, basic visualizations, etc.
   Use an applet when it will add significant value to the lesson. They aren't needed for basic UI that could be formatted in markdown or KaTeX, like listing information, tables or equations.
-  No tool call is needed to create a JS applet. To mark JavaScript as executable, use a standard Markdown fenced code block, followed by attributes enclosed in curly braces `{}` on the same line as the opening backticks and language identifier.
+  No tool call is necessary to show/execute a JS applet. To mark JavaScript as executable, use a standard Markdown fenced code block, followed by attributes enclosed in curly braces `{}` on the same line as the opening backticks and language identifier.
   **Example:**
   ```javascript {executable="true" hidden="true" renderTarget="chalkboard" autoRun="false"}
   // Your JavaScript code here
@@ -729,6 +748,16 @@ p.title = "Default Student Chat"
 p.prompt = <<~PROMPT
   You are now assisting the student in an open-ended chat format, outside of any specific lesson.
   There is no lesson plan or resource list available, so do not attempt to navigate to any URLs or resources.
+PROMPT
+p.save!
+
+p = Prompt.find_or_initialize_by(category: 'delegate_to_frontier_llm', teacher_id: nil)
+p.title = "Default Delegate to Frontier LLM"
+p.prompt = <<~PROMPT
+  The app's standard-capability LLM has now determined that a longer-thinking, higher parameter LLM (you) is needed to provide a superior response. Your task is to respond to the LLM's query, knowing that your response will be returned to the standard LLM. Please think carefully before responding. You are not directly interacting with the end-user, whether teacher or student. Your response will not be directly displayed to the end-user, but returned in a tool message.
+
+  If your response is expected to be shown to the user eventually, feel free to use appropriate formatting (eg. markdown, KaTeX).
+  For app-compatible Javascript applet requests, follow the requirements as above.
 PROMPT
 p.save!
 

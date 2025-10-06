@@ -54,7 +54,8 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Markdown and KaTeX support
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
 - App name can be customized via env variable
-- Dark/Light mode, and PWA support
+- Dark/Light mode
+- Installable PWA
 
 ### Frameworks/Tooling
  - Rails 8.0, Ruby 3.4, Postgres
@@ -94,9 +95,9 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Gemini API's OpenAI compatibility endpoint is a good option with free tier, raw audio support, and long context window models.
 - For heavy users, providers supporting automated prompt caching may reduce cost.
 
-### Choosing an LLM: 
-- For chat/lessons, model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. This app is quite demanding of LLMs. 
-- In settings, you can add a reasoning model specifically for curriculum generation tasks. Model must support structured outputs. It should be a top-performing, large-sized model. (Even some flagship models may not be good enough!)
+### Choosing LLMs: 
+- For the main chat/lesson LLM: model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs.) 
+- Add a dedicated thinking model for better performance on curriculum generation tasks, applets, or anything else the main model wants to delegate. Model must support structured outputs. It should be a frontier, large-sized model. (Even some flagship models may not be good enough!)
 - For image generation, while models are advancing, they are still totally unsuitable for educational uses like accurately labelled diagrams, infographics, etc. For now, the app implements a 2-pass generation to allow image in/out models to self-correct to some extent. 
 
 ## Getting Started

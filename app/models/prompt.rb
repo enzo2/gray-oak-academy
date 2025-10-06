@@ -1,6 +1,8 @@
 class Prompt < ApplicationRecord
   belongs_to :teacher, class_name: "User", foreign_key: "teacher_id", inverse_of: :prompts, optional: true
 
+  # Don't hard-code any prompts (whether system or user messages). All prompts should use this model and have a default in seeds.db.
+
   enum :category, {
     other: "other", # unused
     generate_course_outline: "generate_course_outline", # self-explanatory
@@ -18,7 +20,8 @@ class Prompt < ApplicationRecord
     teacher_assistant: "teacher_assistant", # for 1:1 teacher assistant chat
     teaching_principles: "teaching_principles", # appended to the base system prompt to establish teaching style, principles, ethical boundaries, etc.
     base_system_prompt: "base_system_prompt", # prepended to all prompts to explain foundational principles
-    tool_usage: "tool_usage" # unused, there is a Tool model for this
+    tool_usage: "tool_usage", # unused, there is a Tool model for this
+    delegate_to_frontier_llm: "delegate_to_frontier_llm" # allow model to query the thinking LLM
   }, validate: true, prefix: true
 
   FRIENDLY_CATEGORIES = {
@@ -38,7 +41,8 @@ class Prompt < ApplicationRecord
     generative_guidelines: "Generative Guidelines",
     teacher_assistant: "Teacher Assistant",
     teaching_principles: "Teaching Principles",
-    base_system_prompt: "Base System Prompt"
+    base_system_prompt: "Base System Prompt",
+    delegate_to_frontier_llm: "Delegate To Frontier LLM"
   }
 
   validates :title, presence: true
@@ -61,6 +65,9 @@ class Prompt < ApplicationRecord
     FRIENDLY_CATEGORIES[category.to_sym]
   end
 
+  # The "full system prompt" is the base system prompt + teaching principles.
+  # This doesn't include the generative_guidelines, which are added by the OpenaiApiService whenever a task_system prompt is used.
+  # Thus the final concatenated system prompt would be base_system_prompt + teaching_principles + generative_guidelines + task_system_prompt
   def self.full_system_prompt(user:)
     Prompt.get_prompt(category: "base_system_prompt", user: user) + " \n " + Prompt.get_prompt(category: "teaching_principles", user: user) + " \n "
   end
