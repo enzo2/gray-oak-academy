@@ -23,25 +23,16 @@ class ToolHandlerService
       # Normalize name for internal comparisons and dispatch
       tool_name = normalized_name(tool.name)
 
-      # Authorization: ensure caller is allowed to run this tool.
-      if @user.role_student?
-        # Tools only teachers should be allowed to call
-        teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_course update_lesson]
-        if teacher_only_tools.include?(tool_name)
-          raise ToolExecutionError, "Permission denied: students are not allowed to call '#{tool.name}'"
-        end
-      end
-
       # Prevent runaway tool-call loops: disallow executing new tools if the conversation
       # already has too many consecutive tool messages without an intervening user message.
       if runaway_tool_call_limit_exceeded?(10)
         raise ToolExecutionError, "Permission denied: consecutive tool call limit reached. User must confirm before next tool call."
       end
 
-      # List of teacher-only tools for additional restriction
-      teacher_only_tools = %w[list_students generate_course_outline generate_course_lessons generate_lesson_plan create_course update_course update_lesson list_applets get_applet update_applet save_applet_as_resource run_applet_on_chalkboard delegate_to_frontier_llm]
-      if tool_name.in?(teacher_only_tools) && !@user.role_teacher?
-        raise ToolExecutionError, "Permission denied: this tool is only available to teachers"
+      # Authorization: ensure caller is allowed to run this tool.
+      allowed_tools = Tool.enabled_for_user(@user)
+      unless allowed_tools.exists?(id: tool.id)
+        raise ToolExecutionError, "Permission denied: this tool is not available to you"
       end
 
       # Validate arguments against tool specifications

@@ -25,11 +25,16 @@ class Tool < ApplicationRecord
   def self.enabled_for_user(user)
     allowed = if user.role_student?
       where(access: :student)
-    elsif user.role_teacher?
+    elsif user.role_admin?
+      where(access: [ :student, :admin ])
+    elsif user.role_superuser?
       all
+    else
+      # Default to no access for unknown roles
+      none
     end
-   # Remove the image generation tool unless the image gen LLM is set up in AppSetting
-   AppSetting.image_generation_configured? ? allowed : allowed.where.not(name: "Generate_Image")
+    # Remove the image generation tool unless the image gen LLM is set up in AppSetting
+    AppSetting.image_generation_configured? ? allowed : allowed.where.not(name: "Generate_Image")
   end
 
   private
