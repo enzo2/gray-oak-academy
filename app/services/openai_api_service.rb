@@ -31,9 +31,7 @@ class OpenaiApiService
     @model = model.presence || determine_model(reasoning_model)
     @client = create_client
     @stream_handler = wrap_stream_handler(stream_handler)
-    @tools = Tool.enabled_for_user(@user)
-                 .map(&:for_llm)
-                 .reject { |tool| tool.dig("function", "name") == "Generate_Image" && !@base_uri.include?("openrouter.ai") } if enable_tools
+    @tools = determine_tools if enable_tools
     @log_completion = log_completion
 
     # Jobs without a task system prompt will use the base system prompt only
@@ -361,6 +359,22 @@ class OpenaiApiService
         raise e
       end
     end
+  end
+
+  def determine_tools
+    # Start with tools enabled for the current user
+    allowed_tools = Tool.enabled_for_user(@user)
+
+    # If this is a lesson conversation, only provide student-level tools
+    # This ensures teachers previewing lessons as students don't get curriculum tools
+    if @conversation&.lesson_progress.present?
+      allowed_tools = allowed_tools.where(access: :student)
+    end
+
+    # Format tools for LLM
+    allowed_tools.map(&:for_llm)
+                 # Reject image generation tool if not using OpenRouter
+                 .reject { |tool| tool.dig("function", "name") == "Generate_Image" && !@base_uri.include?("openrouter.ai") }
   end
 
   def extract_faraday_error_message(exception)

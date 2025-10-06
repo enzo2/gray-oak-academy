@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 class OpenaiApiServiceTest < ActiveSupport::TestCase
   def setup
@@ -145,6 +146,70 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       result = service.complete(@messages, response_format: { type: "json_object" }, schema: schema)
       assert_equal({ "name" => "Test" }, result)
+    end
+  end
+
+  # New tests for determine_tools behavior
+
+  test "determine_tools limits to student tools for lesson conversations" do
+    tool_struct = Struct.new(:access, :name) do
+      def for_llm
+        { "function" => { "name" => name } }
+      end
+    end
+
+    admin_tool = tool_struct.new("admin", "List_Students")
+    student_tool = tool_struct.new("student", "Chalkboard_URL")
+    allowed_tools = [ admin_tool, student_tool ]
+    # Provide a simple where implementation to mimic ActiveRecord::Relation#where
+    def allowed_tools.where(hash)
+      select { |t| t.access.to_s == hash[:access].to_s }
+    end
+
+    Tool.stub(:enabled_for_user, ->(user) { allowed_tools }) do
+      conversation = OpenStruct.new(lesson_progress: Object.new)
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        conversation: conversation,
+        enable_tools: true
+      )
+
+      tool_names = service.instance_variable_get(:@tools).map { |t| t.dig("function", "name") }
+      assert_equal [ "Chalkboard_URL" ], tool_names
+    end
+  end
+
+  test "determine_tools filters Generate_Image unless provider is OpenRouter" do
+    tool_struct = Struct.new(:access, :name) do
+      def for_llm
+        { "function" => { "name" => name } }
+      end
+    end
+
+    gen_tool = tool_struct.new("student", "Generate_Image")
+    student_tool = tool_struct.new("student", "Chalkboard_URL")
+    allowed_tools = [ gen_tool, student_tool ]
+    def allowed_tools.where(hash)
+      select { |t| t.access.to_s == hash[:access].to_s }
+    end
+
+    Tool.stub(:enabled_for_user, ->(user) { allowed_tools }) do
+      conversation = OpenStruct.new(lesson_progress: nil)
+      # Use a base_uri that does NOT include openrouter.ai so Generate_Image will be filtered
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        conversation: conversation,
+        enable_tools: true
+      )
+
+      tool_names = service.instance_variable_get(:@tools).map { |t| t.dig("function", "name") }
+      assert_equal [ "Chalkboard_URL" ], tool_names
     end
   end
 end
