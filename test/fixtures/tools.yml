@@ -46,6 +46,7 @@ generate_course_outline:
           description: "Course ID"
       required: [ "course_id" ]
     strict_mode: true
+  access: admin
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
@@ -67,5 +68,6 @@ create_course:
           description: "Grade level"
       required: [ "title", "summary", "grade_level" ]
     strict_mode: true
+  access: admin
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
