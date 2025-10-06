@@ -382,16 +382,16 @@ tool = Tool.find_or_initialize_by(name: 'Update_Applet')
 tool.access = :admin
 tool.specifications = {
   name: "Update_Applet",
-  description: "Update a specific applet's title and/or code (owned by the teacher). Validates JavaScript syntax before saving.",
+  description: "Update a specific applet's title and/or code, or create a new applet if no ID is provided. Validates JavaScript syntax before saving.",
   # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
-      "applet_id" => { "type" => "integer", "description" => "ID of the applet" },
-      "title" => { "type" => "string", "description" => "New title (optional)" },
-      "code" => { "type" => "string", "description" => "New code (optional). Include the full applet code." }
+      "applet_id" => { "type" => "integer", "description" => "ID of the applet. If omitted, creates a new applet. (title and code required)" },
+      "title" => { "type" => "string", "description" => "Applet title. (required when creating, optional when updating)" },
+      "code" => { "type" => "string", "description" => "Javascript code according to the app's JS applet specs. (Required when creating, optional when updating.) Include the full complete applet code. Don't escape template literals; keep raw backticks." }
     },
-    "required" => [ "applet_id" ],
+    "required" => [],
     "additionalProperties" => false
   }
 }

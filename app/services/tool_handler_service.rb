@@ -249,7 +249,12 @@ class ToolHandlerService
     parsed_arguments
   end
 
-  # Security helpers
+  # -- Security helpers --
+  def current_teacher
+    return @user if @user.role_teacher?
+    return @user.teacher if @user.teacher.present?
+    raise ToolExecutionError, "No teacher associated with current user"
+  end
 
   def runaway_tool_call_limit_exceeded?(limit = 10)
     # Determine the timestamp of the most recent user message in the conversation.
@@ -444,14 +449,7 @@ class ToolHandlerService
     end
   end
 
-  def current_teacher
-    return @user if @user.role_teacher?
-    return @user.teacher if @user.teacher.present?
-    raise ToolExecutionError, "No teacher associated with current user"
-  end
-
   def execute_list_students
-    # Teacher-only tool
     students = current_teacher.students.select(:id, :first_name, :last_name, :email)
     payload = students.map { |s| { id: s.id, name: s.name, email: s.email } }
     create_tool_message(JSON.pretty_generate(payload))
@@ -707,7 +705,6 @@ class ToolHandlerService
   end
 
   def execute_generate_lesson_plan
-    # Teacher-only tool
     lesson_id = @args["lesson_id"].to_i
     lesson = Lesson.find_by(id: lesson_id)
     raise ToolExecutionError, "Lesson not found" unless lesson
@@ -724,32 +721,6 @@ class ToolHandlerService
       Rails.logger.error "GenerateLessonPlanContentJob error: #{e.message}"
       raise ToolExecutionError, "Failed to generate lesson plan content: #{e.message}"
     end
-  end
-
-  def broadcast_error(message)
-    Turbo::StreamsChannel.broadcast_append_to(
-      "#{dom_id(@conversation)}",
-      target: "flash_bar",
-      partial: "shared/flash",
-      locals: { flash: { error: message } }
-    )
-  end
-
-  def broadcast_chalkboard_lesson(lesson)
-    Turbo::StreamsChannel.broadcast_update_to(
-      "#{dom_id(@conversation)}",
-      target: "chalkboard",
-      partial: "lessons/chalkboard_markdown",
-      locals: { lesson: lesson }
-    )
-  end
-
-  def broadcast_lesson_completed
-    Turbo::StreamsChannel.broadcast_append_later_to(
-      "#{dom_id(@conversation)}",
-      target: "#{dom_id(@conversation)}",
-      partial: "student/lessons/lesson_completed"
-    )
   end
 
   def execute_generate_image
@@ -814,29 +785,52 @@ class ToolHandlerService
   end
 
   def execute_update_applet
-    applet_id = @args["applet_id"].to_i
-    applet = current_teacher.applets.find_by(id: applet_id)
-    raise ToolExecutionError, "Applet not found" unless applet
-
-    # If code is provided, check syntax first
     if @args.key?("code") && @args["code"].present?
       syntax_check = NodeJsSyntaxChecker.check(@args["code"])
       unless syntax_check[:valid]
         raise ToolExecutionError, "JavaScript syntax errors: #{syntax_check[:errors].join('; ')}"
       end
-      applet.code = @args["code"]
     end
 
-    if @args.key?("title")
-      applet.title = @args["title"]
-    end
+    if @args["applet_id"].present?  # Update existing applet
+      applet_id = @args["applet_id"].to_i
+      applet = current_teacher.applets.find_by(id: applet_id)
+      raise ToolExecutionError, "Applet not found" unless applet
 
-    if applet.changed?
+      if @args.key?("code") && @args["code"].present?
+        applet.code = @args["code"]
+      end
+
+      if @args.key?("title")
+        applet.title = @args["title"]
+      end
+
+      if applet.changed?
+        applet.save!
+        action = "updated"
+      else
+        action = "no changes"
+      end
+    else # Create new applet
+      raise ToolExecutionError, "Missing required parameter: title" unless @args["title"].present?
+      raise ToolExecutionError, "Missing required parameter: code" unless @args["code"].present?
+
+      applet = current_teacher.applets.new(title: @args["title"], code: @args["code"])
       applet.save!
-      create_tool_message(JSON.pretty_generate({ status: "ok", applet: { id: applet.id, title: applet.title, code: applet.code, created_at: applet.created_at, updated_at: applet.updated_at } }))
-    else
-      create_tool_message("No changes made to the applet.")
+      action = "created"
     end
+
+    create_tool_message(JSON.pretty_generate({
+      status: "ok",
+      action: action,
+      applet: {
+        id: applet.id,
+        title: applet.title,
+        code: applet.code,
+        created_at: applet.created_at,
+        updated_at: applet.updated_at
+      }
+    }))
   end
 
   def execute_save_applet_as_resource
@@ -907,7 +901,6 @@ class ToolHandlerService
     create_tool_message("Chalkboard updated with stored applet: #{applet.title}")
   end
 
-  # ---- Delegate to Frontier LLM tool ----
   def execute_delegate_to_frontier_llm
     prompt = @args["prompt"]
     raise ToolExecutionError, "Missing required parameter: prompt" unless prompt.present?
@@ -935,6 +928,32 @@ class ToolHandlerService
       role: "tool",
       content: content,
       tool_call_id: @tool_call_id
+    )
+  end
+
+  def broadcast_error(message)
+    Turbo::StreamsChannel.broadcast_append_to(
+      "#{dom_id(@conversation)}",
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { error: message } }
+    )
+  end
+
+  def broadcast_chalkboard_lesson(lesson)
+    Turbo::StreamsChannel.broadcast_update_to(
+      "#{dom_id(@conversation)}",
+      target: "chalkboard",
+      partial: "lessons/chalkboard_markdown",
+      locals: { lesson: lesson }
+    )
+  end
+
+  def broadcast_lesson_completed
+    Turbo::StreamsChannel.broadcast_append_later_to(
+      "#{dom_id(@conversation)}",
+      target: "#{dom_id(@conversation)}",
+      partial: "student/lessons/lesson_completed"
     )
   end
 end

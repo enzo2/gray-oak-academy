@@ -44,12 +44,13 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Integrated multimodal LLM chat for teachers and students, with images, STT/TTS/auto-read (no need for costly realtime models), and "chalkboard" (multipurpose frame accessible by the LLM)
 - LLM can create/run Javascript applets, display files and URLs, finish lessons, and generate student reports
 - Student reports are fed into the next session, ensuring continuity and personalization
-- Speech-only and offline/debrief lesson options to reduce screen time
+- Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 
 ### More cool stuff
 - All system prompts can be customized (opinionated defaults included)
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
+- Main LLM can query the thinking LLM at its discretion
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
