@@ -41,31 +41,36 @@ tool.save!
 tool = Tool.find_or_initialize_by(name: 'Complete_Lesson')
 tool.specifications = {
   name: "Complete_Lesson",
-  description: "Marks the current lesson as completed and saves the LLM tutor's student report.",
+  description: "Marks the current lesson as completed and saves the LLM tutor's student report. This should be called at the end of a lesson. Be concise but thorough. Be specific, e.g. include quotations or evidence to support significant observations rather than drawing broad conclusions. Disregard prior reports and only consider progress during this lesson.",
   parameters: {
     type: "object",
     properties: {
       summary: {
         type: "string",
-        description: "A brief summary of the student's performance and understanding during the lesson"
+        description: "A brief summary of the student's performance and understanding during the lesson."
       },
       strengths: {
         type: "array",
         items: { type: "string" },
-        description: "List areas (if any) where the student demonstrated adequate or strong understanding, which will require minimal to no review in subsequent lessons"
+        description: "List aspects (if any) where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent lessons. May include knowledge or skills."
       },
       areas_for_review: {
         type: "array",
         items: { type: "string" },
-        description: "List aspects (if any) of the current lesson material/plan where the student should receive additional clarification, review or practice in subsequent lessons of the current course"
+        description: "List aspects (if any) where the student should receive additional clarification, review or practice in subsequent lessons."
       },
       teaching_methods: {
         type: "array",
         items: { type: "string" },
-        description: "Note any aspects of the teaching methodology that were particularly effective or ineffective for this student"
+        description: "Optional: Note any aspects of teaching methodology that were particularly effective or ineffective for the student"
+      },
+      memories: {
+        type: "array",
+        items: { type: "string" },
+        description: "Optional: List any new details about the student to remember for future lessons. For example: interests/hobbies, goals, learning preferences."
       }
     },
-    required: [ "summary", "strengths", "areas_for_review", "teaching_methods" ]
+    required: [ "summary", "strengths", "areas_for_review" ]
   }
 }
 tool.save!
@@ -596,6 +601,7 @@ p.prompt = <<~PROMPT
     - Refine the lesson content
   The supervising teacher has already marked the following resources as validated and available as lesson content (may or may not be pertinent to the lesson):
   {linked_resources}
+
   (Linked resource lookup information, e.g. URL, filename/ID, will be included during the lesson, so there is no need to include those identifiers now; just refer to them by name.)
   Adhere to any previously specified requirements.
   Ensure the content is appropriate for the grade level.
