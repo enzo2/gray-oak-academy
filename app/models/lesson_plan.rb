@@ -9,13 +9,14 @@ class LessonPlan < ApplicationRecord
   # Field: t.jsonb :content, default: [] # Array of hashes [{type => details}, ...]
   # Field: t.jsonb :suggested_resources, default: [] # Array of hashes [{type => description}, ...]
   # Field: t.boolean :chalkboard_enabled, default: true, null: false
-  # Field: t.enum :audio, enum_type: :audio_setting, default: "disabled", null: false
+  # Field: t.enum :audio, enum_type: :audio_setting, default: "enabled", null: false
 
   enum :status, { draft: "draft", published: "published" }, prefix: true
   # "archived" status also available in the enum column, but can't think of a use case
 
-  # Hybrid setting for audio input: see conversation.rb for definitions
-  enum :audio, { disabled: "disabled", enabled: "enabled", only: "audio-only" }, prefix: true
+  # Setting for audio input: see conversation.rb for definitions
+  enum :audio, { enabled: "enabled", only: "audio-only" }, prefix: true
+  # "disabled" status also available in the enum column, but confusing since STT is always enabled
 
   # Allow blank content if still new draft
   validate :validate_content_format, unless: -> { status == "draft" && content.blank? }

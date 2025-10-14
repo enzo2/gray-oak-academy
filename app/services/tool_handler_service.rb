@@ -796,7 +796,7 @@ class ToolHandlerService
       lesson = Lesson.find_by(id: lesson_id)
       raise ToolExecutionError, "Lesson not found" unless lesson
       raise ToolExecutionError, "Permission denied, lesson does not belong to the current user" unless lesson.teacher == current_teacher
-      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher, status: "draft")
     end
 
     # Reuse existing resource if the applet already has one

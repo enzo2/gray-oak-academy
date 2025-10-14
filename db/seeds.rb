@@ -191,7 +191,7 @@ tool = Tool.find_or_initialize_by(name: 'Update_Lesson')
 tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
 tool.specifications = {
   name: "Update_Lesson",
-  description: "Update a lesson and REPLACE its lesson plan content. Always call get_lesson_details first.",
+  description: "Update a lesson and REPLACE its lesson plan content and suggested resources. Always call get_lesson_details first.",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -231,10 +231,10 @@ tool.specifications = {
         }
       },
 
-      # Additional LessonPlan fields (optional)
-      "lesson_plan_status" => { "type" => "string", "description" => "Lesson plan status. Set published when ready for students.", "enum" => [ "draft", "published" ] },
+      # Additional LessonPlan fields
+      "lesson_plan_status" => { "type" => "string", "description" => "Lesson plan status. Set published when ready for students. (optional; default: draft)", "enum" => [ "draft", "published" ] },
       "chalkboard_enabled" => { "type" => "boolean", "description" => "Enable or disable the chalkboard (optional; default: true)" },
-      "audio" => { "type" => "string", "description" => "Audio input setting (disabled|enabled|audio-only) (optional; default enabled) (disabled: allows STT input. enabled: allows raw audio input, for supported LLMs. audio-only: allows STT/audio and disables text/keyboard input)", "enum" => [ "disabled", "enabled", "audio-only" ] }
+      "audio" => { "type" => "string", "description" => "Audio input setting (enabled|audio-only) (optional; default enabled) (enabled: allows STT/audio input. audio-only: allows STT/audio and disables text/keyboard input)", "enum" => [ "enabled", "audio-only" ] }
     },
     "required" => [ "lesson_id", "title", "goals", "approx_duration_min" ],
     "additionalProperties" => false
