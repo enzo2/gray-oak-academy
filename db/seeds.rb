@@ -367,10 +367,10 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Get_Applet')
-tool.access = :admin
+tool.access = :student
 tool.specifications = {
   name: "Get_Applet",
-  description: "Retrieve a specific applet by ID (owned by the teacher). Returns title, code, and metadata.",
+  description: "Retrieve a specific applet's code by ID. Returns title, code, and metadata. Code will be returned in a tool message (not visible to user).",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -421,10 +421,10 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Run_Applet_On_Chalkboard')
-tool.access = :admin
+tool.access = :student
 tool.specifications = {
   name: "Run_Applet_On_Chalkboard",
-  description: "Execute a saved applet directly on the chalkboard without needing to retype the code in an executable markdown block.",
+  description: "Execute a saved applet directly on the chalkboard without needing to retype the code in an executable markdown block. Code will not be visible to user. (To display the code, or for inline execution in the chat, use Get_Applet instead and then copy the code into an executable markdown block.)",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -676,7 +676,6 @@ p.prompt = <<~PROMPT
   - Place all desired attributes within the single pair of curly braces `{}`, separated by spaces.
   **Important:**
   - Ensure your code is complete within the fenced block.
-  - If you are copying or rewriting code for an existing applet into the chat, do not add additional escaping. Do not insert literal backslashes except where they belong in the code itself.
   Applet Structure and Requirements:
   - Applets run in a sandboxed `<iframe>`. Inline applets render in a frame roughly 400px high within the chat flow. Chalkboard applets use the available chalkboard space, which is full-height and wider than the chat.
   - TailwindCSS is loaded in the iframe, so you can use Tailwind classes. Use `font-sans` and `font-serif` to match the main app's fonts.

@@ -35,7 +35,7 @@ class ToolHandlerService
         raise ToolExecutionError, "Permission denied: this tool is not available to you"
       end
 
-      # Validate arguments against tool specifications
+      # Validate arguments against tool specifications, and parse to @args hash.
       @args = validate_and_parse_arguments(tool, tool_call[:arguments])
 
       # Execute the tool based on its normalized name.
@@ -295,6 +295,8 @@ class ToolHandlerService
 
     true
   end
+
+  # -- Tool execution methods --
 
   def execute_chalkboard_url
     url = @args["url"].to_s.strip
@@ -734,8 +736,8 @@ class ToolHandlerService
     applet_id = @args["applet_id"].to_i
     applet = current_teacher.applets.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
-    payload = { id: applet.id, title: applet.title, code: applet.code, created_at: applet.created_at, updated_at: applet.updated_at }
-    create_tool_message(JSON.pretty_generate(payload))
+    payload = { id: applet.id, title: applet.title, code: applet.code, warning: "If copying this code into an executable markdown block, there is no need to add escaping. Do not add extra backslashes." }
+    create_tool_message(payload) # Avoid using JSON to avoid LLM syntax issues due to escaping
   end
 
   def execute_update_applet
@@ -774,7 +776,7 @@ class ToolHandlerService
       action = "created"
     end
 
-    create_tool_message(JSON.pretty_generate({
+    create_tool_message({
       status: "ok",
       action: action,
       applet: {
@@ -784,7 +786,7 @@ class ToolHandlerService
         created_at: applet.created_at,
         updated_at: applet.updated_at
       }
-    }))
+    })
   end
 
   def execute_save_applet_as_resource
