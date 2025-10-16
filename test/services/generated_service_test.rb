@@ -70,14 +70,26 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     # Create tool record so it can be found and validated
     complete_spec = {
       "name" => "Complete_Lesson",
-      "description" => "Marks lesson complete and generates report",
+      "description" => "Marks the current lesson as completed and saves the LLM tutor's student report. This should be called at the end of a lesson. Be concise but thorough. Be specific, e.g. include quotations or evidence to support significant observations rather than drawing broad conclusions. Disregard prior reports and only consider progress during this lesson.",
       "parameters" => {
         "type" => "object",
         "properties" => {
-          "score" => { "type" => "number", "description" => "Score" },
-          "comments" => { "type" => "string", "description" => "Comments" }
+          "summary" => {
+            "type" => "string",
+            "description" => "A brief summary of the student's performance and understanding during the lesson."
+          },
+          "strengths" => {
+            "type" => "array",
+            "items" => { "type" => "string" },
+            "description" => "List aspects (if any) where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent lessons. May include knowledge or skills."
+          },
+          "areas_for_review" => {
+            "type" => "array",
+            "items" => { "type" => "string" },
+            "description" => "List aspects (if any) where the student should receive additional clarification, review or practice in subsequent lessons."
+          }
         },
-        "required" => []
+        "required" => [ "summary", "strengths", "areas_for_review" ]
       }
     }
     Tool.create!(specifications: complete_spec)
@@ -90,7 +102,11 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     msg = Message.create!(conversation: conv, role: :user, content: "Finish lesson")
     service = ToolHandlerService.new(conversation: conv, message: msg)
 
-    args = { "score" => 0.9, "comments" => "Great job" }
+    args = {
+      "summary" => "Student demonstrated good understanding of basic concepts and completed exercises successfully.",
+      "strengths" => [ "Basic mechanics concepts", "Following instructions" ],
+      "areas_for_review" => [ "Complex problem solving" ]
+    }
     tool_call = { id: "call-3", name: "Complete_Lesson", arguments: args.to_json }
 
     # Stub broadcasting to avoid ActionCable during job creation
