@@ -5,6 +5,8 @@ import { Controller } from "@hotwired/stimulus";
   - Expects:
       data-controller="collapsible" on a common ancestor
       data-collapsible-target="button" on the toggle button (e.g., sl-icon-button)
+      'chevron-down' icon initially
+      data-action="click->collapsible#toggle" on the button or its wrapper
       data-collapsible-target="panel" on the collapsible content element
   - Behavior:
       - Toggles 'hidden' class on the panel (mobile-first)

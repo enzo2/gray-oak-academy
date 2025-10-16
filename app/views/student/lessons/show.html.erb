@@ -1,6 +1,6 @@
 <%# We want the page fill the viewport, minus the header height, without any scrollbar or excess at the bottom %>
 <div class="flex h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] overflow-hidden"
-    data-controller="drawer chalkboard">
+    data-controller="drawer chalkboard collapsible">
   <!-- Conversation Column -->
   <div class="h-full min-w-0 
               grow xl:max-2xl:max-w-[32rem] 2xl:max-w-[40rem]
@@ -26,37 +26,55 @@
         <sl-dropdown class="" placement="bottom-end">
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
           <sl-menu>
-          <% if AppSetting.speech_configured? %>
-            <sl-menu-item onclick="window.dispatchEvent(new Event('toggleAutoRead'))">
-              <div class="flex items-center justify-start">
-                <sl-icon-button 
-                  id="auto-read-toggle"
-                  name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
-                  label="Auto-read" 
-                  class="text-xl [&::part(base)]:pt-2">
-                </sl-icon-button>
-                <span class="pl-2">Auto-read</span>
+            <% if AppSetting.speech_configured? %>
+              <sl-menu-item onclick="window.dispatchEvent(new Event('toggleAutoRead'))">
+                <div class="flex items-center justify-start">
+                  <sl-icon-button 
+                    id="auto-read-toggle"
+                    name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
+                    label="Auto-read" 
+                    class="text-xl [&::part(base)]:pt-2">
+                  </sl-icon-button>
+                  <span class="pl-2">Auto-read</span>
+                </div>
+              </sl-menu-item>
+            <% end %>
+            <sl-menu-item>
+              <div class="flex items-center justify-start" data-action="click->collapsible#toggle">
+                <sl-icon-button  data-collapsible-target="button" name="chevron-down" label="Details"></sl-icon-button>
+                <span class="pl-2">Chat info</span>
               </div>
             </sl-menu-item>
-          <% end %>
           </sl-menu>
         </sl-dropdown>
       </div>
     </div>
 
     <% if @conversation.messages.length < 2 %>
+    <!-- Will be removed after first user message -->
     <div class="flex-none flex items-center gap-2 mb-1" id="lesson-duration">
       <sl-icon name="clock" class="text-stone-500"></sl-icon>
       <span class="text-sm text-stone-600 dark:text-stone-400">Approx. <%= @lesson.approx_duration_min %> minutes</span>
     </div>
     <% end %>
 
+    <!-- Conversation Details - collapsible -->
+    <div id="conversation-details" data-collapsible-target="panel" class="hidden">
+      <div class="flex justify-between items-center space-x-4 mb-1">
+        <div class="flex justify-start items-center space-x-2">
+          <span class="text-dim text-sm">LLM: <i><%= @conversation.llm_in_use_name %></i></span>
+        </div>
+        <div class="xl:hidden max-w-36 text-right text-dim text-xs italic leading-none">Wider screen recommended for chalkboard.</div>
+      </div>
+      <%= turbo_frame_tag "context-usage-bar" do %>
+        <%= render partial: "conversations/context_usage_bar", locals: { context_usage: @conversation.context_usage } %>
+      <% end %>
+    </div>
+
     <hr class="border-stone-500">
 
     <!-- Conversation -->
-       
-      <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
-  
+    <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
   </div>
 
   <!-- Chalkboard Area - remainder of space - grow as needed -->
