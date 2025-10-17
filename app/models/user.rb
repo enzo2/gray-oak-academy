@@ -34,6 +34,8 @@ class User < ApplicationRecord
   has_many :student_reports, foreign_key: "student_id", inverse_of: :student, dependent: :destroy # Retrieves all student reports. When querying, use scopes to narrow by reportable_type.
   has_many :user_context_reports, class_name: "StudentReport", as: :reportable # for generic reports; specific ones for course or completed lessons would be associated via ENROLLMENTS, or LESSON_PROGRESS
   has_many :authored_reports, class_name: "StudentReport", foreign_key: "teacher_id", inverse_of: :teacher, dependent: :nullify
+  has_many :memories, foreign_key: "student_id", inverse_of: :student, dependent: :destroy
+  has_many :authored_memories, class_name: "Memory", foreign_key: "author_id", inverse_of: :author, dependent: :nullify
   has_many :resources, foreign_key: "teacher_id", inverse_of: :teacher, dependent: :nullify # Don't destroy - might be valuable to keep for other teachers
   has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher, dependent: :destroy
   has_many :conversations, dependent: :destroy

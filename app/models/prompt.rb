@@ -8,20 +8,21 @@ class Prompt < ApplicationRecord
     generate_course_outline: "generate_course_outline", # self-explanatory
     generate_lessons: "generate_lessons", # self-explanatory
     generate_lesson_plan: "generate_lesson_plan", # self-explanatory
-    suggest_resources: "suggest_resources", # unused, need to impelment
+    suggest_resources: "suggest_resources", # unused, need to implement
     lesson_tutor_session: "lesson_tutor_session", # for conducting the lesson plan with student
     open_ended_student_chat: "open_ended_student_chat", # for student 1:1 chat outside of lessons
-    student_progress_tutor_session: "student_progress_tutor_session", # Unused, can be for a planning session, 'office hours', student-directed lesson planning, etc.
-    generate_student_lesson_report: "generate_student_lesson_report", # Unused; specified in a Tool
+    # student_progress_tutor_session: "student_progress_tutor_session", # Unused, can be for a planning session, 'office hours', student-directed lesson planning, etc.
+    # generate_student_lesson_report: "generate_student_lesson_report", # Unused; specified in a Tool
     generate_student_course_report: "generate_student_course_report", # Generate the course-end report
-    generate_student_assessment_report: "generate_student_assessment_report", # unused, could be for reports outside of a course/lesson, eg. one-off tutoring session, remedial/review, vibe check, etc.
-    generate_student_profile: "generate_student_profile", # unused. Could be for processing RAG results before a lesson
+    # generate_student_assessment_report: "generate_student_assessment_report", # unused, could be for reports outside of a course/lesson, eg. one-off tutoring session, remedial/review, vibe check, etc.
+    # generate_student_profile: "generate_student_profile", # unused. Could be for processing RAG results before a lesson
     generative_guidelines: "generative_guidelines",  # LLM instructions for generative UI/UX and code execution
     teacher_assistant: "teacher_assistant", # for 1:1 teacher assistant chat
     teaching_principles: "teaching_principles", # appended to the base system prompt to establish teaching style, principles, ethical boundaries, etc.
     base_system_prompt: "base_system_prompt", # prepended to all prompts to explain foundational principles
-    tool_usage: "tool_usage", # unused, there is a Tool model for this
-    delegate_to_frontier_llm: "delegate_to_frontier_llm" # allow model to query the thinking LLM
+    # tool_usage: "tool_usage", # unused, there is a Tool model for this
+    delegate_to_frontier_llm: "delegate_to_frontier_llm", # allow model to query the thinking LLM
+    memories_semantic_merge: "memories_semantic_merge" # merge new student memories via LLM
   }, validate: true, prefix: true
 
   FRIENDLY_CATEGORIES = {
@@ -32,17 +33,18 @@ class Prompt < ApplicationRecord
     suggest_resources: "Suggest Resources",
     lesson_tutor_session: "Lesson Tutor Session",
     open_ended_student_chat: "Open-Ended Student Chat",
-    student_progress_tutor_session: "Student Progress Tutor Session",
-    generate_student_lesson_report: "Generate Student Lesson Report",
+    # student_progress_tutor_session: "Student Progress Tutor Session",
+    # generate_student_lesson_report: "Generate Student Lesson Report",
     generate_student_course_report: "Generate Student Course Report",
-    generate_student_assessment_report: "Generate Student Assessment Report",
-    generate_student_profile: "Generate Student Profile",
-    tool_usage: "Tool Usage",
+    # generate_student_assessment_report: "Generate Student Assessment Report",
+    # generate_student_profile: "Generate Student Profile",
     generative_guidelines: "Generative Guidelines",
     teacher_assistant: "Teacher Assistant",
     teaching_principles: "Teaching Principles",
     base_system_prompt: "Base System Prompt",
-    delegate_to_frontier_llm: "Delegate To Frontier LLM"
+    # tool_usage: "Tool Usage",
+    delegate_to_frontier_llm: "Delegate To Frontier LLM",
+    memories_semantic_merge: "Memories: Semantic Merge"
   }
 
   validates :title, presence: true

@@ -70,7 +70,7 @@
           method: :delete, class: "btn-danger w-48" %>
 
         <% if current_user.role_superuser? %>
-          <p class="mb-2 text-dim">You are the superuser. If you really need to delete your account, use the console.</p>
+          <p class="mb-2 text-dim">You are a superuser. If you really need to delete your account, use the console.</p>
         <% else %>
           <p class="mb-2 text-dim">You must ask the administrator to delete your account.</p>
         <% end %>

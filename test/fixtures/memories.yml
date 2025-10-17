@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  student: one
+  author: one
+  student_report: one
+  title: MyString
+  body: MyText
+  hidden_from_student: false
+
+two:
+  student: two
+  author: two
+  student_report: two
+  title: MyString
+  body: MyText
+  hidden_from_student: false

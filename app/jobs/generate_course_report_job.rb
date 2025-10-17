@@ -4,28 +4,28 @@ class GenerateCourseReportJob < ApplicationJob
   REPORT_SCHEMA = {
     "strict": true,
     "name": "Course_Report",
-    "description": "A summary of the student's performance in the course",
+    "description": "A summary of the student's performance in the course.",
     "schema": {
       "type": "object",
       "properties": {
         "summary": {
           "type": "string",
-          "description": "A detailed overview of the student's performance and understanding during the course"
+          "description": "A detailed overview of the student's performance and understanding during the course."
         },
         "strengths": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "List areas (if any) where the student demonstrated adequate or strong understanding, which will require minimal to no review in subsequent courses"
+          "description": "List areas (if any) where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent courses. May include knowledge or skills."
         },
         "areas_for_review": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "List aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions"
+          "description": "List aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions."
         },
         "teaching_methods": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Note any aspects of the teaching methodology that were particularly effective or ineffective for this student"
+          "description": "Note any aspects of teaching methodology that were particularly effective or ineffective for the student."
         }
       },
       "required": [ "summary", "strengths", "areas_for_review", "teaching_methods" ],

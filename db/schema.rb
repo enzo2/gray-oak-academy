@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_05_131318) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_16_195008) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,7 +20,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_131318) do
   create_enum "content_type", ["image/png", "image/jpeg", "image/webp"]
   create_enum "course_status", ["active", "archived"]
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
-  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "delegate_to_frontier_llm", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt"]
+  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "delegate_to_frontier_llm", "memories_semantic_merge", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
   create_enum "role_name", ["system", "user", "assistant", "tool"]
   create_enum "student_report_status", ["in_progress", "completed"]
@@ -217,6 +217,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_131318) do
     t.index ["model", "api_provider"], name: "index_llms_on_model_and_api_provider", unique: true
   end
 
+  create_table "memories", force: :cascade do |t|
+    t.bigint "student_id", null: false
+    t.bigint "author_id"
+    t.bigint "student_report_id"
+    t.text "body", null: false
+    t.boolean "hidden_from_student", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_id"], name: "index_memories_on_author_id"
+    t.index ["student_id"], name: "index_memories_on_student_id"
+  end
+
   create_table "messages", force: :cascade do |t|
     t.bigint "conversation_id", null: false
     t.enum "role", null: false, enum_type: "role_name"
@@ -334,6 +346,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_131318) do
   add_foreign_key "lesson_progresses", "lessons"
   add_foreign_key "lesson_progresses", "users", column: "student_id"
   add_foreign_key "lessons", "courses"
+  add_foreign_key "memories", "student_reports"
+  add_foreign_key "memories", "users", column: "author_id"
+  add_foreign_key "memories", "users", column: "student_id"
   add_foreign_key "messages", "conversations"
   add_foreign_key "prompts", "users", column: "teacher_id"
   add_foreign_key "resources", "users", column: "teacher_id"
