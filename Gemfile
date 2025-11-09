@@ -4,7 +4,7 @@ source "https://rubygems.org"
 # gem "dotenv-rails", groups: [ :development, :test ]
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "< 8.1"
+gem "rails", "< 8.2"
 gem "propshaft"
 gem "pg" # Use postgresql as the database for Active Record
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
