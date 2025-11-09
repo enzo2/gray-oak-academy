@@ -33,7 +33,7 @@ Rails.application.routes.draw do
 
   resources :enrollments, only: [ :show ]
 
-  resources :memories, only: [ :create, :update, :destroy ]
+  resources :memories, only: [ :create, :edit, :update, :destroy ]
 
   resources :applets do
     member do

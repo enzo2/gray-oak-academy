@@ -1,5 +1,5 @@
 class MemoriesController < ApplicationController
-  before_action :set_memory, only: [ :update, :destroy ]
+  before_action :set_memory, only: [ :edit, :update, :destroy ]
 
   # Memories are managed inline on the settings page; no separate :new view is used.
 
@@ -27,11 +27,16 @@ class MemoriesController < ApplicationController
     end
   end
 
+  def edit
+    render :edit, formats: :turbo_stream
+  end
+
   def update
     if @memory.update(memory_params)
-      redirect_to edit_user_registration_path(active_tab: :memories), notice: "Memory updated successfully."
+      render :update, formats: :turbo_stream
     else
-      redirect_to edit_user_registration_path(active_tab: :memories), alert: "Failed to update memory: #{@memory.errors.full_messages.to_sentence}"
+      flash.now[:error] = "Failed to update memory: #{@memory.errors.full_messages.to_sentence}"
+      render :edit, formats: :turbo_stream, status: :unprocessable_entity
     end
   end
 

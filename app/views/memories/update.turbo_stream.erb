@@ -1,0 +1,5 @@
+<%= turbo_stream.replace(dom_id(@memory, :form)) do %>
+  <%= render @memory %>
+<% end %>
+
+<%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
