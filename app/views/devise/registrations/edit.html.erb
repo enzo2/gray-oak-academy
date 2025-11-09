@@ -3,18 +3,23 @@
 
   <sl-tab-group class="[&::part(body)]:overflow-visible">
     <% if current_user.role_teacher? %>
-      <sl-tab slot="nav" panel="api">LLMs</sl-tab>
+      <sl-tab slot="nav" panel="api" <%= 'active' if @active_tab == :api %>>LLMs</sl-tab>
     <% end %>
-    <sl-tab slot="nav" panel="account">Account</sl-tab>
+    <sl-tab slot="nav" panel="memories" <%= 'active' if @active_tab == :memories %>>Memories</sl-tab>
+    <sl-tab slot="nav" panel="account" <%= 'active' if @active_tab == :account %>>Account</sl-tab>
 
     <% if current_user.role_teacher? %>
-      <sl-tab-panel name="api">
+      <sl-tab-panel name="api" <%= 'active' if @active_tab == :api %>>
         <%= render "user_settings/api", settings: current_user.settings %>
       </sl-tab-panel>
     <% end %>
-    
-    <sl-tab-panel name="account" active><!--set as active so that it shows up after devise form submission-->
-      <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
+
+    <sl-tab-panel name="memories" <%= 'active' if @active_tab == :memories %>>
+      <%= render "memories/panel" %>
+    </sl-tab-panel>
+
+    <sl-tab-panel name="account" <%= 'active' if @active_tab == :account %>>
+      <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put, data: { turbo: false } }) do |f| %>
         <%= render "devise/shared/error_messages", resource: resource %>
 
           <div class="mb-4">

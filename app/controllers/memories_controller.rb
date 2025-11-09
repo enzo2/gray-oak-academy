@@ -1,0 +1,66 @@
+class MemoriesController < ApplicationController
+  before_action :set_memory, only: [ :update, :destroy ]
+
+  # Memories are managed inline on the settings page; no separate :new view is used.
+
+  def create
+    @memory = current_user.memories.build(memory_params)
+    @memory.author = current_user
+
+    if @memory.save
+      respond_to do |format|
+        format.turbo_stream
+        format.html do
+          redirect_to edit_user_registration_path(active_tab: :memories), notice: "Memory added successfully."
+        end
+      end
+    else
+      respond_to do |format|
+        format.turbo_stream do
+          flash.now[:error] = "Failed to add memory: #{@memory.errors.full_messages.to_sentence}"
+          render :create, status: :unprocessable_entity
+        end
+        format.html do
+          redirect_to edit_user_registration_path(active_tab: :memories), alert: "Failed to add memory: #{@memory.errors.full_messages.to_sentence}"
+        end
+      end
+    end
+  end
+
+  def update
+    if @memory.update(memory_params)
+      redirect_to edit_user_registration_path(active_tab: :memories), notice: "Memory updated successfully."
+    else
+      redirect_to edit_user_registration_path(active_tab: :memories), alert: "Failed to update memory: #{@memory.errors.full_messages.to_sentence}"
+    end
+  end
+
+  def destroy
+    @memory.destroy!
+
+    respond_to do |format|
+      format.turbo_stream { render turbo_stream: turbo_stream.remove(@memory) }
+      format.html do
+        redirect_to edit_user_registration_path(active_tab: :memories), notice: "Memory deleted successfully."
+      end
+    end
+  end
+
+  private
+
+  def set_memory
+    @memory = current_user.memories.find(params[:id])
+  end
+
+  def memory_params
+    params.expect(memory: [ :body ])
+  end
+
+  def load_memories_for(user)
+    if user.role_student?
+      user.memories.visible_to_students.order(created_at: :desc)
+    else
+      user.memories.order(created_at: :desc)
+    end
+  end
+end

@@ -1,0 +1,23 @@
+<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4" id="<%= dom_id(memory) %>">
+  <div class="flex items-center justify-between">
+    <div>
+      <%= markdown(memory.body) %>
+
+      <div class="text-xs text-dim">
+        Added <%= memory.created_at.strftime("%b %d, %Y") %>
+        <% if memory.student_report.present? %>
+          via lesson report
+        <% end %>
+      </div>
+    </div>        
+
+    <% unless memory.student != current_user %>
+      <%= button_to(memory_path(memory),
+                    method: :delete,
+                    form: { data: { turbo_confirm: "Delete this memory?" } },
+                    class: "hover:text-red-500") do %>
+        <sl-icon name="trash"></sl-icon>
+      <% end %>
+    <% end %>
+  </div>
+</div>

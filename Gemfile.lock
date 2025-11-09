@@ -1,4 +1,16 @@
 GIT
+  remote: https://github.com/heartcombo/devise.git
+  revision: c6b08ae7e12d068e7fde62dda951316147300daf
+  branch: main
+  specs:
+    devise (5.0.0.beta)
+      bcrypt (~> 3.0)
+      orm_adapter (~> 0.1)
+      railties (>= 6.0.0)
+      responders
+      warden (~> 1.2.3)
+
+GIT
   remote: https://github.com/rack/rack-attack.git
   revision: 14acf3cbd4f45365906012037741ede8e345ce66
   branch: main
@@ -118,12 +130,6 @@ GEM
     debug (1.11.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
-    devise (4.9.4)
-      bcrypt (~> 3.0)
-      orm_adapter (~> 0.1)
-      railties (>= 4.1.0)
-      responders
-      warden (~> 1.2.3)
     dotenv (3.1.8)
     dotenv-rails (3.1.8)
       dotenv (= 3.1.8)
@@ -438,7 +444,7 @@ DEPENDENCIES
   brakeman
   capybara
   debug
-  devise
+  devise!
   dotenv-rails
   faraday-retry
   hotwire_combobox

@@ -5,6 +5,7 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # before_action :configure_sign_up_params, only: [:create]
   # before_action :configure_account_update_params, only: [:update]
   before_action :check_signup_mode, only: [ :new, :create ]
+  before_action :set_memories, only: [ :edit, :update ]
 
   # GET /resource/sign_up
   # def new
@@ -17,14 +18,18 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # end
 
   # GET /resource/edit
-  # def edit
-  #   super
-  # end
+  def edit
+    # This view is used as the user settings page-- also includes tabs besides Devise-controlled user settings.
+    # Allow tab to be specified via params.
+    @active_tab = params[:active_tab].presence&.to_sym || :api
+    super
+  end
 
   # PUT /resource
-  # def update
-  #   super
-  # end
+  def update
+    @active_tab = :account
+    super
+  end
 
   # DELETE /resource
   # def destroy
@@ -69,6 +74,15 @@ class Users::RegistrationsController < Devise::RegistrationsController
       Rails.logger.info "Signup attempted, but signups are currently disabled."
       flash[:alert] = "Signups are currently not allowed."
       redirect_to root_path, status: :see_other
+    end
+  end
+
+  # Needed for the memories tab on the user settings page.
+  def set_memories
+    @memories = if current_user.role_student?
+      current_user.memories.visible_to_students.order(created_at: :desc)
+    else
+      current_user.memories.order(created_at: :desc)
     end
   end
 end

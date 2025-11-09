@@ -1,0 +1,5 @@
+<%= turbo_stream.append "memories-list" do %>
+  <%= render @memory unless @memory.errors.any? %>
+<% end %>
+
+<%= turbo_stream.update "flash_bar", partial: "shared/flash" %>

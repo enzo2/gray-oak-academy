@@ -3,11 +3,13 @@ class Memory < ApplicationRecord
   belongs_to :author, class_name: "User", inverse_of: :authored_memories, optional: true
   belongs_to :student_report, optional: true
 
+  # text :body, null: false
   encrypts :body, deterministic: true
 
   validates :body, presence: true
   validate :author_validations
 
+  # boolean :hidden_from_student, default: false, null: false
   scope :visible_to_students, -> { where(hidden_from_student: false) }
   scope :hidden, -> { where(hidden_from_student: true) }
 

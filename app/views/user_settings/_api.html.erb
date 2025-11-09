@@ -59,7 +59,7 @@
           <% end %>.
         </span>
         <span data-llm-settings-target="statusShared" class="hidden">
-          Using the shared access token for this provider.
+          ✅Using the shared access token for this provider.
         </span>
         <span data-llm-settings-target="statusEnv" class="hidden">
           Default application token will be used if configured. Enter a token to override.
@@ -77,12 +77,12 @@
       <%= f.label :llm_api_access_token, "LLM API access token", class: "form-label" %>
       <%= f.text_field :llm_api_access_token, autocomplete: "off", class: "input-primary", 
         disabled: true, 
-        placeholder: "Leave blank to use the default token",
+        placeholder: "Leave blank to use the default shared token",
         data: { llm_settings_target: "tokenInput" } %>
     </div>
 
     <p class="text-sm text-dim mb-4">
-      Will be stored in the database with encryption and only used for your account <% if current_user.role_teacher? %>and students<% end %>.
+      <i>Will be stored in the database with encryption and only used for your account <% if current_user.role_teacher? %>and students<% end %>.</i>
     </p>
 
     <div class="mb-4">
@@ -96,7 +96,7 @@
                         llm_settings_target: "modelCombobox"
                       } %>
       <p class="text-sm text-dim mt-1">
-        The main LLM used for chat/lessons. Non-thinking or adaptive-thinking models can work, but avoid expensive or long-thinking models. Must support image input; optionally audio input.
+        The main LLM used for chat/lessons. Avoid expensive or long-thinking models. Must support image input; optionally audio input.
       </p>
     </div>
 
