@@ -83,6 +83,12 @@ Rails.application.routes.draw do
       collection do
         post :new, action: :new_student, as: :new
       end
+
+      resources :memories, only: [ :create, :edit, :update, :destroy ] do
+        member do
+          patch :toggle_hidden
+        end
+      end
     end
 
     resources :supported_apis, only: [ :index, :new, :create, :edit, :update, :destroy ] do

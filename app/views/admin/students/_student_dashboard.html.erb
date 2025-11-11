@@ -1,13 +1,14 @@
 <h2 class="text-xl font-semibold mb-4"><%= @student.name %></h2>
 
-<sl-tab-group id="student-dashboard-tabs" class="">
-  <sl-tab slot="nav" panel="active_courses">Active Courses</sl-tab>
-  <sl-tab slot="nav" panel="past_courses">Past Courses</sl-tab>
-  <sl-tab slot="nav" panel="enroll">Add Course</sl-tab>
-  <sl-tab slot="nav" panel="settings">Settings</sl-tab>
-  <sl-tab slot="nav" panel="applets">Applets</sl-tab>
+  <sl-tab-group id="student-dashboard-tabs" class="">
+  <sl-tab slot="nav" panel="active_courses" <%= "active" if @active_tab == :active_courses %>>Active Courses</sl-tab>
+  <sl-tab slot="nav" panel="past_courses" <%= "active" if @active_tab == :past_courses %>>Past Courses</sl-tab>
+  <sl-tab slot="nav" panel="enroll" <%= "active" if @active_tab == :enroll %>>Add Course</sl-tab>
+  <sl-tab slot="nav" panel="memories" <%= "active" if @active_tab == :memories %>>Memories</sl-tab>
+  <sl-tab slot="nav" panel="applets" <%= "active" if @active_tab == :applets %>>Applets</sl-tab>
+  <sl-tab slot="nav" panel="settings" <%= "active" if @active_tab == :settings %>>Settings</sl-tab>
 
-  <sl-tab-panel name="active_courses">
+  <sl-tab-panel name="active_courses" <%= "active" if @active_tab == :active_courses %>>
     <% if @active_enrollments.presence %>
       <%= render 'active_courses', enrollments: @active_enrollments %>
     <% else %>
@@ -15,7 +16,7 @@
     <% end %>
   </sl-tab-panel>
   
-  <sl-tab-panel name="past_courses">
+  <sl-tab-panel name="past_courses" <%= "active" if @active_tab == :past_courses %>>
     <% if @completed_enrollments.presence %>
       <%= render 'completed_courses', enrollments: @completed_enrollments %>
     <% else %>
@@ -43,7 +44,7 @@
     <% end %>
   </sl-tab-panel>
 
-  <sl-tab-panel name="enroll">
+  <sl-tab-panel name="enroll" <%= "active" if @active_tab == :enroll %>>
     <h3 class="text-lg">Enroll in a New Course</h3>
     <% available_courses = Course.available_for_enrollment(@student, current_user) %>
     <% if available_courses.any? %>
@@ -57,7 +58,40 @@
     <% end %>
   </sl-tab-panel>
 
-  <sl-tab-panel name="settings">
+  <sl-tab-panel name="memories" <%= "active" if @active_tab == :memories %>>
+    <h3 class="text-lg font-semibold">Memories</h3>
+
+    <p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
+      Memories are anything the LLM should know about the student. <br>
+      They will be learned automatically over time, but you should add some manually too.
+    </p>
+
+    <div class="mb-4">
+      <%= render 'admin/memories/form', memory: Memory.new  %>
+    </div>
+
+    <div class="space-y-4" id="memories-list">
+      <% if @memories.any? %>
+        <%= render partial: "admin/memories/memory", collection: @memories %>
+      <% else %>
+        <p><i>No memories yet.</i></p>
+      <% end %>
+    </div>
+  </sl-tab-panel>
+
+  <sl-tab-panel name="applets" <%= "active" if @active_tab == :applets %>>
+    <h2 class="text-lg mb-4">Applets</h2>
+    <p class="mb-4 block">These are applets the student has archieved.<br>
+      Since they're made for this app, you may need some help running them again. You can:
+      <ol class="prose dark:prose-invert prose-stone list-decimal list-inside">
+        <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
+        <li>Ask any LLM to modify the code for you and help you run it in a playground, for example, on jsfiddle.net.</li>
+      </ol>        
+    </p>
+    <%= render "applets/applets_table", applets: @student.applets %>
+  </sl-tab-panel>
+
+  <sl-tab-panel name="settings" <%= "active" if @active_tab == :settings %>>
     <h3 class="text-lg mb-4">Settings</h3>
       <% if @student.teacher == current_user %>
         <p class="text-sm text-dim mb-1">You can release the student so that another teacher can adopt them.</p>
@@ -80,17 +114,5 @@
       <% elsif current_user == @student %>
         <p class="text-sm text-dim">There are no student settings, since you are a looking at your own account.</p>
       <% end %>
-  </sl-tab-panel>
-
-  <sl-tab-panel name="applets">
-    <h2 class="text-lg mb-4">Applets</h2>
-    <p class="mb-4 block">These are applets the student has archieved.<br>
-      Since they're made for this app, you may need some help running them again. You can:
-      <ol class="prose dark:prose-invert prose-stone list-decimal list-inside">
-        <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
-        <li>Ask any LLM to modify the code for you and help you run it in a playground, for example, on jsfiddle.net.</li>
-      </ol>        
-    </p>
-    <%= render "applets/applets_table", applets: @student.applets %>
   </sl-tab-panel>
 </sl-tab-group>

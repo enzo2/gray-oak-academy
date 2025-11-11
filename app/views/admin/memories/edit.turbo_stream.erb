@@ -1,0 +1,43 @@
+<%= turbo_stream.replace dom_id(@memory) do %>
+  <%= form_with(model: [@student, @memory],
+                url: admin_student_memory_path(@student, @memory),
+                method: :patch,
+                data: { turbo_stream: true },
+                id: dom_id(@memory, :form),
+                class: "border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4") do |f| %>
+
+    <div id="<%= dom_id(@memory, :errors) %>"></div>
+
+    <div class="mb-2">
+      <%= f.label :body, "Edit Memory", class: "form-label mb-1" %>
+      <%= f.text_area :body, required: true,
+                      class: "input-primary",
+                      rows: 2 %>
+    </div>
+
+    <div class="flex items-center gap-2 mb-1">
+      <%= f.check_box :hidden_from_student, class: "checkbox-primary" %>
+      <%= f.label :hidden_from_student, "Hide from student", class: "form-label" %>
+    </div>
+    <i class="block text-xs text-dim mb-2">You can hide sensitive memories from the student's view.</i>
+
+    <div class="flex gap-2 justify-end">
+      <%= f.submit "Save", class: "btn-primary py-1 px-3 text-sm" %>
+    </div>
+  <% end %>
+<% end %>
+
+<%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
+
+<% if @memory.errors.any? %>
+  <%= turbo_stream.update dom_id(@memory, :errors) do %>
+    <div class="text-red-400 dark:text-red-600 mb-2">
+      <%= pluralize(@memory.errors.count, "error") %> prohibited this memory from being saved:
+      <ul>
+        <% @memory.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>

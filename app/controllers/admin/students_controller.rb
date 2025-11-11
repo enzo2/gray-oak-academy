@@ -34,7 +34,10 @@ module Admin
     end
 
     def show
-      # Perform verification that the course reports were generated, in case the job failed originally
+      @active_tab = params[:active_tab]&.to_sym || :active_courses
+      @memories = @student.memories.includes(:author).order(created_at: :desc)
+
+      # Trigger verification that the course reports were generated, in case the job failed originally
       @active_enrollments.each do |enrollment|
         enrollment.course_report_check if enrollment.completed?
       end

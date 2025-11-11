@@ -12,7 +12,8 @@
 
     <div class="mb-2">
     <%= f.label :body, "New Memory", class: "form-label mb-1" %>
-    <%= f.text_area :body, class: "input-primary", rows: 2, placeholder: "Memories should be concise and descriptive." %>
+    <%= f.text_area :body, class: "input-primary", rows: 2, required: true,
+                    placeholder: "Memories should be concise and descriptive." %>
   </div>
 
   <div class="flex gap-2">

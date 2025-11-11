@@ -4,14 +4,12 @@ one:
   student: one
   author: one
   student_report: one
-  title: MyString
-  body: MyText
+  body: "Enjoys project-based learning and visual explanations."
   hidden_from_student: false
 
 two:
   student: two
   author: two
   student_report: two
-  title: MyString
-  body: MyText
-  hidden_from_student: false
+  body: "Prefers short, focused sessions with frequent check-ins."
+  hidden_from_student: true

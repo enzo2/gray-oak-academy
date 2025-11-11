@@ -1,0 +1,55 @@
+<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4" id="<%= dom_id(memory) %>">
+  <div class="flex items-start justify-between">
+    <div>
+      <%= markdown(memory.body) %>
+
+      <div class="text-xs text-dim mt-1">
+        Added <%= memory.created_at&.strftime("%b %d, %Y") %>
+        <% if memory.student_report.present? %>
+          via lesson report
+        <% end %>
+        <% if memory.student_authored? %>
+          · by student
+        <% else %>
+          · by teacher
+        <% end %>
+        <% if memory.hidden_from_student? %>
+          · hidden from student
+        <% end %>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-end gap-2">
+      <div class="flex items-center gap-2">
+        <%= form_with url: toggle_hidden_admin_student_memory_path(@student, memory),
+                      method: :patch,
+                      data: { turbo_stream: true, controller: "auto-submit-toggle" },
+                      class: "flex items-center gap-1 text-xs text-stone-600 dark:text-stone-300" do %>
+          <%= label_tag "hidden_#{memory.id}", "Hidden from student", class: "text-xs" %>
+          <%= check_box_tag "hidden",
+                            true,
+                            memory.hidden_from_student?,
+                            id: "hidden_#{memory.id}",
+                            class: "checkbox-primary",
+                            data: { action: "auto-submit-toggle#submit" } %>
+        <% end %>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= button_to(edit_admin_student_memory_path(@student, memory),
+                      method: :get,
+                      form: { data: { turbo_stream: true } },
+                      class: "hover:text-blue-500") do %>
+          <sl-icon name="pencil"></sl-icon>
+        <% end %>
+
+        <%= button_to(admin_student_memory_path(@student, memory),
+                      method: :delete,
+                      form: { data: { turbo_confirm: "Delete this memory?" } },
+                      class: "hover:text-red-500") do %>
+          <sl-icon name="trash"></sl-icon>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

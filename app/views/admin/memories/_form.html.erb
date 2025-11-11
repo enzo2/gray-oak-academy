@@ -1,0 +1,30 @@
+<%= form_with(model: [@student, memory], 
+              url: admin_student_memories_path(@student),
+              data: { turbo_stream: true }, 
+              class: "border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4") do |f| %>
+  <% if memory.errors.any? %>
+    <div class="alert alert-error mb-4">
+      <%= pluralize(memory.errors.count, "error") %> prohibited this memory from being saved:
+      <ul>
+        <% memory.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-2">
+    <%= f.label :body, "Add Memory", class: "form-label" %>
+    <%= f.text_area :body, class: "input-primary", rows: 2, required: true, placeholder: "Memories should be concise and descriptive." %>
+  </div>
+
+  <div class="flex items-center gap-2 mb-1">
+    <%= f.check_box :hidden_from_student, class: "checkbox-primary" %>
+    <%= f.label :hidden_from_student, "Hide from student", class: "form-label" %>
+  </div>
+  <i class="block text-xs text-dim mb-2">You can hide sensitive memories from the student's view.</i>
+
+  <div class="flex gap-2">
+    <%= f.submit "Add Memory", class: "btn-primary text-sm px-2 py-1" %>
+  </div>
+<% end %>
