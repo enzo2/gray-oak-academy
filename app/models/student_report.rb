@@ -11,6 +11,7 @@ class StudentReport < ApplicationRecord
 
   # Automatically check if student course report needs to be generated
   after_create :trigger_course_report_check
+  after_create_commit :trigger_memory_backfill
 
   scope :lesson_reports, -> { where(reportable_type: "LessonProgress") }
   scope :course_reports, -> { where(reportable_type: "Enrollment") }
@@ -53,5 +54,13 @@ class StudentReport < ApplicationRecord
       enrollment = reportable.lesson.course.enrollments.find_by(student: student)
       enrollment.course_report_check
     end
+  end
+
+  # After LLM saves a lesson progress report, start job to semantically merge the memories.
+  def trigger_memory_backfill
+    return unless reportable_type == "LessonProgress"
+    return unless progress_data&.dig("memories").present?
+
+    BackfillMemoriesFromLessonReportJob.set(wait: 5.seconds).perform_later(self)
   end
 end

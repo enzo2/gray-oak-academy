@@ -56,9 +56,15 @@ class Prompt < ApplicationRecord
   scope :system_prompts, -> { where(category: [ :base_system_prompt, :teaching_principles ]) }
   scope :lesson_related, -> { where(category: [ :generate_lessons, :generate_lesson_plan, :lesson_tutor_session ]) }
 
-  # Get the prompt belonging to the user; if none, use the default prompt
-  def self.get_prompt(category:, user:)
-    prompt = Prompt.find_by(category: category, teacher_id: user.id) || Prompt.find_by(category: category, teacher_id: nil)
+  # Get the teacher-modified prompt; if none, use the default prompt
+  def self.get_prompt(category:, user: nil)
+    if user&.role_teacher?
+      prompt = Prompt.find_by(category: category, teacher_id: user.id)
+    elsif user&.role_student?
+      teacher = user.teacher
+      prompt = Prompt.find_by(category: category, teacher_id: teacher.id) if teacher
+    end
+    prompt ||= Prompt.find_by(category: category, teacher_id: nil)
     prompt.prompt
   end
 

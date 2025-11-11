@@ -31,8 +31,8 @@ class MemoriesController < ApplicationController
     render :edit, formats: :turbo_stream
   end
 
-  # Currently alowing all students to manage their memories. 
-  # If restrictions are needed, consider adding a teacher approval queue. 
+  # Currently alowing all students to manage their memories.
+  # If restrictions are needed, consider adding a teacher approval queue.
   def update
     if @memory.update(memory_params)
       render :update, formats: :turbo_stream
@@ -62,5 +62,4 @@ class MemoriesController < ApplicationController
   def memory_params
     params.expect(memory: [ :body ])
   end
-
 end
