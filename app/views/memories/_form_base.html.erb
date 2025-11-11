@@ -1,0 +1,55 @@
+<%# Shared base form for Memory.
+    Expected locals:
+      - memory: Memory instance
+      - scope: optional model scope (e.g. [@student, memory])
+      - form_url: optional explicit URL
+      - show_hidden_controls: boolean (for admin form)
+%>
+
+<% form_options = {
+  class: "border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4"
+} %>
+
+<% if local_assigns[:scope].present? %>
+  <% form_options[:model] = scope %>
+<% else %>
+  <% form_options[:model] = memory %>
+<% end %>
+
+<% if local_assigns[:form_url].present? %>
+  <% form_options[:url] = form_url %>
+<% end %>
+
+<%= form_with(**form_options) do |f| %>
+  <% if memory.errors.any? %>
+    <div class="alert alert-error mb-4">
+      <%= pluralize(memory.errors.count, "error") %> prohibited this memory from being saved:
+      <ul>
+        <% memory.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-2">
+    <%= f.label :body, "New Memory", class: "form-label mb-1" %>
+    <%= f.text_area :body,
+                    class: "input-primary",
+                    rows: 2,
+                    required: true,
+                    placeholder: "Memories should be concise and descriptive." %>
+  </div>
+
+  <% if local_assigns[:show_hidden_controls] %>
+    <div class="flex items-center gap-2 mb-1">
+      <%= f.check_box :hidden_from_student, class: "checkbox-primary" %>
+      <%= f.label :hidden_from_student, "Hide from student", class: "form-label" %>
+    </div>
+    <i class="block text-xs text-dim mb-2">You can hide sensitive memories from the student's view.</i>
+  <% end %>
+
+  <div class="flex gap-2">
+    <%= f.submit "Add Memory", class: "btn-primary py-1 px-2 text-sm" %>
+  </div>
+<% end %>

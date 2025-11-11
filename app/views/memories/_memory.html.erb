@@ -1,29 +1,19 @@
-<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4" id="<%= dom_id(memory) %>">
-  <div class="flex items-center justify-between">
-    <div>
-      <%= markdown(memory.body) %>
+<% actions_content = capture do %>
+  <%= button_to(edit_memory_path(memory),
+                method: :get,
+                form: { data: { turbo_stream: true } },
+                class: "hover:text-blue-500 mr-2") do %>
+    <sl-icon name="pencil"></sl-icon>
+  <% end %>
 
-      <div class="text-xs text-dim">
-        Added <%= memory.created_at.strftime("%b %d, %Y") %>
-        <% if memory.student_report.present? %>
-          via lesson report
-        <% end %>
-      </div>
-    </div>        
-    <div class="flex items-center">
-      <%= button_to(edit_memory_path(memory),
-                    method: :get,
-                    form: { data: { turbo_stream: true } },
-                    class: "hover:text-blue-500 mr-2") do %>
-        <sl-icon name="pencil"></sl-icon>
-      <% end %>
+  <%= button_to(memory_path(memory),
+                method: :delete,
+                form: { data: { turbo_confirm: "Delete this memory?" } },
+                class: "hover:text-red-500") do %>
+    <sl-icon name="trash"></sl-icon>
+  <% end %>
+<% end %>
 
-      <%= button_to(memory_path(memory),
-                    method: :delete,
-                    form: { data: { turbo_confirm: "Delete this memory?" } },
-                    class: "hover:text-red-500") do %>
-        <sl-icon name="trash"></sl-icon>
-      <% end %>
-    </div>
-  </div>
-</div>
+<%= render "memories/memory_base",
+           memory: memory,
+           actions: actions_content %>

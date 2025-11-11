@@ -1,0 +1,32 @@
+<%# Shared base partial for rendering a memory card.
+    Expected locals:
+      - memory: Memory
+      - actions: optional captured block with action buttons (edit/delete/toggle)
+      - extra_meta: optional captured block for additional metadata
+%>
+
+<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4" id="<%= dom_id(memory) %>">
+  <div class="flex items-start justify-between">
+    <div>
+      <%= markdown(memory.body) %>
+
+      <div class="text-xs text-dim mt-1">
+        Added <%= memory.created_at&.strftime("%b %d, %Y") %>
+        <% if memory.student_report.present? %>
+          · via lesson report
+        <% end %>
+
+        <%# Allow callers to append additional metadata %>
+        <% if local_assigns[:extra_meta].present? %>
+          <%= extra_meta %>
+        <% end %>
+      </div>
+    </div>
+
+    <% if local_assigns[:actions].present? %>
+      <div class="flex items-center gap-2">
+        <%= actions %>
+      </div>
+    <% end %>
+  </div>
+</div>
