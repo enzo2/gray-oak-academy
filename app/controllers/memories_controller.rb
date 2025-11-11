@@ -1,7 +1,7 @@
+# For managing memories via the Settings page (all users).
+
 class MemoriesController < ApplicationController
   before_action :set_memory, only: [ :edit, :update, :destroy ]
-
-  # Memories are managed inline on the settings page; no separate :new view is used.
 
   def create
     @memory = current_user.memories.build(memory_params)
@@ -31,6 +31,8 @@ class MemoriesController < ApplicationController
     render :edit, formats: :turbo_stream
   end
 
+  # Currently alowing all students to manage their memories. 
+  # If restrictions are needed, consider adding a teacher approval queue. 
   def update
     if @memory.update(memory_params)
       render :update, formats: :turbo_stream
@@ -61,11 +63,4 @@ class MemoriesController < ApplicationController
     params.expect(memory: [ :body ])
   end
 
-  def load_memories_for(user)
-    if user.role_student?
-      user.memories.visible_to_students.order(created_at: :desc)
-    else
-      user.memories.order(created_at: :desc)
-    end
-  end
 end

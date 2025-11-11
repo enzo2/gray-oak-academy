@@ -78,7 +78,9 @@ class Users::RegistrationsController < Devise::RegistrationsController
   end
 
   # Needed for the memories tab on the user settings page.
+  # Would be better to move this to MemoriesController and import here?
   def set_memories
+    # Ensure students only see non-hidden memories.
     @memories = if current_user.role_student?
       current_user.memories.visible_to_students.order(created_at: :desc)
     else

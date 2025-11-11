@@ -6,7 +6,7 @@ class Memory < ApplicationRecord
   # text :body, null: false
   encrypts :body, deterministic: true
 
-  validates :body, presence: true
+  validates :body, presence: true, length: { maximum: 5000 }
   validate :author_validations
 
   # boolean :hidden_from_student, default: false, null: false

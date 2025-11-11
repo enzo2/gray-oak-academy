@@ -8,15 +8,15 @@
     <% end %>
   </p>
 
+  <div class="mt-6">
+    <%= render "memories/form", memory: Memory.new %>
+  </div>
+
   <div class="space-y-4" id="memories-list">
     <% if @memories.any? %>
       <%= render partial: "memories/memory", collection: @memories %>
     <% else %>
       <p class="italic">No memories yet. Please add some for a better experience.</p>
     <% end %>
-  </div>
-
-  <div class="mt-6">
-    <%= render "memories/form", memory: Memory.new %>
   </div>
 </div>

@@ -1,4 +1,4 @@
-<%= turbo_stream.append "memories-list" do %>
+<%= turbo_stream.prepend "memories-list" do %>
   <%= render @memory unless @memory.errors.any? %>
 <% end %>
 
