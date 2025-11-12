@@ -44,3 +44,12 @@ lesson_tutor_session:
   teacher:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+memories_semantic_merge:
+  title: Default Memories Semantic Merge Prompt
+  category: memories_semantic_merge
+  prompt: |
+    You are tasked with consolidating student memories. Review the existing memories and new candidate memories, then merge them semantically.
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

@@ -2,21 +2,18 @@
 
 one:
   student: student
-  author: admin
-  student_report: one
+  student_report: LessonReport1
   body: "Enjoys project-based learning and visual explanations."
   hidden_from_student: false
 
 two:
   student: student2
   author: admin
-  student_report: two
   body: "Prefers short, focused sessions with frequent check-ins."
   hidden_from_student: true
 
 three:
   student: student
   author: student
-  student_report: two
   body: "I like learning with real-world examples."
   hidden_from_student: false

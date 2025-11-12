@@ -1,25 +1,22 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  reportable_type: Lesson
+LessonReport1:
+  reportable_type: LessonProgress
   reportable_id: 1
   student: student
   teacher: admin
   author_type: ai_generated
   status: completed
-  progress_data: {}
-  report: Good progress
-  created_at: <%= Time.now %>
-  updated_at: <%= Time.now %>
-
-two:
-  reportable_type: Lesson
-  reportable_id: 2
-  student: student2
-  teacher: admin2
-  author_type: teacher_written
-  status: in_progress
-  progress_data: {}
-  report: Needs improvement
+  progress_data: 
+    summary: "Did well"
+    strengths:
+      - "Engaged with interactive elements"
+      - "Followed instructions clearly"
+      - "Comfortable with various digital resources"
+    areas_for_review: []
+    teaching_methods:
+      - "Interactive applet"
+    memories:
+      - "Prefers hands-on learning experiences."
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
