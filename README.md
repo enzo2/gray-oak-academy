@@ -42,14 +42,15 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Highly configurable LLM tutoring: design your own curriculum with Courses, Lessons, Resources, Applets
 - Rapid yet deliberate curriculum planning: Use a thinking LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
 - Integrated multimodal LLM chat for teachers and students, with images, STT/TTS/auto-read (no need for costly realtime models), and "chalkboard" (multipurpose frame accessible by the LLM)
-- LLM can create/run Javascript applets, display files and URLs, finish lessons, and generate student reports
-- Student reports are fed into the next session, ensuring continuity and personalization
+- LLM can create/run Javascript applets, display files and URLs, finish lessons, save memories, and generate student reports
+- Student reports and memories are fed into the next session, ensuring continuity and personalization
 - Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 
 ### More cool stuff
 - All system prompts can be customized (opinionated defaults included)
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
+- Automated memory saving and consolidation
 - Main LLM can query the thinking LLM at its discretion
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
@@ -112,21 +113,21 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
+- Add embeddings (pgvector + neighbor gem) starting with memory search
+- Student profile/journal: track student progress over time (e.g. joint teacher-LLM understanding of the student)
+- Teacher alerts, notifications, mobile push, etc. 
 - Improve curriculum design:
    - web search / open textbook / deep research support
    - Automated resource finding/validation 
 - MCP support
-- Student profile (e.g. memory tool, joint teacher-LLM understanding of the student)
 - Student analytics (time spent, etc.)
+- Student feedback tool at end of lessons
 - Resource tagging, archive
 - Camera input/snapshots (e.g. show the LLM your desk)
-- Teacher alerts, notifications, mobile push, etc. 
-- Student feedback tool at end of lessons
 - Hide more advanced settings/features under a Power User setting
 - Python applets (pyodide iframe)
 - Speed up audio input with ffmpeg to reduce cost
-- Consider RAG (pgvector + neighbor gem), but might not be needed since inexpensive long-context LLMs are now available
-- Experiment with live/realtime APIs for voice lessons
+- Experiment with live/realtime APIs for voice lessons - if not cost-prohibitive
 
 ## Contributor guidelines:
 Maintain the core app principles:
