@@ -14,7 +14,9 @@ class Memory < ApplicationRecord
   scope :hidden, -> { where(hidden_from_student: true) }
 
   def self.for_prompt(user:)
-    user.memories.map { |memory| "#{memory.body} #{" [hidden from student]" if memory.hidden_from_student?}" }.join("\n")
+    memories = user.memories.map { |memory| "#{memory.body} #{" [hidden from student]" if memory.hidden_from_student?}" }.join("\n")
+    # Limit to 50,000 characters for now. Will need to use embeddings in the future.
+    memories.truncate(50_000)
   end
 
   def teacher_authored?

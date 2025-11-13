@@ -2,7 +2,9 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# ---- Tool seeds (idempotent: update-in-place via find_or_initialize_by) ----
+# ---- Tools ----
+
+# Basic chat tools
 
 tool = Tool.find_or_initialize_by(name: 'Chalkboard_URL')
 tool.specifications = {
@@ -67,7 +69,7 @@ tool.specifications = {
       memories: {
         type: "array",
         items: { type: "string" },
-        description: "Optional: List any new details about the student to remember for future lessons. For example: interests/hobbies, goals, learning preferences."
+        description: "Optional: List any new details about the student to remember for future lessons. For example: interests/hobbies, goals, learning preferences. Be concise."
       }
     },
     required: [ "summary", "strengths", "areas_for_review" ]
@@ -92,7 +94,23 @@ tool.specifications = {
 }
 tool.save!
 
-# ---- Agentic curriculum tool seeds (strict schemas) ----
+tool = Tool.find_or_initialize_by(name: 'Generate_Image')
+tool.specifications = {
+  name: "Generate_Image",
+  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Use with caution for infographics, diagrams, or other factual material, as any text in the image will likely be malformed. Ideal for encouraging images, inspiration, illustrations, conceptual drawings, or setting a mood through imagery. Do not attempt to re-create existing/well-known photographs, portraits, or artwork. Once the image is generated, it will be inserted into the conversation; there's no need to copy, rewrite or reinsert it.",
+  # strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "prompt" => { "type" => "string", "description" => "Text prompt describing the desired image. Should be detailed and specific." }
+    },
+    "required" => [ "prompt" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+# ---- Agentic curriculum tools  ----
 
 tool = Tool.find_or_initialize_by(name: 'List_Students')
 tool.access = :admin
@@ -110,6 +128,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'List_Courses')
+tool.access = :admin
 tool.specifications = {
   name: "List_Courses",
   description: "List courses for the current teacher (id, title, grade_level, status).",
@@ -124,6 +143,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Get_Course_Details')
+tool.access = :admin
 tool.specifications = {
   name: "Get_Course_Details",
   description: "Get course details including outline and lessons list.",
@@ -140,6 +160,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Get_Lesson_Details')
+tool.access = :admin
 tool.specifications = {
   name: "Get_Lesson_Details",
   description: "Get a lesson and its full lesson plan. Always call this before updating a lesson.",
@@ -157,6 +178,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Get_Student_Reports')
+tool.access = :admin
 tool.specifications = {
   name: "Get_Student_Reports",
   description: "Retrieve all reports for a given student (grouped and formatted).",
@@ -173,7 +195,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Create_Course')
-tool.access = :admin   # Can make this student-access later once student-directed courses are supported
+tool.access = :admin
 tool.specifications = {
   name: "Create_Course",
   description: "Create a new course. Always call list_courses first.",
@@ -191,9 +213,8 @@ tool.specifications = {
 }
 tool.save!
 
-# Flattened, explicit schema aligned with job semantics (type/details; type/description)
 tool = Tool.find_or_initialize_by(name: 'Update_Lesson')
-tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
+tool.access = :admin
 tool.specifications = {
   name: "Update_Lesson",
   description: "Update a lesson and REPLACE its lesson plan content and suggested resources. Always call get_lesson_details first.",
@@ -247,7 +268,6 @@ tool.specifications = {
 }
 tool.save!
 
-# Update course tool (similar semantics to update_lesson but operates at the course level)
 tool = Tool.find_or_initialize_by(name: 'Update_Course')
 tool.access = :admin
 tool.specifications = {
@@ -281,7 +301,27 @@ tool.specifications = {
 }
 tool.save!
 
+tool = Tool.find_or_initialize_by(name: 'Delegate_To_Frontier_LLM')
+tool.access = :admin
+tool.specifications = {
+  name: "Delegate_To_Frontier_LLM",
+  description: "Delegate a task to the reasoning LLM. Accepts a text prompt and returns the LLM's text response. Suitable for text-based queries like: writing a Javascript applet, performing an analysis, creating a problem set, creative writing, curriculum critique, or any task worth the tradeoff of latency & higher cost for higher intelligence/creativity/knowledge. Avoid using for tasks with existing dedicated jobs (e.g., generating course outlines, lessons, or lesson plans). Reasoning LLM does NOT have tool use, app or DB access, so do not request that it perform any action whatsoever. The system prompt containing teaching and generative guidelines will be included automatically; so you do not need to repeat the instructions for executable JS applets. However, conversation history, student or curriculum context will not be included in the prompt--you determine what context to provide. This tool will execute synchronously and block the conversation until complete. The result is not shown to the user, nor is any code executed; it is up to you to decide how to use the result. As examples, if an executable JS applet was requested, you must copy it into a markdown code block in the conversation to execute it; if a problem set was requested, you could copy it into the conversation, or save it as a resource.",
+  parameters: {
+    type: "object",
+    properties: {
+      prompt: {
+        type: "string",
+        description: "The text prompt to send to the reasoning LLM. Must be a complete, standalone prompt containing all necessary context for the task. Be very specific."
+      }
+    },
+    required: [ "prompt" ],
+    additionalProperties: false
+  }
+}
+tool.save!
+
 # Generator tools (schema-driven; blocking; strict)
+
 tool = Tool.find_or_initialize_by(name: 'Generate_Course_Outline')
 tool.access = :admin
 tool.specifications = {
@@ -300,7 +340,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Generate_Course_Lessons')
-tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
+tool.access = :admin
 tool.specifications = {
   name: "Generate_Course_Lessons",
   description: "Ask the LLM to generate lessons for the given course. Ensure the course has a complete outline first. This may take time; the tool blocks until the job completes. Most useful for new courses without any lessons yet; although this tool will not overwrite existing lessons.",
@@ -317,7 +357,7 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Generate_Lesson_Plan')
-tool.access = :admin   # Can make this student-access later once student-directed lessons are supported
+tool.access = :admin
 tool.specifications = {
   name: "Generate_Lesson_Plan",
   description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). This may take time; blocks until the job completes. Do not call if the lesson already has content, unless you intend to overwrite it.",
@@ -333,23 +373,7 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'Generate_Image')
-tool.specifications = {
-  name: "Generate_Image",
-  description: "Generate an image from a text prompt. This tool performs a two-pass generation to improve accuracy and prompt adherence by asking the model to correct any mistakes in the first generation. An image-capable LLM is used, rather than a diffusion model, for improved (but not perfect) instruction-following and factual accuracy. Use with caution for infographics, diagrams, or other factual material, as any text in the image will likely be malformed. Ideal for encouraging images, inspiration, illustrations, conceptual drawings, or setting a mood through imagery. Do not attempt to re-create existing/well-known photographs, portraits, or artwork. Once the image is generated, it will be inserted into the conversation; there's no need to copy, rewrite or reinsert it.",
-  # strict_mode: true,
-  parameters: {
-    type: "object",
-    properties: {
-      "prompt" => { "type" => "string", "description" => "Text prompt describing the desired image. Should be detailed and specific." }
-    },
-    "required" => [ "prompt" ],
-    "additionalProperties" => false
-  }
-}
-tool.save!
-
-# ---- Applets management tools (teacher-only, strict schemas) ----
+# Applet tools
 
 tool = Tool.find_or_initialize_by(name: 'List_Applets')
 tool.access = :admin
@@ -367,7 +391,6 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Get_Applet')
-tool.access = :student
 tool.specifications = {
   name: "Get_Applet",
   description: "Retrieve a specific applet's code by ID. Returns title, code, and metadata. Code will be returned in a tool message (not visible to user).",
@@ -421,7 +444,6 @@ tool.specifications = {
 tool.save!
 
 tool = Tool.find_or_initialize_by(name: 'Run_Applet_On_Chalkboard')
-tool.access = :student
 tool.specifications = {
   name: "Run_Applet_On_Chalkboard",
   description: "Execute a saved applet directly on the chalkboard without needing to retype the code in an executable markdown block. Code will not be visible to user. (To display the code, or for inline execution in the chat, use Get_Applet instead and then copy the code into an executable markdown block.)",
@@ -433,25 +455,6 @@ tool.specifications = {
     },
     "required" => [ "applet_id" ],
     "additionalProperties" => false
-  }
-}
-tool.save!
-
-tool = Tool.find_or_initialize_by(name: 'Delegate_To_Frontier_LLM')
-tool.access = :admin
-tool.specifications = {
-  name: "Delegate_To_Frontier_LLM",
-  description: "Delegate a task to the reasoning LLM. Accepts a text prompt and returns the LLM's text response. Suitable for text-based queries like: writing a Javascript applet, performing an analysis, creating a problem set, creative writing, curriculum critique, or any task worth the tradeoff of latency & higher cost for higher intelligence/creativity/knowledge. Avoid using for tasks with existing dedicated jobs (e.g., generating course outlines, lessons, or lesson plans). Reasoning LLM does NOT have tool use, app or DB access, so do not request that it perform any action whatsoever. The system prompt containing teaching and generative guidelines will be included automatically; so you do not need to repeat the instructions for executable JS applets. However, conversation history, student or curriculum context will not be included in the prompt--you determine what context to provide. This tool will execute synchronously and block the conversation until complete. The result is not shown to the user, nor is any code executed; it is up to you to decide how to use the result. As examples, if an executable JS applet was requested, you must copy it into a markdown code block in the conversation to execute it; if a problem set was requested, you could copy it into the conversation, or save it as a resource.",
-  parameters: {
-    type: "object",
-    properties: {
-      prompt: {
-        type: "string",
-        description: "The text prompt to send to the reasoning LLM. Must be a complete, standalone prompt containing all necessary context for the task. Be very specific."
-      }
-    },
-    required: [ "prompt" ],
-    additionalProperties: false
   }
 }
 tool.save!
