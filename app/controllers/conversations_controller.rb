@@ -71,10 +71,11 @@ class ConversationsController < ApplicationController
   end
 
   def get_task_system_prompt
+    generative_guidelines = Prompt.get_prompt(category: "generative_guidelines", user: current_user)
     if current_user.role_teacher?
-      Prompt.get_prompt(category: "teacher_assistant", user: current_user)
+      generative_guidelines + "\n\n" + Prompt.get_prompt(category: "teacher_assistant", user: current_user)
     else
-      Prompt.get_prompt(category: "open_ended_student_chat", user: current_user)
+      generative_guidelines + "\n\n" + Prompt.get_prompt(category: "open_ended_student_chat", user: current_user)
     end
   end
 

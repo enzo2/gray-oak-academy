@@ -10,7 +10,9 @@ class DelegateToFrontierLlmJob < ApplicationJob
       raise "No reasoning LLM configured. Please configure a reasoning model in settings before using this tool."
     end
 
-    task_system_prompt = Prompt.get_prompt(category: "delegate_to_frontier_llm", user: teacher)
+    task_system_prompt = Prompt.get_prompt(category: "generative_guidelines", user: teacher) +
+                        "\n\n" +
+                         Prompt.get_prompt(category: "delegate_to_frontier_llm", user: teacher)
 
     # Prepare messages for the LLM
     messages = [ { role: "user", content: prompt } ]

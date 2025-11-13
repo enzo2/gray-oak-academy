@@ -13,6 +13,10 @@ class Memory < ApplicationRecord
   scope :visible_to_students, -> { where(hidden_from_student: false) }
   scope :hidden, -> { where(hidden_from_student: true) }
 
+  def self.for_prompt(user:)
+    user.memories.map { |memory| "#{memory.body} #{" [hidden from student]" if memory.hidden_from_student?}" }.join("\n")
+  end
+
   def teacher_authored?
     author&.role_teacher? || false
   end

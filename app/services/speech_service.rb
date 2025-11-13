@@ -350,15 +350,10 @@ class SpeechService
     begin
       service = OpenaiApiService.new(
         current_user: @user,
-        conversation: nil,
         access_token: token,
         base_uri: base_uri,
         model: model,
-        stream_handler: nil,
-        task_system_prompt: nil,
-        enable_tools: false,
-        reasoning_model: false,
-        log_completion: false
+        log_completion: false # Completion logging is only set up for LLMs.
       )
 
       text = service.complete(messages, temperature: 0).to_s

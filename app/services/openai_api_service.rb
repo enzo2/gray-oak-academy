@@ -34,21 +34,21 @@ class OpenaiApiService
     @tools = determine_tools if enable_tools
     @log_completion = log_completion
 
-    # Jobs without a task system prompt will use the base system prompt only
+    # Start with the full system prompt (base system prompt + teaching principles)
     @system_prompt = Prompt.full_system_prompt(user: current_user)
+    # If a task-specific system prompt is provided, append it
     if task_system_prompt
-      # Add the generative guidelines and the task system prompt to the base system prompt
-      @system_prompt += "\n " +  Prompt.get_prompt(category: "generative_guidelines", user: current_user) + " \n Now, focusing on your current role: " + task_system_prompt
+      @system_prompt += "Now, focusing on your current task/role: \n\n" + task_system_prompt
     end
   end
 
   def complete(messages, response_format: nil, schema: nil, prefill: nil, temperature: 1)
-    # inject system prompt to messages if it's not already included
+    # Inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
     end
 
-    # inject prefilled assistant message unless OpenAI is being used
+    # Inject prefilled assistant message unless OpenAI is being used
     if prefill && !@base_uri.include?("api.openai.com")
       messages << { role: "assistant", content: prefill }
     end

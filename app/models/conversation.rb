@@ -4,12 +4,12 @@ class Conversation < ApplicationRecord
   belongs_to :user
   belongs_to :lesson_progress, optional: true
 
+  # Conversation stores the thread of messages, along with an optional task_system_prompt in a separate field.
+  # The task_system_prompt should be specific to the type of conversation,
+  # and should not include the app-wide system prompts, which are added in OpenAiApiService.
+
   scope :generic, -> { where(lesson_progress_id: nil) }
   scope :belongs_to_lesson, -> { where.not(lesson_progress_id: nil) }
-
-  # Conversation stores the thread of messages, along with an optional task_system_prompt in a separate field.
-  # The task_system_prompt should include the task at hand, and should not include the base system prompts or generative guidelines, which are added in OpenAiApiService.
-  # The base prompts and the task prompt are injected together upon the completion request.
 
   def last_prompt_tokens
     completions.last&.prompt_tokens || 0

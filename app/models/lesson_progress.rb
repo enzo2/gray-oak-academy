@@ -35,28 +35,33 @@ class LessonProgress < ApplicationRecord
   end
 
   def build_task_system_prompt
-    base_prompt = Prompt.get_prompt(category: "lesson_tutor_session", user: teacher)
-    # The lesson task system prompt is very important.
-    # It contains all the information needed to conduct the lesson and evaluate the student.
+    # The lesson task_system_prompt is very important.
+    # It contains all the information needed to 1) conduct the lesson, 2) personalized to the student, and 3) evaluate the student at the end.
     # In the future it can also include student profile information gathered from other courses, or the teacher.
     # We don't include student age for pedagogical reasons, since we want students to advance beyond their age level.
+    generative_guidelines = Prompt.get_prompt(category: "generative_guidelines", user: teacher)
+    lesson_tutor_session_prompt = Prompt.get_prompt(category: "lesson_tutor_session", user: teacher)
     lesson_info = <<~LESSON_INFO
       Course: #{course.title}
       Grade Level: #{course.grade_level}
       Lesson Title: #{lesson.title}
-      Goals: #{lesson.goals}
-      Duration: #{lesson.approx_duration_min} minutes (just a guide; could be shorter)
-      Lesson Plan:
-      #{lesson_plan.content}
-      Resources marked as available:
-      #{resources.format_collection}
+      Estimated Duration: #{lesson.approx_duration_min} minutes (just a guide; could be shorter)
       Chalkboard enabled?: #{lesson_plan.chalkboard_enabled?}
       Audio setting: #{ (lesson_plan.audio == "audio-only" ? "Audio/Speech-only. Keyboard is disabled." : "Flexible: Student can type or use speech-to-text.") }
+      Goals: #{lesson.goals}
+      Lesson Plan:
+      #{lesson_plan.content}
+
+      Resources marked as available:
+      #{resources.format_collection}
+
       Student's name: #{student.name}
       Student's progress in previous lessons in this course:
       #{student.enrollments.find_by(course: lesson.course)&.lesson_history_for_prompt}
+      Memories about this student:
+      #{Memory.for_prompt(user: student)}
     LESSON_INFO
-    base_prompt + "\n\n" + lesson_info
+    generative_guidelines + "\n\n" + lesson_tutor_session_prompt + "\n\n" + lesson_info
   end
 
   private

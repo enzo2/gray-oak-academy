@@ -74,10 +74,12 @@ class Prompt < ApplicationRecord
   end
 
   # The "full system prompt" is the base system prompt + teaching principles.
-  # This doesn't include the generative_guidelines, which are added by the OpenaiApiService whenever a task_system prompt is used.
-  # Thus the final concatenated system prompt would be base_system_prompt + teaching_principles + generative_guidelines + task_system_prompt
+  # Any specific task should provide a task_system_prompt to OpenaiApiService, which will be appended to the full_system_prompt.
+  # (Don't forget to include the generative_guidelines in task_system_prompt if warranted.)
+  # Thus, the final concatenated system prompt would be base_system_prompt + teaching_principles + task_system_prompt
+  # To completely override all of this, include a system message in the messages array.
   def self.full_system_prompt(user:)
-    Prompt.get_prompt(category: "base_system_prompt", user: user) + " \n " + Prompt.get_prompt(category: "teaching_principles", user: user) + " \n "
+    Prompt.get_prompt(category: "base_system_prompt", user: user) + "\n\n" + Prompt.get_prompt(category: "teaching_principles", user: user) + "\n\n"
   end
 
   # Class method to get all categories with their friendly names

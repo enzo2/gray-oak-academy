@@ -33,6 +33,7 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
     return if new_memories_text.empty?
 
     task_system_prompt = Prompt.get_prompt(category: "memories_semantic_merge", user: student)
+
     message_prompt = <<~PROMPT
       Existing memories:#{' '}
       #{existing_memories.to_json}
