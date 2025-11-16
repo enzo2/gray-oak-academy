@@ -1,9 +1,13 @@
-<h2 class="text-xl font-bold mb-5">Applets</h2>
-<p class="mb-4">
+<h2 class="text-xl font-bold mb-4">Applets</h2>
+<p class="text-dim">
   Saved applets from past chats/lessons.
-  <% if current_user.role_teacher? %>
-    <br>To edit an applet and/or link it to a lesson plan, convert it to a Resource.
-  <% end %>
 </p>
+<% if current_user.role_teacher? %>
+<p class="text-sm text-dim mb-2">
+  <br>To edit an applet and/or link it to a lesson plan: convert it to a Resource.
+  <br>To create new applets: Let the LLM generate them via chat or lessons so that they'll adhere to this app's expected format.
+  (If you really need to add one manually, use the "New Resource" button in the Resources section.)
+</p>
+<% end %>
 
 <%= render "applets/applets_table", applets: @applets %>
