@@ -1,0 +1,16 @@
+<div class="my-3" data-controller="code-executor" data-code-executor-render-target-value="<%= render_target %>" data-code-executor-auto-run-value="<%= auto_run %>" data-code-executor-hidden-value="<%= hidden %>">
+  <div class="highlighted-code-block prose-pre:my-0" data-code-executor-target="highlightedCode">
+<%= raw "\n" %><!-- extra line ensures commonmark starts a new HTML block for pre-->
+<%== highlighted_html %>
+  </div>
+<%= raw "\n" %><!-- extra line ensures commonmark starts a new HTML block for pre-->
+  <pre class="hidden" data-code-executor-target="rawCode"><%= h(code) %></pre>
+  <div class="code-actions mb-2" data-code-executor-target="actionsContainer"></div>
+  <% if render_target == "inline" %>
+    <div data-code-executor-target="inlineOutput" class="mt-2 p-2 bg-stone-100 dark:bg-stone-900 border border-stone-300 dark:border-stone-600" style="display: none;"></div>
+  <% end %>
+  <%= form_with url: applets_path, method: :post, scope: :applet, data: { code_executor_target: "saveForm" }, html: { class: "hidden" } do |form| %>
+    <%= form.hidden_field :title, data: { code_executor_target: "titleInput" } %>
+    <%= form.text_area :code, data: { code_executor_target: "codeInput" } %>
+  <% end %>
+</div>

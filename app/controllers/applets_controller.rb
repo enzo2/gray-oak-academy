@@ -1,13 +1,22 @@
 class AppletsController < ApplicationController
   before_action :set_applet, only: [ :show, :destroy, :save_as_resource ]
 
-  # Request is made from the Stimulus controller.
-  # It would be simpler to use a form submission so we can respond with a turbo_stream template & flash message.
+  # POST /applets, via code_executor_controller
   def create
     @applet = Applet.new(user: current_user)
-    @applet.update!(applet_params)
-    @applet.save!
-    render json: { id: @applet.id }
+    @applet.assign_attributes(applet_params)
+
+    if @applet.save
+      flash.now[:success] = "Applet saved successfully!"
+      respond_to do |format|
+        format.turbo_stream
+      end
+    else
+      flash.now[:error] = @applet.errors.full_messages.join(", ") || "Failed to save applet."
+      respond_to do |format|
+        format.turbo_stream { render :create, status: :unprocessable_content }
+      end
+    end
   end
 
   def index
@@ -19,6 +28,7 @@ class AppletsController < ApplicationController
     # Student dashboard doesn't use the index template.
   end
 
+  # No individual page for applets; this returns JSON for copying to clipboard
   def show
      render json: { code: @applet.code }
   end

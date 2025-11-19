@@ -6,7 +6,15 @@ import { Controller } from "@hotwired/stimulus"
   a hidden pre block for raw code.
 */
 export default class extends Controller {
-  static targets = ["highlightedCode", "rawCode", "actionsContainer"]
+  static targets = [
+    "highlightedCode",
+    "rawCode",
+    "actionsContainer",
+    "saveForm",
+    "titleInput",
+    "codeInput",
+    "inlineOutput"
+  ]
   static values = {
     renderTarget: String, // 'chalkboard' or 'inline'
     autoRun: Boolean,     // true or false
@@ -30,11 +38,6 @@ export default class extends Controller {
     const archiveBtn = this.createArchiveButton(rawCode);
     actionsContainer.appendChild(archiveBtn);
 
-    // Create inline output div if needed (initially hidden)
-    if (this.renderTargetValue === 'inline') {
-      const outputDiv = this.createOutputDiv();
-      this.element.appendChild(outputDiv); // Append to the main wrapper
-    }
 
     // Handle initial state
     if (this.hiddenValue) {
@@ -88,15 +91,6 @@ export default class extends Controller {
     );
   }
 
-  createOutputDiv() {
-    const output = document.createElement("div");
-    // Add data target for potential future use or easier selection
-    output.setAttribute("data-code-executor-target", "inlineOutput");
-    output.className = "mt-2 p-2 bg-stone-100 dark:bg-stone-900 text-black dark:text-white rounded-sm border border-stone-300 dark:border-stone-600"; // Added border and dark mode text
-    output.style.display = "none"; // Initially hidden
-    return output;
-  }
-
   executeCode(rawCode, renderTarget) {
     //console.log(`Executing code (target: ${renderTarget})`);
     const output = this.getOutputElement(renderTarget);
@@ -112,7 +106,7 @@ export default class extends Controller {
     iframe.srcdoc = iframeContent;
   }
 
-  // Helper method to get the output element based on the render target
+  // Helper method to get the applet output element based on the render target
   getOutputElement(renderTarget) {
     if (renderTarget === 'chalkboard') {
       // Find the global chalkboard element by its ID
@@ -121,20 +115,17 @@ export default class extends Controller {
         console.error("Chalkboard element with id='chalkboard' not found");
         return null;
       }
-      // Ensure chalkboard is visible (might be handled by other controllers, but good practice)
-      // output.closest('[data-controller="tabs"]')?.showTab('chalkboard'); // Example if tabs are used
-      output.style.display = "block"; // Simple show
-      output.innerHTML = ""; // Clear it
+      output.style.display = "block"; 
+      output.innerHTML = ""; // Clear previous content
       return output;
-    } else { // 'inline'
-      // Find the inline output div within this controller's element
-      const output = this.element.querySelector('[data-code-executor-target="inlineOutput"]');
-      if (!output) {
+    } else {
+      if (!this.hasInlineOutputTarget) {
         console.error("Inline output element not found within code block wrapper.");
         return null;
       }
-      output.style.display = "block"; // Show it
-      output.innerHTML = ""; // Clear it
+      const output = this.inlineOutputTarget;
+      output.style.display = "block";
+      output.innerHTML = ""; // Clear previous content
       return output;
     }
   }
@@ -323,39 +314,16 @@ export default class extends Controller {
   }
 
   archiveApplet(rawCode) {
-    // Use the rawCode passed directly
     const title = prompt("Enter a name for this applet:");
     if (!title) return; // User cancelled
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (!csrfToken) {
-        console.error("CSRF token not found");
-        alert('Error: CSRF token missing. Cannot save applet.');
-        return;
+    if (!this.hasSaveFormTarget || !this.hasTitleInputTarget || !this.hasCodeInputTarget) {
+      console.error("Save form elements not found in the executable block.");
+      alert('Error: Unable to locate save form.');
+      return;
     }
-
-    fetch('/applets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken
-      },
-      body: JSON.stringify({ applet: { title: title, code: rawCode } })
-    })
-    .then(response => {
-      if (response.ok) {
-        alert('Applet saved successfully!');
-        // Optionally: Disable archive button or change its appearance
-      } else {
-        response.text().then(text => {
-           console.error('Failed to save applet:', response.status, text);
-           alert(`Failed to save applet. Status: ${response.status}`);
-        });
-      }
-    })
-    .catch(error => {
-      console.error('Error archiving applet:', error);
-      alert('An error occurred while archiving the applet.');
-    });
+    this.titleInputTarget.value = title;
+    this.codeInputTarget.value = rawCode;
+    this.saveFormTarget.requestSubmit();
   }
 }

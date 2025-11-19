@@ -40,12 +40,6 @@ module MarkdownViewsHelper
         auto_run = attributes.fetch(:autoRun, "false") == "true"
         render_target = attributes.fetch(:renderTarget, "chalkboard")
 
-        # Prepare the block for the Stimulus controller.
-        wrapper_attrs = "data-controller=\"code-executor\" " +
-                        "data-code-executor-render-target-value=\"#{render_target}\" " +
-                        "data-code-executor-auto-run-value=\"#{auto_run}\" " +
-                        "data-code-executor-hidden-value=\"#{hidden}\""
-
         # Render the code block for display. MarkdownViews will apply syntax highlighting with Rouge.
         highlighted_html = MarkdownViews::Renderer.render("```#{language}\n#{code}\n```")
         # Rails.logger.debug "Highlighted HTML: #{highlighted_html}"
@@ -55,17 +49,16 @@ module MarkdownViewsHelper
         # This entire string will replace the original markdown block in processed_source.
         # Due to CommonMark specs, certain odd line breaks are needed to ensure <pre> tags
         # are treated as a single HTML block by the markdown parser, and not given <p> tags within.
-        final_html = <<~HTML
-          <div class="my-3" #{wrapper_attrs}>
-            <div class="highlighted-code-block" data-code-executor-target="highlightedCode">
-            \n<!-- extra line ensures commonmark starts a new HTML block for pre-->
-            #{highlighted_html}
-            </div>
-            \n<!-- extra line ensures commonmark starts a new HTML block for pre-->
-            <pre class="hidden" data-code-executor-target="rawCode">#{h(code)}</pre>
-            <div class="code-actions mt-1" data-code-executor-target="actionsContainer"></div>
-          </div>
-        HTML
+        final_html = ApplicationController.render(
+          partial: "applets/executable_block",
+          locals: {
+            render_target: render_target,
+            auto_run: auto_run,
+            hidden: hidden,
+            highlighted_html: highlighted_html,
+            code: code
+          }
+        )
         # Return the fully formed HTML for this block
         final_html
       else
