@@ -96,28 +96,64 @@ export default class extends Controller {
   }
 
   screenshotInstructions() {
-    //Available options aren't better than showing the user how to use their OS native screen capture.
-    //If this can be worked out, then an LLM tool can also be added to retrieve a screenshot.
-    //For now, just show the user instructions on taking a screenshot.
+    // Just show the user instructions on taking a screenshot.
+    // This is better than using html-to-image which is hard to get to work, or Screen Capture API which is not meant for screenshots. 
     if (this.hasScreenshotDialogTarget) {
       this.screenshotDialogTarget.show();
     } else {
       console.warn("No screenshotDialog target found.");
     }
   }
+/*
+  // Image comes out blank, but keep here for future attempts.
+  // Still, not as good as user learning to take their own screenshot, since they can crop with mouse to show what they want.
+  async takeScreenshot() { // Take a screenshot of the chalkboard using html-to-image
+    if (!this.hasChalkboardTarget) {
+      console.warn("No chalkboard target for screenshot.");
+      alert("Chalkboard not available for screenshots right now.");
+      return;
+    }
 
-  // Image comes out blank, but keep here for future attempts:
-  // Take a screenshot of the chalkboard using html-to-image
-  takeScreenshot() {
-    if (!this.hasChalkboardTarget) { console.warn("No chalkboard target for screenshot."); return; }
-    htmlToImage.toBlob(this.chalkboardTarget).then((blob) => {
-      if (!blob) { alert("Failed to capture screenshot."); return; }
-      // Event dispatched with the screenshot blob
-      // This can be handled by the new-message-controller to add the image to the message input
-      this.dispatch("screenshot", { detail: { blob } });
-      console.log("Screenshot taken and dispatched", blob);
-    });
-  }
+    const target = this.chalkboardTarget
+    const rect = target.getBoundingClientRect()
+    console.log("Chalkboard screenshot requested", {
+      width: rect.width,
+      height: rect.height,
+      scrollWidth: target.scrollWidth,
+      scrollHeight: target.scrollHeight,
+      innerHTMLLength: target.innerHTML?.length
+    })
+
+    try {
+      const computed = getComputedStyle(target)
+      const backgroundColor = computed?.backgroundColor?.trim() || "#ffffff"
+
+      const blob = await htmlToImage.toBlob(target, {
+        cacheBust: true,
+        backgroundColor,
+        width: Math.max(target.scrollWidth, rect.width),
+        height: Math.max(target.scrollHeight, rect.height),
+        style: {
+          padding: "16px",
+          backgroundColor,
+          color: computed?.color || "#111827",
+          fontFamily: computed?.fontFamily
+        },
+        skipFonts: true
+      })
+
+      if (!blob) {
+        throw new Error("html-to-image returned an empty blob")
+      }
+
+      window.dispatchEvent(new CustomEvent("chalkboard:screenshot", { detail: { blob } }))
+      console.log("Chalkboard screenshot dispatched", blob)
+    } catch (error) {
+      console.error("Failed to capture chalkboard screenshot", error)
+      alert("Couldn't capture the chalkboard automatically. We'll show manual instructions instead.")
+      this.screenshotInstructions()
+    }
+  } */
 
   openWhiteboard() {
      //For now just open https://excalidraw.com/
