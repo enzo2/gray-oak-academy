@@ -48,7 +48,7 @@
 # Ignore master keys
 # For production, you should use the `RAILS_MASTER_KEY` environment variable
 # For development, key is created by `bin/setup` and should not be checked in
-/config/master.key
+/config/*.key
 /config/credentials/*.key
 
 # Ignore encrypted credentials
