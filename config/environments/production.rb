@@ -68,8 +68,8 @@ Rails.application.configure do
 
   config.action_mailer.delivery_method = :smtp
 
-  # Specify outgoing SMTP server. 
-  # Todo: move SMTP credentials to rails credentials. 
+  # Specify outgoing SMTP server.
+  # Todo: move SMTP credentials to rails credentials.
   config.action_mailer.smtp_settings = {
     address: ENV["SMTP_ADDRESS"],
     port: ENV["SMTP_PORT"],
