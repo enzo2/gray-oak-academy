@@ -841,6 +841,7 @@ AppSetting.first_or_create!(
   tts_model: "gpt-4o-mini-tts",
   tts_voice: "verse",
   tts_instructions: "Speak in a calm and friendly tone.",
+  embedding_model: "google/gemini-embedding-001",
 )
 
 # ---- Seed OpenRouter image-capable LLM ----

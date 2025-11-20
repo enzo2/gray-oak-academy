@@ -4,6 +4,8 @@ module Admin
     before_action :load_setting, only: [ :edit, :update ]
 
     def edit
+      # Pre-fetch embedding models to populate cache for smoother validation
+      Thread.new { AppSetting.fetch_openrouter_embedding_models }
     end
 
     def update
@@ -35,7 +37,8 @@ module Admin
         :tts_voice,
         :tts_instructions,
         :token_override,
-        :image_llm_id
+        :image_llm_id,
+        :embedding_model
       )
     end
   end

@@ -1,6 +1,6 @@
 <h1 class="text-2xl font-semibold mb-4">App Settings</h1>
 
-<h2 class="text-xl font-semibold mb-4">Speech</h2>
+<h2 class="text-xl font-semibold mb-2">Speech</h2>
 
 <%= form_with(model: @setting, url: admin_app_setting_path, method: :patch, class: "space-y-4") do |f| %>
   <% if @setting.errors.any? %>
@@ -87,8 +87,7 @@
     </div>
   </div>
 
-  <h2 class="text-xl font-semibold mb-4">Image</h2>
-
+  <h2 class="text-xl font-semibold mb-2 mt-4">Image Gen</h2>
   <div>
     <%= f.label :image_llm_id, "Image generation model", class: "form-label" %>
     <% image_llms = Llm.list_selectable_image_models %>
@@ -103,6 +102,21 @@
           { class: "input-primary" } %>
     <p class="text-xs text-dim mt-1">
       Only verified OpenRouter models that support image input & output are shown.
+    </p>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-2 mt-4">Embeddings</h2>
+    <p class="text-sm text-dim mb-2">Used for app functions like memories.</p>
+  <div>
+    <%= f.label :embedding_model, "Embedding model", class: "form-label" %>
+    <%= f.text_field :embedding_model, class: "input-primary mb-1", placeholder: "google/gemini-embedding-001" %>
+    <p class="text-xs text-dim mb-1">
+      <b>Instructions:</b> Supports OpenRouter only. Enter an OpenRouter embedding model.<br>
+      <% if SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")&.api_access_token.present? %>
+        <span class="text-green-600 dark:text-green-400">OpenRouter token is configured.</span>
+      <% else %>
+        <span class="text-red-600 dark:text-red-400">Please add an OpenRouter shared access token in the LLM API settings.</span>
+      <% end %> 
     </p>
   </div>
 

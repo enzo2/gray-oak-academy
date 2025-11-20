@@ -49,7 +49,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - All system prompts can be customized (opinionated defaults included)
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
-- Automated memory saving and consolidation
+- Automated memory saving and semantic consolidation
 - Main LLM can query the thinking LLM at its discretion
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
@@ -112,7 +112,6 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
-- Add embeddings (pgvector + neighbor gem) starting with memory search
 - Student profile/journal: track student progress over time (e.g. joint teacher-LLM understanding of the student)
 - Teacher alerts, notifications, mobile push, etc. 
 - Improve curriculum design:

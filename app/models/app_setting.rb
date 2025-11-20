@@ -12,9 +12,13 @@ class AppSetting < ApplicationRecord
                  :tts_voice,
                  :tts_instructions,
                  :token_override,
-                 :image_llm_id
+                 :image_llm_id,
+                 :embedding_model
 
   validates :singleton, inclusion: { in: [ true, false ] }
+  validate :embedding_model_validity, on: :update
+
+  after_save :clear_embeddings_if_model_changed
 
   # Convenience accessor to always return the single app setting
   def self.settings
@@ -82,5 +86,53 @@ class AppSetting < ApplicationRecord
     app_setting&.image_llm.present? &&
     app_setting.image_llm.supports_image_output? &&
     app_setting.image_effective_token.present?
+  end
+
+  # Fetch and cache OpenRouter embedding models
+  def self.fetch_openrouter_embedding_models
+    Rails.cache.fetch("openrouter_embedding_models", expires_in: 1.hour) do
+      url = "https://openrouter.ai/api/v1/embeddings/models"
+      Rails.logger.debug("Fetching embedding models from #{url}")
+      data = HttpJsonService.get(url)
+      if data && data["data"]
+        data["data"].map { |m| m["id"] }
+      else
+        []
+      end
+    end
+  end
+
+  private
+
+  def embedding_model_validity
+    return unless embedding_model.present?
+
+    # 1. Check for OpenRouter token
+    open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
+    unless open_router&.api_access_token.present?
+      errors.add(:embedding_model, "requires a key for OpenRouter to be configured in LLM API settings")
+      return
+    end
+
+    # 2. Check against available models
+    available_models = AppSetting.fetch_openrouter_embedding_models
+    unless available_models.include?(embedding_model)
+      errors.add(:embedding_model, "must be a valid OpenRouter embedding model")
+    end
+  end
+
+  def clear_embeddings_if_model_changed
+    return unless saved_change_to_settings?
+
+    # Check if embedding_model actually changed in the JSON settings
+    previous_settings = saved_changes["settings"]&.first || {}
+    current_settings = saved_changes["settings"]&.last || {}
+    Rails.logger.debug "Previous settings: #{previous_settings.inspect}"
+    Rails.logger.debug "Current settings: #{current_settings.inspect}"
+
+    if previous_settings["embedding_model"] != current_settings["embedding_model"]
+      Rails.logger.info("Embedding model changed from #{previous_settings['embedding_model']} to #{current_settings['embedding_model']}. Clearing all memory embeddings.")
+      Memory.update_all(embedding: nil)
+    end
   end
 end

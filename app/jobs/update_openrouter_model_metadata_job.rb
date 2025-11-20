@@ -17,15 +17,7 @@ class UpdateOpenrouterModelMetadataJob < ApplicationJob
   def fetch_model_endpoints(llm)
     url = "https://openrouter.ai/api/v1/models/#{llm.model}/endpoints"
     Rails.logger.debug("Fetching model endpoints from #{url}")
-    uri = URI.parse(url)
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = (uri.scheme == "https")
-    request = Net::HTTP::Get.new(uri.request_uri)
-    response = http.request(request)
-    JSON.parse(response.body)
-  rescue StandardError => e
-    Rails.logger.error("Error fetching model endpoints: #{e.message}")
-    nil
+    HttpJsonService.get(url)
   end
 
   def update_metadata(llm)
