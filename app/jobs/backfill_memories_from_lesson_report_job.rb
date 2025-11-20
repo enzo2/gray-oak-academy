@@ -114,10 +114,11 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
         vector = EmbeddingService.get(memory_text)
         next unless vector
 
-        # Find top 5 matches for this specific memory
-        neighbors = student.memories.nearest_neighbors(:embedding, vector, distance: "cosine").limit(5).pluck(:id)
-        Rails.logger.debug "Found neighbor memories with similarities #{neighbors.each { |n| "#{n.neighbor_distance}, " }} for new memory: #{memory_text}"
-        relevant_ids.merge(neighbors)
+        # Find top matches for this specific memory
+        neighbor_records = Memory.nearest_neighbors(:embedding, vector, distance: "cosine")
+                                 .where(student: student).limit(5)
+        Rails.logger.debug "Found neighbor memories with similarities #{neighbor_records.map(&:neighbor_distance).join(', ')} for new memory: #{memory_text.truncate(50)}"
+        relevant_ids.merge(neighbor_records.map(&:id))
       end
 
       base_query = relevant_ids.empty? ? student.memories : student.memories.where(id: relevant_ids)
