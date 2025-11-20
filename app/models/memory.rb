@@ -6,6 +6,8 @@ class Memory < ApplicationRecord
   # text :body, null: false
   encrypts :body, deterministic: true
 
+  has_neighbors :embedding
+
   validates :body, presence: true, length: { maximum: 5000 }
   validate :author_validations
 

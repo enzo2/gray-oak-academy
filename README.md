@@ -31,7 +31,6 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 
   *Solution*: Both the API and model are user-configurable. Any OpenAI-compatible API can be used. Special support is provided for OpenRouter, which makes it particularly easy to try different models, providers, and configure Zero Data Retention. 
 
-
 Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home&ndash; or small&ndash;group schooling, the supervisory teacher or parent remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. 
 
 *Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's a prototype.

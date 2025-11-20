@@ -36,6 +36,7 @@ gem "rack-attack", github: "rack/rack-attack", branch: "main" # Use main branch 
 gem "devise", github: "heartcombo/devise", branch: "main"  # use main for now until V5  is released
 # gem "devise-jwt"
 gem "acts_as_list"
+gem "neighbor"
 gem "markdown_views"
 gem "hotwire_combobox"
 gem "faraday-retry"
@@ -48,9 +49,6 @@ gem "ruby-openai", "< 8.4"
 # gem "ruby_llm"   # could add this but it's not fully developed yet, eg. lacks xAI, TTS
 # https://github.com/rira100000000/ruby-gemini-api  a good ruby-openai style gem for gemini
 
-# Vector Search
-# gem "pgvector"
-# gem "neighbor"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"
