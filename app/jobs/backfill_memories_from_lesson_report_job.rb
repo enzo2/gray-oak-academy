@@ -27,10 +27,11 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
 
     # Preparations
     student = student_report.student
-    existing_memories = existing_memories_for(student)
 
     new_memories_text = normalize_candidate_memories(student_report.progress_data&.dig("memories"))
     return if new_memories_text.empty?
+
+    existing_memories = existing_memories_for(student, new_memories_text)
 
     task_system_prompt = Prompt.get_prompt(category: "memories_semantic_merge", user: student)
 
@@ -105,8 +106,26 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
     memories_data.is_a?(Array) && memories_data.any?
   end
 
-  def existing_memories_for(student)
-    student.memories.pluck(:id, :body).map { |id, body| { id: id, body: body } }
+  def existing_memories_for(student, new_memories_text = [])
+    if AppSetting.embeddings_configured?
+      relevant_ids = Set.new
+
+      new_memories_text.each do |memory_text|
+        vector = EmbeddingService.get(memory_text)
+        next unless vector
+
+        # Find top 5 matches for this specific memory
+        neighbors = student.memories.nearest_neighbors(:embedding, vector, distance: "cosine").limit(5).pluck(:id)
+        Rails.logger.debug "Found neighbor memories with similarities #{neighbors.each { |n| "#{n.neighbor_distance}, " }} for new memory: #{memory_text}"
+        relevant_ids.merge(neighbors)
+      end
+
+      base_query = relevant_ids.empty? ? student.memories : student.memories.where(id: relevant_ids)
+    else # embeddings not configured
+      base_query = student.memories
+    end
+
+    base_query.pluck(:id, :body).map { |id, body| { id: id, body: body } }
   end
 
   def normalize_candidate_memories(memories_data)

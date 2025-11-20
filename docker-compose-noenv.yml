@@ -31,7 +31,7 @@ services:
       - terrarium
 
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17-trixie
     restart: always
     volumes:
       - postgres-data:/var/lib/postgresql/data

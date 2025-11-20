@@ -222,7 +222,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
     t.bigint "author_id"
     t.text "body", null: false
     t.datetime "created_at", null: false
-    t.vector "embedding", limit: 5000
+    t.vector "embedding"
     t.boolean "hidden_from_student", default: false, null: false
     t.bigint "student_id", null: false
     t.bigint "student_report_id"

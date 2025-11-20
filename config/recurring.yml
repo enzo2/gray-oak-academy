@@ -11,3 +11,7 @@
 update_openrouter_context_lengths:
   class: UpdateOpenrouterModelMetadataJob
   schedule: every day at 2am
+
+backfill_memory_embeddings:
+  class: BackfillMemoryEmbeddingsJob
+  schedule: every day at 3am

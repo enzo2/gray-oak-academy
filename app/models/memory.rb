@@ -11,6 +11,8 @@ class Memory < ApplicationRecord
   validates :body, presence: true, length: { maximum: 5000 }
   validate :author_validations
 
+  after_save :update_embedding_if_needed
+
   # boolean :hidden_from_student, default: false, null: false
   scope :visible_to_students, -> { where(hidden_from_student: false) }
   scope :hidden, -> { where(hidden_from_student: true) }
@@ -29,7 +31,17 @@ class Memory < ApplicationRecord
     author == student
   end
 
+  def update_embedding
+    return unless body.present?
+    vector = EmbeddingService.get(body)
+    update_column(:embedding, vector) if vector.present?
+  end
+
   private
+
+  def update_embedding_if_needed
+    update_embedding if saved_change_to_body?
+  end
 
   def author_validations
     return if author.blank? # can be blank if LLM-authored or deleted user

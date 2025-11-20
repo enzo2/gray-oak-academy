@@ -1,5 +1,5 @@
 class OpenaiApiService
-  # Wrapper around ruby-openai gem
+  # Wrapper around ruby-openai gem for LLM completions.
   require "json/repair"
   require "faraday/retry"
 

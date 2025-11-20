@@ -141,6 +141,7 @@ class AppSetting < ApplicationRecord
     if previous_settings["embedding_model"] != current_settings["embedding_model"]
       Rails.logger.info("Embedding model changed from #{previous_settings['embedding_model']} to #{current_settings['embedding_model']}. Clearing all memory embeddings.")
       Memory.update_all(embedding: nil)
+      BackfillMemoryEmbeddingsJob.perform_later
     end
   end
 end
