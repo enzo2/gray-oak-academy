@@ -1,6 +1,11 @@
 <h1 class="text-2xl font-semibold mb-4">App Settings</h1>
 
-<h2 class="text-xl font-semibold mb-2">Speech</h2>
+<h2 class="text-xl font-semibold mb-2">
+  Speech
+  <% if AppSetting.speech_configured? || AppSetting.stt_configured? %>
+    <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+  <% end %>
+</h2>
 
 <%= form_with(model: @setting, url: admin_app_setting_path, method: :patch, class: "space-y-4") do |f| %>
   <% if @setting.errors.any? %>
@@ -87,7 +92,12 @@
     </div>
   </div>
 
-  <h2 class="text-xl font-semibold mb-2 mt-4">Image Gen</h2>
+  <h2 class="text-xl font-semibold mb-2 mt-4">
+    Image Gen
+    <% if AppSetting.image_generation_configured? %>
+      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+    <% end %>
+  </h2>
   <div>
     <%= f.label :image_llm_id, "Image generation model", class: "form-label" %>
     <% image_llms = Llm.list_selectable_image_models %>
@@ -105,7 +115,12 @@
     </p>
   </div>
 
-  <h2 class="text-xl font-semibold mb-2 mt-4">Embeddings</h2>
+  <h2 class="text-xl font-semibold mb-2 mt-4">
+    Embeddings
+    <% if AppSetting.embeddings_configured? %>
+      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+    <% end %>
+  </h2>
     <p class="text-sm text-dim mb-2">Used for app functions like memories.</p>
   <div>
     <%= f.label :embedding_model, "Embedding model", class: "form-label" %>
@@ -122,6 +137,5 @@
 
   <div class="mt-6">
     <%= f.submit "Save App Settings", class: "btn-primary" %>
-    <%= link_to "Cancel", admin_supported_apis_path, class: "btn-secondary ml-2" %>
   </div>
 <% end %>

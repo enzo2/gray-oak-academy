@@ -88,6 +88,14 @@ class AppSetting < ApplicationRecord
     app_setting.image_effective_token.present?
   end
 
+  def self.embeddings_configured?
+    app_setting = self.first
+    return false unless app_setting&.embedding_model.present?
+
+    open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
+    open_router&.api_access_token.present?
+  end
+
   # Fetch and cache OpenRouter embedding models
   def self.fetch_openrouter_embedding_models
     Rails.cache.fetch("openrouter_embedding_models", expires_in: 1.hour) do
