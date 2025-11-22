@@ -327,8 +327,8 @@ class ToolHandlerService
     raise ToolExecutionError, "This lesson already was completed and has a report." if lesson_progress&.student_report&.status_completed?
 
     # Validate the required fields in args
-    unless @args["summary"].present? && @args["strengths"].is_a?(Array) && @args["areas_for_review"].is_a?(Array)
-      raise ToolExecutionError, "One or more required fields missing or invalid: summary, strengths (array), areas_for_review (array)"
+    unless @args["summary"].present?
+      raise ToolExecutionError, "Fields missing or invalid: summary"
     end
 
     # Create the student report

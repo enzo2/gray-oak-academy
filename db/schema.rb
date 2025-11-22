@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_21_153612) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -21,7 +21,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
   create_enum "content_type", ["image/png", "image/jpeg", "image/webp"]
   create_enum "course_status", ["active", "archived"]
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
-  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "delegate_to_frontier_llm", "memories_semantic_merge", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt"]
+  create_enum "observation_status", ["pending", "approved", "rejected", "archived"]
+  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "delegate_to_frontier_llm", "memories_semantic_merge", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt", "generate_observations"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
   create_enum "role_name", ["system", "user", "assistant", "tool"]
   create_enum "student_report_status", ["in_progress", "completed"]
@@ -222,7 +223,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
     t.bigint "author_id"
     t.text "body", null: false
     t.datetime "created_at", null: false
-    t.vector "embedding"
+    t.vector "embedding", limit: 5000
     t.boolean "hidden_from_student", default: false, null: false
     t.bigint "student_id", null: false
     t.bigint "student_report_id"
@@ -241,6 +242,23 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
     t.datetime "updated_at", null: false
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.check_constraint "content IS NOT NULL OR tool_calls IS NOT NULL AND jsonb_array_length(tool_calls) > 0", name: "messages_content_or_tool_calls_present"
+  end
+
+  create_table "observations", force: :cascade do |t|
+    t.bigint "author_id"
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.vector "embedding"
+    t.datetime "last_validated_at"
+    t.decimal "relevance_weight", precision: 3, scale: 2, default: "1.0"
+    t.bigint "source_id"
+    t.string "source_type"
+    t.enum "status", default: "pending", null: false, enum_type: "observation_status"
+    t.bigint "student_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_id"], name: "index_observations_on_author_id"
+    t.index ["source_type", "source_id"], name: "index_observations_on_source"
+    t.index ["student_id"], name: "index_observations_on_student_id"
   end
 
   create_table "prompts", force: :cascade do |t|
@@ -270,6 +288,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_settings_on_user_id", unique: true
+  end
+
+  create_table "student_feedbacks", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.bigint "lesson_progress_id"
+    t.bigint "student_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lesson_progress_id"], name: "index_student_feedbacks_on_lesson_progress_id"
+    t.index ["student_id"], name: "index_student_feedbacks_on_student_id"
   end
 
   create_table "student_reports", force: :cascade do |t|
@@ -352,9 +380,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_002930) do
   add_foreign_key "memories", "users", column: "author_id"
   add_foreign_key "memories", "users", column: "student_id"
   add_foreign_key "messages", "conversations"
+  add_foreign_key "observations", "users", column: "author_id"
+  add_foreign_key "observations", "users", column: "student_id"
   add_foreign_key "prompts", "users", column: "teacher_id"
   add_foreign_key "resources", "users", column: "teacher_id"
   add_foreign_key "settings", "users"
+  add_foreign_key "student_feedbacks", "lesson_progresses"
+  add_foreign_key "student_feedbacks", "users", column: "student_id"
   add_foreign_key "student_reports", "users", column: "student_id"
   add_foreign_key "student_reports", "users", column: "teacher_id"
   add_foreign_key "users", "users", column: "teacher_id"

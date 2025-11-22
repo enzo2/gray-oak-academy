@@ -15,20 +15,25 @@ class GenerateCourseReportJob < ApplicationJob
         "strengths": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "List areas (if any) where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent courses. May include knowledge or skills."
+          "description": "List areas where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent courses. May include knowledge, skills, abilities, or other learning targets."
         },
         "areas_for_review": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "List aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions."
+          "description": "List aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions. May include knowledge, skills, abilities, or other learning targets."
         },
         "teaching_methods": {
           "type": "array",
           "items": { "type": "string" },
           "description": "Note any aspects of teaching methodology that were particularly effective or ineffective for the student."
+        },
+        "other_observations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional: Note any other observations or notable examples concerning the student's progress and development, such as engagement, attitude, cognition, or other relevant factors."
         }
       },
-      "required": [ "summary", "strengths", "areas_for_review", "teaching_methods" ],
+      "required": [ "summary", "strengths", "teaching_methods" ],
       "additionalProperties": false
     }
   }

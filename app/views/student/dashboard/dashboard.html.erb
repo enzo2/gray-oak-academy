@@ -4,6 +4,7 @@
 
     <sl-tab-group id="student-dashboard-tabs">
       <sl-tab slot="nav" panel="courses">My Courses</sl-tab>
+      <sl-tab slot="nav" panel="journal">Journal</sl-tab>
       <sl-tab slot="nav" panel="past_courses">Past Courses</sl-tab>
       <sl-tab slot="nav" panel="chat">Chat</sl-tab>
       <sl-tab slot="nav" panel="applets">Applets</sl-tab>
@@ -11,6 +12,10 @@
       <sl-tab-panel name="courses">
         <%# Filter out archived courses %>
         <%= render 'active_courses', enrollments: @enrollments.in_progress.joins(:course).where(courses: { status: :active }) %>
+      </sl-tab-panel>
+
+      <sl-tab-panel name="journal">
+        <%= render "shared/journal_timeline", url: student_journal_path, teacher_mode: false %>
       </sl-tab-panel>
 
       <sl-tab-panel name="past_courses">

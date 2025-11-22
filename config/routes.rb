@@ -75,6 +75,7 @@ Rails.application.routes.draw do
 
     resources :students, only: [ :index, :show, :destroy ] do
       member do
+        get :journal
         post :adopt
         delete :unadopt
         post :enroll
@@ -102,10 +103,14 @@ Rails.application.routes.draw do
     resource :app_setting, only: [ :edit, :update ]
 
     resources :llms, only: [ :index, :update ]
+    resources :observations, only: [ :update ]
   end
 
   namespace :student do
     get "dashboard", as: :root, to: "dashboard#dashboard"
+    get "journal", to: "dashboard#journal"
     resources :lessons, only: [ :show ]
+    resources :observations, only: [ :update ]
+    resources :student_feedbacks, only: [ :create ]
   end
 end

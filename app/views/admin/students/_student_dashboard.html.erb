@@ -2,11 +2,16 @@
 
   <sl-tab-group id="student-dashboard-tabs" class="">
   <sl-tab slot="nav" panel="active_courses" <%= "active" if @active_tab == :active_courses %>>Active Courses</sl-tab>
+  <sl-tab slot="nav" panel="journal" <%= "active" if @active_tab == :journal %>>Journal</sl-tab>
   <sl-tab slot="nav" panel="past_courses" <%= "active" if @active_tab == :past_courses %>>Past Courses</sl-tab>
   <sl-tab slot="nav" panel="enroll" <%= "active" if @active_tab == :enroll %>>Add Course</sl-tab>
   <sl-tab slot="nav" panel="memories" <%= "active" if @active_tab == :memories %>>Memories</sl-tab>
   <sl-tab slot="nav" panel="applets" <%= "active" if @active_tab == :applets %>>Applets</sl-tab>
   <sl-tab slot="nav" panel="settings" <%= "active" if @active_tab == :settings %>>Settings</sl-tab>
+
+  <sl-tab-panel name="journal" <%= "active" if @active_tab == :journal %>>
+    <%= render "shared/journal_timeline", teacher_mode: true %>
+  </sl-tab-panel>
 
   <sl-tab-panel name="active_courses" <%= "active" if @active_tab == :active_courses %>>
     <% if @active_enrollments.presence %>

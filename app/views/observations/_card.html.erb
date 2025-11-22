@@ -1,0 +1,25 @@
+<div id="<%= dom_id(observation) %>_card">
+  <div class="mb-2 prose dark:prose-invert prose-sm leading-normal text-stone-800 dark:text-stone-300">
+    <%= simple_format(observation.content) %>
+  </div>
+  
+  <div class="flex items-center justify-between text-xs mt-2">
+    <% status_classes = case observation.status
+       when "approved" then "bg-emerald-100 text-emerald-800 border-emerald-200"
+       when "rejected" then "bg-red-100 text-red-800 border-red-200"
+       else "bg-yellow-100 text-yellow-800 border-yellow-200"
+       end %>
+    
+    <span class="px-2 py-0.5 rounded border <%= status_classes %>">
+      <%= observation.status.humanize %>
+    </span>
+    
+    <% if local_assigns[:teacher_mode] && observation.status_pending? %>
+      <div class="flex gap-2">
+        <%= button_to "Approve", admin_observation_path(observation), method: :patch, params: { observation: { status: :approved } }, class: "text-emerald-600 hover:text-emerald-800 font-bold", form: { data: { turbo_stream: true } } %>
+        <span class="text-stone-300">|</span>
+        <%= button_to "Reject", admin_observation_path(observation), method: :patch, params: { observation: { status: :rejected } }, class: "text-red-600 hover:text-red-800", form: { data: { turbo_stream: true } } %>
+      </div>
+    <% end %>
+  </div>
+</div>

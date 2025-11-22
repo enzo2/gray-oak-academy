@@ -1,2 +1,8 @@
-
-<span class='mt-3 mb-2 block text-white font-sans bg-green-600 p-2 rounded-sm '><b>Lesson completed!</b> You can close the tab.</span>
+<div class='mt-3 mb-2 p-2 rounded-sm bg-green-600 text-white font-sans flex items-center justify-between'>
+  <span><b>Lesson completed!</b> You can close the tab.</span>
+  
+  <sl-button size="small" variant="default" onclick="document.getElementById('feedback-dialog').show();">
+    <sl-icon slot="prefix" name="chat-left-text"></sl-icon>
+    Give Feedback
+  </sl-button>
+</div>

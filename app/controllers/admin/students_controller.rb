@@ -1,7 +1,7 @@
 module Admin
   class StudentsController < Admin::BaseController
     before_action :require_superuser, only: [ :destroy ]
-    before_action :set_student, only: [ :show, :adopt, :unadopt, :enroll, :unenroll, :destroy ]
+    before_action :set_student, only: [ :show, :journal, :adopt, :unadopt, :enroll, :unenroll, :destroy ]
     before_action :set_enrollment_data, only: [ :show, :enroll, :unenroll ]
     before_action :set_students_nav, only: [ :index, :show ]
     before_action :require_own_student, only: [ :show, :unadopt, :enroll, :unenroll ]
@@ -31,6 +31,25 @@ module Admin
 
     def index
       @student = nil
+    end
+
+    def journal
+      page = params[:page].present? ? params[:page].to_i : 1
+      per_page = 15
+      @timeline_items = JournalService.get_timeline(@student, teacher_mode: true, page: page, per_page: per_page)
+
+      respond_to do |format|
+        format.turbo_stream do
+          streams = []
+          streams << turbo_stream.append("journal_entries", partial: "shared/journal_items", locals: { timeline_items: @timeline_items, teacher_mode: true })
+
+          if @timeline_items.size < per_page
+            streams << turbo_stream.update("journal_pagination", "<div class='text-center text-stone-400 text-sm py-4'>End of Journal</div>")
+          end
+
+          render turbo_stream: streams
+        end
+      end
     end
 
     def show

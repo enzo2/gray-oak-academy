@@ -45,6 +45,12 @@
                 <span class="pl-2">Chat info</span>
               </div>
             </sl-menu-item>
+            <sl-menu-item onclick="document.getElementById('feedback-dialog').show()">
+              <div class="flex items-center justify-start">
+                <sl-icon-button name="chat-left-text" label="Provide Feedback" class="text-lg"></sl-icon-button>
+                <span class="pl-2">Feedback</span>
+              </div>
+            </sl-menu-item>
           </sl-menu>
         </sl-dropdown>
       </div>
@@ -93,3 +99,19 @@
     </sl-drawer>
   <% end %>
 </div>
+
+<!-- Feedback Modal -->
+<sl-dialog id="feedback-dialog" label="Feedback" class="dialog-overview" data-controller="dialog" data-action="turbo:submit-end->dialog#submitEnd">
+  <div id="feedback_modal_content">
+    <%= form_with model: [:student, StudentFeedback.new], data: { turbo_stream: true }, class: "space-y-4" do |f| %>
+      <%= f.hidden_field :lesson_progress_id, value: @conversation.lesson_progress&.id %>
+      <div>
+        <%= f.label :content, "Here, you can give feedback on the lesson.", class: "label" %>
+        <%= f.text_area :content, rows: 4, class: "textarea w-full", required: true, placeholder: "I specifically liked/disliked..." %>
+      </div>
+      <div class="flex justify-end gap-2">
+        <sl-button slot="footer" variant="primary" type="submit">Submit Feedback</sl-button>
+      </div>
+    <% end %>
+  </div>
+</sl-dialog>

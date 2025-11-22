@@ -22,7 +22,8 @@ class Prompt < ApplicationRecord
     base_system_prompt: "base_system_prompt", # prepended to all prompts to explain foundational principles
     # tool_usage: "tool_usage", # unused, there is a Tool model for this
     delegate_to_frontier_llm: "delegate_to_frontier_llm", # allow model to query the thinking LLM
-    memories_semantic_merge: "memories_semantic_merge" # merge new student memories via LLM
+    memories_semantic_merge: "memories_semantic_merge", # merge new student memories via LLM
+    generate_observations: "generate_observations" # generate academic observations from lesson reports
   }, validate: true, prefix: true
 
   FRIENDLY_CATEGORIES = {
@@ -44,7 +45,8 @@ class Prompt < ApplicationRecord
     base_system_prompt: "Base System Prompt",
     # tool_usage: "Tool Usage",
     delegate_to_frontier_llm: "Delegate To Frontier LLM",
-    memories_semantic_merge: "Memories: Semantic Merge"
+    memories_semantic_merge: "Memories: Semantic Merge",
+    generate_observations: "Generate Observations"
   }
 
   validates :title, presence: true

@@ -54,25 +54,30 @@ tool.specifications = {
       strengths: {
         type: "array",
         items: { type: "string" },
-        description: "List aspects (if any) where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent lessons. May include knowledge or skills."
+        description: "List aspects (if any) where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent lessons. May include knowledge, skills, abilities, or other learning targets."
       },
       areas_for_review: {
         type: "array",
         items: { type: "string" },
-        description: "List aspects (if any) where the student should receive additional clarification, review or practice in subsequent lessons."
+        description: "List aspects (if any) where the student should receive additional clarification, review or practice in subsequent lessons. May include knowledge, skills, abilities, or other learning targets."
       },
       teaching_methods: {
         type: "array",
         items: { type: "string" },
-        description: "Optional: Note any aspects of teaching methodology that were particularly effective or ineffective for the student"
+        description: "Optional: Note any aspects of teaching methodology that were particularly effective or ineffective for the student."
+      },
+      other_observations: {
+        type: "array",
+        items: { type: "string" },
+        description: "Optional: Note any other observations or notable examples concerning the student's progress and development, such as engagement, attitude, cognition, or other relevant factors."
       },
       memories: {
         type: "array",
         items: { type: "string" },
-        description: "Optional: List any new details about the student to remember for future lessons. For example: interests/hobbies, goals, learning preferences. Be concise."
+        description: "Optional: List any new personal details about the student to remember for future lessons. For example: interests/hobbies, goals, learning preferences. Be concise."
       }
     },
-    required: [ "summary", "strengths", "areas_for_review" ]
+    required: [ "summary" ]
   }
 }
 tool.save!

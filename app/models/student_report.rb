@@ -1,6 +1,6 @@
 class StudentReport < ApplicationRecord
   # Reports stored as progress_data (JSONB).
-  # As LLMs may not follow the desired schema for reports, don't depend on any particular JSON format.
+  # As LLMs may not follow the desired schema for reports, don't depend on any particular JSON format. Design around parsing/displaying any contents of the progress_data.
 
   belongs_to :reportable, polymorphic: true # allows any model to have a StudentReport through reportable (eg. lesson report, enrollment report, misc)
   belongs_to :student, class_name: "User", inverse_of: :student_reports, optional: false
