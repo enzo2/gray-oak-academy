@@ -12,7 +12,7 @@ GIT
 
 GIT
   remote: https://github.com/rack/rack-attack.git
-  revision: 676ba26b3c1cc0f5df45b539c727a4e02e468815
+  revision: b2ebab9b45e7e026122c76c81186b001664737fc
   branch: main
   specs:
     rack-attack (6.8.0)
