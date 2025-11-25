@@ -65,7 +65,7 @@ module Admin
     def adopt
       if @student.update(teacher: current_user)
         flash[:success] = "Student adopted successfully."
-        redirect_to admin_student_path(@student), status: :see_other
+        redirect_to admin_student_path(@student, active_tab: :active_courses), status: :see_other # Go to :settings tab
       else
         flash[:error] = @student.errors.full_messages.to_sentence
         redirect_to admin_students_path, status: :unprocessable_content
