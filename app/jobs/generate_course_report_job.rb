@@ -32,9 +32,7 @@ class GenerateCourseReportJob < ApplicationJob
           "items": { "type": "string" },
           "description": "Optional: Note any other observations or notable examples concerning the student's progress and development, such as engagement, attitude, cognition, or other relevant factors."
         }
-      },
-      "required": [ "summary", "strengths", "teaching_methods" ],
-      "additionalProperties": false
+      }
     }
   }
 

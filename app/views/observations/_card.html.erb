@@ -16,9 +16,15 @@
     
     <% if local_assigns[:teacher_mode] && observation.status_pending? %>
       <div class="flex gap-2">
-        <%= button_to "Approve", admin_observation_path(observation), method: :patch, params: { observation: { status: :approved } }, class: "text-emerald-600 hover:text-emerald-800 font-bold", form: { data: { turbo_stream: true } } %>
+        <%= button_to "Approve", admin_observation_path(observation), method: :patch, 
+              params: { observation: { status: :approved } }, 
+              class: "text-emerald-600 hover:text-emerald-800 font-bold hover:cursor-pointer", 
+              form: { data: { turbo_stream: true } } %>
         <span class="text-stone-300">|</span>
-        <%= button_to "Reject", admin_observation_path(observation), method: :patch, params: { observation: { status: :rejected } }, class: "text-red-600 hover:text-red-800", form: { data: { turbo_stream: true } } %>
+        <%= button_to "Reject", admin_observation_path(observation), method: :patch, 
+              params: { observation: { status: :rejected } }, 
+            class: "text-red-600 hover:text-red-800 hover:cursor-pointer", 
+            form: { data: { turbo_stream: true } } %>
       </div>
     <% end %>
   </div>

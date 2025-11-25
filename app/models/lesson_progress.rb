@@ -6,6 +6,7 @@ class LessonProgress < ApplicationRecord
   has_one :teacher, through: :lesson
   has_one :conversation, dependent: :destroy
   has_one :student_report, as: :reportable, dependent: :nullify # Don't destroy student reports if the lesson/course is deleted.
+  has_many :student_feedbacks, dependent: :nullify # Don't destroy feedbacks if the lesson progress is deleted.
 
   # Enforce no duplicate progresses for the same student and lesson
   validates_uniqueness_of :student_id, scope: :lesson_id, message: "has already started progress on this lesson."
@@ -60,7 +61,12 @@ class LessonProgress < ApplicationRecord
       #{student.enrollments.find_by(course: lesson.course)&.lesson_history_for_prompt}
       Memories about this student:
       #{Memory.for_prompt(user: student)}
+
+      Key observations about the student (Verified):
+      #{student.observations.for_context.limit(10).pluck(:content).map { |o| "- #{o}" }.join("\n")}
     LESSON_INFO
+    # Student feedback not yet included in the lesson prompt. Would potentially be distracting or irrelevant.
+
     generative_guidelines + "\n\n" + lesson_tutor_session_prompt + "\n\n" + lesson_info
   end
 

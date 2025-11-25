@@ -718,12 +718,36 @@ p.prompt = <<~PROMPT
   The following were the lessons in the course, their goals, and the student's report following each lesson:
   {lessons}
 
-  Now, please synthesize this information into a final course-end student report. You will need to comment on:
-  - An overview of the student's performance and understanding during the course
-  - Areas (if any) where the student demonstrated adequate or strong understanding, which will require minimal to no review in subsequent courses
-  - Aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions
-  - Aspects of the teaching methodology that were particularly effective or ineffective for this student.
-  Please respond according to the provided JSON schema.
+  Now, please synthesize this information into a final course-end student report. Respond in JSON according to this schema:
+    "schema": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "A detailed overview of the student's performance and understanding during the course."
+        },
+        "strengths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List areas where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent courses. May include knowledge, skills, abilities, or other learning targets."
+        },
+        "areas_for_review": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions. May include knowledge, skills, abilities, or other learning targets."
+        },
+        "teaching_methods": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Note any aspects of teaching methodology that were particularly effective or ineffective for the student."
+        },
+        "other_observations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional: Note any other observations or notable examples concerning the student's progress and development, such as engagement, attitude, cognition, or other relevant factors."
+        }
+      }
+    }
 PROMPT
 p.save!
 
@@ -828,6 +852,38 @@ p.prompt = <<~PROMPT
     "replacement_ids": [2, 44]
   }
   replacement_ids will DELETE the existing memory and is *optional* -- use only if you can safely delete a memory whose content is fully captured in the new memories.
+PROMPT
+p.save!
+
+p = Prompt.find_or_initialize_by(category: 'generate_observations', teacher_id: nil)
+p.title = "Generate Observations"
+p.prompt = <<~PROMPT
+  You are now tasked with generating key observations about a student based on their latest lesson report.#{' '}
+  Observations refer to specific, actionable insights that relate to learning, such as cognitive patterns, engagement triggers, misunderstandings, effective or ineffective teaching methods -- anything that provides insight into the student's educational progress and can inform future teaching strategies.
+  Review the following student report from a recent lesson and generate a list of key observations.
+
+  Student Report:
+  {lesson_report}
+
+  Existing Recent Observations:
+  {recent_observations}
+
+  Today: {current_date}
+
+  Your goal is to extract **falsifiable hypotheses** and **significant behavioral insights** rather than generic statements.
+  - Avoid trivial observations (e.g., "Student completed the lesson").
+  - Avoid personal memories (e.g., "Student enjoys hiking") since these were already captured separately. Observations now focus on learning-related insights.
+  - Formulate them as hypotheses where applicable (e.g., "Student retention improves when abstract concepts are mapped to physical analogies" vs "Student likes analogies").
+  - Avoid repeating existing observations, but do reinforce or refine them if the new evidence is strong.
+  - Limit to 3 observations maximum.
+
+  Respond in JSON:
+  {
+    "observations": [
+      "Observation 1",
+      "Observation 2"
+    ]
+  }
 PROMPT
 p.save!
 

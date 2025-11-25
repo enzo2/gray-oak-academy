@@ -12,6 +12,7 @@ class StudentReport < ApplicationRecord
   # Automatically check if student course report needs to be generated
   after_create :trigger_course_report_check
   after_create_commit :trigger_memory_backfill
+  after_create_commit :trigger_observation_generation
 
   scope :lesson_reports, -> { where(reportable_type: "LessonProgress") }
   scope :course_reports, -> { where(reportable_type: "Enrollment") }
@@ -62,5 +63,12 @@ class StudentReport < ApplicationRecord
     return unless progress_data&.dig("memories").present?
 
     BackfillMemoriesFromLessonReportJob.set(wait: 5.seconds).perform_later(self)
+  end
+
+  def trigger_observation_generation
+    return unless reportable_type == "LessonProgress"
+
+    # We trigger observation generation regardless of specific content, as the LLM will derive them.
+    GenerateObservationsJob.set(wait: 5.seconds).perform_later(self)
   end
 end
