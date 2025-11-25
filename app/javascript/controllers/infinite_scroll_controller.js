@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { get } from "@rails/request.js"
+import { Turbo } from "@hotwired/turbo-rails"
 
 export default class extends Controller {
   static targets = ["entries", "pagination"]
@@ -9,8 +9,16 @@ export default class extends Controller {
   }
 
   connect() {
-    //console.log("InfiniteScrollController connected")
-    this.load()
+    // Only load when the element becomes visible
+    const observer = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          this.load()
+          observer.disconnect()
+        }
+      })
+    })
+    observer.observe(this.element)
   }
 
   scroll() {
@@ -38,8 +46,24 @@ export default class extends Controller {
 
     try {
       console.log(`Loading page ${this.pageValue} from ${url.toString()}`)
-      const response = await get(url.toString(), { responseKind: "turbo-stream" })
+      
+      const tokenMeta = document.querySelector('meta[name="csrf-token"]')
+      const token = tokenMeta ? tokenMeta.content : ""
+      
+      const headers = {
+        "Accept": "text/vnd.turbo-stream.html"
+      }
+      if (token) {
+        headers["X-CSRF-Token"] = token
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: headers
+      })
+
       if (response.ok) {
+        const html = await response.text()
+        Turbo.renderStreamMessage(html)
         this.pageValue++
         console.log(`Loaded page ${this.pageValue - 1}`)
       } else {

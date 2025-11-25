@@ -73,8 +73,8 @@
         </div>
       </nav>
       <!-- flashes will be rendered as toast -->
-      <%# to send a flash message, use turbo_stream to append shared/flash to flash_bar %>
-      <%# In the controller, you may need to use Flash.now[:abc] instead of flash[:abc] for turbo_stream actions %>
+      <%# Flash.now[:abc] instead of flash[:abc] is needed for turbo_stream renders %>
+      <%# to send a flash message via action cable, use turbo_stream to append shared/flash to flash_bar %>
       <div id="flash_bar" class="hidden" data-controller="alert" data-turbo-temporary>
         <%= render "shared/flash" if flash.any? %>
       </div>

@@ -53,7 +53,7 @@ module Admin
     end
 
     def show
-      @active_tab = params[:active_tab]&.to_sym || :active_courses
+      @active_tab = params[:active_tab]&.to_sym || :journal
       @memories = @student.memories.includes(:author).order(created_at: :desc)
 
       # Trigger verification that the course reports were generated, in case the job failed originally

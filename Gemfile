@@ -25,7 +25,7 @@ gem "image_processing", "~> 1.2"
 gem "importmap-rails"
 gem "turbo-rails"
 gem "stimulus-rails"
-gem "requestjs-rails"
+# gem "requestjs-rails"
 gem "tailwindcss-rails", "~> 4.0"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]

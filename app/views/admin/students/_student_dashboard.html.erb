@@ -1,8 +1,8 @@
 <h2 class="text-xl font-semibold mb-4"><%= @student.name %></h2>
 
-  <sl-tab-group id="student-dashboard-tabs" class="">
-  <sl-tab slot="nav" panel="active_courses" <%= "active" if @active_tab == :active_courses %>>Active Courses</sl-tab>
+<sl-tab-group id="student-dashboard-tabs" class="">
   <sl-tab slot="nav" panel="journal" <%= "active" if @active_tab == :journal %>>Journal</sl-tab>
+  <sl-tab slot="nav" panel="active_courses" <%= "active" if @active_tab == :active_courses %>>Active Courses</sl-tab>
   <sl-tab slot="nav" panel="past_courses" <%= "active" if @active_tab == :past_courses %>>Past Courses</sl-tab>
   <sl-tab slot="nav" panel="enroll" <%= "active" if @active_tab == :enroll %>>Add Course</sl-tab>
   <sl-tab slot="nav" panel="memories" <%= "active" if @active_tab == :memories %>>Memories</sl-tab>
