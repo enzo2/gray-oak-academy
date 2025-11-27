@@ -10,7 +10,26 @@
   <sl-tab slot="nav" panel="settings" <%= "active" if @active_tab == :settings %>>Settings</sl-tab>
 
   <sl-tab-panel name="journal" <%= "active" if @active_tab == :journal %>>
-    <%= render "shared/journal_timeline", teacher_mode: true %>
+    <div class="journal-wrapper" data-controller="journal-filter" data-journal-filter-infinite-scroll-outlet=".journal-timeline-container">
+      <%= render "shared/journal_toolbar", url: journal_admin_student_path(@student) %>
+      
+      <div id="pending_observations" class="space-y-4 mb-6">
+        <% if @pending_observations.present? %>
+          <div class="flex items-center gap-2 mb-2">
+            <sl-icon name="hourglass-split" class="text-amber-500"></sl-icon>
+            <h3 class="font-semibold text-stone-600 dark:text-stone-400">Pending Observations</h3>
+          </div>
+          <% @pending_observations.each do |observation| %>
+            <%= render "shared/journal_entry", item: observation, teacher_mode: true, pending_view: true %>
+          <% end %>
+          <hr class="border-stone-200 dark:border-stone-700 my-4">
+        <% end %>
+      </div>
+
+      <div data-journal-filter-target="timeline">
+        <%= render "shared/journal_timeline", teacher_mode: true %>
+      </div>
+    </div>
   </sl-tab-panel>
 
   <sl-tab-panel name="active_courses" <%= "active" if @active_tab == :active_courses %>>
@@ -67,8 +86,9 @@
     <h3 class="text-lg font-semibold">Memories</h3>
 
     <p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
-      Memories are anything the LLM should know about the student. <br>
-      They will be learned automatically over time, but you should add some manually too.
+      Memories are personal facts or recollections about the student.<br>
+      They will be learned automatically over time, but you should add some manually too.<br>
+      Don't include things relating to learning preferences or challenges; those belong in Observations.<br>
     </p>
 
     <div class="mb-4">
@@ -114,7 +134,7 @@
       <% elsif !current_user.role_superuser? && current_user != @student %>
           <p class="text-sm text-dim">Only a superuser can delete student accounts.</p>
       <% elsif current_user == @student %>
-        <p class="text-sm text-dim">There are no student settings, since you are a looking at your own account.</p>
+        <p class="text-sm text-dim">There are no student settings, since you are looking at your own account.</p>
       <% end %>
   </sl-tab-panel>
 </sl-tab-group>

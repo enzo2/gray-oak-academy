@@ -1,6 +1,5 @@
-<div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent"
+<div class="journal-timeline-container space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent"
      data-controller="infinite-scroll"
-     data-action="scroll@window->infinite-scroll#scroll"
      data-infinite-scroll-url-value="<%= local_assigns[:url] || journal_admin_student_path(@student) %>">
   
   <div id="journal_entries" data-infinite-scroll-target="entries">

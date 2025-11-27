@@ -1,3 +1,16 @@
-<%= turbo_stream.replace "#{dom_id(@observation)}_card" do %>
-  <%= render partial: "observations/card", locals: { observation: @observation, teacher_mode: true } %>
+<% if @observation.saved_change_to_status? && @observation.status_before_last_save == "pending" %>
+  <%# Move from Pending list to Timeline %>
+  <%= turbo_stream.remove "#{dom_id(@observation)}_card_container" %>
+  <%= turbo_stream.prepend "journal_entries" do %>
+    <%= render "shared/journal_entry", item: @observation, teacher_mode: true %>
+  <% end %>
+
+  <% if @observation.student.observations.pending.empty? %>
+    <%= turbo_stream.update "pending_observations", "" %>
+  <% end %>
+<% else %>
+  <%# Update in place %>
+  <%= turbo_stream.replace "#{dom_id(@observation)}_card_container" do %>
+    <%= render "shared/journal_entry", item: @observation, teacher_mode: true, pending_view: @observation.status_pending? %>
+  <% end %>
 <% end %>

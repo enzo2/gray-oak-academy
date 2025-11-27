@@ -106,8 +106,8 @@
     <%= form_with model: [:student, StudentFeedback.new], data: { turbo_stream: true }, class: "space-y-4" do |f| %>
       <%= f.hidden_field :lesson_progress_id, value: @conversation.lesson_progress&.id %>
       <div>
-        <%= f.label :content, "Here, you can give feedback on the lesson.", class: "label" %>
-        <%= f.text_area :content, rows: 4, class: "textarea w-full", required: true, placeholder: "I specifically liked/disliked..." %>
+        <%= f.label :content, "Here, you can save feedback on the lesson. It will help improve and personalize future lessons.", class: "label" %>
+        <%= f.text_area :content, rows: 4, class: "textarea input-primary w-full", required: true, placeholder: "I specifically liked/disliked..." %>
       </div>
       <div class="flex justify-end gap-2">
         <sl-button slot="footer" variant="primary" type="submit">Submit Feedback</sl-button>

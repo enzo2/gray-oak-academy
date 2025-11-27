@@ -103,7 +103,7 @@ Rails.application.routes.draw do
     resource :app_setting, only: [ :edit, :update ]
 
     resources :llms, only: [ :index, :update ]
-    resources :observations, only: [ :update ]
+    resources :observations, only: [ :create, :show, :edit, :update, :destroy ]
   end
 
   namespace :student do

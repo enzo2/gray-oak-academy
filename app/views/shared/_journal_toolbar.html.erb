@@ -1,0 +1,37 @@
+<div class="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  
+  <div class="flex items-center gap-4">
+    <!-- New Observation Button -->
+    <button class="btn-primary text-sm flex flex-row items-center py-2 px-2" onclick="document.getElementById('new-observation-dialog').show()">
+      <sl-icon slot="prefix" name="plus-circle"></sl-icon> &nbsp;
+      New Observation
+    </button>
+    
+    <%= render "observations/new_modal" %>
+  </div>
+
+  <!-- Filters -->
+  <form data-journal-filter-target="form" data-action="change->journal-filter#filter" class="flex flex-wrap items-center gap-4">
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-semibold text-dim">Show:</span>
+        
+        <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+          <input type="checkbox" name="types" value="Observation" checked class="checkbox-primary">
+          Observations
+        </label>
+         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+          <input type="checkbox" name="types" value="StudentFeedback" checked class="checkbox-primary">
+          Feedback
+        </label>
+         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+          <input type="checkbox" name="types" value="StudentReport" checked class="checkbox-primary">
+          Reports
+        </label>
+         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+          <input type="checkbox" name="types" value="Memory" checked class="checkbox-primary">
+          Memories
+        </label>
+      </div>
+      
+  </form>
+</div>

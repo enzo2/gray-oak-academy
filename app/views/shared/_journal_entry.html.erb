@@ -1,0 +1,42 @@
+<% pending_view = local_assigns[:pending_view] %>
+<div id="<%= dom_id(item) %>_card_container" 
+     class="relative flex items-center justify-between <%= pending_view ? 'gap-4' : 'md:justify-normal md:odd:flex-row-reverse' %> group is-active journal-entry"
+     data-journal-type="<%= item.class.name %>"
+     data-journal-status="<%= item.is_a?(Observation) ? item.status : '' %>">
+  <div class="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-white text-slate-500 shadow shrink-0 <%= pending_view ? '' : 'md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10' %>">
+    <% case item %>
+    <% when Observation %>
+      🎥
+    <% when StudentFeedback %>
+      💬
+    <% when StudentReport %>
+      <% if item.reportable_type == 'User' %>
+        📜
+      <% else %>
+        📝
+      <% end %>
+    <% when Memory %>
+      🧠
+    <% end %>
+  </div>
+  
+  <!-- Card -->
+  <div class="<%= pending_view ? 'w-full' : 'w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)]' %> bg-white dark:bg-stone-800 p-4 rounded border border-slate-200 dark:border-stone-700 shadow">
+    <div class="fle items-center justify-between mb-1">
+      <div class="font-bold text-slate-900 dark:text-white text-sm mb-1">
+        <%= item.created_at.strftime("%b %d, %Y at %l:%M %p") %>
+      </div>
+    </div>
+    
+    <% case item %>
+    <% when Observation %>
+      <%= render "observations/card", observation: item, teacher_mode: local_assigns[:teacher_mode] %>
+    <% when StudentFeedback %>
+      <%= render "student_feedbacks/card", feedback: item %>
+    <% when StudentReport %>
+      <%= render "student_reports/card", report: item %>
+    <% when Memory %>
+      <%= render "memories/card", memory: item %>
+    <% end %>
+  </div>
+</div>

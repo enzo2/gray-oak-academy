@@ -35,16 +35,20 @@ module Admin
 
     def journal
       page = params[:page].present? ? params[:page].to_i : 1
-      per_page = 15
+      per_page = 15 # Set the number of items to return at a time.
+
+      # Filters are handled client-side. Return the full set of items for the requested page.
       @timeline_items = JournalService.get_timeline(@student, teacher_mode: true, page: page, per_page: per_page)
 
       respond_to do |format|
         format.turbo_stream do
           streams = []
-          streams << turbo_stream.append("journal_entries", partial: "shared/journal_items", locals: { timeline_items: @timeline_items, teacher_mode: true })
+
+          streams << turbo_stream.append("journal_entries", partial: "shared/journal_entry", collection: @timeline_items, as: :item, locals: { teacher_mode: true })
 
           if @timeline_items.size < per_page
-            streams << turbo_stream.update("journal_pagination", "<div class='text-center text-stone-400 text-sm py-4'>End of Journal</div>")
+            # End of timeline reached. Add the end marker.
+            streams << turbo_stream.update("journal_pagination", partial: "shared/journal_end")
           end
 
           render turbo_stream: streams
@@ -55,6 +59,7 @@ module Admin
     def show
       @active_tab = params[:active_tab]&.to_sym || :journal
       @memories = @student.memories.includes(:author).order(created_at: :desc)
+      @pending_observations = @student.observations.pending.order(created_at: :desc)
 
       # Trigger verification that the course reports were generated, in case the job failed originally
       @active_enrollments.each do |enrollment|

@@ -3,33 +3,33 @@
 ## Background and Purpose
 Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designed to realize the rather old idea that the future of education is 1-on-1 private tutoring conducted by AI. This app allows anyone to easily build lesson plans or entire courses for an LLM to teach, incorporating learning resources and generative applets, and executing those lesson plans using any LLM. It addresses numerous emerging problems in education:
 
-* **Superiority of 1:1 Tutoring**: [Some say by a lot, some say by a little](https://scholar.google.com/scholar?hl=en&q=2+sigma+problem), but most would agree that private tutoring is the best form of education, and LLMs can do it. Yet, implementing a true LLM tutor is not trivial. Slapping a "Tutor Mode" button onto a standard LLM chat only works for highly motivated students who know what they need to learn. 
+* **Superiority of 1:1 Tutoring**: [Some say by a lot, some say by a little](https://scholar.google.com/scholar?hl=en&q=2+sigma+problem), but most would agree that private tutoring is the best form of education, and LLMs can do it. Yet, implementing a true LLM tutor is not trivial. Slapping a "Tutor Mode" button onto a generic LLM chat only works for highly motivated students who know what they need to learn. 
 
-  *Solution*: A flexible wrapper around LLM tutoring with prompt and curriculum management, lesson resources, multimodal chat, generative applets, and student progress tracking. Tell the LLM what to teach, how to do it, who it's teaching, what resources are available, and when to stop.
+  *Solution*: A flexible, highly configurable, and observable wrapper around LLM tutoring with prompt and curriculum management, lesson resources, multimodal chat, generative applets, and student progress tracking. Tell the LLM what to teach, how to do it, who it's teaching, what resources are available, and when to stop. Then, review extracted observations, memories, and reports about the student.
 
 * **Cheating, Apathy and Boredom**: "Do my homework for me" is the status quo of the GPT era, now widely considered a crisis in education. The underlying problem is that school can be long, repetitive, impersonal&mdash;and homework is insult upon injury. The answer has been to promote LLMs as study assistants—an incremental improvement.
 
-  *Solution*: By deliberately teaching *through* the LLM, the potential for academic dishonesty or wasted effort is excluded. The need for homework and exams will diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. Like a private tutor, the LLM will identify a struggling or disinterest student, and find ways to hold their attention. Once the student has achieved mastery, they move on. After lessons, students will feel satisfied that their new knowledge is practical and useful.
+  *Solution*: By deliberately teaching *through* the LLM, the potential for academic dishonesty or wasted effort is excluded. The need for homework and exams will diminish, as practice and evaluation are folded into lessons, allowing more time for exploratory learning and meaningful application. Like a private tutor, the LLM will identify a struggling or disinterested student and find ways to hold their attention. After lessons, students will feel satisfied that their new knowledge is practical and useful.
 
 * **Local Curriculum Control**: To put it mildly, many parents will not be happy to hand their child to a centralized AI system. For K-12, complete local control must be at the core of an AI tutor.
 
-  *Solution*: Gray Oak Academy does not contain a built-in curriculum or knowledge graph. It has a strong default set of teacher-editable prompts defining the methodology, principles, and values for the LLM to follow. The combination of prompt transparency and lesson plan control provides assurance to users (whether homeschooling parents, private schools, or school districts) that overfitted LLMs are not left to their own devices to generate a curriculum out of a Silicon Valley&ndash;approved worldview. 
+  *Solution*: Gray Oak Academy does not contain a built-in curriculum or knowledge graph. It has an opinionated default set of teacher-editable prompts defining the methodology, principles, and values for the LLM to follow. The combination of prompt transparency and lesson plan control provides assurance to users (whether homeschooling parents, private schools, or school districts) that overfitted LLMs are not left to their own devices to generate a curriculum out of a Silicon Valley&ndash;approved worldview. 
 
 * **The Role of Teachers**: Some suppose that teachers should take on a non-academic role in an LLM-tutored world. With a superintelligent tutor for every child, what's left to do? 
 
-  *Solution*: Intelligence has been commoditized, but teachers remain invaluable. The supervising teacher (or parent) is the individual who has authority to define the LLM's prompts and curriculum. But now, he or she has more time to bring beauty, delight, and contentment into the lives of youth however they see fit: to spend time seeking out learning resources (both digital and physical), incorporating more memorable experiences, mentoring individual students and helping them to gain not only knowledge, but wisdom. 
+  *Solution*: Intelligence has been commoditized, but teachers remain invaluable. The supervising teacher (or parent) is the individual who has authority to define the LLM's prompts and curriculum. But now, he or she has more time to bring beauty, delight, and contentment into the lives of youth however they see fit: to spend time seeking out learning resources (both digital and physical), incorporating more memorable experiences, mentoring individual students and helping them to gain not only knowledge, but wisdom. *This app explicitly requires a fully engaged supervising teacher.*
 
-* **Ensloppification**: AI image, video, and audio generation can undoubtedly be used to create memorable educational material. This can be helpful, but it also leads to a proliferation of inaccurate, superficial, mind-numbing content, when primary sources should be used instead. 
+* **Ensloppification**: AI image, video, and audio generation can undoubtedly be used to create memorable educational material. This can be helpful, but it also leads to a proliferation of inaccurate, superficial, even mind-numbing content, when primary sources should be used instead. 
 
-  *Solution*: The supervising teacher is responsible for adding appropriate media as resources. Image generation is available to the LLM, but it's instructed how to use it responsibly for encouragement rather than factual purposes.
+  *Solution*: The supervising teacher is responsible for adding appropriate media as resources. Image generation is available to the LLM, but it's instructed how to use it responsibly.
 
 * **Screen Time**:  The LLM can and should be bridged into the real world by linking resources like tools, demonstrations, even human resources. However, some lessons are better taught away from the computer, or through casual conversation. Some activities should not be tutored at all.
 
   *Solution*: Raw audio input, STT, and TTS are combined to enable voice-only lessons without the high cost of realtime models. This enables learning in any setting, like "walk-and-talk" or workshops. Going further, "offline" lessons are encouraged, where the student is given an activity and debriefed afterward.
 
-* **Vendor Lock-in**: LLMs are constantly changing in intelligence, personality, and relevant traits like sycophancy. It should be easy to switch models. In addition, for privacy, Zero Data Retention is needed.
+* **Vendor Lock-in**: LLMs are constantly changing in intelligence, personality, and relevant traits like sycophancy. It should be easy to switch models. In addition, for privacy, Zero Data Retention (ZDR) is needed.
 
-  *Solution*: Both the API and model are user-configurable. Any OpenAI-compatible API can be used. Special support is provided for OpenRouter, which makes it particularly easy to try different models, providers, and configure Zero Data Retention. 
+  *Solution*: Both the API and models are fully user-configurable. Any OpenAI-compatible API can be used, with special support for OpenRouter, making it easy to try different models, providers, and configure ZDR. 
 
 Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home&ndash; or small&ndash;group schooling, the supervisory teacher or parent remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. 
 
@@ -37,12 +37,13 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ## Features
 - Self-hostable with docker
-- Works with any OpenAI-compatible API (including locally hosted)
+- Works with any OpenAI-compatible API (including local)
 - Highly configurable LLM tutoring: design your own curriculum with Courses, Lessons, Resources, Applets
-- Rapid yet deliberate curriculum planning: Use a thinking LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
+- Rapid yet deliberate curriculum planning: Use a frontier LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
 - Integrated multimodal LLM chat for teachers and students, with images, STT/TTS/auto-read (no need for costly realtime models), and "chalkboard" (multipurpose frame accessible by the LLM)
 - LLM can create/run Javascript applets, display files and URLs, finish lessons, save memories, and generate student reports
-- Student reports and memories are fed into the next session, ensuring continuity and personalization
+- Longitudinal student model with atomic observations keeps a fluid view of student progress
+- Reports, observations, and memories are fed into the next session, ensuring continuity and personalization
 - Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 
 ### More cool stuff
@@ -50,7 +51,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
 - Automated memory saving and semantic consolidation
-- Main LLM can query the thinking LLM at its discretion
+- Main LLM can query the frontier LLM at its discretion
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
 - Python code execution tool via [https://github.com/khoj-ai/terrarium](URL)
@@ -112,7 +113,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
-- Student profile/journal: track student progress over time (e.g. joint teacher-LLM understanding of the student)
+- Periodic student profile generation
 - Teacher alerts, notifications, mobile push, etc. 
 - Improve curriculum design:
    - web search / open textbook / deep research support

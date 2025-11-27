@@ -2,7 +2,7 @@
   <h2 class="text-lg font-semibold">Memories</h2>
 
   <p class="mb-4 text-sm">
-    Memories are anything the LLM should know about you.
+    Memories are anything the LLM should know about you personally.
     <% if current_user.role_teacher? %>
       <br><i class="text-dim">To manage students' memories, go to the <%= link_to "Students dashboard", admin_students_path, class: "underline" %>.</i>
     <% end %>

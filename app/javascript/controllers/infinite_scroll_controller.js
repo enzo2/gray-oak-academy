@@ -9,32 +9,27 @@ export default class extends Controller {
   }
 
   connect() {
-    // Only load when the element becomes visible
-    const observer = new IntersectionObserver((entries, observer) => {
+    this.createObserver()
+  }
+
+  disconnect() {
+    if (this.observer) {
+      this.observer.disconnect()
+    }
+  }
+
+  createObserver() {
+    if (!this.hasPaginationTarget) return
+
+    this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           this.load()
-          observer.disconnect()
         }
       })
-    })
-    observer.observe(this.element)
-  }
+    }, { rootMargin: "200px" }) // Load 200px before end
 
-  scroll() {
-    const { scrollTop, clientHeight, scrollHeight } = document.documentElement
-    // Fallback for older browsers or specific modes if documentElement doesn't work
-    const docHeight = Math.max(
-      document.body.scrollHeight, document.documentElement.scrollHeight,
-      document.body.offsetHeight, document.documentElement.offsetHeight,
-      document.body.clientHeight, document.documentElement.clientHeight
-    )
-    const winHeight = window.innerHeight || document.documentElement.clientHeight
-    const winScroll = window.scrollY || window.pageYOffset || document.body.scrollTop + (document.documentElement && document.documentElement.scrollTop || 0)
-
-    if (winScroll + winHeight >= docHeight - 100) {
-      this.load()
-    }
+    this.observer.observe(this.paginationTarget)
   }
 
   async load() {
