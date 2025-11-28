@@ -18,47 +18,7 @@ Dotenv.load ".env.test", overwrite: true
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
-
-# Test helpers: provide a minimal Class.stub implementation and route helpers used by integration tests.
-# This keeps tests hermetic without adding extra test dependencies.
-class Class
-  def stub(name, value = nil, &block)
-    raise ArgumentError, "block required" unless block_given?
-    sc = class << self; self; end
-    had = sc.method_defined?(name) || sc.private_method_defined?(name)
-    orig = sc.instance_method(name) if had
-
-    # Define a temporary singleton method that either calls the provided callable or returns the value.
-    # The wrapper tries keyword and positional invocation to be robust against different call signatures.
-    sc.define_method(name) do |*args, **kwargs, &mblk|
-      if value.respond_to?(:call)
-        begin
-          value.call(*args, **kwargs, &mblk)
-        rescue ArgumentError
-          begin
-            value.call(*args, &mblk)
-          rescue ArgumentError
-            value.call(&mblk)
-          end
-        end
-      else
-        value
-      end
-    end
-
-    begin
-      yield
-    ensure
-      if had
-        # Restore original method
-        sc.define_method(name, orig)
-      else
-        # Remove the temporary method
-        sc.send(:remove_method, name) rescue nil
-      end
-    end
-  end
-end
+require "minitest/mock"
 
 module IntegrationRouteHelpers
   # Minimal route helper fallbacks used by integration tests.

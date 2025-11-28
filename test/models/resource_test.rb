@@ -40,4 +40,23 @@ class ResourceTest < ActiveSupport::TestCase
 
     assert_equal other_user, resource.applet.user, "Existing applet.user should not be overwritten by resource assignment"
   end
+
+  test "validates single presence of payload" do
+    teacher = users(:admin)
+    resource = Resource.new(description: "Invalid resource", teacher: teacher)
+
+    # Attach file AND set URI
+    resource.file.attach(io: StringIO.new("test"), filename: "test.txt")
+    resource.uri = "https://example.com"
+
+    assert_not resource.valid?
+    assert_includes resource.errors[:base], "Only one payload variety (File, URI, or Applet) can be present."
+
+    # Clear URI, add Applet
+    resource.uri = nil
+    resource.applet = Applet.new(title: "Applet", code: "code", user: teacher)
+
+    assert_not resource.valid?
+    assert_includes resource.errors[:base], "Only one payload variety (File, URI, or Applet) can be present."
+  end
 end

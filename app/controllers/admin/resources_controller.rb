@@ -62,7 +62,11 @@ module Admin
     private
 
     def set_resource
-      @resource = Resource.find(params[:id])
+      if current_user.role_superuser?
+        @resource = Resource.find(params[:id])
+      else
+        @resource = Resource.where(teacher: current_user).find(params[:id])
+      end
     end
 
     def resource_params
