@@ -81,7 +81,7 @@ class Admin::StudentsControllerActionsTest < ActionDispatch::IntegrationTest
     post adopt_admin_student_path(student_without_teacher)
 
     assert_equal @admin, student_without_teacher.reload.teacher
-    assert_redirected_to admin_student_path(student_without_teacher)
+    assert_redirected_to admin_student_path(student_without_teacher, active_tab: "active_courses")
   end
 
   test "unadopt action removes a teacher from a student" do
