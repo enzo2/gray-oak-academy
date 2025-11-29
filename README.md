@@ -43,7 +43,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Integrated multimodal LLM chat for teachers and students, with images, STT/TTS/auto-read (no need for costly realtime models), and "chalkboard" (multipurpose frame accessible by the LLM)
 - LLM can create/run Javascript applets, display files and URLs, finish lessons, save memories, and generate student reports
 - Longitudinal student model with atomic observations keeps a fluid view of student progress
-- Reports, observations, and memories are fed into the next session, ensuring continuity and personalization
+- Reports, observations, and memories feed forward, ensuring continuity and personalization
 - Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 
 ### More cool stuff
@@ -100,7 +100,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 ### Choosing LLMs: 
 - For the main chat/lesson LLM: model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs.) 
 - Add a dedicated thinking model for better performance on curriculum generation tasks, applets, or anything else the main model wants to delegate. Model must support structured outputs. It should be a frontier, large-sized model. (Even some flagship models may not be good enough!)
-- For image generation, while models are advancing, they are still totally unsuitable for educational uses like accurately labelled diagrams, infographics, etc. For now, the app implements a 2-pass generation to allow image in/out models to self-correct to some extent. 
+- For image generation, the only suitable model thus far is gemini-3-pro-image. To further improve factual/textual accuracy, you can enable 2-pass generation to allow the model to critique and regenerate its own output.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the console, `User.first.role_superuser!`.)
@@ -120,7 +120,6 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
    - Automated resource finding/validation 
 - MCP support
 - Student analytics (time spent, etc.)
-- Student feedback tool at end of lessons
 - Resource tagging, archive
 - Camera input/snapshots (e.g. show the LLM your desk)
 - Hide more advanced settings/features under a Power User setting
