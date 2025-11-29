@@ -26,7 +26,7 @@
       <%= simple_format(message.content, {}, wrapper_tag: "p") %>
     <% end %>
   </div>
-<% elsif message.role_assistant? %>
+<% elsif message.role_assistant? || (message.role_tool? && message.images.any?) %>
   <div class="message-content pt-2
               font-serif
               prose dark:prose-invert prose-stone max-w-none
@@ -81,7 +81,7 @@
         <% end %>
       <% end %>
 
-      <%= markdown(message.content) if message.content.present? %>
+      <%= markdown(message.content) if message.content.present? && !message.role_tool? %>
 
       <% if message.tool_calls.present? %> 
         <span class="mt-2 font-sans text-stone-500 dark:text-stone-400">

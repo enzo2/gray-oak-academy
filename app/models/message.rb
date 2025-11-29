@@ -18,7 +18,8 @@ class Message < ApplicationRecord
   after_destroy_commit -> { broadcast_destroyed }
 
   def broadcast_created
-    return if role_tool? # Don't broadcast tool messages, as they are only shown to the LLM.
+    # Don't broadcast tool messages unless they have images (e.g. generated images).
+    return if role_tool? && images.empty?
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
     # Remove any temporary new message placeholder
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?

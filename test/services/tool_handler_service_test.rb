@@ -201,4 +201,48 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     blocked = Message.last
     assert_match(/tool call limit reached/i, blocked.content)
   end
+
+  test "execute_generate_image creates a tool message with attached image" do
+    Tool.create!(
+      specifications: {
+        "name" => "generate_image",
+        "description" => "Generate an image",
+        "parameters" => {
+          "type" => "object",
+          "properties" => { "prompt" => { "type" => "string", "description" => "The prompt" } },
+          "required" => [ "prompt" ]
+        }
+      }
+    )
+
+    # Create a dummy tempfile to simulate image generation result
+    temp_image = Tempfile.new([ "test", ".jpg" ])
+    temp_image.write("fake image content")
+    temp_image.rewind
+
+    tool_calls = [ {
+      id: "tc-img-1",
+      function: { name: "generate_image", arguments: { prompt: "A test image" }.to_json }
+    } ]
+
+    # Mock ImageGenerationService.generate
+    ImageGenerationService.stub :generate, temp_image do
+      assert_difference "Message.count", 1 do
+        # We also expect 1 Image record created (and implicitly attached file)
+        assert_difference "Image.count", 1 do
+          ToolHandlerService.new(conversation: @conversation, message: nil).execute_tool_calls(tool_calls)
+        end
+      end
+    end
+
+    msg = Message.last
+    assert_equal "tool", msg.role
+    assert_equal "tc-img-1", msg.tool_call_id
+    assert_equal "Image generation done.", msg.content
+    assert msg.images.any?
+    assert_equal 1, msg.images.count
+
+    temp_image.close
+    temp_image.unlink
+  end
 end

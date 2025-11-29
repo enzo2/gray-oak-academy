@@ -696,33 +696,34 @@ class ToolHandlerService
     end
 
     begin
-      assistant_message = @conversation.messages.create!(role: "assistant", content: "")
-      timestamp = Time.current.to_i
-      filename = "generated-#{timestamp}.jpg"
+      Message.transaction do
+        # Create the tool message and attach image within a transaction
+        # so that when the transaction commits, the image is attached
+        # and the broadcast_created callback (which runs after commit)
+        # sees the image and broadcasts the message.
+        tool_message = create_tool_message("Image generation done.")
 
-      image = assistant_message.images.build
-      image.file.attach(
-        io: results,
-        filename: filename,
-        content_type: "image/jpeg"
-      )
-      image.save!
+        timestamp = Time.current.to_i
+        filename = "generated-#{timestamp}.jpg"
 
-      # Close the Tempfile after attachment to free resources
-      results.close
-      results.unlink
-
-      # Rebroadcast the message
-      assistant_message.broadcast_updated
+        image = tool_message.images.build
+        image.file.attach(
+          io: results,
+          filename: filename,
+          content_type: "image/jpeg"
+        )
+        image.save!
+      end
     rescue => e
-      # If something failed while saving images, remove the assistant message and its attachments
-      assistant_message&.destroy
-      results&.close if results.respond_to?(:close)
-      results&.unlink if results.respond_to?(:unlink)
       raise ToolExecutionError, "Error saving image: #{e.message}"
+    ensure
+      # Close the Tempfile after attachment to free resources.
+      # This must be done in ensure block (after transaction commits and ActiveStorage upload completes).
+      if results
+        results.close if results.respond_to?(:close) && !results.closed?
+        results.unlink if results.respond_to?(:unlink) && File.exist?(results.path)
+      end
     end
-
-    create_tool_message("Image generation done. 1 image inserted into the conversation as an assistant message. Do not copy or rewrite the image, as it is already part of the conversation.")
   end
 
   # ---- Applets tools ----
