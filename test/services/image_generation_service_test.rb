@@ -78,4 +78,34 @@ class ImageGenerationServiceTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "generate performs 1-pass generation when two_pass is false" do
+    @app_setting.update!(image_generation_two_pass: false)
+
+    # Mock OpenaiApiService
+    mock_service = Minitest::Mock.new
+
+    # First pass response
+    response1 = {
+      "images" => [ { "image_url" => { "url" => "data:image/png;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" } } ],
+      "content" => "Here is the first image"
+    }
+
+    # We expect complete to be called exactly once
+    mock_service.expect :complete, response1 do |messages, temperature:|
+      messages.length == 1 && messages[0][:role] == "user"
+    end
+
+    # Use stub to inject the mock
+    OpenaiApiService.stub :new, mock_service do
+      result = ImageGenerationService.generate(user: @user, prompt: @prompt)
+      assert result.is_a?(Tempfile)
+      assert File.exist?(result.path)
+      # Clean up
+      result.close
+      result.unlink
+    end
+
+    assert_mock mock_service
+  end
 end

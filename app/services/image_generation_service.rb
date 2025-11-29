@@ -16,6 +16,7 @@ class ImageGenerationService
     app_setting = AppSetting.settings
     llm = app_setting&.image_llm
     token = app_setting&.image_effective_token
+    two_pass = app_setting&.image_generation_two_pass
 
     unless llm.api_provider&.include?("openrouter.ai")
       raise OpenAiError, "Only OpenRouter is supported for image generation."
@@ -51,24 +52,29 @@ class ImageGenerationService
       raise OpenAiError, "Image model returned no images on first pass."
     end
 
-    # Second pass: ask the model to check and regenerate if needed.
-    critique_instructions = "Thanks. Please review the image you just generated for errors such as misspellings, incorrect labels, or factual mistakes relative to the original prompt. Regenerate a corrected and improved image (even if you think the original is OK)."
-    content_json = [ { "type": "text", "text": content1 } ]
-    content_json << { "type": "image_url", "image_url": { "url": img1_url } }
-    messages << { role: "assistant", content: content_json }
-    messages << { role: "user", content: critique_instructions }
+    if two_pass
+      # Second pass: ask the model to check and regenerate if needed.
+      critique_instructions = "Thanks. Please review the image you just generated for errors such as misspellings, incorrect labels, or factual mistakes relative to the original prompt. Regenerate a corrected and improved image (even if you think the original is OK)."
+      content_json = [ { "type": "text", "text": content1 } ]
+      content_json << { "type": "image_url", "image_url": { "url": img1_url } }
+      messages << { role: "assistant", content: content_json }
+      messages << { role: "user", content: critique_instructions }
 
-    Rails.logger.debug "ImageGenerationService: sending second-pass critique/regeneration to #{llm.model}"
-    Rails.logger.debug "messages: #{messages}"
-    msg2 = client.complete(messages, temperature: 0.5)
-    unless msg2.is_a?(Hash)
-      Rails.logger.warn "ImageGenerationService: second pass returned no image; falling back to first pass images"
+      Rails.logger.debug "ImageGenerationService: sending second-pass critique/regeneration to #{llm.model}"
+      Rails.logger.debug "messages: #{messages}"
+      msg2 = client.complete(messages, temperature: 0.5)
+      unless msg2.is_a?(Hash)
+        Rails.logger.warn "ImageGenerationService: second pass returned no image; falling back to first pass images"
+        final_images = images1
+        final_content = content1
+      else
+        images2 = msg2["images"] || []
+        final_images = images2.any? ? images2 : images1
+        final_content = msg2["content"].to_s.presence || content1
+      end
+    else
       final_images = images1
       final_content = content1
-    else
-      images2 = msg2["images"] || []
-      final_images = images2.any? ? images2 : images1
-      final_content = msg2["content"].to_s.presence || content1
     end
 
     Rails.logger.debug "Content from image generation: #{final_content}"

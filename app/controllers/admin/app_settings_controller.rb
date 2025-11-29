@@ -38,7 +38,8 @@ module Admin
         :tts_instructions,
         :token_override,
         :image_llm_id,
-        :embedding_model
+        :embedding_model,
+        :image_generation_two_pass
       )
     end
   end

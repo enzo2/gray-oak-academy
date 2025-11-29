@@ -115,6 +115,18 @@
     </p>
   </div>
 
+  <div>
+    <%= f.label :image_generation_two_pass, class: "flex items-start cursor-pointer" do %>
+      <%= f.check_box :image_generation_two_pass, class: "checkbox-primary mt-1 mr-2" %>
+      <div>
+        <span class="font-medium text-gray-700 dark:text-gray-300">Enable 2-pass generation (critique & regenerate)</span>
+        <p class="text-xs text-dim mt-0.5">
+          When enabled, the model will critique and regenerate the image to correct errors. Disable for faster generation or if using highly capable models (e.g. Gemini 3 Pro).
+        </p>
+      </div>
+    <% end %>
+  </div>
+
   <h2 class="text-xl font-semibold mb-2 mt-4">
     Embeddings
     <% if AppSetting.embeddings_configured? %>

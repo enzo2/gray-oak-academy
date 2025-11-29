@@ -13,7 +13,15 @@ class AppSetting < ApplicationRecord
                  :tts_instructions,
                  :token_override,
                  :image_llm_id,
-                 :embedding_model
+                 :embedding_model,
+                 :image_generation_two_pass
+
+  # Custom accessor to handle boolean casting and default value
+  def image_generation_two_pass
+    val = super
+    return true if val.nil?
+    ActiveModel::Type::Boolean.new.cast(val)
+  end
 
   validates :singleton, inclusion: { in: [ true, false ] }
   validate :embedding_model_validity, on: :update
