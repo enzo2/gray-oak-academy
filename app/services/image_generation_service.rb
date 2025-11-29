@@ -126,7 +126,7 @@ class ImageGenerationService
       Rails.logger.debug "Image processed successfully: #{temp_processed.path}"
 
       temp_processed
-    rescue Base64::Error, ArgumentError => e
+    rescue ArgumentError => e
       temp_original&.close
       temp_original&.unlink
       raise OpenAiError, "Decode error: #{e.message}"
