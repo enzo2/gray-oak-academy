@@ -65,20 +65,39 @@
         </div>
       <% end %>
 
+      <% if current_user.role_teacher? && current_user.taught_courses.any? %>
+        <hr class="hr-primary">
+
+        <div class="mb-4 mx-auto">
+          <h3 class="text-lg font-bold mb-2 mt-6">Transfer Assets</h3>
+          <p class="mb-4 text-sm text-stone-600 dark:text-stone-400">
+            Before deleting your account, you must transfer your courses to another teacher.
+          </p>
+
+          <%= form_tag transfer_user_assets_path, method: :post, data: { turbo: false } do %>
+            <div class="flex items-end gap-4">
+              <div class="flex-grow">
+                <label class="form-label">Transfer to:</label>
+                <%= collection_select :target_user_id, nil,
+                    User.where(role: [:admin, :superuser]).where.not(id: current_user.id),
+                    :id, :name,
+                    { prompt: "Select a teacher" },
+                    { name: "target_user_id", class: "input-primary w-full", required: true } %>
+              </div>
+              <%= submit_tag "Transfer All Assets", class: "btn-primary mb-0", data: { confirm: "Are you sure you want to transfer all your courses? This cannot be undone." } %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
       <hr class="hr-primary">
 
       <div class="mb-4 mx-auto">
         <h3 class="text-lg font-bold mb-2 mt-6">Delete my account</h3>
 
-        <%#= button_to "Delete my account", registration_path(resource_name), 
-          data: { confirm: "Are you sure?", turbo_confirm: "Are you sure?" }, 
+        <%= button_to "Delete my account", registration_path(resource_name),
+          data: { confirm: "Are you sure? This action is permanent.", turbo_confirm: "Are you sure? This action is permanent." },
           method: :delete, class: "btn-danger w-48" %>
-
-        <% if current_user.role_superuser? %>
-          <p class="mb-2 text-dim">You are a superuser. If you really need to delete your account, use the console.</p>
-        <% else %>
-          <p class="mb-2 text-dim">You must ask the administrator to delete your account.</p>
-        <% end %>
       </div>
 
     </sl-tab-panel>

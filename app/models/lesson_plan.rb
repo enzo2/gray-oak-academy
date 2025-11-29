@@ -1,7 +1,7 @@
 class LessonPlan < ApplicationRecord
   belongs_to :lesson
-  belongs_to :teacher, class_name: "User", inverse_of: :lesson_plans
   has_one :course, through: :lesson
+  has_one :teacher, through: :course
   has_and_belongs_to_many :resources
 
   validates_uniqueness_of :lesson_id # lesson has_one lesson_plan

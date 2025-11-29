@@ -6,6 +6,8 @@ class StudentReport < ApplicationRecord
   belongs_to :student, class_name: "User", inverse_of: :student_reports, optional: false
   belongs_to :teacher, class_name: "User", inverse_of: :authored_reports, optional: true # if teacher is deleted, report can remain
 
+  has_many :memories, dependent: :nullify # If memory was based on the report
+
   enum :author_type, { ai_generated: "ai_generated", teacher_written: "teacher_written" }, prefix: true
   enum :status, { in_progress: "in_progress", completed: "completed" }, prefix: true
 

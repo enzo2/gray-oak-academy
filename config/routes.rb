@@ -13,6 +13,10 @@ Rails.application.routes.draw do
     registrations: "users/registrations"
   }
 
+  devise_scope :user do
+    post "users/transfer_assets", to: "users/registrations#transfer_assets", as: :transfer_user_assets
+  end
+
   # Defines the root path route ("/")
   root to: "application#index"
 

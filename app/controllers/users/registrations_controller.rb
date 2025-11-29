@@ -6,6 +6,7 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # before_action :configure_account_update_params, only: [:update]
   before_action :check_signup_mode, only: [ :new, :create ]
   before_action :set_memories, only: [ :edit, :update ]
+  before_action :ensure_no_dependencies, only: [ :destroy ]
 
   # GET /resource/sign_up
   # def new
@@ -35,6 +36,28 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # def destroy
   #   super
   # end
+
+  def transfer_assets
+    target_user = User.find(params[:target_user_id])
+
+    unless target_user.role_teacher?
+      flash[:alert] = "Target user must be a teacher."
+      redirect_to edit_user_registration_path(active_tab: :account) and return
+    end
+
+    if target_user == current_user
+      flash[:alert] = "You cannot transfer assets to yourself."
+      redirect_to edit_user_registration_path(active_tab: :account) and return
+    end
+
+    ActiveRecord::Base.transaction do
+      current_user.taught_courses.update_all(teacher_id: target_user.id)
+      current_user.resources.update_all(teacher_id: target_user.id)
+    end
+
+    flash[:notice] = "All assets transferred to #{target_user.name}."
+    redirect_to edit_user_registration_path(active_tab: :account)
+  end
 
   # GET /resource/cancel
   # Forces the session data which is usually expired after sign
@@ -68,6 +91,14 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # end
   #
   private
+
+  def ensure_no_dependencies
+    return unless current_user.role_teacher?
+    if current_user.taught_courses.any?
+      flash[:alert] = "Cannot delete user. Please transfer owned courses to another teacher first."
+      redirect_to edit_user_registration_path(active_tab: :account), status: :see_other
+    end
+  end
 
   def check_signup_mode
     if ENV["ALLOW_SIGNUPS"] != "true"

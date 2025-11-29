@@ -62,4 +62,21 @@ class UserTest < ActiveSupport::TestCase
     assert_not teacher.valid?
     assert_includes teacher.errors[:signup_code], "is invalid"
   end
+
+  test "should not destroy user with associated courses" do
+    assert @admin.taught_courses.any?
+
+    assert_no_difference("User.count") do
+      assert_not @admin.destroy
+    end
+    assert_includes @admin.errors[:base], "Cannot delete user. Please transfer owned courses to another teacher first."
+  end
+
+  test "should destroy user without associated courses" do
+    assert_empty @student.taught_courses
+
+    assert_difference("User.count", -1) do
+      @student.destroy
+    end
+  end
 end

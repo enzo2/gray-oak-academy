@@ -55,4 +55,13 @@ class GenerateObservationsJobTest < ActiveJob::TestCase
       GenerateObservationsJob.perform_now(@report)
     end
   end
+
+  test "handles missing reportable gracefully" do
+    # Simulate orphaned report
+    @report.update_column(:reportable_id, nil)
+
+    assert_no_difference("Observation.count") do
+      GenerateObservationsJob.perform_now(@report)
+    end
+  end
 end

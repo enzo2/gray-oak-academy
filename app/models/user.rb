@@ -21,15 +21,17 @@ class User < ApplicationRecord
   after_create :ensure_setting
   after_create :seed_admin_data, if: :role_admin? || :role_superuser?
 
+  before_destroy :validate_no_dependent_content
+
   has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
   has_one_attached :profile_picture, dependent: :destroy
   has_one :setting, dependent: :destroy
-  has_many :enrollments, foreign_key: "student_id", inverse_of: :student
+  has_many :enrollments, foreign_key: "student_id", inverse_of: :student, dependent: :destroy
   has_many :courses, through: :enrollments, inverse_of: :students
   has_many :taught_courses, class_name: "Course", foreign_key: "teacher_id", inverse_of: :teacher
   has_many :lessons, through: :courses
-  has_many :lesson_plans, foreign_key: "teacher_id", inverse_of: :teacher
+  has_many :lesson_plans, through: :taught_courses
   has_many :lesson_progresses, foreign_key: "student_id", inverse_of: :student, dependent: :destroy
   has_many :student_reports, foreign_key: "student_id", inverse_of: :student, dependent: :destroy # Retrieves all student reports. When querying, use scopes to narrow by reportable_type.
   has_many :user_context_reports, class_name: "StudentReport", as: :reportable # for generic reports; specific ones for course or completed lessons would be associated via ENROLLMENTS, or LESSON_PROGRESS
@@ -67,6 +69,13 @@ class User < ApplicationRecord
   def validate_not_own_teacher
     return if teacher.nil?
     errors.add(:teacher, "cannot be yourself") if teacher == self
+  end
+
+  def validate_no_dependent_content
+    if taught_courses.any?
+      errors.add(:base, "Cannot delete user. Please transfer owned courses to another teacher first.")
+      throw(:abort)
+    end
   end
 
   def ensure_setting

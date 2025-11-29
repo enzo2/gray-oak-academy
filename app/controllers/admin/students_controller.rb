@@ -97,8 +97,11 @@ module Admin
 
     def destroy
       # Only available to superusers. This is a highly destructive action.
-      @student.destroy!
-      flash[:success] = "Student deleted successfully."
+      if @student.destroy
+        flash[:success] = "Student deleted successfully."
+      else
+        flash[:error] = @student.errors.full_messages.to_sentence
+      end
       redirect_to admin_students_path, status: :see_other
     end
 

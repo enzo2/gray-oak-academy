@@ -2,6 +2,7 @@ class Course < ApplicationRecord
   belongs_to :teacher, class_name: "User", inverse_of: :taught_courses
   has_many :students, through: :enrollments, inverse_of: :courses
   has_many :lessons, -> { order(position: :asc) }, dependent: :destroy
+  has_many :lesson_plans, through: :lessons
   has_many :enrollments
   has_many :student_reports, through: :enrollments
 

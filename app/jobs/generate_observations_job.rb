@@ -26,6 +26,11 @@ class GenerateObservationsJob < ApplicationJob
     teacher = student.role_teacher? ? student : student.teacher
     lesson_progress = student_report.reportable
 
+    unless lesson_progress
+      Rails.logger.warn "GenerateObservationsJob: Reportable (LessonProgress) not found for report #{student_report.id}. Skipping."
+      return
+    end
+
     # Retrieve the prompt
     task_prompt = Prompt.get_prompt(category: "generate_observations", user: teacher)
     # Prepare context: Report content + Recent observations

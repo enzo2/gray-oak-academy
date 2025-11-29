@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_21_153612) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_29_034749) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -165,10 +165,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_21_153612) do
     t.bigint "lesson_id", null: false
     t.enum "status", default: "draft", null: false, enum_type: "lesson_plan_status"
     t.jsonb "suggested_resources", default: []
-    t.bigint "teacher_id", null: false
     t.datetime "updated_at", null: false
     t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id", unique: true
-    t.index ["teacher_id"], name: "index_lesson_plans_on_teacher_id"
   end
 
   create_table "lesson_plans_resources", id: false, force: :cascade do |t|
@@ -223,7 +221,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_21_153612) do
     t.bigint "author_id"
     t.text "body", null: false
     t.datetime "created_at", null: false
-    t.vector "embedding", limit: 5000
+    t.vector "embedding"
     t.boolean "hidden_from_student", default: false, null: false
     t.bigint "student_id", null: false
     t.bigint "student_report_id"
@@ -372,7 +370,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_21_153612) do
   add_foreign_key "enrollments", "users", column: "student_id"
   add_foreign_key "images", "messages"
   add_foreign_key "lesson_plans", "lessons"
-  add_foreign_key "lesson_plans", "users", column: "teacher_id"
   add_foreign_key "lesson_progresses", "lessons"
   add_foreign_key "lesson_progresses", "users", column: "student_id"
   add_foreign_key "lessons", "courses"
