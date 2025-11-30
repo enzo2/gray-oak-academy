@@ -93,9 +93,9 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ### Choosing an API:
 - Any OpenAI-compatible API is supported. 
-- Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. They also allow BYOK.
-- Gemini API's OpenAI compatibility endpoint is a good option with free tier, raw audio support, and long context window models.
-- For heavy users, providers supporting automated prompt caching may reduce cost.
+- Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. They also allow BYOK and ZDR.
+- Gemini API's OpenAI compatibility endpoint is a good option for casual use, with free tier, raw audio support, and long context window models.
+- For cost savings, make sure to use an API that supports automated prompt caching.
 
 ### Choosing LLMs: 
 - For the main chat/lesson LLM: model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs.) 
@@ -103,7 +103,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - For image generation, the only suitable model thus far is gemini-3-pro-image. To further improve factual/textual accuracy, you can enable 2-pass generation to allow the model to critique and regenerate its own output.
 
 ## Getting Started
-- Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the console, `User.first.role_superuser!`.)
+- Create a teacher account using the teacher signup code. (To become a superuser and access all functions, manually change your user_role from the rails console, `User.first.role_superuser!`.)
 - Go to Settings > Preferences and set your API, token and models.
 - To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
 - Create a course using the Course Manager, or by asking the LLM. Next, generate a course outline.
@@ -119,7 +119,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
    - web search / open textbook / deep research support
    - Automated resource finding/validation 
 - MCP support
-- Student analytics (time spent, etc.)
+- Improve student analytics
 - Resource tagging, archive
 - Camera input/snapshots (e.g. show the LLM your desk)
 - Hide more advanced settings/features under a Power User setting

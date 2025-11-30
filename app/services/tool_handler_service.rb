@@ -332,7 +332,7 @@ class ToolHandlerService
     end
 
     # Create the student report
-    StudentReport.create!(
+    report = StudentReport.create!(
       student: student,
       teacher: lesson.teacher,
       reportable: lesson_progress, # Associate the report with the LessonProgress, which will cause lesson_progress.completed? to return true
@@ -340,6 +340,10 @@ class ToolHandlerService
       author_type: :ai_generated,
       status: :completed
     )
+
+    # Update analytics
+    duration = lesson_progress.calculate_duration
+    lesson_progress.update!(completed_at: report.created_at, duration: duration)
 
     Rails.logger.debug("Lesson completed and student report generated for lesson: #{lesson.id}, student: #{student.id}")
     Rails.logger.debug("Report: #{@args}")

@@ -23,6 +23,20 @@
       <b>Lesson Goals:</b>
       <%= lesson.goals %>
     </p>
+
+    <% lesson_progress = lesson.lesson_progresses.find_by(student: @enrollment.student) %>
+    <% if lesson_progress %>
+      <div class="mb-4 text-sm text-stone-600 dark:text-stone-400">
+        <p>Started: <%= lesson_progress.created_at.strftime("%B %d, %Y %H:%M") %></p>
+        <% if lesson_progress.completed_at %>
+          <p>Completed: <%= lesson_progress.completed_at.strftime("%B %d, %Y %H:%M") %></p>
+        <% end %>
+        <% if lesson_progress.duration.to_i > 0 %>
+          <p>Time Spent: <%= (lesson_progress.duration / 60.0).round(1) %> minutes</p>
+        <% end %>
+      </div>
+    <% end %>
+
     <% student_reports.each do |student_report| %>
       <div class="bg-stone-300 dark:bg-stone-700 rounded-lg my-2 px-4 py-2 pl-4
                     prose dark:prose-invert prose-stone

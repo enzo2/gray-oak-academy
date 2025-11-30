@@ -1,5 +1,6 @@
 class LessonProgress < ApplicationRecord
-  # Represents a lesson in progress for a student
+  # Contains a student's progress through a specific lesson, including the conversation,
+  # student report, time spent, and feedbacks.
 
   belongs_to :student, class_name: "User"
   belongs_to :lesson
@@ -68,6 +69,25 @@ class LessonProgress < ApplicationRecord
     # Student feedback not yet included in the lesson prompt. Would potentially be distracting or irrelevant.
 
     generative_guidelines + "\n\n" + lesson_tutor_session_prompt + "\n\n" + lesson_info
+  end
+
+  def calculate_duration
+    return 0 unless conversation
+    messages = conversation.messages.order(:created_at)
+    return 0 if messages.empty?
+
+    total_duration = 0
+    prev_time = messages.first.created_at
+
+    messages.each do |msg|
+      diff = msg.created_at - prev_time
+      # If gap is less than 10 minutes, add it. Otherwise ignore (assume break).
+      if diff > 0 && diff < 10.minutes
+        total_duration += diff
+      end
+      prev_time = msg.created_at
+    end
+    total_duration.round # time in seconds
   end
 
   private

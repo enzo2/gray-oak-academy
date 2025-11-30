@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_29_034749) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_29_223707) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -177,7 +177,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_034749) do
 
   create_table "lesson_progresses", force: :cascade do |t|
     t.jsonb "chat_history"
+    t.datetime "completed_at"
     t.datetime "created_at", null: false
+    t.integer "duration"
     t.bigint "lesson_id", null: false
     t.jsonb "progress_data"
     t.bigint "student_id", null: false
