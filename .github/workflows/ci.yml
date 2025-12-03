@@ -8,8 +8,6 @@ on:
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
-    env: 
-      BUNDLE_JOBS: 1
 
     steps:
       - name: Checkout code
@@ -28,8 +26,6 @@ jobs:
 
   scan_js:
     runs-on: ubuntu-latest
-    env: 
-      BUNDLE_JOBS: 1
 
     steps:
       - name: Checkout code
@@ -47,7 +43,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUBOCOP_CACHE_ROOT: tmp/rubocop
-      BUNDLE_JOBS: 1
 
     steps:
       - name: Checkout code
@@ -73,8 +68,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    env:
-      BUNDLE_JOBS: 1
 
     services:
       postgres:
