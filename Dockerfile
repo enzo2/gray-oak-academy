@@ -39,7 +39,7 @@ RUN apt-get update -qq && \
 # Install application gems
 COPY Gemfile Gemfile.lock vendor ./
 ENV RB_SYS_FORCE_INSTALL_RUST_TOOLCHAIN=false
-RUN bundle install --jobs 1 && \
+RUN bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
 	bundle exec bootsnap precompile -j 1 --gemfile
