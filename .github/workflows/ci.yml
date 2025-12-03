@@ -8,10 +8,15 @@ on:
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
+    env: 
+      BUNDLE_JOBS: 1
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: set bundler config jobs 1 as temporary workaround 
+        run: bundle config set --local jobs 1
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
