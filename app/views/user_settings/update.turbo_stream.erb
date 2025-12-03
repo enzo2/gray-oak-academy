@@ -1,5 +1,12 @@
-<%= turbo_stream.replace "llm-settings-form" do %>  
-  <%= render "user_settings/api", settings: @settings %>
+<% if params.dig(:setting, :notification_preferences) %>
+  <%# Fine to leave the client state. Just checkboxes, no errors are possible.... %>
+  <%#= turbo_stream.replace "notification-settings-form" do %>
+    <%#= render "user_settings/notifications", settings: @settings %>
+  <%# end %>
+<% else %>
+  <%= turbo_stream.replace "llm-settings-form" do %>  
+    <%= render "user_settings/api", settings: @settings %>
+  <% end %>
 <% end %>
 
 <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>

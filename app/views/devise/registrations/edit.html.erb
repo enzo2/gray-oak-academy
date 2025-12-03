@@ -5,6 +5,7 @@
     <% if current_user.role_teacher? %>
       <sl-tab slot="nav" panel="api" <%= 'active' if @active_tab == :api %>>LLMs</sl-tab>
     <% end %>
+    <sl-tab slot="nav" panel="notifications" <%= 'active' if @active_tab == :notifications %>>Notifications</sl-tab>
     <sl-tab slot="nav" panel="memories" <%= 'active' if @active_tab == :memories %>>Memories</sl-tab>
     <sl-tab slot="nav" panel="account" <%= 'active' if @active_tab == :account %>>Account</sl-tab>
 
@@ -13,6 +14,10 @@
         <%= render "user_settings/api", settings: current_user.settings %>
       </sl-tab-panel>
     <% end %>
+
+    <sl-tab-panel name="notifications" <%= 'active' if @active_tab == :notifications %>>
+      <%= render "user_settings/notifications", settings: current_user.settings %>
+    </sl-tab-panel>
 
     <sl-tab-panel name="memories" <%= 'active' if @active_tab == :memories %>>
       <%= render "memories/panel" %>

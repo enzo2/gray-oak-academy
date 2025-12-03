@@ -23,6 +23,10 @@ Rails.application.routes.draw do
   patch "user_settings", to: "user_settings#update"
   get "user_settings/llm_models", to: "user_settings#llm_models"
 
+  resources :notifications, only: [ :index, :update, :destroy ] do
+    post :mark_all_read, on: :collection
+  end
+
   resources :conversations, only: [ :index, :show, :create, :update, :destroy ] do
     member do
       delete :clear

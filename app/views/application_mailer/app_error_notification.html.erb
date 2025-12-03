@@ -1,0 +1,16 @@
+<h1>Application Error</h1>
+<p>
+  <strong>Error:</strong> <%= @error_details[:class_name] %>: <%= @error_details[:message] %>
+</p>
+<p>
+  <strong>Handled:</strong> <%= @handled %>
+</p>
+<p>
+  <strong>Source:</strong> <%= @source.inspect %>
+</p>
+
+<h3>Context</h3>
+<pre><%= JSON.pretty_generate(@context) rescue @context.inspect %></pre>
+
+<h3>Backtrace</h3>
+<pre><%= @error_details[:backtrace]&.join("\n") %></pre>

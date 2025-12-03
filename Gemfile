@@ -45,6 +45,9 @@ gem "faraday-retry"
 
 # when ready: https://github.com/excid3/action_push_web
 
+# temp til next release:
+gem "commonmarker", github: "gjtorikian/commonmarker", branch: "main"
+
 # LLM API access/wrappers
 gem "open_router"# , git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
 gem "ruby-openai", "< 8.4"

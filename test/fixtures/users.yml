@@ -19,6 +19,13 @@ admin2:
   first_name: Admin2
   last_name: User
 
+super_user:
+  email: superuser@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>
+  role: superuser
+  first_name: Super
+  last_name: User
+
 student:
   email: student@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, 'password') %>

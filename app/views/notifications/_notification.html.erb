@@ -1,0 +1,32 @@
+<div id="<%= dom_id(notification) %>" class="flex items-start p-4 rounded-sm border <%= notification.read? ? 'bg-white dark:bg-stone-950 border-stone-200 dark:border-stone-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' %> transition-colors">
+  <div class="flex-grow">
+    <div class="flex items-center gap-2 mb-1">
+      <% if !notification.read? %>
+        <span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" title="Unread"></span>
+      <% end %>
+      <span class="text-xs text-stone-500 dark:text-stone-400 font-mono">
+        <%= time_ago_in_words(notification.created_at) %> ago
+      </span>
+    </div>
+    
+    <div class="text-stone-900 dark:text-stone-100 mb-2">
+      <%= notification.message %>
+    </div>
+    
+    <% if notification.link.present? && !notification.link.match?(/\Ajavascript:/i) %>
+      <%= link_to "View Details", notification.link, class: "text-sm text-primary hover:text-primary-focus underline" %>
+    <% end %>
+  </div>
+  
+  <div class="flex flex-col gap-2 ml-4">
+    <% unless notification.read? %>
+      <%= button_to notification_path(notification), method: :patch, class: "p-1 text-stone-400 hover:text-green-600 dark:hover:text-green-500 transition-colors", title: "Mark as read", form: { data: { turbo: true } } do %>
+        <sl-icon name="check-circle" class="text-xl"></sl-icon>
+      <% end %>
+    <% end %>
+    
+    <%= button_to notification_path(notification), method: :delete, class: "p-1 text-stone-400 hover:text-red-600 dark:hover:text-red-500 transition-colors", title: "Dismiss", form: { data: { turbo: true } } do %>
+      <sl-icon name="x" class="text-xl"></sl-icon>
+    <% end %>
+  </div>
+</div>

@@ -6,7 +6,7 @@ class Admin::StudentsControllerTest < ActionDispatch::IntegrationTest
     sign_in admin
 
     # Sanity: admin shouldn't already have a teacher
-    assert_nil admin.teacher
+    assert_equal admin, admin.teacher
 
     post adopt_admin_student_path(admin.id)
 
@@ -19,7 +19,7 @@ class Admin::StudentsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/cannot be yourself/i, flash[:error])
 
     # No change persisted
-    assert_nil admin.reload.teacher
+    assert_nil admin.reload.teacher_id
   end
 
   test "cannot view show page of another teacher's student" do

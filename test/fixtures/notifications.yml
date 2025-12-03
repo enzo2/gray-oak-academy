@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  recipient: admin
+  event_type: "conversation.context_warning"
+  params: {}
+  read_at: 2025-11-30 23:03:14
+  link: "http://example.com"
+
+two:
+  recipient: student
+  event_type: "lesson.complete"
+  params: {}
+  read_at: 2025-11-30 23:03:14
+  link: "http://example.com"

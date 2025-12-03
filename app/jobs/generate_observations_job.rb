@@ -31,6 +31,12 @@ class GenerateObservationsJob < ApplicationJob
       return
     end
 
+    data = student_report.progress_data
+    if data.blank?
+      Rails.logger.warn "GenerateObservationsJob: No progress_data in report #{student_report.id}. Skipping."
+      return
+    end
+
     # Retrieve the prompt
     task_prompt = Prompt.get_prompt(category: "generate_observations", user: teacher)
     # Prepare context: Report content + Recent observations
@@ -40,7 +46,7 @@ class GenerateObservationsJob < ApplicationJob
                           .map { |o| "- #{o.content} [Observed: #{o.created_at.strftime("%B %d, %Y")}]" }.join("\n")
 
     prompt = task_prompt
-              .gsub("{lesson_report}", student_report.progress_data.to_json)
+              .gsub("{lesson_report}", data.to_json)
               .gsub("{recent_observations}", recent_observations.presence || "None")
               .gsub("{current_date}", Time.current.strftime("%B %d, %Y"))
 

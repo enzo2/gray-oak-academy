@@ -16,8 +16,8 @@ FileUtils.chdir APP_ROOT do
   system!("gem update --system")
 
   puts "== Updating bundler =="
-  system!("bundle update --bundler")
-  #system! "gem install bundler --conservative"
+  #system!("bundle update --bundler")
+  system! "gem install bundler --conservative"
  
   puts "== Installing dependencies =="
   system("bundle check") || system!("bundle install")

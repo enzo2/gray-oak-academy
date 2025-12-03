@@ -142,9 +142,18 @@ class Message < ApplicationRecord
         locals: { flash: { warning: "The conversation is approaching the token limit. Please notify the teacher to switch to a model with a larger limit." } }
       )
 
-      # Send email to teacher/admin
-      Rails.logger.debug "Sending email to admin for conversation: #{conversation.id}"
-      ContextLimitMailer.notify_admin(conversation).deliver_later
+      # Send alert to the teacher (or the user themselves if they're a teacher)
+      user = conversation.user
+      recipient = user.teacher || user
+      return unless recipient
+
+      Rails.logger.debug "Sending context warning notification for conversation: #{conversation.id}"
+      Rails.event.notify(Events::ConversationContextWarning.new(
+        recipient_ids: recipient.id,
+        link: Rails.application.routes.url_helpers.conversation_path(conversation),
+        user_name: user.name,
+        title: conversation.title || "Conversation"
+      ))
     end
   end
 end

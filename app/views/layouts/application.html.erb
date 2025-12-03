@@ -57,12 +57,19 @@
               <sl-icon-button name="three-dots-vertical" label="Main Menu" slot="trigger" class="text-2xl"></sl-icon-button>
               <sl-menu>
                 <sl-menu-item onclick="this.children[0].click"><a href="<%= root_path %>">Dashboard</a></sl-menu-item>
+                <sl-menu-item onclick="this.children[0].click"><a href="<%= notifications_path %>">Notifications <%= "●" if current_user.notifications.unread.exists? %></a></sl-menu-item>
                 <sl-menu-item onclick="this.children[0].click"><a href="<%= edit_user_registration_path %>">Settings</a></sl-menu-item>
                 <sl-menu-item onclick="this.children[0].click"><%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete } %></sl-menu-item>
               </sl-menu>
             </sl-dropdown>
             <div class="space-x-4 hidden sm:block pr-4">
               <%= link_to "Dashboard", root_path, class: "" %>
+              <%= link_to notifications_path, class: "group" do %>
+                Notifications
+                <% if current_user.notifications.unread.exists? %>
+                  <span class="inline-block w-2 h-2 bg-blue-500 rounded-full mb-1"></span>
+                <% end %>
+              <% end %>
               <%= link_to "Settings", edit_user_registration_path, class: "" %>
               <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
             </div>

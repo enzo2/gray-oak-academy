@@ -16,8 +16,7 @@ class Setting < ApplicationRecord
   store_accessor :settings, :llm_api_access_token
   store_accessor :settings, :llm_api_base_uri
   store_accessor :settings, :reasoning_model_name
-
-  # Removed: :speech_api_base_uri, :speech_api_access_token, :tts_model_name, :tts_voice_name, :tts_instructions, :stt_model_name
+  store_accessor :settings, :notification_preferences
 
   # keys that should be inherited from the teacher's settings for students:
   INHERITED_SETTING_KEYS = %i[
@@ -36,6 +35,16 @@ class Setting < ApplicationRecord
         super()
       end
     end
+  end
+
+  # Provide default notification preferences if none are set
+  def notification_preferences
+    defaults = {
+      "important" => { "email" => true, "in_app" => true },
+      "student_progress" => { "email" => false, "in_app" => true }
+    }
+    # Deep merge defaults with stored value to ensure new keys appear
+    defaults.deep_merge(super || {})
   end
 
   # Check if an LLM is configured

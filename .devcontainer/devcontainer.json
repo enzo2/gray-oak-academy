@@ -22,7 +22,8 @@
   "containerEnv": {
     "CAPYBARA_SERVER_PORT": "45678",
     "SELENIUM_HOST": "selenium",
-    "DB_HOST": "postgres"
+    "DB_HOST": "postgres",
+    "RB_SYS_FORCE_INSTALL_RUST_TOOLCHAIN": "false"
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.

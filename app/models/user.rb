@@ -20,6 +20,8 @@ class User < ApplicationRecord
 
   after_create :ensure_setting
   after_create :seed_admin_data, if: :role_admin? || :role_superuser?
+  after_create_commit :notify_user_signup
+
 
   before_destroy :validate_no_dependent_content
 
@@ -45,6 +47,7 @@ class User < ApplicationRecord
   has_many :prompts, foreign_key: "teacher_id", inverse_of: :teacher, dependent: :destroy
   has_many :conversations, dependent: :destroy
   has_many :applets, dependent: :destroy
+  has_many :notifications, foreign_key: :recipient_id, dependent: :destroy
 
   def name
     "#{first_name} #{last_name}"
@@ -59,6 +62,17 @@ class User < ApplicationRecord
     role_admin? || role_superuser?
   end
 
+  def teacher
+    super || (self if role_teacher?)
+  end
+
+  def notifies_on?(category, channel)
+    val = settings.notification_preferences.dig(category.to_s, channel.to_s)
+    # Default to true if key missing
+    return true if val.nil?
+    ActiveModel::Type::Boolean.new.cast(val)
+  end
+
   private
 
   def validate_teacher_role
@@ -67,8 +81,8 @@ class User < ApplicationRecord
   end
 
   def validate_not_own_teacher
-    return if teacher.nil?
-    errors.add(:teacher, "cannot be yourself") if teacher == self
+    return if teacher_id.nil?
+    errors.add(:teacher, "cannot be yourself") if teacher_id == id
   end
 
   def validate_no_dependent_content
@@ -112,5 +126,19 @@ class User < ApplicationRecord
     when "student"
       errors.add(:signup_code, "is invalid") unless signup_code == ENV["STUDENT_SIGNUP_CODE"]
     end
+  end
+
+  # Notify superusers of new user signups
+  def notify_user_signup
+    superuser_ids = User.role_superuser.where.not(id: id).pluck(:id)
+    return if superuser_ids.empty?
+
+    Rails.event.notify(Events::UserSignup.new(
+      recipient_ids: superuser_ids,
+      link: Rails.application.routes.url_helpers.admin_students_path,
+      new_user_name: name,
+      new_user_email: email,
+      new_user_id: id
+    ))
   end
 end

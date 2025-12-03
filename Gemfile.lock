@@ -1,4 +1,16 @@
 GIT
+  remote: https://github.com/gjtorikian/commonmarker.git
+  revision: c8756179adc3652b69138f9ca64ac8c4817e5ab1
+  branch: main
+  specs:
+    commonmarker (2.5.0)
+      rb_sys (~> 0.9)
+    commonmarker (2.5.0-aarch64-linux)
+    commonmarker (2.5.0-aarch64-linux-musl)
+    commonmarker (2.5.0-x86_64-linux)
+    commonmarker (2.5.0-x86_64-linux-musl)
+
+GIT
   remote: https://github.com/heartcombo/devise.git
   revision: c8a64b549c8b37e494eaca7be2def136a7e1b236
   branch: main
@@ -12,7 +24,7 @@ GIT
 
 GIT
   remote: https://github.com/rack/rack-attack.git
-  revision: b2ebab9b45e7e026122c76c81186b001664737fc
+  revision: 4a021df09dd7b4fc9ff7ce83a100e2b7bdebee3a
   branch: main
   specs:
     rack-attack (6.8.0)
@@ -110,8 +122,8 @@ GEM
     brakeman (7.1.1)
       racc
     builder (3.3.0)
-    bundler-audit (0.9.2)
-      bundler (>= 1.2.0, < 3)
+    bundler-audit (0.9.3)
+      bundler (>= 1.2.0)
       thor (~> 1.0)
     capybara (3.40.0)
       addressable
@@ -122,12 +134,6 @@ GEM
       rack-test (>= 0.6.3)
       regexp_parser (>= 1.5, < 3.0)
       xpath (~> 3.2)
-    commonmarker (2.5.0)
-      rb_sys (~> 0.9)
-    commonmarker (2.5.0-aarch64-linux)
-    commonmarker (2.5.0-aarch64-linux-musl)
-    commonmarker (2.5.0-x86_64-linux)
-    commonmarker (2.5.0-x86_64-linux-musl)
     concurrent-ruby (1.3.5)
     connection_pool (2.5.5)
     crass (1.0.6)
@@ -186,7 +192,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.16.0)
+    json (2.17.0)
     json-repair (0.2.0)
     json_schemer (2.4.0)
       bigdecimal
@@ -322,7 +328,7 @@ GEM
     rake-compiler-dock (1.9.1)
     rb_sys (0.9.117)
       rake-compiler-dock (= 1.9.1)
-    rdoc (6.16.0)
+    rdoc (6.16.1)
       erb
       psych (>= 4.0.0)
       tsort
@@ -352,7 +358,7 @@ GEM
       lint_roller (~> 1.1)
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.47.1, < 2.0)
-    rubocop-rails (2.34.1)
+    rubocop-rails (2.34.2)
       activesupport (>= 4.2.0)
       lint_roller (~> 1.1)
       rack (>= 1.1)
@@ -397,7 +403,7 @@ GEM
       thor (>= 1.3.1)
     stimulus-rails (1.3.4)
       railties (>= 6.0.0)
-    stringio (3.1.8)
+    stringio (3.1.9)
     tailwindcss-rails (4.4.0)
       railties (>= 7.0.0)
       tailwindcss-ruby (~> 4.0)
@@ -451,6 +457,7 @@ DEPENDENCIES
   brakeman
   bundler-audit
   capybara
+  commonmarker!
   debug
   devise!
   dotenv-rails

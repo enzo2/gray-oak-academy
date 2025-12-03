@@ -1,0 +1,9 @@
+<% if notifications.empty? %>
+  <div class="text-center p-8 bg-stone-50 dark:bg-stone-900 rounded-sm border border-stone-200 dark:border-stone-800">
+    <p class="text-stone-500 dark:text-stone-400">You have no notifications.</p>
+  </div>
+<% else %>
+  <div class="space-y-4">
+    <%= render partial: "notifications/notification", collection: notifications %>
+  </div>
+<% end %>

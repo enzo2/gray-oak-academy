@@ -12,19 +12,22 @@ module Admin
     end
 
     def create
-      @student = User.find(params[:observation][:student_id])
+      @observation = Observation.new(observation_params)
+      @observation.author = current_user
+      @observation.status = :approved # Teacher-created observations are auto-approved
+      @observation.last_validated_at = Time.current
+      @student = @observation.student
+
+      if @student.nil?
+        head :not_found
+        return
+      end
 
       # Authorization
       unless @student.teacher == current_user || current_user.role_superuser?
         head :forbidden
         return
       end
-
-      @observation = Observation.new(observation_params)
-      @observation.student = @student
-      @observation.author = current_user
-      @observation.status = :approved # Teacher-created observations are auto-approved
-      @observation.last_validated_at = Time.current
 
       if @observation.save
         respond_to do |format|
@@ -88,7 +91,7 @@ module Admin
     end
 
     def observation_params
-      params.require(:observation).permit(:status, :content)
+      params.require(:observation).permit(:status, :content, :student_id)
     end
   end
 end

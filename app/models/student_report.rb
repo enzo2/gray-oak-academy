@@ -9,12 +9,15 @@ class StudentReport < ApplicationRecord
   has_many :memories, dependent: :nullify # If memory was based on the report
 
   enum :author_type, { ai_generated: "ai_generated", teacher_written: "teacher_written" }, prefix: true
-  enum :status, { in_progress: "in_progress", completed: "completed" }, prefix: true
+  enum :status, { in_progress: "in_progress", completed: "completed" }, prefix: true # Not currently needed
 
-  # Automatically check if student course report needs to be generated
-  after_create :trigger_course_report_check
-  after_create_commit :trigger_memory_backfill
-  after_create_commit :trigger_observation_generation
+  validates :author_type, presence: true
+  validates :status, presence: true
+
+  after_create_commit :trigger_course_report_check, if: -> { reportable_type == "LessonProgress" }
+  after_create_commit :trigger_memory_backfill, if: -> { reportable_type == "LessonProgress" }
+  after_create_commit :trigger_observation_generation, if: -> { reportable_type == "LessonProgress" }
+  after_create_commit :trigger_notification, if: -> { reportable_type == "LessonProgress" }
 
   scope :lesson_reports, -> { where(reportable_type: "LessonProgress") }
   scope :course_reports, -> { where(reportable_type: "Enrollment") }
@@ -22,6 +25,7 @@ class StudentReport < ApplicationRecord
 
   def to_markdown
       report = progress_data
+      return "" unless report.present?
       return report.to_s unless report.is_a?(Hash)
     begin
       md = +""
@@ -52,25 +56,42 @@ class StudentReport < ApplicationRecord
   private
 
   def trigger_course_report_check
-    if reportable_type == "LessonProgress"
-      Rails.logger.debug "Checking if need course report for student #{student.id} in course #{reportable.lesson.course.id}"
-      enrollment = reportable.lesson.course.enrollments.find_by(student: student)
-      enrollment.course_report_check
-    end
+    Rails.logger.debug "Checking if need course report for student #{student.id} in course #{reportable.lesson.course.id}"
+    enrollment = reportable.lesson.course.enrollments.find_by(student: student)
+    enrollment.course_report_check
   end
 
   # After LLM saves a lesson progress report, start job to semantically merge the memories.
   def trigger_memory_backfill
-    return unless reportable_type == "LessonProgress"
     return unless progress_data&.dig("memories").present?
-
     BackfillMemoriesFromLessonReportJob.set(wait: 5.seconds).perform_later(self)
   end
 
+  # Trigger observation generation regardless of specific content, as the LLM will derive them.
   def trigger_observation_generation
-    return unless reportable_type == "LessonProgress"
-
-    # We trigger observation generation regardless of specific content, as the LLM will derive them.
     GenerateObservationsJob.set(wait: 5.seconds).perform_later(self)
+  end
+
+  def trigger_notification
+    Rails.logger.debug "Triggering notification for student report #{id}"
+
+    # Notify the student's teacher, if they have one
+    recipient_id = student.teacher&.id
+    return unless recipient_id
+
+    lesson = reportable&.lesson
+    link = Rails.application.routes.url_helpers.admin_student_path(
+      student,
+      active_tab: "journal",
+      anchor: "student_report_#{id}"
+    )
+
+    Rails.event.notify(Events::LessonComplete.new(
+      recipient_ids: recipient_id,
+      link: link,
+      student_name: student.name,
+      lesson_title: lesson&.title || "Unknown Lesson",
+      report_id: id
+    ))
   end
 end

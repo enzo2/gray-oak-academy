@@ -1,0 +1,2 @@
+<%= turbo_stream.replace("notifications_list", partial: "notifications/list", 
+      locals: { notifications: current_user.notifications.recent.limit(50) }) %>

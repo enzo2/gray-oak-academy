@@ -46,7 +46,7 @@ class Memory < ApplicationRecord
   def author_validations
     return if author.blank? # can be blank if LLM-authored or deleted user
     return if author == student # student can author own memories
-    return if author.role_superuser? # /superusers can author any memories
+    return if author.role_superuser? # superusers can author any memories
     # teacher can author student's memories if they are the student's teacher
     return if author.role_teacher? && student.teacher == author
     errors.add(:author, "must be the student or their teacher")

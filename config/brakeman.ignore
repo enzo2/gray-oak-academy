@@ -24,6 +24,39 @@
       "note": ""
     },
     {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 4,
+      "fingerprint": "d132ec920acda609483e31767237ff3b08244dabc440ac2bc8097a5d0060e963",
+      "check_name": "LinkToHref",
+      "message": "Potentially unsafe model attribute in `link_to` href",
+      "file": "app/views/notifications/_notification.html.erb",
+      "line": 17,
+      "link": "https://brakemanscanner.org/docs/warning_types/link_to_href",
+      "code": "link_to(\"View Details\", (Unresolved Model).new.link, :class => \"text-sm text-primary hover:text-primary-focus underline\")",
+      "render_path": [
+        {
+          "type": "template",
+          "name": "notifications/_list",
+          "line": 7,
+          "file": "app/views/notifications/_list.html.erb",
+          "rendered": {
+            "name": "notifications/_notification",
+            "file": "app/views/notifications/_notification.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "notifications/_notification"
+      },
+      "user_input": "(Unresolved Model).new.link",
+      "confidence": "Weak",
+      "cwe_id": [
+        79
+      ],
+      "note": ""
+    },
+    {
       "warning_type": "File Access",
       "warning_code": 16,
       "fingerprint": "d20bf83c2ab429ca2988a80ab720f6a609919ce08ab09b2f9ad3ef075db4f784",

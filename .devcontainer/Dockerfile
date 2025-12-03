@@ -8,4 +8,5 @@ RUN sudo apt-get update && export DEBIAN_FRONTEND=noninteractive \
         ffmpeg libvips-dev poppler-utils  \
         libxml2-dev sqlite3 imagemagick \
         libatk1.0-0 libatk-bridge2.0-0 fonts-liberation libcups2 libgcc1 libglib2.0-0 libgtk-3-0 \
-        libxcomposite1 xdg-utils libxtst6 libxdamage1
+        libxcomposite1 xdg-utils libxtst6 libxdamage1 \
+        libclang-dev clang cargo

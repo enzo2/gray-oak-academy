@@ -1,0 +1,47 @@
+<%= form_with model: settings, url: user_settings_path, method: :patch, id: "notification-settings-form", class: "max-w-xl", data: { turbo: true } do |f| %>
+  <div class="mb-6">
+    <h3 class="text-lg font-bold mb-4">Notification Preferences</h3>
+
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="border-b border-stone-200 dark:border-stone-700">
+          <th class="py-2 w-1/2">Notification Type</th>
+          <th class="py-2 text-center w-1/4">In-App Alert</th>
+          <th class="py-2 text-center w-1/4">Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% 
+           prefs = settings.notification_preferences
+           categories = [
+             { key: "important", label: "Important", desc: "System alerts" },
+             { key: "student_progress", label: "Student Progress", desc: "Lesson completions and milestones" }
+           ]
+        %>
+        
+        <% categories.each do |cat| %>
+          <tr class="border-b border-stone-100 dark:border-stone-800">
+            <td class="py-3">
+              <div class="font-medium text-stone-900 dark:text-stone-100"><%= cat[:label] %></div>
+              <div class="text-sm text-stone-500 dark:text-stone-400"><%= cat[:desc] %></div>
+            </td>
+            <td class="py-3 text-center">
+              <input type="hidden" name="setting[notification_preferences][<%= cat[:key] %>][in_app]" value="false">
+              <%= check_box_tag "setting[notification_preferences][#{cat[:key]}][in_app]", "true", 
+                   ActiveModel::Type::Boolean.new.cast(prefs.dig(cat[:key], "in_app")),
+                   data: { controller: "auto-submit-toggle", action: "auto-submit-toggle#submit" },
+                   class: "checkbox-primary w-6 h-6" %>
+            </td>
+            <td class="py-3 text-center">
+              <input type="hidden" name="setting[notification_preferences][<%= cat[:key] %>][email]" value="false">
+              <%= check_box_tag "setting[notification_preferences][#{cat[:key]}][email]", "true", 
+                   ActiveModel::Type::Boolean.new.cast(prefs.dig(cat[:key], "email")),
+                   data: { controller: "auto-submit-toggle", action: "auto-submit-toggle#submit" },
+                   class: "checkbox-primary w-6 h-6" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

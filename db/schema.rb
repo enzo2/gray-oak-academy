@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_29_223707) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_30_230314) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -244,6 +244,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_223707) do
     t.check_constraint "content IS NOT NULL OR tool_calls IS NOT NULL AND jsonb_array_length(tool_calls) > 0", name: "messages_content_or_tool_calls_present"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "event_type"
+    t.string "link"
+    t.jsonb "params"
+    t.datetime "read_at"
+    t.bigint "recipient_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
+  end
+
   create_table "observations", force: :cascade do |t|
     t.bigint "author_id"
     t.text "content", null: false
@@ -379,6 +390,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_29_223707) do
   add_foreign_key "memories", "users", column: "author_id"
   add_foreign_key "memories", "users", column: "student_id"
   add_foreign_key "messages", "conversations"
+  add_foreign_key "notifications", "users", column: "recipient_id"
   add_foreign_key "observations", "users", column: "author_id"
   add_foreign_key "observations", "users", column: "student_id"
   add_foreign_key "prompts", "users", column: "teacher_id"

@@ -1,0 +1,34 @@
+# Define notification events here.
+# For example, "conversation.context_warning" becomes Events::ConversationContextWarning (see initializers/events.rb) as well as Notification::Type
+# and would be instantiated with: Rails.event.notify(Events::ConversationContextWarning.new(title: ....))
+# Every class will then be automatically subscribed to by NotificationSubscriber.
+# A corresponding handler method must be defined in NotificationSubscriber (see subscribers/notification_subscriber.rb).
+# Events defined here will also be dynamically loaded into the Notification model as Notification::Type, so when a Notification is created with the same event_type,
+# the subject and message templates will be used to generate the notification content.
+
+events: 
+  conversation.context_warning:
+    category: important
+    subject: "Context Limit Warning"
+    message: "Context limit warning: Conversation with %{user_name} (titled: %{title}) is approaching the token limit. Consider using a model with a longer context limit."
+    required_params:
+      - user_name
+      - title
+
+  lesson.complete:
+    category: student_progress
+    subject: "Lesson Completed"
+    message: "%{student_name} completed lesson: %{lesson_title}."
+    required_params:
+      - student_name
+      - lesson_title
+      - report_id
+
+  user.signup:
+    category: important
+    subject: "New User Signup"
+    message: "New user signed up: %{new_user_name} (%{new_user_email})."
+    required_params:
+      - new_user_name
+      - new_user_email
+      - new_user_id
