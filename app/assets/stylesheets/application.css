@@ -20,6 +20,9 @@
 /* if changing theme, also change --rouge-bg to match the theme's background color.
    it's used to style the code block background to match the theme.  */
 @import url('rouge.monokai.css');
+:root {
+	--rouge-bg: #49483e;
+}
 
 /* fonts */
 @import url('Inter/inter.css');
@@ -31,21 +34,178 @@
   visibility: hidden;
 }
 
-/* Change shoelace colors to tailwind stone theme */
+/* Color themes */
 :root {
-	--rouge-bg: #49483e;
+
+	/* Tailwind stone theme */
+	--goa-stone-50: oklch(98.5% 0.001 106.423);  
+	--goa-stone-100: oklch(97% 0.001 106.424);  
+	--goa-stone-200: oklch(92.3% 0.003 48.717); 
+	--goa-stone-300: oklch(86.9% 0.005 56.366);  
+	--goa-stone-400: oklch(70.9% 0.01 56.259);  
+	--goa-stone-500: oklch(55.3% 0.013 58.071);  
+	--goa-stone-600: oklch(44.4% 0.011 73.639);  
+	--goa-stone-700: oklch(37.4% 0.01 67.558);  
+	--goa-stone-800: oklch(26.8% 0.007 34.298);  
+	--goa-stone-900: oklch(21.6% 0.006 56.043);  
+	--goa-stone-950: oklch(14.7% 0.004 49.25);
+
+	/* Moss-derived primary scale */
+	--goa-moss-50: #f6f7f2;
+	--goa-moss-100: #eef2e1;
+	--goa-moss-200: #e2e7c6;
+	--goa-moss-300: #d4dbc0;
+	--goa-moss-400: #b9c18a;
+	--goa-moss-500: #9ea76b;
+	--goa-moss-600: #7a8a53;
+	--goa-moss-700: #55673b;
+	--goa-moss-800: #34462a;
+	--goa-moss-900: #1f3120;
+	--goa-moss-950: #0f1b16;
+
+	/* Saturated success scale */
+	--goa-success-50: #ecf7ed;
+	--goa-success-100: #d5edd6;
+	--goa-success-200: #badfbc;
+	--goa-success-300: #9fd19f;
+	--goa-success-400: #7ca948;
+	--goa-success-500: #5c8b2d;
+	--goa-success-600: #3f6d42;
+	--goa-success-700: #2c4a2b;
+	--goa-success-800: #172f1b;
+	--goa-success-900: #101e0b;
+	--goa-success-950: #050c0b;
+
+	/* Match the Shoelace palette to the app stone/moss theme */
+	--sl-color-primary-50: var(--goa-moss-50);
+	--sl-color-primary-100: var(--goa-moss-100);
+	--sl-color-primary-200: var(--goa-moss-200);
+	--sl-color-primary-300: var(--goa-moss-300);
+	--sl-color-primary-400: var(--goa-moss-400);
+	--sl-color-primary-500: var(--goa-moss-500);
+	--sl-color-primary-600: var(--goa-moss-600);
+	--sl-color-primary-700: var(--goa-moss-700);
+	--sl-color-primary-800: var(--goa-moss-800);
+	--sl-color-primary-900: var(--goa-moss-900);
+	--sl-color-primary-950: var(--goa-moss-950);
 	
-  --sl-color-primary-50: oklch(0.985 0.001 106.423);
-  --sl-color-primary-100: oklch(0.97 0.001 106.424);
-  --sl-color-primary-200: oklch(0.923 0.003 48.717);
-	--sl-color-primary-300: oklch(0.869 0.005 56.366);
-	--sl-color-primary-400: oklch(0.709 0.01 56.259);
-	--sl-color-primary-500: oklch(0.553 0.013 58.071);
-	--sl-color-primary-600: oklch(0.444 0.011 73.639);
-	--sl-color-primary-700: oklch(0.374 0.01 67.558);
-	--sl-color-primary-800: oklch(0.268 0.007 34.298);
-	--sl-color-primary-900: oklch(0.216 0.006 56.043);
-	--sl-color-primary-950: oklch(0.147 0.004 49.25);
+	--sl-color-neutral-50: var(--goa-stone-50);
+	--sl-color-neutral-100: var(--goa-stone-100);
+	--sl-color-neutral-200: var(--goa-stone-200);
+	--sl-color-neutral-300: var(--goa-stone-300);
+	--sl-color-neutral-400: var(--goa-stone-400);
+	--sl-color-neutral-500: var(--goa-stone-500);
+	--sl-color-neutral-600: var(--goa-stone-600);
+	--sl-color-neutral-700: var(--goa-stone-700);
+	--sl-color-neutral-800: var(--goa-stone-800);
+	--sl-color-neutral-900: var(--goa-stone-900);
+	--sl-color-neutral-950: var(--goa-stone-950);
+	--sl-color-neutral-0: #fefbf5;
+	--sl-color-neutral-1000: #15120d;
+
+	--sl-color-success-50: var(--goa-success-50);
+	--sl-color-success-100: var(--goa-success-100);
+	--sl-color-success-200: var(--goa-success-200);
+	--sl-color-success-300: var(--goa-success-300);
+	--sl-color-success-400: var(--goa-success-400);
+	--sl-color-success-500: var(--goa-success-500);
+	--sl-color-success-600: var(--goa-success-600);
+	--sl-color-success-700: var(--goa-success-700);
+	--sl-color-success-800: var(--goa-success-800);
+	--sl-color-success-900: var(--goa-success-900);
+	--sl-color-success-950: var(--goa-success-950);
+
+	--sl-color-warning-50: #fff8ef;
+	--sl-color-warning-100: #fff2dc;
+	--sl-color-warning-200: #ffe5ba;
+	--sl-color-warning-300: #ffd89a;
+	--sl-color-warning-400: #ffc97c;
+	--sl-color-warning-500: #e2a44e;
+	--sl-color-warning-600: #b37d2f;
+	--sl-color-warning-700: #7c531c;
+	--sl-color-warning-800: #51330d;
+	--sl-color-warning-900: #2c1a06;
+	--sl-color-warning-950: #160d03;
+
+	--sl-color-danger-50: #fff3f1;
+	--sl-color-danger-100: #fce8e5;
+	--sl-color-danger-200: #f6d5d1;
+	--sl-color-danger-300: #efb9b2;
+	--sl-color-danger-400: #e29b8f;
+	--sl-color-danger-500: #c0726b;
+	--sl-color-danger-600: #984c43;
+	--sl-color-danger-700: #6b302c;
+	--sl-color-danger-800: #441b1a;
+	--sl-color-danger-900: #241012;
+	--sl-color-danger-950: #140a0a;
+
+	--sl-focus-ring-color: var(--sl-color-primary-500);
+}
+/* Shoelace's dark theme mirrors the light palette */
+.sl-theme-dark {
+	--sl-color-primary-50: var(--goa-moss-950);
+	--sl-color-primary-100: var(--goa-moss-900);
+	--sl-color-primary-200: var(--goa-moss-800);
+	--sl-color-primary-300: var(--goa-moss-700);
+	--sl-color-primary-400: var(--goa-moss-600);
+	--sl-color-primary-500: var(--goa-moss-500);
+	--sl-color-primary-600: var(--goa-moss-400);
+	--sl-color-primary-700: var(--goa-moss-300);
+	--sl-color-primary-800: var(--goa-moss-200);
+	--sl-color-primary-900: var(--goa-moss-100);
+	--sl-color-primary-950: var(--goa-moss-50);
+
+	--sl-color-neutral-50: var(--goa-stone-950);
+	--sl-color-neutral-100: var(--goa-stone-900);
+	--sl-color-neutral-200: var(--goa-stone-800);
+	--sl-color-neutral-300: var(--goa-stone-700);
+	--sl-color-neutral-400: var(--goa-stone-600);
+	--sl-color-neutral-500: var(--goa-stone-500);
+	--sl-color-neutral-600: var(--goa-stone-400);
+	--sl-color-neutral-700: var(--goa-stone-300);
+	--sl-color-neutral-800: var(--goa-stone-200);
+	--sl-color-neutral-900: var(--goa-stone-100);
+	--sl-color-neutral-950: var(--goa-stone-50);
+	--sl-color-neutral-0: #15120d;
+	--sl-color-neutral-1000: #fefbf5;
+
+	--sl-color-success-50: var(--goa-success-950);
+	--sl-color-success-100: var(--goa-success-900);
+	--sl-color-success-200: var(--goa-success-800);
+	--sl-color-success-300: var(--goa-success-700);
+	--sl-color-success-400: var(--goa-success-600);
+	--sl-color-success-500: var(--goa-success-500);
+	--sl-color-success-600: var(--goa-success-400);
+	--sl-color-success-700: var(--goa-success-300);
+	--sl-color-success-800: var(--goa-success-200);
+	--sl-color-success-900: var(--goa-success-100);
+	--sl-color-success-950: var(--goa-success-50);
+
+	--sl-color-warning-50: #160d03;
+	--sl-color-warning-100: #2c1a06;
+	--sl-color-warning-200: #51330d;
+	--sl-color-warning-300: #7c531c;
+	--sl-color-warning-400: #b37d2f;
+	--sl-color-warning-500: #e2a44e;
+	--sl-color-warning-600: #ffc97c;
+	--sl-color-warning-700: #ffd89a;
+	--sl-color-warning-800: #ffe5ba;
+	--sl-color-warning-900: #fff2dc;
+	--sl-color-warning-950: #fff8ef;
+
+	--sl-color-danger-50: #140a0a;
+	--sl-color-danger-100: #241012;
+	--sl-color-danger-200: #441b1a;
+	--sl-color-danger-300: #6b302c;
+	--sl-color-danger-400: #984c43;
+	--sl-color-danger-500: #c0726b;
+	--sl-color-danger-600: #e29b8f;
+	--sl-color-danger-700: #efb9b2;
+	--sl-color-danger-800: #f6d5d1;
+	--sl-color-danger-900: #fce8e5;
+	--sl-color-danger-950: #fff3f1;
+
+	--sl-focus-ring-color: var(--sl-color-primary-300);
 }
 
 /* Fixes KaTeX bug  https://github.com/KaTeX/KaTeX/pull/3859 */

@@ -13,8 +13,35 @@
   --font-sans: "InterVariable", sans-serif;
   --font-serif: "Merriweather", serif;
 
+  --color-moss-50: var(--goa-moss-50);
+	--color-moss-100: var(--goa-moss-100);
+	--color-moss-200: var(--goa-moss-200);
+	--color-moss-300: var(--goa-moss-300);
+	--color-moss-400: var(--goa-moss-400);
+	--color-moss-500: var(--goa-moss-500);
+	--color-moss-600: var(--goa-moss-600);
+	--color-moss-700: var(--goa-moss-700);
+	--color-moss-800: var(--goa-moss-800);
+	--color-moss-900: var(--goa-moss-900);
+	--color-moss-950: var(--goa-moss-950);
   --color-moss-dark: #485340;
   --color-moss-light: #dbe5cc;
+  --color-moss-dark-hover: #3d4634;
+  --color-moss-dark-active: #323a29;
+  --color-moss-light-hover: #ced8b8;
+  --color-moss-light-active: #bcc9a1;
+
+	--color-success-50: var(--goa-success-50);
+	--color-success-100: var(--goa-success-100);
+	--color-success-200: var(--goa-success-100);
+	--color-success-300: var(--goa-success-300);
+	--color-success-400: var(--goa-success-400);
+	--color-success-500: var(--goa-success-500);
+	--color-success-600: var(--goa-success-600);
+	--color-success-700: var(--goa-success-100);
+	--color-success-800: var(--goa-success-800);
+	--color-success-900: var(--goa-success-900);
+	--color-success-950: var(--goa-success-950);
 
   --spacing-1\/2screen: 50vh;
   --spacing-2\/3screen: 66vh;
@@ -59,6 +86,10 @@
     @apply bg-transparent text-black dark:text-white placeholder-stone-500 dark:placeholder-stone-500;
   }
 
+  input[type="submit"], input[type="button"] {
+    @apply cursor-pointer;
+  }
+
   sl-input[type="text"] {
     @apply bg-transparent border-0 focus:ring-0;
   }
@@ -94,21 +125,46 @@
 */
 
 @utility btn-primary {
-  @apply bg-white dark:bg-neutral-900
-         hover:bg-stone-100 dark:hover:bg-neutral-800
-         border-1 border-stone-300 dark:border-stone-600 
-         text-base text-stone-800 dark:text-stone-200
-         py-2 px-4 
-         focus:outline-hidden;
+  @apply inline-flex items-center justify-center gap-2 text-base
+         px-3 py-[5px] 
+         bg-moss-light hover:bg-moss-light-hover active:bg-moss-light-active
+         dark:bg-moss-dark dark:hover:bg-moss-dark-hover dark:active:bg-moss-dark-active
+         text-stone-800 dark:text-stone-100
+         border rounded-sm border-stone-400 dark:border-stone-500
+         focus-visible:outline-hidden
+         focus-visible:ring-2 focus-visible:ring-moss-light dark:focus-visible:ring-moss-dark
+         focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
+         disabled:opacity-60 disabled:pointer-events-none cursor-pointer;
 }
 
+@utility btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-sm text-base
+         px-3 py-[5px] border
+         bg-white dark:bg-neutral-900
+         text-stone-800 dark:text-stone-200
+         border-stone-300 dark:border-stone-600
+         hover:bg-stone-100 dark:hover:bg-neutral-800
+         focus-visible:outline-hidden
+         focus-visible:ring-2 focus-visible:ring-moss-dark dark:focus-visible:ring-moss-light
+         focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
+         disabled:opacity-60 disabled:pointer-events-none cursor-pointer;
+         
+}
+
+
 @utility btn-danger {
-  @apply bg-white dark:bg-neutral-900 
-         hover:bg-red-300 dark:hover:bg-red-800
-         border-1 border-stone-300 dark:border-stone-600  hover:border-red-700 dark:hover:border-red-400
-         text-base text-stone-800 dark:text-stone-200
-         focus:outline-hidden
-         py-1 px-2;
+  @apply inline-flex items-center justify-center gap-2 rounded-sm font-medium text-base
+         px-2 py-[4px] border-1
+         bg-neutral-100 dark:bg-neutral-900 border-red-200 dark:border-red-950
+         hover:bg-red-700 active:bg-red-800
+         text-neutral-500 dark:text-neutral-300
+         hover:text-white active:text-white
+         
+         transition-colors duration-100 ease-out
+         focus-visible:outline-hidden
+         focus-visible:ring-2 focus-visible:ring-red-200 dark:focus-visible:ring-red-400
+         focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
+         disabled:opacity-60 disabled:pointer-events-none;
 }
 
 @utility form-label {

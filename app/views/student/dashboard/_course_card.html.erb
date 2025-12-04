@@ -17,13 +17,13 @@
       <%= link_to student_lesson_path(enrollment.next_available_lesson), 
             class: "inline-block btn-primary text-sm" do %>
         <div class="flex items-center">
-          <sl-icon name="check-circle-fill" class="text-blue-700"></sl-icon>
+          <sl-icon name="check-circle-fill" class="text-stone-700 dark:text-stone-300"></sl-icon>
           <span>&nbsp;<%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start next" %> lesson</span>
         </div>
       <% end %>
     <% else %>
       <div>
-        <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
+        <sl-icon name="exclamation-circle-fill" class="text-lg text-yellow-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
         <span class="text-sm">No lessons available. Check with teacher.</span>
       </div>
     <% end %>
@@ -34,7 +34,7 @@
             data: { turbo_stream: true },
             class: "btn-primary text-sm" do %>
         <div class="flex items-center">
-          <sl-icon name="file-text" class="text-blue-700"></sl-icon>
+          <sl-icon name="file-text" class="text-stone-700 dark:text-stone-300"></sl-icon>
           <span>&nbsp;View progress</span>
         </div>
       <% end %>

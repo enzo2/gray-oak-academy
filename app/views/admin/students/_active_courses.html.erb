@@ -24,7 +24,7 @@
             <span class="text-sm">Next lesson ready.</span>
           <% end %>
         <% else %>
-          <sl-icon name="exclamation-circle-fill" class="text-lg text-red-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
+          <sl-icon name="exclamation-circle-fill" class="text-lg text-yellow-500 mr-2 shrink-0" title="No available lessons"></sl-icon>
           <span class="text-sm">No lessons available for student. Please 
             <%= link_to "publish a lesson plan", admin_course_lessons_path(enrollment.course), class: "underline" %>.
             </span>
@@ -45,7 +45,7 @@
         </div>
       <% end %>
 
-      <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
+      <%= button_to 'Un-enroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
           method: :delete,
           data: { 
             turbo_confirm: 'WARNING! This will delete all student progress and cannot be reversed. Student reports will be orphaned. It is better to retain the enrollment for record-keeping. Are you sure?',

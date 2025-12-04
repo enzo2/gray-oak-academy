@@ -17,7 +17,7 @@
        <!-- not good to allow users to unenroll from completed courses, as it will orphan the course report.
             There should be a record of all completed courses.
 
-       <%= button_to 'Unenroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
+       <%= button_to 'Un-enroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
           method: :delete,
           data: { turbo_confirm: 'WARNING! This will delete all student progress. Are you sure?' }, class: "btn-danger text-sm my-2" %>
        -->

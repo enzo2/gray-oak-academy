@@ -63,7 +63,9 @@
   </div>
 
   <div class="flex flex-row space-x-5">
-    <%= f.submit "Save", class: "btn-primary" %>
-    <%= link_to "Cancel", admin_courses_path, class: "btn-primary" %>
+    <span> <!-- prevent buttons from taking height of flex container -->
+      <%= f.submit "Save", class: "btn-primary" %>
+      <%= link_to "Cancel", admin_courses_path, class: "btn-secondary" %>
+    </span>
   </div>
 <% end %>
