@@ -77,7 +77,7 @@ module Admin
     end
 
     def set_lesson_plan
-      @lesson_plan = @lesson.lesson_plan || @lesson.build_lesson_plan(teacher: current_user)
+      @lesson_plan = @lesson.lesson_plan || @lesson.build_lesson_plan
     end
 
     def lesson_plan_params

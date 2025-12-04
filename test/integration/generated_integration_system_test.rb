@@ -124,7 +124,7 @@ class AdminControllersIntegrationTest < ActionDispatch::IntegrationTest
     sign_in(teacher)
 
     lesson = lessons(:one) || Lesson.first
-    lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(teacher: teacher)
+    lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
     lesson_plan.save!
 
     # Generate content

@@ -41,8 +41,8 @@ class LessonProgress < ApplicationRecord
     # It contains all the information needed to 1) conduct the lesson, 2) personalized to the student, and 3) evaluate the student at the end.
     # In the future it can also include student profile information gathered from other courses, or the teacher.
     # We don't include student age for pedagogical reasons, since we want students to advance beyond their age level.
-    generative_guidelines = Prompt.get_prompt(category: "generative_guidelines", user: teacher)
-    lesson_tutor_session_prompt = Prompt.get_prompt(category: "lesson_tutor_session", user: teacher)
+    generative_guidelines = Prompt.get_prompt(category: "generative_guidelines", user: teacher).to_s
+    lesson_tutor_session_prompt = Prompt.get_prompt(category: "lesson_tutor_session", user: teacher).to_s
     lesson_info = <<~LESSON_INFO
       Course: #{course.title}
       Grade Level: #{course.grade_level}

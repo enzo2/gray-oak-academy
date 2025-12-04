@@ -53,3 +53,12 @@ memories_semantic_merge:
   teacher:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+generative_guidelines:
+  title: Generative Guidelines
+  category: generative_guidelines
+  prompt: |
+    Follow these generative guidelines.
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

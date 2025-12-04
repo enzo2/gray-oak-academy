@@ -32,3 +32,12 @@ events:
       - new_user_name
       - new_user_email
       - new_user_id
+
+  enrollment.report_generated:
+    category: student_progress
+    subject: "Course Report Ready"
+    message: "Course completed: Course Report for %{student_name} in %{course_title} is now available."
+    required_params:
+      - student_name
+      - course_title
+      - report_id

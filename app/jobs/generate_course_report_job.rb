@@ -68,7 +68,7 @@ class GenerateCourseReportJob < ApplicationJob
       )
 
       # Create the student report
-      StudentReport.create!(
+      report = StudentReport.create!(
         student: student,
         teacher: teacher,
         reportable: enrollment,
@@ -78,6 +78,20 @@ class GenerateCourseReportJob < ApplicationJob
       )
 
       Rails.logger.info "Course report generated for enrollment: #{enrollment.id}"
+
+      link = Rails.application.routes.url_helpers.admin_student_path(
+        student,
+        active_tab: "journal",
+        anchor: "student_report_#{report.id}"
+      )
+
+      Rails.event.notify(Events::EnrollmentReportGenerated.new(
+        recipient_ids: teacher.id,
+        link: link,
+        student_name: student.name,
+        course_title: course.title,
+        report_id: report.id
+      ))
 
     rescue StandardError => e
       Rails.logger.error "Error generating course report for enrollment #{enrollment.id}: #{e.message}"
