@@ -1,0 +1,4 @@
+<% count = current_user.notifications.unread.count %>
+<%= turbo_stream.replace "notifications_counter_mobile", partial: "notifications/counter", locals: { count: count, id: "notifications_counter_mobile" } %>
+<%= turbo_stream.replace "notifications_counter_menu", partial: "notifications/counter", locals: { count: count, id: "notifications_counter_menu" } %>
+<%= turbo_stream.replace "notifications_counter_desktop", partial: "notifications/counter", locals: { count: count, id: "notifications_counter_desktop" } %>

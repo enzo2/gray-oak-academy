@@ -19,7 +19,7 @@ class NotificationsController < ApplicationController
   def destroy
     @notification.destroy!
     respond_to do |format|
-      format.turbo_stream { render turbo_stream:  turbo_stream.remove(dom_id(@notification)) }
+      format.turbo_stream
       format.html { redirect_back fallback_location: notifications_path }
     end
   end

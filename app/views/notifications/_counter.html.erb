@@ -1,0 +1,9 @@
+<span id="<%= local_assigns[:id] || 'notifications_counter' %>">
+  <% if count > 0 %>
+    <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none
+                  bg-moss-600 dark:bg-moss-400 text-stone-100 dark:text-stone-900 
+                 rounded-full transform translate-y-[-2px]">
+      <%= count %>
+    </span>
+  <% end %>
+</span>

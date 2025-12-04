@@ -1,1 +1,2 @@
 <%= turbo_stream.replace dom_id(@notification), partial: "notifications/notification", locals: { notification: @notification } %>
+<%= render "notifications/update_counters" %>
