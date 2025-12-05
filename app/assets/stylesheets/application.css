@@ -9,20 +9,19 @@
 		+ * Consider organizing styles into separate files for maintainability.
 */
 
-/* Import Shoelace CSS for light and dark themes */
+/* Import Shoelace/Webawesome CSS for light and dark themes */
 @import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css');
 @import url('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css');
+/* @import url('https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/styles/themes/shoelace.css');*/ 
+
 
 /* Import Katex CSS for math rendering */
-@import url('https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.css');
+@import url('https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.css');
 
 /* Import Rouge CSS theme for syntax highlighting - included in markdown_views gem */
 /* if changing theme, also change --rouge-bg to match the theme's background color.
    it's used to style the code block background to match the theme.  */
 @import url('rouge.monokai.css');
-:root {
-	--rouge-bg: #49483e;
-}
 
 /* fonts */
 @import url('Inter/inter.css');
@@ -36,6 +35,7 @@
 
 /* Color themes */
 :root {
+	--rouge-bg: #49483e;
 
 	/* Tailwind stone theme */
 	--goa-stone-50: oklch(98.5% 0.001 106.423);  
@@ -75,8 +75,10 @@
 	--goa-success-800: #172f1b;
 	--goa-success-900: #101e0b;
 	--goa-success-950: #050c0b;
+}
 
-	/* Match the Shoelace palette to the app stone/moss theme */
+/* Match the Shoelace palette to the app stone/moss theme */
+:root {
 	--sl-color-primary-50: var(--goa-moss-50);
 	--sl-color-primary-100: var(--goa-moss-100);
 	--sl-color-primary-200: var(--goa-moss-200);
@@ -207,6 +209,85 @@
 
 	--sl-focus-ring-color: var(--sl-color-primary-300);
 }
+
+/*
+/* Match webawesome colors as well */
+/* webawesome does not invert the palette in dark mode 
+:root, .wa-light, .wa-dark {
+	
+	--wa-color-neutral-95: var(--goa-stone-950);
+	--wa-color-neutral-90: var(--goa-stone-900);
+	--wa-color-neutral-80: var(--goa-stone-800);
+	--wa-color-neutral-70: var(--goa-stone-700);
+	--wa-color-neutral-60: var(--goa-stone-600);
+	--wa-color-neutral-50: var(--goa-stone-500);
+	--wa-color-neutral-40: var(--goa-stone-400);
+	--wa-color-neutral-30: var(--goa-stone-300);
+	--wa-color-neutral-20: var(--goa-stone-200);
+	--wa-color-neutral-10: var(--goa-stone-100);
+	--wa-color-neutral-05: var(--goa-stone-50);
+	
+	--wa-color-green-95: var(--goa-moss-950);
+	--wa-color-green-90: var(--goa-moss-900);
+	--wa-color-green-80: var(--goa-moss-800);
+	--wa-color-green-70: var(--goa-moss-700);
+	--wa-color-green-60: var(--goa-moss-600);
+	--wa-color-green-50: var(--goa-moss-500);
+	--wa-color-green-40: var(--goa-moss-400);
+	--wa-color-green-30: var(--goa-moss-300);
+	--wa-color-green-20: var(--goa-moss-200);
+	--wa-color-green-10: var(--goa-moss-100);
+	--wa-color-green-05: var(--goa-moss-50);
+
+	--wa-color-brand-95: var(--goa-moss-950);
+	--wa-color-brand-90: var(--goa-moss-900);
+	--wa-color-brand-80: var(--goa-moss-800);
+	--wa-color-brand-70: var(--goa-moss-700);
+	--wa-color-brand-60: var(--goa-moss-600);
+	--wa-color-brand-50: var(--goa-moss-500);
+	--wa-color-brand-40: var(--goa-moss-400);
+	--wa-color-brand-30: var(--goa-moss-300);
+	--wa-color-brand-20: var(--goa-moss-200);
+	--wa-color-brand-10: var(--goa-moss-100);
+	--wa-color-brand-05: var(--goa-moss-50);
+
+	--wa-color-success-95: var(--goa-success-950);
+	--wa-color-success-90: var(--goa-success-900);
+	--wa-color-success-80: var(--goa-success-800);
+	--wa-color-success-70: var(--goa-success-700);
+	--wa-color-success-60: var(--goa-success-600);
+	--wa-color-success-50: var(--goa-success-500);
+	--wa-color-success-40: var(--goa-success-400);
+	--wa-color-success-30: var(--goa-success-300);
+	--wa-color-success-20: var(--goa-success-200);
+	--wa-color-success-10: var(--goa-success-100);
+	--wa-color-success-05: var(--goa-success-50);
+
+	--wa-color-warning-50: #160d03;
+	--wa-color-warning-10: #2c1a06;
+	--wa-color-warning-20: #51330d;
+	--wa-color-warning-30: #7c531c;
+	--wa-color-warning-40: #b37d2f;
+	--wa-color-warning-50: #e2a44e;
+	--wa-color-warning-60: #ffc97c;
+	--wa-color-warning-70: #ffd89a;
+	--wa-color-warning-80: #ffe5ba;
+	--wa-color-warning-90: #fff2dc;
+	--wa-color-warning-95: #fff8ef;
+
+	--wa-color-danger-50: #140a0a;
+	--wa-color-danger-10: #241012;
+	--wa-color-danger-20: #441b1a;
+	--wa-color-danger-30: #6b302c;
+	--wa-color-danger-40: #984c43;
+	--wa-color-danger-50: #c0726b;
+	--wa-color-danger-60: #e29b8f;
+	--wa-color-danger-70: #efb9b2;
+	--wa-color-danger-80: #f6d5d1;
+	--wa-color-danger-90: #fce8e5;
+	--wa-color-danger-95: #fff3f1;
+}
+*/
 
 /* Fixes KaTeX bug  https://github.com/KaTeX/KaTeX/pull/3859 */
 .katex { position: relative !important; }

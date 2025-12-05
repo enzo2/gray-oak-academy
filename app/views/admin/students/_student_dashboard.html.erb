@@ -115,7 +115,7 @@
 
   <sl-tab-panel name="settings" <%= "active" if @active_tab == :settings %>>
     <h3 class="text-lg mb-4">Settings</h3>
-      <% if @student.teacher == current_user %>
+      <% if @student.teacher_id == current_user.id %>
         <p class="text-sm text-dim mb-1">You can release the student so that another teacher can adopt them.</p>
         <%= button_to 'Release student', unadopt_admin_student_path(@student), 
           method: :delete, 

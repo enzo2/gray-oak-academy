@@ -11,7 +11,7 @@ pin "darkModeManager"
 pin "sl-tab-group_handler"
 
 # Import shoelace components individually
-pin "@shoelace-style/shoelace/dist/utilities/base-path", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/utilities/base-path.js"
+pin "@shoelace-style/shoelace/cdn/utilities/base-path", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/utilities/base-path.js"
 pin "@shoelace-style/shoelace/icon", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/icon/icon.js"
 pin "@shoelace-style/shoelace/icon-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/icon-button/icon-button.js"
 pin "@shoelace-style/shoelace/button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/button/button.js"
@@ -33,8 +33,15 @@ pin "@shoelace-style/shoelace/tree", to: "https://cdn.jsdelivr.net/npm/@shoelace
 pin "@shoelace-style/shoelace/tree-item", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree-item/tree-item.js"
 pin "@shoelace-style/shoelace/drawer", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/drawer/drawer.js"
 
-pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.js"
-pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"
+# Webawesome (Shoelace Successor)
+# pin "@awesome.me/webawesome/dist-cdn/webawesome", to: "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/webawesome.js"
+# pin "@awesome.me/webawesome/button", to: "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/components/button/button.js"
+# pin "@awesome.me/webawesome/icon", to: "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/components/icon/icon.js"
+
+pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.js"
+pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js"
+
+# pin "@floating-ui/dom", to: "https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.3/+esm"
 
 # pin "html-to-image", to: "https://cdn.jsdelivr.net/npm/html-to-image/+esm"
 
