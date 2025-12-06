@@ -1,66 +1,80 @@
 <!-- Horizontal flexbox container (sidebar, chat, chalkboard) -->
-<div class="flex flex-row gap-2 px-2 md:px-3 h-[calc(100dvh-2.5rem)]" data-controller="drawer collapsible chalkboard">
+<div class="flex flex-row h-[calc(100dvh-2.5rem)]" 
+     data-controller="sidebar drawer collapsible chalkboard"
+     data-action="sidebar:open-mobile@window->sidebar#openMobile" 
+     data-sidebar-storage-key-value="chatSidebar">
 
-  <!-- Chats Column (Collapsible Sidebar) - for mouse devices -->
-  <div class="not-any-pointer-fine:hidden flex-none border-r border-stone-500 transition-all duration-150 ease-in-out w-8 hover:w-32 group">
-    <!-- Sidebar header with icon -->
-    <div class="flex items-center justify-left h-12 group-hover:justify-between">
-      <sl-icon name="layout-text-sidebar-reverse" class="pl-1 md:pl-0 group-hover:hidden"></sl-icon>
-      <h3 class="text-lg hidden group-hover:block">Chats</h3>
-      <!--
-      <div class="hidden group-hover:block">
-        <%= link_to conversations_path,
-            data: { turbo_method: :post },
-            class: "text-lg" do %>
-          <sl-icon-button name="plus-square"></sl-icon-button>
-        <% end %>
-      </div>
-      -->
-    </div>
-    <!-- Chat list (hidden when collapsed) -->
-    <div class="mb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-2 overflow-hidden" id="conversation-list">
-      <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
+  <!-- Mobile Sidebar Overlay -->
+  <div class="absolute inset-0 z-50 md:hidden hidden" data-sidebar-target="mobileSidebar">
+    <div class="absolute inset-0 bg-black/50 transition-opacity duration-100" data-sidebar-target="mobileBackdrop" data-action="click->sidebar#closeMobile"></div>
+    <div class="absolute inset-y-0 left-0 w-72 bg-stone-50 dark:bg-stone-900 shadow-xl border-r border-stone-200 dark:border-stone-800 transition-transform duration-100 ease-out" data-sidebar-target="mobilePanel">
+      <div data-sidebar-target="sharedContent" class="h-full flex flex-col"></div>
     </div>
   </div>
 
-  <!-- Chats drawer (for touch devices)> -->
-  <sl-drawer placement="start" class="" data-drawer-target="drawer" data-drawer-id="1">
-    <sl-icon-button slot="header-actions" name="plus-square" href="<%= conversations_path %>"></sl-icon-button>
-    <script>//add data-turbo-method="post" to the <a> inside the shadowDOM of the slot="header-actions" sl-icon-button
-      customElements.whenDefined('sl-icon-button').then(() => {
-        // Wait for the next frame to ensure shadowRoot is populated
-        requestAnimationFrame(() => {
-          const button = document.querySelector('sl-icon-button[slot="header-actions"]');
-          if (button && button.shadowRoot) {
-            const anchor = button.shadowRoot.querySelector('a');
-            if (anchor) {
-              anchor.setAttribute('data-turbo-method', 'post');
-            }
-          }
-        });
-      });
-    </script>
-    <h3 class="text-2xl font-semibold mb-4">Chats</h3>
-    <div id="" class=" text-xl">
-      <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
+  <!-- Chats Column (Collapsible Sidebar) -->
+  <details class="group/sidebar relative z-20 h-full shrink-0 overflow-hidden border-r border-stone-200 bg-stone-50 max-md:hidden motion-safe:transition-all motion-safe:duration-100 dark:border-stone-800 dark:bg-stone-900" data-sidebar-target="desktopSidebar">
+    
+    <!-- Tiny Sidebar (shown when closed) -->
+    <summary class="group-open/sidebar:hidden flex h-full cursor-e-resize list-none flex-col items-center pt-2 w-12 bg-stone-50 dark:bg-stone-900">
+      <button class="flex mb-2 size-10 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 sm:size-9 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" 
+              data-action="click->sidebar#open" aria-label="Expand sidebar">
+        <sl-icon name="layout-text-sidebar-reverse" class="text-xl"></sl-icon>
+      </button>
+      
+      <%= link_to conversations_path, data: { turbo_method: :post }, class: "flex size-10 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800", title: "New Chat" do %>
+        <sl-icon name="plus-square" class="text-xl"></sl-icon>
+      <% end %>
+    </summary>
+
+    <!-- Full Sidebar (shown when open) -->
+    <div class="h-full w-72 overflow-x-clip overflow-y-auto bg-stone-50 text-clip whitespace-nowrap dark:bg-stone-900" data-sidebar-target="desktopContent">
+      <!-- Shared Sidebar Content Template -->
+      <template data-sidebar-target="contentTemplate">
+        <nav class="flex flex-col h-full w-full">
+           <div class="sticky top-0 z-30 bg-stone-50 dark:bg-stone-900 p-3 border-b border-stone-200 dark:border-stone-800 bg-opacity-95 backdrop-blur-sm">
+              <div class="flex items-center justify-between">
+                 <div class="flex items-center gap-2">
+                   <h3 class="text-lg font-semibold text-stone-800 dark:text-stone-200">Chats</h3>
+                   <%= link_to conversations_path, data: { turbo_method: :post }, class: "text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100" do %>
+                     <sl-icon-button name="plus-square" label="New Chat"></sl-icon-button>
+                   <% end %>
+                 </div>
+                 <button class="cursor-w-resize text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-100 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 p-1" 
+                         data-action="click->sidebar#close" aria-label="Collapse sidebar">
+                   <sl-icon name="layout-text-sidebar-reverse" class="text-xl"></sl-icon>
+                 </button>
+              </div>
+           </div>
+           
+           <div class="px-2 pt-2 pb-4 overflow-y-auto flex-grow">
+              <div id="conversation-list">
+                <%= render partial: "conversations/list", locals: { conversations: @conversations, current_conversation: @conversation } %>
+              </div>
+           </div>
+        </nav>
+      </template>
     </div>
-  </sl-drawer>
+  </details>
 
   <!-- Conversation Column -->
   <div class="grow 
               min-w-0 max-w-[40rem] xl:max-2xl:max-w-[32rem] 
               h-full 
-              flex flex-col" id="conversation-panel">
+              flex flex-col px-2 md:px-3 pt-2" id="conversation-panel">
     <!-- Chat navigation bar -->
     <div class="flex flex-row justify-between text-xl">
       <div class="flex flex-row items-center"><!-- Left buttons -->
-        <sl-icon-button name="layout-text-sidebar-reverse" class="any-pointer-fine:hidden" aria-label="Open chats" 
-                        data-action="click->drawer#open" data-drawer-id="1"></sl-icon-button> <!-- Touchscreen-only chats sidebar button -->
+        <!-- Mobile only sidebar trigger using window event -->
+        <sl-icon-button name="layout-text-sidebar-reverse" class="block md:hidden mr-1" aria-label="Open chats" 
+                        onclick="window.dispatchEvent(new CustomEvent('sidebar:open-mobile'))"></sl-icon-button>
+        
         <%= link_to conversations_path,
             data: { turbo_method: :post },
-            class: "" do %>
-          <sl-icon-button name="plus-square"></sl-icon-button>
+            class: "hidden md:block" do %> <!-- Hidden on mobile since it's in the mobile sidebar now, but kept on desktop for "New Chat" shortcut if needed, or remove? The old one had it. -->
+          <sl-icon-button name="plus-square" label="New Chat"></sl-icon-button>
         <% end %>
+        
         <%# Mobile chalkboard button - visible on smaller screens, hidden on xl+ %>
         <sl-icon-button
           name="easel"
@@ -130,7 +144,7 @@
       
     </div>
 
-    <hr class="border-stone-500">
+    <hr class="border-stone-500 mb-2">
 
     <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
   </div>
