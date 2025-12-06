@@ -1,53 +1,79 @@
-<h2 class="font-semibold text-lg mb-4">Teacher Dashboard</h2>
-<nav>
-  <ul>
-    <li class="mb-2">
-      <%= link_to "Course Manager", admin_courses_path, class: "hover:underline"  %>
-    </li>
-    <li class="mb-2">
-      <%= link_to "Resources", admin_resources_path, class: "hover:underline"  %>
-    </li>
-    <li class="mb-2">
-      <%= link_to "Students", admin_students_path, class: "hover:underline"  %>
-    </li>
+<nav class="min-h-[600px] relative flex h-full w-full flex-1 flex-col overflow-y-auto select-none">
+  <div class="sticky top-0 z-30 bg-stone-50 dark:bg-stone-900">
+    <div class="px-1.5 sm:px-2">
+      <div class="flex h-13 items-center justify-between">
+        <a href="javascript:void(0)" aria-label="Home" class="flex size-10 items-center justify-center rounded-lg text-stone-900 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 sm:size-9 dark:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" data-controller="railsblocks--tooltip" data-tooltip-content="Home" data-railsblocks--tooltip-placement-value="right">
+          <sl-icon name="house" class="text-xl"></sl-icon>
+        </a>
+        <div class="flex">
+          <button class="flex size-10 cursor-w-resize items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 sm:size-9 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" aria-expanded="true" aria-label="Close sidebar" data-state="closed" data-action="click->sidebar#close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4 sm:size-4.5" width="18" height="18" viewBox="0 0 18 18">
+              <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentColor">
+                <line x1="11.75" y1="2.75" x2="11.75" y2="15.25"></line>
+                <polyline points="7.75 6.5 5.25 9 7.75 11.5"></polyline>
+                <rect x="1.75" y="2.75" width="14.5" height="12.5" rx="2" ry="2"></rect>
+              </g>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <hr class="hr-primary my-2">
+  <aside class="relative bg-stone-50 p-1.5 last:mb-5 sm:p-2 dark:bg-stone-900">
+    <%= render "layouts/admin/sidebar_link", label: "Course Manager", path: admin_courses_path, icon: "collection" %>
+    <%= render "layouts/admin/sidebar_link", label: "Resources", path: admin_resources_path, icon: "file-earmark" %>
+    <%= render "layouts/admin/sidebar_link", label: "Students", path: admin_students_path, icon: "people" %>
 
-    <li class="mb-2">
-      <%= link_to "LLM Chat", conversations_path, class: "hover:underline" %>
-    </li>
-    <li class="mb-2">
-      <%= link_to "Applets", applets_path, class: "hover:underline"  %>
-    </li>
-    <li class="mb-2">
-      <%= link_to "My Lessons", admin_student_path(current_user, active_tab: :active_courses), class: "hover:underline"  %>
-    </li>
+    <hr class="border-stone-200 dark:border-stone-800 my-2 mx-1.5">
 
-    <hr class="hr-primary my-2">
+    <%= render "layouts/admin/sidebar_link", label: "LLM Chat", path: conversations_path, icon: "chat-dots" %>
+    <%= render "layouts/admin/sidebar_link", label: "Applets", path: applets_path, icon: "grid" %>
+    <%= render "layouts/admin/sidebar_link", label: "My Lessons", path: admin_student_path(current_user, active_tab: :active_courses), icon: "book" %>
 
-    <li class="mb-2">
-      <%= link_to "LLM APIs", admin_supported_apis_path, class: "hover:underline"  %>
-    </li>
-    <% if current_user.role_superuser? %>
-      <li class="mb-2">
-        <%= link_to "LLMs", admin_llms_path, class: "hover:underline"  %>
-      </li>
-      <li class="mb-2">
-        <%= link_to "App Settings", edit_admin_app_setting_path, class: "hover:underline"  %>
-      </li>
-    <% end %>
-    <li class="mb-2">
-      <%= link_to "Usage", admin_completions_path, class: "hover:underline"  %>
-    </li>
-    <li class="mb-2">
-      <%= link_to "Prompts", admin_prompts_path, class: "hover:underline"  %>
-    </li>
-    <% if current_user.role_superuser? %>
-      <li class="mb-2">
-        <%= link_to "Tools", admin_tools_path, class: "hover:underline"  %>
-      </li>
-    <% end %>
+    <hr class="border-stone-200 dark:border-stone-800 my-2 mx-1.5">
 
-    <!-- Add more sidebar items here -->
-  </ul>
+    <details class="group/options mb-1 px-1.5 sm:px-2" open>
+      <summary class="flex cursor-pointer list-none items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100 focus-visible:bg-stone-100 focus:outline-hidden [&::-webkit-details-marker]:hidden dark:text-stone-100 dark:hover:bg-stone-700/50 dark:focus-visible:bg-stone-700/50" data-no-hover-bg="true" data-no-contents-gap="true">
+        <div class="flex w-full items-center justify-start gap-1 text-stone-500 dark:text-stone-400">
+          <h2 class="uppercase text-xs font-semibold tracking-wide">System</h2>
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-2.5 opacity-0 transition-all duration-200 group-hover/options:opacity-100 group-open/options:rotate-90" width="12" height="12" viewBox="0 0 12 12"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentColor"><polyline points="4.25 10.25 8.5 6 4.25 1.75"></polyline></g></svg>
+        </div>
+      </summary>
+      <div>
+        <%= render "layouts/admin/sidebar_link", label: "LLM APIs", path: admin_supported_apis_path, icon: "plug" %>
+
+        <% if current_user.role_superuser? %>
+          <%= render "layouts/admin/sidebar_link", label: "LLMs", path: admin_llms_path, icon: "cpu" %>
+          <%= render "layouts/admin/sidebar_link", label: "App Settings", path: edit_admin_app_setting_path, icon: "gear" %>
+        <% end %>
+
+        <%= render "layouts/admin/sidebar_link", label: "Usage", path: admin_completions_path, icon: "graph-up" %>
+        <%= render "layouts/admin/sidebar_link", label: "Prompts", path: admin_prompts_path, icon: "chat-left-quote" %>
+
+        <% if current_user.role_superuser? %>
+          <%= render "layouts/admin/sidebar_link", label: "Tools", path: admin_tools_path, icon: "tools" %>
+        <% end %>
+      </div>
+    </details>
+
+  </aside>
+
+  <div class="grow"></div>
+
+  <div class="sticky bottom-0 z-30 bg-stone-50 p-1.5 empty:hidden sm:p-2 dark:bg-stone-900">
+    <div class="w-full flex items-center gap-2 rounded-md px-1 sm:px-1.5 py-1 sm:py-1.5 text-left text-sm text-stone-700 hover:bg-stone-100 focus-visible:bg-stone-100 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 dark:text-stone-100 dark:hover:bg-stone-700/50 dark:focus-visible:bg-stone-700/50">
+      <div class="flex items-center justify-center group-disabled:opacity-50 group-data-disabled:opacity-50">
+        <div class="flex h-6 w-6 shrink-0 overflow-hidden rounded-full bg-stone-500/30">
+          <%# Using Shoelace Avatar or similar if image is not available, but for now just a placeholder or user image if you have one %>
+          <sl-icon name="person-circle" class="text-xl"></sl-icon>
+        </div>
+      </div>
+      <div class="min-w-0">
+        <div class="flex min-w-0 grow items-center gap-2.5 group-data-no-contents-gap:gap-0">
+          <div class="truncate text-xs"><%= current_user.email %></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </nav>

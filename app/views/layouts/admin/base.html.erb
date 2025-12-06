@@ -5,32 +5,87 @@
     name="list"
     label="Open navigation"
     class="text-2xl md:hidden pr-2"
-    onclick="document.getElementById('admin-drawer').show()"
-    aria-controls="admin-drawer"
-    title="Open navigation">
+    onclick="window.dispatchEvent(new CustomEvent('sidebar:open-mobile'))">
   </sl-icon-button>
 <% end %>
 
 <% content_for :body do %>
-  <div class="flex flex-row min-h-[calc(100dvh-2.5rem)]"> <%# Fill the viewport, minus the header height. %>
-    <!-- Mobile drawer (shoelace) -->
-  <sl-drawer id="admin-drawer" placement="left" class="" 
-             style="--size:16rem;--header-spacing:0;--body-spacing:0;">
-    <div class="p-4">
-      <%= render "layouts/admin/sidebar" %>
+  <div class="flex flex-col relative h-[calc(100dvh-2.5rem)]" data-controller="sidebar" data-action="sidebar:open-mobile@window->sidebar#openMobile" data-sidebar-storage-key-value="adminSidebar">
+    <!-- Mobile Sidebar Overlay -->
+    <div class="absolute inset-0 z-50 md:hidden hidden" data-sidebar-target="mobileSidebar">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-black/50 transition-opacity duration-300" data-sidebar-target="mobileBackdrop" data-action="click->sidebar#closeMobile"></div>
+
+      <!-- Sidebar Panel -->
+      <div class="absolute inset-y-0 left-0 w-64 bg-stone-50 dark:bg-stone-900 shadow-xl border-r border-stone-200 dark:border-stone-800 transition-transform duration-300 ease-out" data-sidebar-target="mobilePanel">
+        <div data-sidebar-target="sharedContent"></div>
+      </div>
     </div>
-  </sl-drawer>
 
-  <!-- Desktop sidebar -->
-  <aside class="hidden md:block md:w-34 flex-none border-r border-stone-400 px-4 pt-2">
-    <%= render "layouts/admin/sidebar" %>
-  </aside>
+    <div class="relative z-0 flex h-full w-full grow">
+      <div class="relative flex h-full flex-row">
+        <details class="w-13 open:w-64 group/sidebar relative z-20 h-full shrink-0 overflow-hidden border-r border-stone-200 bg-stone-50 max-md:hidden motion-safe:transition-all motion-safe:duration-300 dark:border-stone-800 dark:bg-stone-900" data-sidebar-target="desktopSidebar">
+          <!-- Tiny Sidebar (shown when closed) -->
+          <summary class="group-open/sidebar:hidden flex min-h-[600px] h-full cursor-e-resize list-none flex-col items-start pl-2 pr-1.5 pt-2">
+            <div class="flex h-13 w-full items-center justify-start mb-2">
+              <button class="cursor-e-resize flex size-10 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 sm:size-9 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" data-action="click->sidebar#open">
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-4 sm:size-4.5" width="18" height="18" viewBox="0 0 18 18"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentColor"><line x1="6.25" y1="2.75" x2="6.25" y2="15.25"></line><polyline points="10.25 6.5 12.75 9 10.25 11.5"></polyline><rect x="1.75" y="2.75" width="14.5" height="12.5" rx="2" ry="2" transform="translate(18 18) rotate(180)"></rect></g></svg>
+              </button>
+            </div>
 
-    <!-- Main content -->
-    <main class="grow px-4 pt-4">
-      <%= turbo_stream_from "teacher_#{current_user.id}-dashboard" %>
-      <%= yield %>
-    </main>
+            <div class="mt-1.5 sm:mt-2 flex w-full flex-col items-start space-y-2">
+              <%= render "layouts/admin/sidebar_link_tiny", label: "Course Manager", path: admin_courses_path, icon: "collection" %>
+              <%= render "layouts/admin/sidebar_link_tiny", label: "Resources", path: admin_resources_path, icon: "file-earmark" %>
+              <%= render "layouts/admin/sidebar_link_tiny", label: "Students", path: admin_students_path, icon: "people" %>
+
+              <div class="h-px w-6 bg-stone-200 dark:bg-stone-700 mx-auto"></div>
+
+              <%= render "layouts/admin/sidebar_link_tiny", label: "LLM Chat", path: conversations_path, icon: "chat-dots" %>
+              <%= render "layouts/admin/sidebar_link_tiny", label: "Applets", path: applets_path, icon: "grid" %>
+              <%= render "layouts/admin/sidebar_link_tiny", label: "My Lessons", path: admin_student_path(current_user, active_tab: :active_courses), icon: "book" %>
+              
+              <div class="h-px w-6 bg-stone-200 dark:bg-stone-700 mx-auto"></div>
+
+              <%= render "layouts/admin/sidebar_link_tiny", label: "LLM APIs", path: admin_supported_apis_path, icon: "plug" %>
+
+              <% if current_user.role_superuser? %>
+                <%= render "layouts/admin/sidebar_link_tiny", label: "LLMs", path: admin_llms_path, icon: "cpu" %>
+                <%= render "layouts/admin/sidebar_link_tiny", label: "App Settings", path: edit_admin_app_setting_path, icon: "gear" %>
+              <% end %>
+
+               <%= render "layouts/admin/sidebar_link_tiny", label: "Usage", path: admin_completions_path, icon: "graph-up" %>
+               <%= render "layouts/admin/sidebar_link_tiny", label: "Prompts", path: admin_prompts_path, icon: "chat-left-quote" %>
+
+                <% if current_user.role_superuser? %>
+                  <%= render "layouts/admin/sidebar_link_tiny", label: "Tools", path: admin_tools_path, icon: "tools" %>
+                <% end %>
+            </div>
+            
+            <div class="flex-grow"></div>
+
+            <div class="py-1 sm:py-1.5 flex items-start justify-center w-full">
+               <button class="flex mb-1 h-8 w-9 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" aria-label="Profile" title="Profile">
+                 <sl-icon name="person-circle" class="text-xl"></sl-icon>
+               </button>
+            </div>
+          </summary>
+
+          <!-- Full Sidebar (shown when open) -->
+          <div class="h-full w-64 overflow-x-clip overflow-y-auto bg-stone-50 text-clip whitespace-nowrap dark:bg-stone-900" data-sidebar-target="desktopContent">
+            <!-- Shared Sidebar Content Template -->
+            <template data-sidebar-target="contentTemplate">
+              <%= render "layouts/admin/sidebar" %>
+            </template>
+          </div>
+        </details>
+      </div>
+
+      <!-- Main content -->
+      <main class="grow px-4 pt-4 overflow-y-auto">
+        <%= turbo_stream_from "teacher_#{current_user.id}-dashboard" %>
+        <%= yield %>
+      </main>
+    </div>
   </div>
 <% end %>
 

@@ -80,7 +80,10 @@
               <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
             </div>
           <% end %>
-          <div class="text-2xl md:pr-4" id="dark_mode_switch">
+          <div class="text-2xl md:pr-4" id="dark_mode_switch"
+               data-controller="railsblocks--tooltip"
+               data-tooltip-content="Toggle Light Mode"
+               data-railsblocks--tooltip-placement-value="bottom">
             <sl-icon-button name="sun" class="dark-mode-toggle" onclick="toggleDarkMode();"></sl-icon-button>
           </div>
         </div>

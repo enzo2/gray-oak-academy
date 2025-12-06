@@ -41,7 +41,7 @@ pin "@shoelace-style/shoelace/drawer", to: "https://cdn.jsdelivr.net/npm/@shoela
 pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.js"
 pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js"
 
-# pin "@floating-ui/dom", to: "https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.3/+esm"
+pin "@floating-ui/dom", to: "https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm"
 
 # pin "html-to-image", to: "https://cdn.jsdelivr.net/npm/html-to-image/+esm"
 
