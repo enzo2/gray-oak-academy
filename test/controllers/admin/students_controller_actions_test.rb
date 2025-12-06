@@ -103,7 +103,7 @@ class Admin::StudentsControllerActionsTest < ActionDispatch::IntegrationTest
     post enroll_admin_student_path(student), params: { course_id: course_to_enroll.id }
 
     assert student.reload.courses.include?(course_to_enroll)
-    assert_redirected_to admin_student_path(student)
+    assert_redirected_to admin_student_path(student, active_tab: :active_courses)
   end
 
   test "unenroll action removes a student from a course" do
@@ -115,6 +115,6 @@ class Admin::StudentsControllerActionsTest < ActionDispatch::IntegrationTest
     delete unenroll_admin_student_path(student), params: { course_id: course_to_unenroll.id }
 
     assert_not student.reload.courses.include?(course_to_unenroll)
-    assert_redirected_to admin_student_path(student)
+    assert_redirected_to admin_student_path(student, active_tab: :active_courses)
   end
 end

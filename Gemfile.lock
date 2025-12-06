@@ -1,16 +1,4 @@
 GIT
-  remote: https://github.com/gjtorikian/commonmarker.git
-  revision: c8756179adc3652b69138f9ca64ac8c4817e5ab1
-  branch: main
-  specs:
-    commonmarker (2.5.0)
-      rb_sys (~> 0.9)
-    commonmarker (2.5.0-aarch64-linux)
-    commonmarker (2.5.0-aarch64-linux-musl)
-    commonmarker (2.5.0-x86_64-linux)
-    commonmarker (2.5.0-x86_64-linux-musl)
-
-GIT
   remote: https://github.com/heartcombo/devise.git
   revision: c8a64b549c8b37e494eaca7be2def136a7e1b236
   branch: main
@@ -134,8 +122,14 @@ GEM
       rack-test (>= 0.6.3)
       regexp_parser (>= 1.5, < 3.0)
       xpath (~> 3.2)
+    commonmarker (2.6.0-aarch64-linux)
+    commonmarker (2.6.0-aarch64-linux-musl)
+    commonmarker (2.6.0-arm64-darwin)
+    commonmarker (2.6.0-x86_64-darwin)
+    commonmarker (2.6.0-x86_64-linux)
+    commonmarker (2.6.0-x86_64-linux-musl)
     concurrent-ruby (1.3.5)
-    connection_pool (2.5.5)
+    connection_pool (3.0.2)
     crass (1.0.6)
     date (3.5.0)
     debug (1.11.0)
@@ -192,7 +186,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.17.0)
+    json (2.17.1)
     json-repair (0.2.0)
     json_schemer (2.4.0)
       bigdecimal
@@ -212,7 +206,7 @@ GEM
       net-pop
       net-smtp
     marcel (1.1.0)
-    markdown_views (3.2.0)
+    markdown_views (3.2.1)
       commonmarker (>= 1.1, < 3.0)
       rails (>= 6.1)
       rouge (~> 4)
@@ -256,6 +250,7 @@ GEM
       faraday (>= 1)
       faraday-multipart (>= 1)
     orm_adapter (0.5.0)
+    ostruct (0.6.3)
     parallel (1.27.0)
     parser (3.3.10.0)
       ast (~> 2.4.1)
@@ -291,7 +286,7 @@ GEM
       rack (>= 3.0.0)
     rack-test (2.2.0)
       rack (>= 1.3)
-    rackup (2.2.1)
+    rackup (2.3.1)
       rack (>= 3)
     rails (8.1.1)
       actioncable (= 8.1.1)
@@ -325,9 +320,6 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.3.1)
-    rake-compiler-dock (1.9.1)
-    rb_sys (0.9.117)
-      rake-compiler-dock (= 1.9.1)
     rdoc (6.16.1)
       erb
       psych (>= 4.0.0)
@@ -457,7 +449,7 @@ DEPENDENCIES
   brakeman
   bundler-audit
   capybara
-  commonmarker!
+  commonmarker
   debug
   devise!
   dotenv-rails
@@ -470,6 +462,7 @@ DEPENDENCIES
   markdown_views
   neighbor
   open_router
+  ostruct
   pg
   propshaft
   puma (< 8)

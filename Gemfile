@@ -46,7 +46,7 @@ gem "faraday-retry"
 # when ready: https://github.com/excid3/action_push_web
 
 # temp til next release:
-gem "commonmarker", github: "gjtorikian/commonmarker", branch: "main"
+gem "commonmarker"
 
 # LLM API access/wrappers
 gem "open_router"# , git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
@@ -83,4 +83,5 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "ostruct"
 end
