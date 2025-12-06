@@ -126,10 +126,30 @@
       <% if current_user.role_superuser? && current_user != @student %>
         <details class="mt-4">
           <summary class="cursor-pointer text-red-600 font-bold">Danger Zone</summary>
-          <%= button_to 'DELETE STUDENT ACCOUNT', admin_student_path(@student),
-              method: :delete,
-              data: { turbo_confirm: 'THIS CANNOT BE UNDONE. ALL STUDENT DATA WILL BE LOST. YOU SHOULD ONLY REMOVE ACCOUNTS CREATED IN ERROR. CONTINUE?' },
-              class: "btn-danger text-sm mt-2 block"%>
+          <div data-controller="modal">
+            <button type="button" class="btn-danger text-sm mt-2 block" data-action="modal#open">DELETE STUDENT ACCOUNT</button>
+
+            <div data-modal-target="content" class="hidden">
+              <%= form_with url: admin_student_path(@student), method: :delete, class: "p-6", data: { controller: "railsblocks--confirmation", railsblocks__confirmation_confirm_text_value: "DELETE" } do |f| %>
+                <div class="mb-4">
+                  <h3 class="text-base font-semibold leading-6 text-stone-900 dark:text-stone-100" id="modal-title">Delete Student Account</h3>
+                  <div class="mt-2">
+                    <p class="text-sm text-stone-500 dark:text-stone-400">This cannot be undone. All student data will be lost. You should only remove accounts created in error.</p>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium leading-6 text-stone-900 dark:text-stone-100 mb-2">Type DELETE to confirm</label>
+                  <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="DELETE">
+                </div>
+
+                <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                  <button type="submit" class="btn-danger w-full sm:col-start-2 opacity-50 cursor-not-allowed" disabled data-railsblocks--confirmation-target="confirmButton">Delete Student</button>
+                  <button type="button" class="mt-3 inline-flex w-full justify-center rounded-sm bg-white dark:bg-stone-800 px-3 py-2 text-sm font-semibold text-stone-900 dark:text-stone-100 shadow-sm ring-1 ring-inset ring-stone-300 dark:ring-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 sm:col-start-1 sm:mt-0" data-action="modal#close">Cancel</button>
+                </div>
+              <% end %>
+            </div>
+          </div>
         </details>
       <% elsif !current_user.role_superuser? && current_user != @student %>
           <p class="text-sm text-dim">Only a superuser can delete student accounts.</p>
