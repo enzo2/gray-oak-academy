@@ -45,13 +45,34 @@
         </div>
       <% end %>
 
-      <%= button_to 'Un-enroll', unenroll_admin_student_path(@student, course_id: enrollment.course.id),
-          method: :delete,
-          data: { 
-            turbo_confirm: 'WARNING! This will delete all student progress and cannot be reversed. Student reports will be orphaned. It is better to retain the enrollment for record-keeping. Are you sure?',
-            turbo_stream: true 
-          }, 
-          class: "btn-danger text-sm" %>
+      <div data-controller="modal">
+        <button type="button" class="btn-danger text-sm" data-action="modal#open">Un-enroll</button>
+        <div data-modal-target="content" class="hidden">
+            <%= form_with url: unenroll_admin_student_path(@student, course_id: enrollment.course.id), method: :delete, class: "p-6", 
+                  data: {  controller: "railsblocks--confirmation", railsblocks__confirmation_confirm_text_value: "UNENROLL" } do |f| %>
+                <div class="mb-4">
+                  <h3 class="text-base font-semibold leading-6 text-stone-900 dark:text-stone-100" id="modal-title">Un-enroll from <%= enrollment.course.title %></h3>
+                  <div class="mt-2">
+                    <p class="text-sm text-stone-500 dark:text-stone-400">
+                      WARNING! This will delete all student progress and cannot be reversed.
+                      <br><br>
+                      Student reports will be orphaned. It is better to retain the enrollment for record-keeping.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium leading-6 text-stone-900 dark:text-stone-100 mb-2">Type UNENROLL to confirm</label>
+                  <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="UNENROLL">
+                </div>
+
+                <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                  <button type="submit" class="btn-danger w-full sm:col-start-2 opacity-50 cursor-not-allowed" disabled data-railsblocks--confirmation-target="confirmButton">Un-enroll</button>
+                  <button type="button" class="mt-3 inline-flex w-full justify-center rounded-sm bg-white dark:bg-stone-800 px-3 py-2 text-sm font-semibold text-stone-900 dark:text-stone-100 shadow-sm ring-1 ring-inset ring-stone-300 dark:ring-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 sm:col-start-1 sm:mt-0" data-action="modal#close">Cancel</button>
+                </div>
+            <% end %>
+        </div>
+      </div>
 
     </div>
   <% end %>

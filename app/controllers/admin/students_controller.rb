@@ -86,13 +86,15 @@ module Admin
     def enroll
       course = Course.find(params[:course_id])
       @student.enrollments.create(course: course)
-      redirect_to admin_student_path(@student), status: :see_other
+      flash[:success] = "Student enrolled successfully."
+      redirect_to admin_student_path(@student, active_tab: :active_courses), status: :see_other
     end
 
     def unenroll
       enrollment = @student.enrollments.find_by(course_id: params[:course_id])
       enrollment&.destroy
-      redirect_to admin_student_path(@student), status: :see_other
+      flash[:success] = "Student un-enrolled successfully."
+      redirect_to admin_student_path(@student, active_tab: :active_courses), status: :see_other
     end
 
     def destroy
