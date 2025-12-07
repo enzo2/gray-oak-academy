@@ -817,14 +817,14 @@ class ToolHandlerService
 
       # Ensure metadata is consistent
       resource.category = "Applet"
-      resource.description = "Applet: #{applet.title}" if resource.description.blank?
+      resource.description = "#{applet.title}" if resource.description.blank?
       resource.save! if resource.changed?
     else
       # Create resource
       resource = Resource.create!(
         teacher: current_teacher,
         category: "Applet",
-        description: "Applet: #{applet.title}",
+        description: "#{applet.title}",
         applet: applet
       )
     end

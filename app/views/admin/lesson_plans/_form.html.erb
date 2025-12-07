@@ -94,16 +94,31 @@
 
   <div class="mb-4">
     <%= f.label :audio, "Audio Input", class: "form-label" %>
-    <div class="[&_label]:mr-4 [&_input]:mr-2">
-      <%= f.collection_radio_buttons :audio, LessonPlan.audios.keys, :to_s, :titleize do |b| %>
-       <%= b.label(:"data-value" => b.value) { b.radio_button(class: "radio-primary") + b.text } %>
+    <div class="space-y-1 max-w-md">
+      <% audio_descriptions = {
+           "enabled" => "Allows speech input.",
+           "only" => "Forces speech input. Text entry disabled."
+         } %>
+      <%= f.collection_radio_buttons :audio, LessonPlan.audios.keys, :to_s, :to_s do |b| %>
+        <div class="flex items-start gap-3">
+          <%= b.radio_button(class: "mt-1 radio-primary") %>
+          <div class="flex-1">
+            <%= b.label(class: "block text-sm font-medium text-neutral-700 dark:text-neutral-300") do %>
+               <%= b.value == 'only' ? 'Audio Only' : b.text.titleize %>
+            <% end %>
+            <p class="text-xs text-dim">
+              <%= audio_descriptions[b.value] %>
+            </p>
+          </div>
+        </div>
       <% end %>
     </div>
-    <p class="block text-sm mt-1">
-      Enabled: <i>Allow STT (or raw audio input, if supported by the LLM)</i><br>
-      Audio Only: <i>Text entry disabled. Speech input only. (For mobile device use, outdoors lessons, etc.)</i><br>
-    <%= link_to "Set up Speech API to ensure transcription is available.", edit_user_registration_path(), class: "link-primary", target: "_blank" unless AppSetting.speech_configured? %>
-    </p>
+    
+    <% unless AppSetting.speech_configured? %>
+      <p class="text-xs text-dim mt-2">
+        Speech has not been configured. Contact the webmaster.
+      </p>
+    <% end %>
   </div>
   
   <div class="mb-4">
