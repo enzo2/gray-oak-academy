@@ -22,24 +22,33 @@
   <td class="py-2 px-3"><%= truncate(lesson.goals, length: 500) %></td>
   <td class="py-2 px-3 text-center"><%= lesson.approx_duration_min %></td>
   <td class="py-2 px-3 text-center">
-  <%= link_to edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson), class: "flex items-center justify-center hover:underline", data: { turbo_stream: true } do %>
-    <span class="">
-      <% if lesson.lesson_plan.present? %>
-        <%= lesson.lesson_plan.status.titleize %>
-      <% else %>
-        <%= "None" %>
-      <% end %>
-    </span>
-    <sl-icon-button name="pencil-square" size="medium" label="Edit Lesson Plan"></sl-icon-button>
+    <%= link_to edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson), 
+          class: "btn-table-action" do %>
+      <sl-icon name="pencil-square" class="text-base"></sl-icon>
+      <span class="">
+        <% if lesson.lesson_plan.present? %>
+          <%= lesson.lesson_plan.status.titleize %>
+        <% else %>
+          <%= "New" %>
+        <% end %>
+      </span>
     <% end %>
   </td>
-  <td class="py-2 px-3 text-right [&_a:hover]:underline">
-    <%= link_to "Edit", edit_admin_course_lesson_path(lesson.course, lesson), class: "inline-block mr-2", data: { turbo_stream: true } %>
-    <%= button_to "Delete", admin_course_lesson_path(lesson.course, lesson), 
-          method: :delete, 
-          class: "inline-block mr-2 hover:underline", 
-          data: { 
-            turbo_confirm: "Are you sure? This will delete the associated lesson plan too." 
-          } %>
+  <td class="py-2 px-3 text-right">
+    <div class="flex items-center justify-end gap-1">
+      <%= link_to edit_admin_course_lesson_path(lesson.course, lesson), class: "btn-table-action", data: { turbo_stream: true } do %>
+        <sl-icon name="pencil"></sl-icon>
+        Edit
+      <% end %>
+      <%= button_to admin_course_lesson_path(lesson.course, lesson), 
+            method: :delete, 
+            class: "btn-table-danger", 
+            data: { 
+              turbo_confirm: "Are you sure? This will delete the associated lesson plan too." 
+            } do %>
+            <sl-icon name="trash"></sl-icon>
+            Delete
+      <% end %>
+    </div>
   </td>
 </tr>

@@ -77,6 +77,12 @@
     border-color: var(--color-stone-200, currentColor);
   }
 
+  input[type="submit"], input[type="button"], 
+  button,
+  [role="button"] {
+    @apply cursor-pointer disabled:pointer-events-none disabled:cursor-not-allowed;
+  }
+
   input[type="text"], input[type="hidden"], input[type="email"], 
   input[type="password"], input[type="search"], input[type="tel"], 
   input[type="url"], textarea {
@@ -84,10 +90,6 @@
     transition: color calc(infinity * 1s) step-end, background-color calc(infinity * 1s) step-end;  */
 
     @apply bg-transparent text-black dark:text-white placeholder-stone-500 dark:placeholder-stone-500;
-  }
-
-  input[type="submit"], input[type="button"] {
-    @apply cursor-pointer;
   }
 
   sl-input[type="text"] {
@@ -134,7 +136,7 @@
          focus-visible:outline-hidden
          focus-visible:ring-2 focus-visible:ring-moss-light dark:focus-visible:ring-moss-dark
          focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
-         disabled:opacity-60 disabled:pointer-events-none cursor-pointer;
+         disabled:opacity-60;
 }
 
 @utility btn-secondary {
@@ -147,7 +149,7 @@
          focus-visible:outline-hidden
          focus-visible:ring-2 focus-visible:ring-moss-dark dark:focus-visible:ring-moss-light
          focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
-         disabled:opacity-60 disabled:pointer-events-none cursor-pointer;
+         disabled:opacity-60;
          
 }
 
@@ -155,16 +157,24 @@
 @utility btn-danger {
   @apply inline-flex items-center justify-center gap-2 rounded-sm font-medium text-base
          px-2 py-[4px] border-1
-         bg-stone-200 dark:bg-neutral-900 border-red-200 dark:border-red-950
+         bg-white dark:bg-neutral-900 border-red-200 dark:border-red-950
          hover:bg-red-700 active:bg-red-800
-         text-neutral-500 dark:text-neutral-300
+         text-stone-800 dark:text-stone-200
          hover:text-white active:text-white
          
          transition-colors duration-100 ease-out
          focus-visible:outline-hidden
          focus-visible:ring-2 focus-visible:ring-red-200 dark:focus-visible:ring-red-400
          focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
-         disabled:opacity-60 disabled:pointer-events-none;
+         disabled:opacity-60;
+}
+
+@utility btn-table-action {
+  @apply btn-secondary px-2 py-1 text-sm gap-1;
+}
+
+@utility btn-table-danger {
+  @apply btn-danger px-2 py-1 text-sm gap-1;
 }
 
 @utility form-label {
@@ -189,7 +199,7 @@
          text-stone-700 dark:text-stone-500 
          focus:outline-hidden focus:ring-0 focus:ring-offset-0 
          checked:bg-stone-700 dark:checked:bg-stone-500 checked:border-stone-700 dark:checked:border-stone-500 
-         cursor-pointer;
+         cursor-pointer disabled:cursor-not-allowed;
 }
 
 @utility form-select-primary {

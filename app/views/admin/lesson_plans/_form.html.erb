@@ -26,11 +26,13 @@
 
   <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
     <%= f.label :content, class: "form-label" %>
-    <p class="block text-sm mb-2"><i>
+    <details class="block text-sm mb-2 pl-2">
+      <summary>What's this?</summary>
       The content will be used by the LLM tutor to conduct the lesson.<br>
-      As examples, you could specify knowledge, resources, exercises, teaching methods, generative applets, or evaluation criteria for the lesson.<br>
-      Resources may be referenced in the plan, but must be linked to the lesson plan below.<br>
-      To create a reflection/recap/debrief lesson, add an "Offline Activity" content item with instructions for the student to perform away from the device, followed by a "Reflection" or "Recap" content item with debrief prompts.</i></p>
+      As examples, you could specify <b>knowledge, resources, exercises, teaching methods, generative applets, or evaluation criteria</b> for the lesson.<br>
+      <b>Resources</b> may be referenced, but the actual resource should be linked to the lesson plan below ('Linked Resources').<br>
+      To create a reflection/recap/debrief lesson, add an <b>"Offline Activity"</b> content item with instructions for the student to perform away from the device, followed by a <b>"Reflection"</b> or <b>"Recap"</b> content item with debrief prompts.</i>
+    </details>
     <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
     <% content_data.each do |item| %>
       <div class="flex items-center mb-1 space-x-2">

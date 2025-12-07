@@ -1,7 +1,10 @@
 <div class="flex items-center justify-between mb-4">
   <h2 class="text-2xl font-semibold">LLM APIs</h2>
   <% if current_user.role_superuser? %>
-    <%= link_to "New Supported API", new_admin_supported_api_path, class: "btn-primary" %>
+    <%= link_to new_admin_supported_api_path, class: "btn-primary" do %>
+      <sl-icon name="plus-lg"></sl-icon>
+      New Supported API
+    <% end %>
   <% end %>
 </div>
 
@@ -48,8 +51,16 @@
           <% if current_user.role_superuser? %>
             <td class="px-2 py-1 text-sm text-stone-700 dark:text-stone-300"><%= api.notes %></td>
             <td class="px-2 py-1 text-right">
-              <%= link_to "Edit", edit_admin_supported_api_path(api), class: "hover:underline" %>
-              <%= link_to "Delete", admin_supported_api_path(api), data: { turbo_method: :delete, turbo_confirm: "Delete this Supported API?" }, class: "hover:underline ml-2" %>
+              <div class="flex items-center justify-end gap-1">
+                <%= link_to edit_admin_supported_api_path(api), class: "btn-table-action" do %>
+                  <sl-icon name="pencil"></sl-icon>
+                  Edit
+                <% end %>
+                <%= link_to admin_supported_api_path(api), data: { turbo_method: :delete, turbo_confirm: "Delete this Supported API?" }, class: "btn-table-danger" do %>
+                  <sl-icon name="trash"></sl-icon>
+                  Delete
+                <% end %>
+              </div>
             </td>
           <% end %>
 

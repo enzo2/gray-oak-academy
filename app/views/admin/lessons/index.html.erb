@@ -9,7 +9,10 @@
 <h2 class="text-2xl mb-5 block">Lessons for: <b> <%= @course.title %></b></h2>
 
 <%= turbo_frame_tag Lesson.new do %>
-  <%= link_to "New Lesson", new_admin_course_lesson_path(@course), class: "btn-primary" %>
+  <%= link_to new_admin_course_lesson_path(@course), class: "btn-primary" do %>
+    <sl-icon name="plus-lg"></sl-icon>
+    New Lesson
+  <% end %>
 <% end %>
 
 <div class="mt-4" id="generate-lessons">
