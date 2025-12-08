@@ -13,6 +13,18 @@
        <h1 class="font-semibold"><%= @lesson.title %></h1>
       </div>
       <div class="flex flex-row items-center"><!-- Right buttons -->
+        <div class="flex items-center text-sm mr-2" 
+             data-controller="connection-status"
+             data-connection-status-connected-icon-value="cloud-check"
+             data-connection-status-disconnected-icon-value="cloud-slash"
+             data-connection-status-connected-class="text-success-600 dark:text-success-500"
+             data-connection-status-disconnected-class="text-red-600 dark:text-red-500">
+          <div data-controller="railsblocks--tooltip" 
+               data-tooltip-content="Connecting..." 
+               data-connection-status-target="tooltip">
+            <sl-icon name="cloud" class="text-xl" data-connection-status-target="indicator"></sl-icon>
+          </div>
+        </div>
         <% if @lesson.lesson_plan&.chalkboard_enabled? %>
         <sl-icon-button
             name="easel"

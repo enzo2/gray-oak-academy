@@ -70,7 +70,7 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include ActiveJob::TestHelper
   include TestSupport::SpeechStubs if defined?(TestSupport::SpeechStubs)
 
-  if ENV["CAPYBARA_SERVER_PORT"]
+  if ENV["CAPYBARA_SERVER_PORT"] && ENV["SELENIUM_HOST"].present?
     served_by host: "rails-app", port: ENV["CAPYBARA_SERVER_PORT"]
 
     driven_by :remote_headless_chrome_with_media

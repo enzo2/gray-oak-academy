@@ -205,9 +205,25 @@ export default class extends Controller {
 
     this.cleanupAutoUpdate = null;
     this.intersectionObserver = null;
+
+    // Observe attribute changes for dynamic content updates
+    this.attributeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-tooltip-content") {
+          this.tooltipContent = this.element.getAttribute("data-tooltip-content") || "";
+          if (this.tooltipElement) {
+            this.tooltipElement.innerHTML = this.tooltipContent;
+          }
+        }
+      });
+    });
+    this.attributeObserver.observe(this.element, { attributes: true, attributeFilter: ["data-tooltip-content"] });
   }
 
   disconnect() {
+    if (this.attributeObserver) {
+      this.attributeObserver.disconnect();
+    }
     clearTimeout(this.showTimeoutId);
     clearTimeout(this.hideTimeoutId);
 
