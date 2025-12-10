@@ -39,7 +39,9 @@ module Admin
         :token_override,
         :image_llm_id,
         :embedding_model,
-        :image_generation_two_pass
+        :image_generation_two_pass,
+        :user_daily_budget,
+        :max_chat_cost
       )
     end
   end

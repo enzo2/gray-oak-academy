@@ -73,6 +73,12 @@ class User < ApplicationRecord
     ActiveModel::Type::Boolean.new.cast(val)
   end
 
+  def daily_budget
+    # Returns the effective daily budget for this user.
+    # Currently uses the global AppSetting, but can be overridden in the future for usage tiers.
+    AppSetting.settings&.user_daily_budget
+  end
+
   private
 
   def validate_teacher_role

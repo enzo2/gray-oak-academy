@@ -14,13 +14,27 @@ class AppSetting < ApplicationRecord
                  :token_override,
                  :image_llm_id,
                  :embedding_model,
-                 :image_generation_two_pass
+                 :image_generation_two_pass,
+                 :user_daily_budget,
+                 :max_chat_cost
 
   # Custom accessor to handle boolean casting and default value
   def image_generation_two_pass
     val = super
-    return true if val.nil?
+    return false if val.nil?
     ActiveModel::Type::Boolean.new.cast(val)
+  end
+
+  def user_daily_budget
+    val = super
+    return nil unless val.present?
+    val.to_d
+  end
+
+  def max_chat_cost
+    val = super
+    return nil unless val.present?
+    val.to_d
   end
 
   validates :singleton, inclusion: { in: [ true, false ] }

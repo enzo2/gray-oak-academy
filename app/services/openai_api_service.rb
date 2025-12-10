@@ -43,6 +43,8 @@ class OpenaiApiService
   end
 
   def complete(messages, response_format: nil, schema: nil, prefill: nil, temperature: 1)
+    check_cost_limits
+
     # Inject system prompt to messages if it's not already included
     unless messages.any? { |message| message[:role] == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
@@ -375,6 +377,61 @@ class OpenaiApiService
     allowed_tools.map(&:for_llm)
                  # Reject image generation tool if not using OpenRouter
                  .reject { |tool| tool.dig("function", "name") == "Generate_Image" && !@base_uri.include?("openrouter.ai") }
+  end
+
+  def check_cost_limits
+    daily_budget = @user.daily_budget
+    max_chat_cost = AppSetting.settings&.max_chat_cost
+
+    return unless daily_budget.present? || max_chat_cost.present?
+
+    # 1. Check daily budget
+    if daily_budget.present?
+      daily_spend = Completion.where(user: @user).in_date_range(Date.current, Date.current).sum(:total_cost)
+      if daily_spend >= daily_budget
+        in_active_lesson = @conversation&.lesson_progress.present? && !@conversation.lesson_progress.completed?
+        lesson_overage_limit = daily_budget * 1.25
+        over_lesson_allowance = daily_spend >= lesson_overage_limit
+
+        # Allow active lessons to continue up to a 25% overage, otherwise block.
+        if !in_active_lesson || over_lesson_allowance
+          message = if in_active_lesson && over_lesson_allowance
+            "Daily API usage budget exceeded even after lesson allowance."
+          else
+            "Daily API usage budget of has been exceeded. Please try again tomorrow."
+          end
+          notify_admins_of_limit(message)
+          raise OpenAiError, message
+        end
+      end
+    end
+
+    # 2. Check chat/lesson limit (runaway prevention)
+    # This applies to both lessons and generic chats
+    if @conversation && max_chat_cost.present?
+      chat_spend = Completion.where(conversation: @conversation).sum(:total_cost)
+      if chat_spend >= max_chat_cost
+        message = "This chat has exceeded the maximum cost limit. Please start a new one."
+        notify_admins_of_limit(message)
+        raise OpenAiError, message
+      end
+    end
+  end
+
+  def notify_admins_of_limit(reason)
+    # Notify superusers
+    superuser_ids = User.role_superuser.pluck(:id)
+    return if superuser_ids.empty?
+
+    Rails.event.notify(Events::UserLimitExceeded.new(
+      recipient_ids: superuser_ids,
+      link: Rails.application.routes.url_helpers.admin_student_path(@user),
+      user_name: @user.name,
+      user_id: @user.id,
+      reason: reason
+    ))
+  rescue StandardError => e
+    Rails.logger.error "Failed to notify admins of limit: #{e.message}"
   end
 
   def extract_faraday_error_message(exception)

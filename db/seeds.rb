@@ -903,6 +903,9 @@ AppSetting.first_or_create!(
   tts_voice: "verse",
   tts_instructions: "Speak in a calm and friendly tone.",
   embedding_model: "google/gemini-embedding-001",
+  image_generation_two_pass: "0",
+  user_daily_budget: "10.00",
+  max_chat_cost: "5.00"
 )
 
 # ---- Seed OpenRouter image-capable LLM ----

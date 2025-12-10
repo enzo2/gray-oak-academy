@@ -5,7 +5,7 @@ class ImageGenerationService
   #
   # Returns a Tempfile containing the processed JPEG image.
 
-  def self.generate(user:, prompt:)
+  def self.generate(user:, prompt:, conversation: nil)
     raise ArgumentError, "Missing required parameter: user" unless user
     raise ArgumentError, "Missing required parameter: prompt" unless prompt.present?
 
@@ -27,6 +27,7 @@ class ImageGenerationService
 
     client = OpenaiApiService.new(
       current_user: user,
+      conversation: conversation,
       base_uri: llm.api_provider,
       access_token: token,
       model: llm.model,
@@ -38,7 +39,7 @@ class ImageGenerationService
       { role: "user", content: prompt_with_hints }
     ]
     Rails.logger.debug "ImageGenerationService: sending first-pass generation to #{llm.model}"
-    msg1 = client.complete(messages, temperature: 0.5)
+    msg1 = client.complete(messages)
     unless msg1.is_a?(Hash)
       raise OpenAiError, "Unexpected response from image model"
     end
@@ -62,7 +63,7 @@ class ImageGenerationService
 
       Rails.logger.debug "ImageGenerationService: sending second-pass critique/regeneration to #{llm.model}"
       Rails.logger.debug "messages: #{messages}"
-      msg2 = client.complete(messages, temperature: 0.5)
+      msg2 = client.complete(messages)
       unless msg2.is_a?(Hash)
         Rails.logger.warn "ImageGenerationService: second pass returned no image; falling back to first pass images"
         final_images = images1

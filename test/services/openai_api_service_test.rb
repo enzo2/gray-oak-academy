@@ -1,5 +1,6 @@
 require "test_helper"
 require "ostruct"
+require "bigdecimal"
 
 class OpenaiApiServiceTest < ActiveSupport::TestCase
   def setup
@@ -211,5 +212,94 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       tool_names = service.instance_variable_get(:@tools).map { |t| t.dig("function", "name") }
       assert_equal [ "Chalkboard_URL" ], tool_names
     end
+  end
+
+  test "check_cost_limits blocks over daily budget for non-lesson chat" do
+    service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
+
+    AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
+      @user.stub(:daily_budget, BigDecimal("1.00")) do
+        stub_completion_sums(daily_sum: BigDecimal("1.10")) do
+          service.stub(:notify_admins_of_limit, nil) do
+            assert_raises(OpenAiError) { service.send(:check_cost_limits) }
+          end
+        end
+      end
+    end
+  end
+
+  test "check_cost_limits allows active lesson up to 25 percent over budget" do
+    conversation = OpenStruct.new(lesson_progress: OpenStruct.new(completed?: false))
+    service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model, conversation: conversation)
+
+    AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
+      @user.stub(:daily_budget, BigDecimal("1.00")) do
+        stub_completion_sums(daily_sum: BigDecimal("1.20")) do
+          service.stub(:notify_admins_of_limit, nil) do
+            assert_nothing_raised { service.send(:check_cost_limits) }
+          end
+        end
+      end
+    end
+  end
+
+  test "check_cost_limits blocks active lesson beyond allowance" do
+    conversation = OpenStruct.new(lesson_progress: OpenStruct.new(completed?: false))
+    service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model, conversation: conversation)
+
+    AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
+      @user.stub(:daily_budget, BigDecimal("1.00")) do
+        stub_completion_sums(daily_sum: BigDecimal("1.30")) do
+          service.stub(:notify_admins_of_limit, nil) do
+            assert_raises(OpenAiError) { service.send(:check_cost_limits) }
+          end
+        end
+      end
+    end
+  end
+
+  test "check_cost_limits blocks completed lesson once budget exceeded" do
+    conversation = OpenStruct.new(lesson_progress: OpenStruct.new(completed?: true))
+    service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model, conversation: conversation)
+
+    AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
+      @user.stub(:daily_budget, BigDecimal("1.00")) do
+        stub_completion_sums(daily_sum: BigDecimal("1.10")) do
+          service.stub(:notify_admins_of_limit, nil) do
+            assert_raises(OpenAiError) { service.send(:check_cost_limits) }
+          end
+        end
+      end
+    end
+  end
+
+  private
+
+  def stub_completion_sums(daily_sum:, chat_sum: BigDecimal("0"), &block)
+    daily_relation = Class.new do
+      def initialize(sum)
+        @sum = sum
+      end
+
+      def in_date_range(*)
+        self
+      end
+
+      def sum(_)
+        @sum
+      end
+    end.new(daily_sum)
+
+    conversation_relation = Class.new do
+      def initialize(sum)
+        @sum = sum
+      end
+
+      def sum(_)
+        @sum
+      end
+    end.new(chat_sum)
+
+    Completion.stub(:where, ->(query) { query.key?(:user) ? daily_relation : conversation_relation }, &block)
   end
 end

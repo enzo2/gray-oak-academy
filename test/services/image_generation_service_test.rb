@@ -33,6 +33,8 @@ class ImageGenerationServiceTest < ActiveSupport::TestCase
   end
 
   test "generate performs 2-pass generation and returns tempfile" do
+    @app_setting.update!(image_generation_two_pass: true)
+
     # Mock OpenaiApiService
     mock_service = Minitest::Mock.new
 
@@ -50,11 +52,11 @@ class ImageGenerationServiceTest < ActiveSupport::TestCase
 
     # We expect complete to be called twice.
     # Arguments matcher is tricky with Minitest::Mock, so we just return the responses.
-    mock_service.expect :complete, response1 do |messages, temperature:|
+    mock_service.expect :complete, response1 do |messages|
       messages.length == 1 && messages[0][:role] == "user"
     end
 
-    mock_service.expect :complete, response2 do |messages, temperature:|
+    mock_service.expect :complete, response2 do |messages|
       messages.length == 3 && messages[2][:role] == "user" # user, assistant, user
     end
 
@@ -92,7 +94,7 @@ class ImageGenerationServiceTest < ActiveSupport::TestCase
     }
 
     # We expect complete to be called exactly once
-    mock_service.expect :complete, response1 do |messages, temperature:|
+    mock_service.expect :complete, response1 do |messages|
       messages.length == 1 && messages[0][:role] == "user"
     end
 

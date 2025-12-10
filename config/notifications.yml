@@ -41,3 +41,12 @@ events:
       - student_name
       - course_title
       - report_id
+
+  user.limit_exceeded:
+    category: important
+    subject: "User Limit Exceeded"
+    message: "Usage limit exceeded for %{user_name}: %{reason}"
+    required_params:
+      - user_name
+      - reason
+      - user_id

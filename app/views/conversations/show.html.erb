@@ -61,7 +61,7 @@
   <div class="grow 
               min-w-0 max-w-[40rem] xl:max-2xl:max-w-[32rem] 
               h-full 
-              flex flex-col px-2 md:px-3 pt-2" id="conversation-panel">
+              flex flex-col px-2 md:px-3 pt-0" id="conversation-panel">
     <!-- Chat navigation bar -->
     <div class="flex flex-row justify-between text-xl">
       <div class="flex flex-row items-center"><!-- Left buttons -->
@@ -94,7 +94,8 @@
              data-connection-status-disconnected-class="text-red-600 dark:text-red-500">
           <div data-controller="railsblocks--tooltip" 
                data-tooltip-content="Connecting..." 
-               data-connection-status-target="tooltip">
+               data-connection-status-target="tooltip"
+               class="pt-2">
             <sl-icon name="cloud" class="text-xl" data-connection-status-target="indicator"></sl-icon>
           </div>
         </div>

@@ -147,7 +147,29 @@
     </p>
   </div>
 
+  <h2 class="text-xl font-semibold mb-2 mt-4">
+    Cost & Usage Safeguards
+  </h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <%= f.label :user_daily_budget, "User Daily Budget ($)", class: "form-label" %>
+      <%= f.number_field :user_daily_budget, step: "0.01", class: "input-primary", placeholder: "e.g. 1.00" %>
+      <p class="text-xs text-dim mt-1">
+        Limit daily API spend per user. Active lessons are allowed to finish unless they exceed the max lesson cost.
+      </p>
+    </div>
+
+    <div>
+      <%= f.label :max_chat_cost, "Max Chat/Lesson Cost ($)", class: "form-label" %>
+      <%= f.number_field :max_chat_cost, step: "0.01", class: "input-primary", placeholder: "e.g. 2.00" %>
+      <p class="text-xs text-dim mt-1">
+        Hard limit for a single conversation or lesson session to prevent runaway usage.
+      </p>
+    </div>
+  </div>
+
   <div class="mt-6">
     <%= f.submit "Save App Settings", class: "btn-primary" %>
   </div>
+  <br>
 <% end %>

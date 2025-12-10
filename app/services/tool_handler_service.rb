@@ -688,7 +688,7 @@ class ToolHandlerService
     raise ToolExecutionError, "Missing required parameter: prompt" unless prompt.present?
 
     begin
-      results = ImageGenerationService.generate(user: @user, prompt: prompt)
+      results = ImageGenerationService.generate(user: @user, prompt: prompt, conversation: @conversation)
     rescue OpenAiError => e
       raise ToolExecutionError, "Image generation failed: #{e.message}"
     rescue => e
