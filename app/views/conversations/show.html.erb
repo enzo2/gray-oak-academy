@@ -1,5 +1,8 @@
 <!-- Horizontal flexbox container (sidebar, chat, chalkboard) -->
-<div class="flex flex-row h-[calc(100dvh-2.5rem)]" 
+<% if Rails.env.development? %>
+<div data-controller="connection-debug"></div>
+<% end %>
+<div class="flex flex-row h-[calc(100dvh-2.5rem)]"
      data-controller="sidebar drawer collapsible chalkboard"
      data-action="sidebar:open-mobile@window->sidebar#openMobile" 
      data-sidebar-storage-key-value="chatSidebar">
