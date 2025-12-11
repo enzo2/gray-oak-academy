@@ -687,47 +687,16 @@ class ToolHandlerService
     prompt = @args["prompt"]
     raise ToolExecutionError, "Missing required parameter: prompt" unless prompt.present?
 
-    begin
-      results = ImageGenerationService.generate(user: @user, prompt: prompt, conversation: @conversation)
-    rescue OpenAiError => e
-      raise ToolExecutionError, "Image generation failed: #{e.message}"
-    rescue => e
-      raise ToolExecutionError, "Error during image generation: #{e.message}"
-    end
-
-    unless results.is_a?(Tempfile)
-      raise ToolExecutionError, "Image generation did not return a valid Tempfile."
-    end
-
-    begin
-      Message.transaction do
-        # Create the tool message and attach image within a transaction
-        # so that when the transaction commits, the image is attached
-        # and the broadcast_created callback (which runs after commit)
-        # sees the image and broadcasts the message.
-        tool_message = create_tool_message("Image generation done.")
-
-        timestamp = Time.current.to_i
-        filename = "generated-#{timestamp}.jpg"
-
-        image = tool_message.images.build
-        image.file.attach(
-          io: results,
-          filename: filename,
-          content_type: "image/jpeg"
-        )
-        image.save!
-      end
-    rescue => e
-      raise ToolExecutionError, "Error saving image: #{e.message}"
-    ensure
-      # Close the Tempfile after attachment to free resources.
-      # This must be done in ensure block (after transaction commits and ActiveStorage upload completes).
-      if results
-        results.close if results.respond_to?(:close) && !results.closed?
-        results.unlink if results.respond_to?(:unlink) && File.exist?(results.path)
-      end
-    end
+    # Perform job synchronously.
+    GenerateImageJob.perform_now(
+      conversation_id: @conversation.id,
+      user_id: @user.id,
+      prompt: prompt,
+      tool_call_id: @tool_call_id
+    )
+    # Tool message is created by the job.
+  rescue StandardError => e
+    raise ToolExecutionError, "Image generation failed: #{e.message}"
   end
 
   # ---- Applets tools ----
