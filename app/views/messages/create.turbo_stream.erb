@@ -1,6 +1,6 @@
-<%# The controller saves the user's new message. 
-    The model broadcast_append_to will then render the new message, which also includes a placeholder for the assistant reply. 
-    This view only needs to handle other UI updates. %>
+<%# The controller saves the user's new message.
+    The Message model broadcasts the user message and the assistant placeholder.
+    This view only handles other UI updates. %>
 
 <%= turbo_stream.replace "#{dom_id(@message.conversation)}_message_form" do %>
   <%= render "form", conversation: @message.conversation %>

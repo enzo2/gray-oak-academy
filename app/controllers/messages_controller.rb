@@ -15,7 +15,7 @@ class MessagesController < ApplicationController
     # Get completion and stream the response to the conversation view
     GetLlmCompletionJob.perform_later(conversation: @message.conversation)
 
-    # The view is then rendered with a placeholder for the assistant message while the above job runs.
+    # Turbo stream response updates the form, while Message broadcasts handle the placeholder.
     respond_to do |format|
       format.turbo_stream
     end
@@ -55,7 +55,7 @@ class MessagesController < ApplicationController
 
     if @message.save # This will broadcast user message
       respond_to do |format|
-        format.turbo_stream { render :create } # Render the turbo_stream view to show a placeholder for the assistant reply
+        format.turbo_stream { render :create }
       end
       GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message (will also handle transcription)
     else
@@ -91,7 +91,7 @@ class MessagesController < ApplicationController
       @message.content = transcription
       if @message.save # This will broadcast the updated message
         respond_to do |format|
-          format.turbo_stream { render :create } # Render the turbo_stream view to show a placeholder for the assistant reply
+          format.turbo_stream { render :create }
         end
         # Enqueue the completion once we are sure the user message has been transcribed and saved
         GetLlmCompletionJob.perform_later(conversation: conversation)

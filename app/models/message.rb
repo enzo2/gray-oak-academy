@@ -15,14 +15,17 @@ class Message < ApplicationRecord
   # that they will need to be viewed immediately and should always be kept up to date.
   after_create_commit -> { broadcast_created; check_context_limit }
   after_update_commit -> { broadcast_updated }
+  after_commit :broadcast_tool_call_placeholder, if: :tool_calls_added?
   after_destroy_commit -> { broadcast_destroyed }
 
   def broadcast_created
     # Don't broadcast tool messages unless they have images (e.g. generated images).
     return if role_tool? && images.empty?
     Rails.logger.debug "Broadcasting created message: #{self.inspect}"
-    # Remove any temporary new message placeholder
+
+    # Remove temporary new message placeholder if sending the assistant reply
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
+
     # broadcast_append_later_to seems to work without misordering messages, but keep it synchronous
     broadcast_append_to(
       "#{dom_id(conversation)}",
@@ -30,6 +33,9 @@ class Message < ApplicationRecord
       target: "#{dom_id(conversation)}",
       locals: { message: self }
     )
+
+    # Add temporary assistant message placeholder if sending the user message
+    broadcast_placeholder if role_user? && conversation.messages.last == self
   end
 
   def broadcast_updated
@@ -155,5 +161,33 @@ class Message < ApplicationRecord
         title: conversation.title || "Conversation"
       ))
     end
+  end
+
+  # Check if tool calls were added to an assistant message
+  def tool_calls_added?
+    return false unless role_assistant?
+    return false unless previous_changes.key?("tool_calls")
+
+    before, after = previous_changes["tool_calls"]
+    before.blank? && after.present?
+  end
+
+  # When a tool call is made, we need to show a placeholder for the upcoming assistant reply.
+  def broadcast_tool_call_placeholder
+    return unless conversation.messages.where(role: "assistant").last == self
+    broadcast_placeholder
+  end
+
+  # When assistant reply is pending, send a new assistant message to show the spinner.
+  def broadcast_placeholder
+    # Ensure we only ever have one placeholder in the DOM.
+    broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
+
+    broadcast_append_to(
+      "#{dom_id(conversation)}",
+      partial: "messages/message",
+      target: "#{dom_id(conversation)}",
+      locals: { message: Message.new(role: :assistant) }
+    )
   end
 end
