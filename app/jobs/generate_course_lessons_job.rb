@@ -27,7 +27,17 @@ class GenerateCourseLessonsJob < ApplicationJob
     }
   }
 
-  def perform(course, current_user)
+  def perform(course, current_user, replace_existing_lessons: false)
+    # Handle replacement logic
+    if replace_existing_lessons
+      if course.lessons.joins(:lesson_plan).exists?
+        raise "Cannot replace existing lessons because some have lesson plans. Please remove lesson plans or delete lessons manually."
+      else
+        course.lessons.destroy_all
+        course.reload
+      end
+    end
+
     # Accomodate existing lessons
     existing_titles = course.lessons.pluck(:title)
     existing_list = "None"

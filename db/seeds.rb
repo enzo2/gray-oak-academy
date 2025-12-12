@@ -218,21 +218,18 @@ tool.specifications = {
 }
 tool.save!
 
-tool = Tool.find_or_initialize_by(name: 'Update_Lesson')
+tool = Tool.find_or_initialize_by(name: 'Update_Lesson_Plan')
 tool.access = :admin
 tool.specifications = {
-  name: "Update_Lesson",
-  description: "Update a lesson and REPLACE its lesson plan content and suggested resources. Always call get_lesson_details first.",
+  name: "Update_Lesson_Plan",
+  description: "Update a lesson's plan content, suggested resources, or settings. Always call get_lesson_details first.",
   # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
-      "lesson_id" => { "type" => "integer", "description" => "ID of the lesson to update" },
-      "title" => { "type" => "string", "description" => "New title" },
-      "goals" => { "type" => "string", "description" => "New goals" },
-      "approx_duration_min" => { "type" => "integer", "description" => "Duration in minutes (integer > 0)" },
+      "lesson_id" => { "type" => "integer", "description" => "ID of the lesson whose plan to update" },
 
-      # LessonPlan content (required): explicit array of { type, details }
+      # LessonPlan content (optional): explicit array of { type, details }
       "lesson_plan_content" => {
         "type" => "array",
         "description" => "Complete replacement content array; each item has 'type' and 'details'.",
@@ -267,7 +264,7 @@ tool.specifications = {
       "chalkboard_enabled" => { "type" => "boolean", "description" => "Enable or disable the chalkboard (optional; default: true)" },
       "audio" => { "type" => "string", "description" => "Audio input setting (enabled|audio-only) (optional; default enabled) (enabled: allows STT/audio input. audio-only: allows STT/audio and disables text/keyboard input)", "enum" => [ "enabled", "audio-only" ] }
     },
-    "required" => [ "lesson_id", "title", "goals", "approx_duration_min" ],
+    "required" => [ "lesson_id" ],
     "additionalProperties" => false
   }
 }
@@ -296,6 +293,55 @@ tool.specifications = {
             "description" => { "type" => "string" }
           },
           "required" => [ "topic", "description" ],
+          "additionalProperties" => false
+        }
+      }
+    },
+    "required" => [ "course_id" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
+tool = Tool.find_or_initialize_by(name: 'Edit_Course_Lessons')
+tool.access = :admin
+tool.specifications = {
+  name: "Edit_Course_Lessons",
+  description: "Edit existing lessons in a course. Can edit/delete specific lessons and/or reorder all lessons.",
+  parameters: {
+    type: "object",
+    properties: {
+      "course_id" => { "type" => "integer", "description" => "ID of the course" },
+      "lessons_to_delete" => {
+        "type" => "array",
+        "description" => "Optional list of lesson IDs to delete. Fails if any of these lessons have lesson plans. (User can delete lesson plans manually in Course Manager.)",
+        "items" => { "type" => "integer" }
+      },
+      "lessons_to_update" => {
+        "type" => "array",
+        "description" => "Optional list of lessons to update details. Only provide fields that need updating.",
+        "items" => {
+          "type" => "object",
+          "properties" => {
+            "id" => { "type" => "integer", "description" => "ID of the lesson" },
+            "title" => { "type" => "string", "description" => "New title" },
+            "goals" => { "type" => "string", "description" => "New goals" },
+            "approx_duration_min" => { "type" => "integer", "description" => "Duration in minutes" }
+          },
+          "required" => [ "id" ],
+          "additionalProperties" => false
+        }
+      },
+      "lessons_order" => {
+        "type" => "array",
+        "description" => "Optional list for reordering. Must include ALL lessons in the course with their new positions.",
+        "items" => {
+          "type" => "object",
+          "properties" => {
+            "id" => { "type" => "integer", "description" => "ID of the lesson" },
+            "position" => { "type" => "integer", "description" => "New position (1-based index)" }
+          },
+          "required" => [ "id", "position" ],
           "additionalProperties" => false
         }
       }
@@ -348,12 +394,13 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Course_Lessons')
 tool.access = :admin
 tool.specifications = {
   name: "Generate_Course_Lessons",
-  description: "Ask the LLM to generate lessons for the given course. Ensure the course has a complete outline first. Most useful for new courses without any lessons yet, since it will add more lessons to the course without overwriting existing lessons.",
+  description: "Ask the generator LLM to generate lessons for the given course. Ensure the course has a complete outline first. LLM will decide how many lessons to add based on the course outline (not necessarily 1:1 outline topics to lessons!). By default, appends new lessons to existing ones, accounting for the current set (if any). Can opt to replace all existing lessons, but only if no lesson plans yet exist.",
   # strict_mode: true,
   parameters: {
     type: "object",
     properties: {
-      "course_id" => { "type" => "integer", "description" => "ID of the course" }
+      "course_id" => { "type" => "integer", "description" => "ID of the course" },
+      "replace_existing_lessons" => { "type" => "boolean", "description" => "If true, deletes all existing lessons and generates a fresh set. Do not use if any existing lessons have lesson plans; will fail if any lesson plans exist. Default: false (append)." }
     },
     "required" => [ "course_id" ],
     "additionalProperties" => false
@@ -760,11 +807,11 @@ p.prompt = <<~PROMPT
 
   You can serve as a curriculum-building assistant; you have access to tools that allow you to manage the curriculum for the teacher.
   The teacher, also, has access to the Course Manager, Students, and Resources dashboards, where they can manage the curriculum by hand, either manually, using the generators, or a mix of both.
-  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals), and contains the topics the course should cover. (The outline is not a list of lessons, but topics.) Lessons are generated to cover the material appropriately. Finally, each lesson plan can be generated. Resources can be added and linked (by the teacher) to lesson plans before or after plan generation. Lesson plans are executed by the LLM tutor with the student.
+  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals), and contains the topics the course should cover. (The outline is not a 1:1 list of lessons, but knowledge/skill topics.) Lessons are generated to cover the material appropriately. Finally, each lesson plan can be generated. Resources can be added and linked (by the teacher) to lesson plans before or after plan generation. Lesson plans are executed by the LLM tutor with the student.
   Follow these rules for chat-based curriculum development:
   1. Always use read tools (get_course_details, get_lesson_details, get_student_reports, list_courses, list_students) to fetch current state before proposing edits. This is critical to avoid unintentionally overwriting existing data.
   2. For any write action, summarize the proposed changes in plain language and ask the teacher for explicit confirmation.
-  3. update_lesson REPLACES the full lesson_plan.content array — do not attempt partial edits. Always call get_lesson_details first to fetch the current lesson plans, then call update_lesson with the complete replacement.
+  3. update_lesson_plan REPLACES the full lesson_plan.content array — do not attempt partial edits. Always call get_lesson_details first to fetch the current lesson plans, then call update_lesson_plan with the complete replacement.
   4. When asked about a student, call list_students to disambiguate identities; never guess student IDs. When discussing with the teacher, don't refer to students by ID, but by name.
   5. Return tool arguments as concise JSON only; avoid extraneous commentary in tool calls.
   6. Be user-friendly. Users do not have any database IDs; you need to find these yourself. The user may not know that an 'outline' pertains to a course and is used to generate lessons, or that a 'lesson plan' is what is used by the LLM tutor to conduct the lesson. Therefore, don't just list off the available tools and ask the user to pick one; rather collaborate with the user.
@@ -772,8 +819,8 @@ p.prompt = <<~PROMPT
   Follow this general approach to curriculum development:
   1. When creating a course, discuss it with the teacher first to understand the grade level, scope, any specific goals or approach desired. The course summary should be concise but descriptive, encapsulating the course in a few sentences to guide the course outline generation.
   2. The generator tools will call the app's designated reasoning LLM, which is selected for knowledge rather than speed, and may be different from you. You are well-positioned to guide the process and understand the teacher's intentions, while the generators are better suited to draft complete and well-informed sets based on the course summary, outline, and lesson goals. The amount of assisted or manual editing between each step is completely up to the teacher. The branching nature of the process (course outline -> lessons -> lesson plans) allows for rapid, automated curriculum expansion, while also leaving room for any amount of manual review and refinement. The hard stop of publishing lesson plans ensures that the teacher consciously approves of the content.
-  2. After generating the course outline, you can review it with the teacher. Once approved, proceed to generate the lessons.
-  3. After generating the lessons, review them with the teacher. Each can be edited as needed, prior to adding lesson plans.
+  2. After generating the course outline, you can review it with the teacher. Again, it doesn't need to correspond 1:1 with the lessons list. Once approved, proceed to generate the lessons.
+  3. After generating the lessons, review them with the teacher. Each can be edited as needed, prior to adding lesson plans. If you need to condense the number of lessons, use the Edit_Course_Lessons tool to delete lessons, reorder them, and edit the lesson titles and goals as needed.
   4. Standard lessons are the usual sit-down, desktop-based classroom sessions, good for acquiring knowledge and understanding. Other possible formats are a voice/speech-based discussion via mobile phone, or a recap-only lesson which presents an offline activity and then debriefs afterward. You may plan a lesson in such formats if consistent with the goals. (There is no need to over-use the alternate formats; simply consider when warranted.)
   5. Lesson plans can be generated one at a time. These are most important, as they will be used directly to conduct lessons with the student. It's not important to draft every single lesson plan initially, as the student can begin the course as soon as the first is published. Avoid writing an entire lesson plan from scratch, as the generator is better suited for this task. However, you can change them.
   6. Lesson plans can only become truly excellent and engaging through the addition of varied resources, whether digital, physical, or otherwise. The generator can suggest resources, but only the teacher can add them by using the Course Manager. (If resources are linked prior to plan generation, they will be taken into account by the generator.) Encourage, but don't force, the teacher to utilize the Resources feature. Resources can be digital, like a URL to a video, or an image file, but could also be things accessible only to the student or in the classroom/home; the possibilities are endless.

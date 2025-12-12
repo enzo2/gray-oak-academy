@@ -189,9 +189,9 @@ class ToolHandlerService
           raise ToolExecutionError, "Arguments failed schema validation: #{errors.first(5).join('; ')}"
         end
       end
-    rescue JSON::Schema::Error => e
+    rescue StandardError => e
       # If a tool was seeded with an invalid schema, surface a clear error
-      raise ToolExecutionError, "Tool parameter schema invalid: #{e.message}"
+      raise ToolExecutionError, "Error validating JSON schema: #{e.message}"
     end
 
     # Return the validated and parsed arguments
@@ -545,7 +545,7 @@ class ToolHandlerService
     end
   end
 
-  def execute_update_lesson
+  def execute_update_lesson_plan
     # Teacher-only tool
     lesson_id = @args["lesson_id"].to_i
     lesson = Lesson.find_by(id: lesson_id)
@@ -553,54 +553,55 @@ class ToolHandlerService
     raise ToolExecutionError, "Permission denied" unless lesson.course.teacher == current_teacher
 
     Lesson.transaction do
-      # Update lesson fields
-      lesson.title = @args["title"] if @args["title"].present?
-      lesson.goals = @args["goals"] if @args["goals"].present?
-      lesson.approx_duration_min = @args["approx_duration_min"].to_i if @args["approx_duration_min"].present?
-      lesson.save!
-
       # Build/find lesson plan
       lp = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher, status: "draft")
 
       # Expect flattened, explicit arrays:
-      # lesson_plan_content: [{ "type": "...", "details": "..." }, ...] (REQUIRED)
-      content_items = @args["lesson_plan_content"]
-      unless content_items.is_a?(Array)
-        raise ToolExecutionError, "content is required and must be an array"
-      end
-
-      # suggested_resources: [{ "type": "...", "description": "..." }, ...] (OPTIONAL)
-      suggested_items = @args["suggested_resources"]
-
-      # Convert to persisted JSONB shape: [{ "Type" => "Details" }, ...]
-      begin
-        lp.content = content_items.map do |i|
-          t = i["type"]
-          d = i["details"]
-          if t.blank? || d.blank?
-            raise ToolExecutionError, "Each content item must include non-empty 'type' and 'details'"
-          end
-          { t => d }
+      # lesson_plan_content: [{ "type": "...", "details": "..." }, ...] (OPTIONAL)
+      if @args.key?("lesson_plan_content")
+        content_items = @args["lesson_plan_content"]
+        unless content_items.is_a?(Array)
+          raise ToolExecutionError, "content must be an array"
         end
 
+        # Convert to persisted JSONB shape: [{ "Type" => "Details" }, ...]
+        begin
+          lp.content = content_items.map do |i|
+            t = i["type"]
+            d = i["details"]
+            if t.blank? || d.blank?
+              raise ToolExecutionError, "Each content item must include non-empty 'type' and 'details'"
+            end
+            { t => d }
+          end
+        rescue => e
+          raise ToolExecutionError, e.message
+        end
+      end
+
+      # Suggested resources (optional): explicit array of { type, description }
+      if @args.key?("suggested_resources")
+        suggested_items = @args["suggested_resources"]
         if suggested_items.present?
           unless suggested_items.is_a?(Array)
             raise ToolExecutionError, "suggested_resources must be an array when provided"
           end
-          lp.suggested_resources = suggested_items.map do |i|
-            t = i["type"]
-            desc = i["description"]
-            if t.blank? || desc.blank?
-              raise ToolExecutionError, "Each suggested resource must include non-empty 'type' and 'description'"
+          begin
+            lp.suggested_resources = suggested_items.map do |i|
+              t = i["type"]
+              desc = i["description"]
+              if t.blank? || desc.blank?
+                raise ToolExecutionError, "Each suggested resource must include non-empty 'type' and 'description'"
+              end
+              { t => desc }
             end
-            { t => desc }
+          rescue => e
+            raise ToolExecutionError, e.message
           end
         else
-          # Preserve or reset to [] explicitly if nil
+          # Preserve or reset to [] explicitly if nil/empty passed
           lp.suggested_resources ||= []
         end
-      rescue => e
-        raise ToolExecutionError, e.message
       end
 
       # Optional lesson plan fields
@@ -647,15 +648,87 @@ class ToolHandlerService
     end
   end
 
+  def execute_edit_course_lessons
+    # Teacher-only tool
+    course_id = @args["course_id"].to_i
+    course = current_teacher.taught_courses.find_by(id: course_id)
+    raise ToolExecutionError, "Course not found" unless course
+
+    Course.transaction do
+      # 0. Delete Lessons
+      if @args["lessons_to_delete"].present?
+        @args["lessons_to_delete"].each do |l_id|
+          lesson = course.lessons.find_by(id: l_id)
+          raise ToolExecutionError, "Lesson #{l_id} not found in course #{course_id}" unless lesson
+
+          # Check for lesson plan
+          if lesson.lesson_plan.present?
+            raise ToolExecutionError, "Cannot delete lesson #{l_id} ('#{lesson.title}') because it has a lesson plan."
+          end
+
+          lesson.destroy!
+        end
+        # Reload course association to ensure deleted lessons are gone from memory for subsequent steps
+        course.lessons.reload
+      end
+
+      # 1. Update Lessons
+      if @args["lessons_to_update"].present?
+        @args["lessons_to_update"].each do |item|
+          l_id = item["id"].to_i
+          lesson = course.lessons.find_by(id: l_id)
+          raise ToolExecutionError, "Lesson #{l_id} not found in course #{course_id}" unless lesson
+
+          lesson.title = item["title"] if item["title"].present?
+          lesson.goals = item["goals"] if item["goals"].present?
+          lesson.approx_duration_min = item["approx_duration_min"].to_i if item["approx_duration_min"].present?
+          lesson.save!
+        end
+      end
+
+      # 2. Reorder Lessons
+      if @args["lessons_order"].present?
+        order_list = @args["lessons_order"]
+        # Validation: ensure strict 1-to-1 match of IDs
+        input_ids = order_list.map { |x| x["id"].to_i }.sort
+        existing_ids = course.lessons.pluck(:id).sort
+
+        unless input_ids == existing_ids
+          raise ToolExecutionError, "lessons_order must contain exactly all lesson IDs for this course. Missing: #{existing_ids - input_ids}, Extras: #{input_ids - existing_ids}"
+        end
+
+        # We should also validate positions are 1..N
+        sorted_orders = order_list.sort_by { |x| x["position"].to_i }
+        expected_positions = (1..existing_ids.count).to_a
+        given_positions = sorted_orders.map { |x| x["position"].to_i }
+        unless given_positions == expected_positions
+          raise ToolExecutionError, "lessons_order positions must be a contiguous sequence from 1 to N."
+        end
+
+        # Apply updates using acts_as_list's insert_at to handle shuffling safely
+        sorted_orders.each do |item|
+          l_id = item["id"].to_i
+          l = course.lessons.find(l_id)
+          l.insert_at(item["position"].to_i)
+        end
+      end
+    end
+
+    course.reload
+    create_tool_message(JSON.pretty_generate(course.for_llm))
+  end
+
   def execute_generate_course_lessons
     # Teacher-only tool
     course_id = @args["course_id"].to_i
     course = current_teacher.taught_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
 
+    replace = !!@args["replace_existing_lessons"]
+
     begin
       # Run the generation job synchronously; caller is expected to wait for completion
-      GenerateCourseLessonsJob.perform_now(course, current_teacher)
+      GenerateCourseLessonsJob.perform_now(course, current_teacher, replace_existing_lessons: replace)
       course.reload
       create_tool_message(JSON.pretty_generate(course.for_llm))
     rescue StandardError => e
