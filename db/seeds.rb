@@ -168,7 +168,7 @@ tool = Tool.find_or_initialize_by(name: 'Get_Lesson_Details')
 tool.access = :admin
 tool.specifications = {
   name: "Get_Lesson_Details",
-  description: "Get a lesson and its full lesson plan. Always call this before updating a lesson.",
+  description: "Get a lesson and its full lesson plan. Always call this before updating a lesson plan.",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -331,7 +331,7 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Course_Outline')
 tool.access = :admin
 tool.specifications = {
   name: "Generate_Course_Outline",
-  description: "Ask the LLM to generate a course outline for the given course. This may take time; the tool blocks until the job completes.",
+  description: "Ask the LLM to generate a course outline for the given course. The outline is important in planning the overall course and what topics will be covered.",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -348,7 +348,7 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Course_Lessons')
 tool.access = :admin
 tool.specifications = {
   name: "Generate_Course_Lessons",
-  description: "Ask the LLM to generate lessons for the given course. Ensure the course has a complete outline first. This may take time; the tool blocks until the job completes. Most useful for new courses without any lessons yet; although this tool will not overwrite existing lessons.",
+  description: "Ask the LLM to generate lessons for the given course. Ensure the course has a complete outline first. Most useful for new courses without any lessons yet, since it will add more lessons to the course without overwriting existing lessons.",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -365,7 +365,7 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Lesson_Plan')
 tool.access = :admin
 tool.specifications = {
   name: "Generate_Lesson_Plan",
-  description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). This may take time; blocks until the job completes. Do not call if the lesson already has content, unless you intend to overwrite it.",
+  description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). Do not call if the lesson already has content, unless you intend to overwrite it.",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -524,7 +524,7 @@ p.prompt = <<~PROMPT
       ...
     ]
   }
-  The outline is not a list of lessons, but an overview of topics to be covered. How they are organized into lessons will be decided in a later step.
+  The outline is not a list of lessons, but an overview of topics to be covered. How they are organized into lessons will be decided in a later step (although more course material will necessitate more lessons).
   Ensure the outline is comprehensive and suitable for the grade level.
   Do not include any capstone presentation or final project; just focus on including all the relevant topics for learning and the subject matter.
   Do not use formatting such as markdown or bullet points. Respond in valid JSON only.
@@ -541,7 +541,7 @@ p.prompt = <<~PROMPT
   Existing lessons in this course: {existing_lessons}
   Please generate a list of lessons for the course in JSON format as a "lessons" object containing an array of objects.
   For each lesson, include the title (string), goals (string), and suggested duration in minutes (integer).
-  Lessons do not need to exactly correspond to outline topics one-to-one; for example, smaller topics could be grouped into a single lesson, or larger topics could be broken down into multiple lessons.
+  Lessons do not need to exactly correspond to outline topics one-to-one; for example, smaller topics could be grouped into a single lesson, or larger topics could be broken down into multiple lessons. Include an appropriate number of lessons to cover the course material at the grade level.
   If the outline appears to be incomplete, additional appropriate topics may be added within the lessons.
   Importantly, lesson length and depth should be appropriate for the grade level.#{' '}
   Don't exceed 45 minutes per lesson regardless.#{' '}
@@ -760,7 +760,7 @@ p.prompt = <<~PROMPT
 
   You can serve as a curriculum-building assistant; you have access to tools that allow you to manage the curriculum for the teacher.
   The teacher, also, has access to the Course Manager, Students, and Resources dashboards, where they can manage the curriculum by hand, either manually, using the generators, or a mix of both.
-  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals). Finally, each lesson plan can be generated. Resources can be added and linked (by the teacher) to lesson plans before or after plan generation. Lesson plans are executed by the LLM tutor with the student.
+  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals), and contains the topics the course should cover. (The outline is not a list of lessons, but topics.) Lessons are generated to cover the material appropriately. Finally, each lesson plan can be generated. Resources can be added and linked (by the teacher) to lesson plans before or after plan generation. Lesson plans are executed by the LLM tutor with the student.
   Follow these rules for chat-based curriculum development:
   1. Always use read tools (get_course_details, get_lesson_details, get_student_reports, list_courses, list_students) to fetch current state before proposing edits. This is critical to avoid unintentionally overwriting existing data.
   2. For any write action, summarize the proposed changes in plain language and ask the teacher for explicit confirmation.

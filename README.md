@@ -98,7 +98,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - For cost savings, make sure to use an API that supports automated prompt caching.
 
 ### Choosing LLMs: 
-- For the main chat/lesson LLM: model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs.) 
+- For the main chat/lesson LLM: model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a medium-sized, non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs.) 
 - Add a dedicated thinking model for better performance on curriculum generation tasks, applets, or anything else the main model wants to delegate. Model must support structured outputs. It should be a frontier, large-sized model. (Even some flagship models may not be good enough!)
 - For image generation, the only suitable model thus far is gemini-3-pro-image. To further improve factual/textual accuracy, you can enable 2-pass generation to allow the model to critique and regenerate its own output.
 

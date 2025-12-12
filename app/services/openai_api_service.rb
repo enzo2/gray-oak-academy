@@ -75,7 +75,7 @@ class OpenaiApiService
           # Set thinking for OpenRouter
           **(@reasoning_model_flag && @base_uri.include?("openrouter.ai") ? {
             reasoning: {
-              enabled: true,
+              effort: "high",
               exclude: true
             }
           } : {}),
@@ -236,12 +236,20 @@ class OpenaiApiService
 
   def create_client
     retry_options = { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
-    OpenAI::Client.new(access_token: @access_token, uri_base: @base_uri) do |faraday|
+    OpenAI::Client.new(access_token: @access_token, uri_base: @base_uri, extra_headers: attribution_headers) do |faraday|
       faraday.request :retry, retry_options
       faraday.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
         logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')
       end
     end
+  end
+
+  def attribution_headers
+    return {} unless @base_uri.include?("openrouter.ai")
+    {
+      "X-Title" => "Gray Oak Academy",
+      "HTTP-Referer" => Rails.env.production? ? "https://#{ENV.fetch('APP_HOST')}" : nil
+    }.compact
   end
 
   def check_for_refusal(response)

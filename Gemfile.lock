@@ -189,7 +189,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.17.1)
+    json (2.18.0)
     json-repair (0.2.0)
     json_schemer (2.5.0)
       bigdecimal
@@ -218,7 +218,7 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (5.26.2)
+    minitest (5.27.0)
     msgpack (1.8.0)
     multipart-post (2.4.1)
     neighbor (0.6.0)
@@ -474,7 +474,7 @@ DEPENDENCIES
   rack-attack!
   rails (< 8.2)
   rubocop-rails-omakase
-  ruby-openai (< 8.4)
+  ruby-openai (< 9)
   selenium-webdriver
   solid_cable
   solid_cache
