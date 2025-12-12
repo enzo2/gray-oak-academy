@@ -15,43 +15,13 @@ export default class extends Controller {
     storageKey: { type: String, default: "sidebarOpen" },
   };
 
-  connect() {
-    // Bind the handler once so we can properly remove it later
+  initialize() {
     this.boundHandleToggle = this.handleToggle.bind(this);
+    this.boundEnsureContent = this.ensureContent.bind(this);
+  }
 
-    // Clone the sidebar content for both mobile and desktop
-    if (this.hasContentTemplateTarget) {
-      // Clone content for desktop (only if not already cloned)
-      // Check if nav element exists (the actual cloned content)
-      if (this.hasDesktopContentTarget && !this.desktopContentTarget.querySelector("nav")) {
-        const desktopClone = this.contentTemplateTarget.content.cloneNode(true);
-        this.desktopContentTarget.appendChild(desktopClone);
-      }
-
-      // Clone content for mobile (only if not already cloned)
-      if (this.hasSharedContentTarget && !this.sharedContentTarget.querySelector("nav")) {
-        const mobileClone = this.contentTemplateTarget.content.cloneNode(true);
-        this.sharedContentTarget.appendChild(mobileClone);
-
-        // Update the close button in mobile view to show X icon and have mobile close action
-        const mobileNav = this.sharedContentTarget.querySelector("nav");
-        if (mobileNav) {
-          const closeButton = mobileNav.querySelector('[data-action*="sidebar#close"]');
-          if (closeButton) {
-            closeButton.setAttribute("data-action", "click->sidebar#closeMobile");
-            closeButton.classList.remove("cursor-w-resize");
-            closeButton.setAttribute("aria-label", "Close sidebar");
-
-            // Replace the collapse icon with an X icon
-            const svg = closeButton.querySelector("svg");
-            if (svg) {
-              svg.innerHTML =
-                '<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentColor"><line x1="13.25" y1="4.75" x2="4.75" y2="13.25"></line><line x1="13.25" y1="13.25" x2="4.75" y2="4.75"></line></g>';
-            }
-          }
-        }
-      }
-    }
+  connect() {
+    this.ensureContent();
 
     if (this.hasDesktopSidebarTarget) {
       // Temporarily disable transitions to prevent animation on page load
@@ -77,12 +47,61 @@ export default class extends Controller {
       // Listen for toggle events to save the state
       this.desktopSidebarTarget.addEventListener("toggle", this.boundHandleToggle);
     }
+
+    // Turbo "morph" / refresh can remove JS-inserted sidebar content without
+    // disconnecting Stimulus controllers; re-ensure cloned content after render.
+    document.addEventListener("turbo:render", this.boundEnsureContent);
   }
 
   disconnect() {
     if (this.hasDesktopSidebarTarget && this.boundHandleToggle) {
       this.desktopSidebarTarget.removeEventListener("toggle", this.boundHandleToggle);
     }
+
+    document.removeEventListener("turbo:render", this.boundEnsureContent);
+  }
+
+  ensureContent() {
+    if (!this.hasContentTemplateTarget) return;
+
+    this.ensureDesktopContent();
+    this.ensureMobileContent();
+  }
+
+  ensureDesktopContent() {
+    if (!this.hasDesktopContentTarget) return;
+    if (this.desktopContentTarget.querySelector('[data-sidebar-clone="desktop"]')) return;
+
+    const desktopClone = this.contentTemplateTarget.content.cloneNode(true);
+    const desktopNav = desktopClone.querySelector("nav");
+    if (desktopNav) desktopNav.dataset.sidebarClone = "desktop";
+    this.desktopContentTarget.appendChild(desktopClone);
+  }
+
+  ensureMobileContent() {
+    if (!this.hasSharedContentTarget) return;
+    if (this.sharedContentTarget.querySelector('[data-sidebar-clone="mobile"]')) return;
+
+    const mobileClone = this.contentTemplateTarget.content.cloneNode(true);
+    const mobileNav = mobileClone.querySelector("nav");
+    if (mobileNav) {
+      mobileNav.dataset.sidebarClone = "mobile";
+
+      const closeButton = mobileNav.querySelector('[data-action*="sidebar#close"]');
+      if (closeButton) {
+        closeButton.setAttribute("data-action", "click->sidebar#closeMobile");
+        closeButton.classList.remove("cursor-w-resize");
+        closeButton.setAttribute("aria-label", "Close sidebar");
+
+        const svg = closeButton.querySelector("svg");
+        if (svg) {
+          svg.innerHTML =
+            '<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentColor"><line x1="13.25" y1="4.75" x2="4.75" y2="13.25"></line><line x1="13.25" y1="13.25" x2="4.75" y2="4.75"></line></g>';
+        }
+      }
+    }
+
+    this.sharedContentTarget.appendChild(mobileClone);
   }
 
   handleToggle(event) {
@@ -91,6 +110,7 @@ export default class extends Controller {
   }
 
   open() {
+    this.ensureDesktopContent();
     if (this.hasDesktopSidebarTarget) {
       this.desktopSidebarTarget.open = true;
     }
@@ -103,12 +123,14 @@ export default class extends Controller {
   }
 
   toggle() {
+    this.ensureDesktopContent();
     if (this.hasDesktopSidebarTarget) {
       this.desktopSidebarTarget.open = !this.desktopSidebarTarget.open;
     }
   }
 
   openMobile() {
+    this.ensureMobileContent();
     if (this.hasMobileSidebarTarget) {
       // Set initial hidden states
       if (this.hasMobileBackdropTarget) {

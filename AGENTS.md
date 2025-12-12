@@ -1,0 +1,1 @@
+- The dev server uses https. When using any browser tool to view the site locally, use https://localhost:3000. Login with lucas@policastromd.com / admin1

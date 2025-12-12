@@ -15,7 +15,7 @@
               </div>
             </sl-menu-item>
             <sl-menu-item onclick="this.querySelector('button').click();">
-              <%= button_to clear_conversation_path(@conversation), method: :delete, 
+              <%= button_to clear_conversation_path(conversation), method: :delete,
                   data: { turbo_method: :delete, turbo_confirm: 'This will delete all messages in the conversation.' } do %>
                 <div class="flex items-center">
                   <sl-icon name="eraser" label="Clear conversation" class="hover:text-red-700"></sl-icon>

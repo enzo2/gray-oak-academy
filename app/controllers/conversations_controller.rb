@@ -42,7 +42,7 @@ class ConversationsController < ApplicationController
     # (For lessons would be correct to maintain the conversation record unless the lesson is restarted)
     if @conversation.lesson_progress.nil?
       @conversation.messages.destroy_all
-      redirect_to conversation_path(@conversation), success: "Conversation cleared."
+      redirect_to conversation_path(@conversation), status: :see_other, success: "Conversation cleared."
     else
       redirect_to conversation_path(@conversation), status: :unprocessable_content, alert: "Cannot clear a conversation associated with a lesson in progress."
     end
@@ -51,7 +51,7 @@ class ConversationsController < ApplicationController
   def destroy
     @conversation.destroy
     set_conversations # Refresh the list of conversations
-    redirect_to conversations_path
+    redirect_to conversations_path, status: :see_other
   end
 
   private
@@ -62,7 +62,7 @@ class ConversationsController < ApplicationController
     if conversation.user == current_user || current_user.students.include?(conversation.user)
       @conversation = conversation
     else
-      redirect_to conversations_path, alert: "That conversation does not belong to you."
+      redirect_to conversations_path, status: :forbidden, alert: "That conversation does not belong to you."
     end
   end
 
