@@ -36,7 +36,6 @@ services:
     networks:
     - default
     volumes:
-    # Postgres 18+ expects major-version subdirs under /var/lib/postgresql
     - postgres-data-pg18:/var/lib/postgresql
     environment:
         POSTGRES_USER: postgres
