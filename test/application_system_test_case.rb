@@ -4,6 +4,9 @@ require "selenium-webdriver"
 # Register custom Chrome drivers with media/testing flags
 Capybara.register_driver :headless_chrome_with_media do |app|
   options = Selenium::WebDriver::Chrome::Options.new
+  # System tests can load many JS modules (some pinned to CDN). Waiting for the full
+  # page load event can hang/flap if any subresource is slow, so prefer DOM-ready.
+  options.page_load_strategy = "eager"
   %w[
     --headless=new
     --use-fake-ui-for-media-stream
@@ -24,6 +27,7 @@ end
 
 Capybara.register_driver :remote_headless_chrome_with_media do |app|
   options = Selenium::WebDriver::Chrome::Options.new
+  options.page_load_strategy = "eager"
   %w[
     --headless=new
     --use-fake-ui-for-media-stream
@@ -70,6 +74,10 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   include ActiveJob::TestHelper
   include TestSupport::SpeechStubs if defined?(TestSupport::SpeechStubs)
 
+  setup do
+    @t_start = Time.now
+  end
+
   if ENV["CAPYBARA_SERVER_PORT"] && ENV["SELENIUM_HOST"].present?
     served_by host: "rails-app", port: ENV["CAPYBARA_SERVER_PORT"]
 
@@ -101,6 +109,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   # Print browser console logs after each system test run to aid debugging.
   def teardown
+    if @t_start
+      puts "Test #{self.name} took: #{Time.now - @t_start} seconds"
+    end
     super
     begin
       logs = console_logs

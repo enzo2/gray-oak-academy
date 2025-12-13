@@ -117,6 +117,8 @@ class MessageInputTest < ApplicationSystemTestCase
 
     # Wait for the preview to show the image (proxy HEAD check and FileReader are async)
     assert_selector '#previewArea img[alt="Image 1"]', wait: 10
+    assert_no_selector "sl-dialog[data-new-message-target='urlDialog'][open]", wait: 5
+    sleep 0.5 # Wait for dialog fade-out animation to complete
 
     # Type a message
     fill_message_content "Here's an image from URL!"

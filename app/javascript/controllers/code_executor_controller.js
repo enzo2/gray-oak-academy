@@ -142,7 +142,6 @@ export default class extends Controller {
       'gamepad *',
       'midi *',
       'clipboard-write *',
-      'web-share *',
       'local-fonts *',
       'xr-spatial-tracking *'
     ].join('; ');

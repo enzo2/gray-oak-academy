@@ -140,7 +140,6 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     assert AppSetting.tts_configured?
 
     visit conversation_path(@conversation)
-    # sleep 1 # Give time for Turbo Streams to connect and page to load
 
     # Simulate LLM sending an assistant message
     message = Message.create!(conversation: @conversation, role: :assistant, content: "Hello, this is a test message for TTS.")
