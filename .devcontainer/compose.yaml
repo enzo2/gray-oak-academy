@@ -31,12 +31,13 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: pgvector/pgvector:pg17-trixie
+    image: pgvector/pgvector:pg18-trixie
     restart: unless-stopped
     networks:
     - default
     volumes:
-    - postgres-data:/var/lib/postgresql/data
+    # Postgres 18+ expects major-version subdirs under /var/lib/postgresql
+    - postgres-data-pg18:/var/lib/postgresql
     environment:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres
@@ -50,4 +51,5 @@ services:
       - NODE_ENV=production
 
 volumes:
-  postgres-data:
+  postgres-data: # Legacy PG17 volume (kept as backup)
+  postgres-data-pg18:

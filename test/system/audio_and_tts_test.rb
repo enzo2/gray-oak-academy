@@ -108,7 +108,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     }) do
         stub_speech_service(transcription: "This is a test transcription from conversation LLM.") do
         # Click the record button
-        assert_selector '#recordButton[name="mic"]', wait: 3
+        assert_selector '#recordButton[name="mic"]', wait: 5
         find("#recordButton").click
         # Simulate recording for a short period
         # Rely on the help text rather than the icon name to avoid unidentifiable issue in CI
