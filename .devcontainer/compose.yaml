@@ -51,5 +51,4 @@ services:
       - NODE_ENV=production
 
 volumes:
-  postgres-data: # Legacy PG17 volume (kept as backup)
   postgres-data-pg18:

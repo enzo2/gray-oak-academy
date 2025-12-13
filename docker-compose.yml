@@ -20,7 +20,6 @@ services:
     image: pgvector/pgvector:pg18-trixie
     restart: always
     volumes:
-      # Postgres 18+ expects major-version subdirs under /var/lib/postgresql
       - postgres-data-pg18:/var/lib/postgresql
     networks:
     - default
@@ -42,5 +41,4 @@ services:
       retries: 5
 
 volumes:
-  postgres-data: # Legacy PG17 volume (kept for rollback/migration)
   postgres-data-pg18:
