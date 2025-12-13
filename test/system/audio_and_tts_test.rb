@@ -146,7 +146,7 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     perform_enqueued_jobs # Ensure the message is broadcast and rendered
     assert_selector "#message_#{message.id}_buttons", wait: 5
 
-    with_faraday_tts_stub(fixture: "test/fixtures/files/sample.webm") do
+    with_faraday_tts_stub(fixture: "test/fixtures/files/sample.ogg") do
       # Wait for the TTS button to appear and be enabled
       tts_button_selector = "#message_#{message.id}_buttons sl-icon-button[name='volume-up']"
 

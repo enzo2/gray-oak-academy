@@ -23,18 +23,19 @@ module TestSupport
     end
 
     # Provides a Faraday test adapter that responds to TTS requests by returning
-    # the given fixture file. Injects the connection into SpeechService.default_conn
+    # the given fixture bytes. Injects the connection into SpeechService.default_conn
     # for the duration of the block.
     #
     # Usage:
-    #   with_faraday_tts_stub(fixture: "test/fixtures/files/sample.webm") do
+    #   with_faraday_tts_stub(fixture: "test/fixtures/files/sample.ogg") do
     #     # code that triggers TTS HTTP call
     #   end
-    def with_faraday_tts_stub(path: "/audio/speech", fixture: "test/fixtures/files/sample.webm")
+    def with_faraday_tts_stub(path: "/audio/speech", fixture: "test/fixtures/files/sample.ogg", content_type: nil)
+      resolved_content_type = content_type || infer_tts_content_type(fixture)
       stubs = Faraday::Adapter::Test::Stubs.new do |stub|
         stub.post(path) do |_env|
-          body = File.binread(Rails.root.join(fixture))
-          [ 200, { "Content-Type" => "audio/webm" }, body ]
+          body = tts_fixture_bytes(fixture)
+          [ 200, { "Content-Type" => resolved_content_type }, body ]
         end
       end
 
@@ -67,6 +68,20 @@ module TestSupport
     end
 
     private
+
+    def tts_fixture_bytes(fixture)
+      full_path = Rails.root.join(fixture)
+      raise ArgumentError, "TTS fixture not found: #{fixture}" unless File.exist?(full_path)
+      File.binread(full_path)
+    end
+
+    def infer_tts_content_type(fixture)
+      ext = File.extname(fixture.to_s).downcase
+      return "audio/ogg" if ext == ".ogg"
+      return "audio/webm" if ext == ".webm"
+
+      "application/octet-stream"
+    end
 
     # Utility to define singleton methods robustly across Ruby versions.
     def define_singleton_method_on(obj, name, &blk)

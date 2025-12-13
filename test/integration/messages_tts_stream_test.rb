@@ -19,33 +19,11 @@ class MessagesTtsStreamTest < ActionDispatch::IntegrationTest
     )
     assert AppSetting.tts_configured?, "TTS must be configured for this test"
 
-    # Use Faraday test adapter to stub provider returning a valid webm payload
-    require "faraday"
-    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      stub.post("/audio/speech") do |_env|
-        body = File.binread(Rails.root.join("test/fixtures/files/sample.webm"))
-        [ 200, { "Content-Type" => "audio/webm" }, body ]
-      end
-    end
-
-    conn = Faraday.new(url: "https://api.example.com/") do |b|
-      b.adapter :test, stubs
-    end
-
-    begin
-      SpeechService.default_conn = conn
-
+    with_faraday_tts_stub(fixture: "test/fixtures/files/sample.ogg") do
       get tts_stream_message_path(@message)
       assert_response :success
       assert_equal "audio/webm", response.media_type
       assert_operator response.body.bytesize, :>, 0
-    ensure
-      SpeechService.default_conn = nil
-      begin
-        stubs.verify_stubbed_calls
-      rescue StandardError
-        # ignore verification errors in CI flake scenarios
-      end
     end
   end
 end
