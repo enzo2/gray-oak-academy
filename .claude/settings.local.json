@@ -3,7 +3,8 @@
     "allow": [
       "WebSearch",
       "Bash(rails test:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(rails runner:*)"
     ]
   }
 }
