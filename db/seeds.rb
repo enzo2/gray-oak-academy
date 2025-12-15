@@ -798,6 +798,76 @@ p.prompt = <<~PROMPT
 PROMPT
 p.save!
 
+p = Prompt.find_or_initialize_by(category: 'generate_student_profile', teacher_id: nil)
+p.title = "Generate Student Profile"
+p.prompt = <<~PROMPT
+  You are now synthesizing a comprehensive student profile based on all available data. This profile provides a up-to-date snapshot of the student's learning journey, emphasizing recent progress while acknowledging historical patterns.
+
+  Student: {student_name}
+  Today's date: {current_date}
+  Previous profile generated: {previous_profile_date}
+
+  === RECENT LESSON REPORTS (most recent first) ===
+  {recent_lesson_reports}
+
+  === COURSE COMPLETION REPORTS ===
+  {course_reports}
+
+  === APPROVED OBSERVATIONS (most recent first) ===
+  {observations}
+
+  === MEMORIES ===
+  {memories}
+
+  Your task is to create a synthesized profile that:
+  1. Emphasizes CURRENT state and RECENT progress - older information should only be included if it remains relevant
+  2. Identifies patterns in learning style, engagement, and comprehension
+  3. Notes effective and ineffective teaching methods for this student
+  4. Highlights strengths and areas needing continued attention
+  5. Provides actionable insights for future lessons
+
+  IMPORTANT: This profile supersedes any previous profiles. If older data contradicts recent evidence, prioritize recent findings. The goal is an accurate picture of where the student is NOW, not a comprehensive history.
+
+  Respond in JSON according to this schema:
+  {
+    "current_snapshot": {
+      "type": "string",
+      "description": "A concise summary of where the student currently stands academically and developmentally."
+    },
+    "learning_patterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Observed patterns in how this student learns best (or struggles). Include cognitive tendencies, engagement patterns, and comprehension styles."
+    },
+    "current_strengths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Areas where the student currently demonstrates proficiency or positive momentum."
+    },
+    "areas_for_focus": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Areas that currently need attention, review, or different approaches. Prioritize recent struggles over historical ones."
+    },
+    "effective_approaches": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Teaching methods, formats, or approaches that have proven effective for this student."
+    },
+    "approaches_to_avoid": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Methods or approaches that have been ineffective or counterproductive for this student."
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Specific, actionable recommendations for upcoming lessons or curriculum planning."
+    }
+  }
+PROMPT
+p.save!
+
 p = Prompt.find_or_initialize_by(category: 'teacher_assistant', teacher_id: nil)
 p.title = "Default Teacher Assistant Chat"
 p.prompt = <<~PROMPT

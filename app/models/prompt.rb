@@ -15,7 +15,7 @@ class Prompt < ApplicationRecord
     # generate_student_lesson_report: "generate_student_lesson_report", # Unused; specified in a Tool
     generate_student_course_report: "generate_student_course_report", # Generate the course-end report
     # generate_student_assessment_report: "generate_student_assessment_report", # unused, could be for reports outside of a course/lesson, eg. one-off tutoring session, remedial/review, vibe check, etc.
-    # generate_student_profile: "generate_student_profile", # unused. Could be for processing RAG results before a lesson
+    generate_student_profile: "generate_student_profile", # Periodic synthesized profile of student progress
     generative_guidelines: "generative_guidelines",  # LLM instructions for generative UI/UX and code execution
     teacher_assistant: "teacher_assistant", # for 1:1 teacher assistant chat
     teaching_principles: "teaching_principles", # appended to the base system prompt to establish teaching style, principles, ethical boundaries, etc.
@@ -38,7 +38,7 @@ class Prompt < ApplicationRecord
     # generate_student_lesson_report: "Generate Student Lesson Report",
     generate_student_course_report: "Generate Student Course Report",
     # generate_student_assessment_report: "Generate Student Assessment Report",
-    # generate_student_profile: "Generate Student Profile",
+    generate_student_profile: "Generate Student Profile",
     generative_guidelines: "Generative Guidelines",
     teacher_assistant: "Teacher Assistant",
     teaching_principles: "Teaching Principles",

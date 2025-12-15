@@ -50,3 +50,11 @@ events:
       - user_name
       - reason
       - user_id
+
+  student.profile_generated:
+    category: student_progress
+    subject: "Student Profile Updated"
+    message: "Student profile for %{student_name} has been updated with the latest learning data."
+    required_params:
+      - student_name
+      - report_id

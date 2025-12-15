@@ -62,3 +62,55 @@ generative_guidelines:
   teacher:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+generate_student_profile:
+  title: Generate Student Profile
+  category: generate_student_profile
+  prompt: |
+    You are now synthesizing a comprehensive student profile based on all available data. This profile provides a up-to-date snapshot of the student's learning journey, emphasizing recent progress while acknowledging historical patterns.
+
+    Student: {student_name}
+    Today's date: {current_date}
+    Previous profile generated: {previous_profile_date}
+
+    === RECENT LESSON REPORTS (most recent first) ===
+    {recent_lesson_reports}
+
+    === COURSE COMPLETION REPORTS ===
+    {course_reports}
+
+    === APPROVED OBSERVATIONS (most recent first) ===
+    {observations}
+
+    === MEMORIES ===
+    {memories}
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
+
+generate_student_course_report:
+  title: Generate Student Course Report
+  category: generate_student_course_report
+  prompt: |
+    The student has completed the course titled {course_title}. The course summary was: {course_summary}.
+    The following were the lessons in the course, their goals, and the student's report following each lesson:
+    {lessons}
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
+
+generate_lesson_plan:
+  title: Default Lesson Plan Content Generator
+  category: generate_lesson_plan
+  prompt: |
+    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
+    The lesson goals are: "{goals}".
+    The lesson is to be roughly {approx_duration_min} min long.
+    Optionally, also include a "suggested_resources" array, following a similar format but with "type" and "description" keys.
+    The supervising teacher has already marked the following resources as validated and available as lesson content (may or may not be pertinent to the lesson):
+    {linked_resources}
+    Other lessons in this course, which do not need to overlap with this one, include:
+    {other_lessons}
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>

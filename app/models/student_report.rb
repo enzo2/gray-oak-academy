@@ -1,3 +1,5 @@
+require "set"
+
 class StudentReport < ApplicationRecord
   # Reports stored as progress_data (JSONB).
   # As LLMs may not follow the desired schema for reports, don't depend on any particular JSON format. Design around parsing/displaying any contents of the progress_data.
@@ -21,6 +23,7 @@ class StudentReport < ApplicationRecord
 
   scope :lesson_reports, -> { where(reportable_type: "LessonProgress") }
   scope :course_reports, -> { where(reportable_type: "Enrollment") }
+  scope :profile_reports, -> { where(reportable_type: "User") }
   scope :orphaned, -> { where(reportable_id: nil) }
 
   def to_markdown
@@ -29,7 +32,7 @@ class StudentReport < ApplicationRecord
       return report.to_s unless report.is_a?(Hash)
     begin
       md = +""
-      report.each do |key, value|
+      ordered_report_pairs.each do |key, value|
         # Convert the key (symbol or string) to a humanized heading.
         md << "**#{key.to_s.humanize}**\n"
         case value
@@ -54,6 +57,37 @@ class StudentReport < ApplicationRecord
   end
 
   private
+
+  # NOTE: PostgreSQL jsonb does not preserve object key insertion order (keys get canonicalized),
+  # so we must not rely on Hash iteration order for display.
+  def ordered_report_pairs
+    return [] unless progress_data.is_a?(Hash)
+
+    order =
+      case reportable_type
+      when "User"
+        GenerateStudentProfileJob::PROFILE_KEY_ORDER
+      end
+
+    return progress_data.map { |key, value| [ key, value ] } if order.blank?
+
+    seen = Set.new
+    pairs = []
+
+    order.each do |key|
+      value = progress_data[key] || progress_data[key.to_sym]
+      next if value.nil?
+      seen.add(key.to_s)
+      pairs << [ key, value ]
+    end
+
+    progress_data.each do |key, value|
+      next if seen.include?(key.to_s)
+      pairs << [ key, value ]
+    end
+
+    pairs
+  end
 
   def trigger_course_report_check
     Rails.logger.debug "Checking if need course report for student #{student.id} in course #{reportable.lesson.course.id}"

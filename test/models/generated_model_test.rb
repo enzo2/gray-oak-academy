@@ -2,18 +2,6 @@ require "test_helper"
 require "tempfile"
 require "base64"
 
-# Provide minimal prompts so services that call Prompt.full_system_prompt or Prompt.get_prompt won't fail.
-# These overrides are safe in test environment.
-unless Prompt.respond_to?(:_test_override_installed)
-  Prompt.define_singleton_method(:get_prompt) do |category:, user: nil|
-    "TEST PROMPT FOR #{category}"
-  end
-  Prompt.define_singleton_method(:full_system_prompt) do |user: nil|
-    "BASE SYSTEM PROMPT"
-  end
-  Prompt.define_singleton_method(:_test_override_installed) { true }
-end
-
 class ConversationModelTest < ActiveSupport::TestCase
   test "context_usage calculation and llm_in_use fallback to ENV" do
     user = users(:student)
