@@ -110,7 +110,7 @@ jobs:
         # Don't do system tests in CI. They are brittle on Github runners. They work locally.
 
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: screenshots
