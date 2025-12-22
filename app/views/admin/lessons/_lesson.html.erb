@@ -29,13 +29,13 @@
         <% if lesson.lesson_plan.present? %>
           <%= lesson.lesson_plan.status.titleize %>
         <% else %>
-          <%= "New" %>
+          <%= "Create" %>
         <% end %>
       </span>
     <% end %>
   </td>
   <td class="py-2 px-3 text-right">
-    <div class="flex items-center justify-end gap-1">
+    <div class="flex-col space-y-2 items-center justify-end gap-1">
       <%= link_to edit_admin_course_lesson_path(lesson.course, lesson), class: "btn-table-action", data: { turbo_stream: true } do %>
         <sl-icon name="pencil"></sl-icon>
         Edit

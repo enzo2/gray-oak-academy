@@ -62,7 +62,7 @@ class GenerateObservationsJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: OBSERVATIONS_SCHEMA[:schema]
+          json_schema: OBSERVATIONS_SCHEMA.slice(:name, :schema, :strict)
         },
         schema: OBSERVATIONS_SCHEMA[:schema],
         prefill: "{ \"observations\": ["

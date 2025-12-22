@@ -42,9 +42,9 @@ class GenerateCourseOutlineJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: OUTLINE_SCHEMA
+          json_schema: OUTLINE_SCHEMA.slice(:name, :schema, :strict)
         },
-        schema: OUTLINE_SCHEMA["schema"],  # Also pass the schema to the wrapper service for validation of the response
+        schema: OUTLINE_SCHEMA[:schema],  # Also pass the schema to the wrapper service for validation of the response
         prefill: "{\"outline\": ["
       )
 

@@ -2,6 +2,7 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
   queue_as :default
 
   MERGED_MEMORIES_SCHEMA = {
+    "strict": true,
     "name": "Merged_Memories",
     "description": "An object containing consolidated new memories and IDs of existing memories to replace",
     "schema": {
@@ -16,7 +17,7 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
           "items": { "type": "integer" }
         }
       },
-      "required": [ "new_memories" ],
+      "required": [ "new_memories", "replacement_ids" ],
       "additionalProperties": false
     }
   }
@@ -57,7 +58,7 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: MERGED_MEMORIES_SCHEMA[:schema]
+          json_schema: MERGED_MEMORIES_SCHEMA.slice(:name, :schema, :strict)
         },
         schema: MERGED_MEMORIES_SCHEMA[:schema],
         prefill: "{\"new_memories\": ["

@@ -1,6 +1,6 @@
 <div class="flex flex-row justify-between">
   <%= link_to "Back to Courses", admin_courses_path, class: "block mb-4 hover:underline" %>
-  <sl-button href="<%= printable_admin_course_lessons_path(@course)%>" target="_blank">
+  <sl-button href="<%= printable_admin_course_lessons_path(@course) %>" target="_blank">
     <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
     Printable View
   </sl-button>
@@ -8,22 +8,24 @@
 
 <h2 class="text-2xl mb-5 block">Lessons for: <b> <%= @course.title %></b></h2>
 
-<%= turbo_frame_tag Lesson.new do %>
-  <%= link_to new_admin_course_lesson_path(@course), class: "btn-primary" do %>
-    <sl-icon name="plus-lg"></sl-icon>
-    New Lesson
+<div class="">
+  <%= turbo_frame_tag Lesson.new do %>
+    <%= link_to new_admin_course_lesson_path(@course), class: "btn-primary" do %>
+      <sl-icon name="plus-lg"></sl-icon>
+      New Lesson
+    <% end %>
   <% end %>
-<% end %>
 
-<div class="mt-4" id="generate-lessons">
-  <% if @course.outline.blank? %>
-    <i>To generate the lessons via LLM, the <%= link_to "course outline", edit_admin_course_path(@course), class: "underline" %> must be filled in.</i>
-  <% elsif @course.outline.presence && @course.lessons.presence %>
-    <%= render "admin/lessons/generate_lessons_button", course: @course %><br>
-    <i class="text-dim text-sm">Generating more lessons will leave the existing lessons intact.</i>
-  <% else %>
-    <%= render "admin/lessons/generate_lessons_button", course: @course %>
-  <% end %>
+  <div class="mt-4" id="generate-lessons">
+    <% if @course.outline.blank? %>
+      <i>To generate the lessons via LLM, the <%= link_to "course outline", edit_admin_course_path(@course), class: "underline" %> must be filled in.</i>
+    <% elsif @course.outline.presence && @course.lessons.presence %>
+      <%= render "admin/lessons/generate_lessons_button", course: @course %><br>
+      <i class="text-dim text-sm">Generating more lessons will leave the existing lessons intact.</i>
+    <% else %>
+      <%= render "admin/lessons/generate_lessons_button", course: @course %>
+    <% end %>
+  </div>
 </div>
 
 <table class="w-full border-collapse">

@@ -67,7 +67,7 @@ class GenerateCourseLessonsJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: LESSONS_SCHEMA[:schema]
+          json_schema: LESSONS_SCHEMA.slice(:name, :schema, :strict)
         },
         schema: LESSONS_SCHEMA[:schema],
         prefill: "{\"lessons\": ["

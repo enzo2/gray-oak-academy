@@ -34,7 +34,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
           }
         }
       },
-      "required": [ "lesson_plan" ],
+      "required": [ "lesson_plan", "suggested_resources" ],
       "additionalProperties": false
     }
   }
@@ -62,7 +62,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: CONTENT_SCHEMA[:schema]
+          json_schema: CONTENT_SCHEMA.slice(:name, :schema, :strict)
         },
         schema: CONTENT_SCHEMA[:schema],
         prefill: "{\"lesson_plan\": ["

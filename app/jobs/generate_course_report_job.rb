@@ -32,7 +32,9 @@ class GenerateCourseReportJob < ApplicationJob
           "items": { "type": "string" },
           "description": "Optional: Note any other observations or notable examples concerning the student's progress and development, such as engagement, attitude, cognition, or other relevant factors."
         }
-      }
+      },
+      "required": [ "summary", "strengths", "areas_for_review", "teaching_methods", "other_observations" ],
+      "additionalProperties": false
     }
   }
 
@@ -61,7 +63,7 @@ class GenerateCourseReportJob < ApplicationJob
         messages,
         response_format: {
           type: "json_schema",
-          json_schema: REPORT_SCHEMA[:schema]
+          json_schema: REPORT_SCHEMA.slice(:name, :schema, :strict)
         },
         schema: REPORT_SCHEMA[:schema],
         prefill: "{"
