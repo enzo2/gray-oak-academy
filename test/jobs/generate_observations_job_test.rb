@@ -64,4 +64,24 @@ class GenerateObservationsJobTest < ActiveJob::TestCase
       GenerateObservationsJob.perform_now(@report)
     end
   end
+
+  test "fires notification on observation generation" do
+    mock_service = Minitest::Mock.new
+    response = { "observations" => [ "Obs 1" ] }
+
+    mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
+      true
+    end
+
+    OpenaiApiService.stub :new, mock_service do
+      assert_difference -> { Notification.count }, 1 do
+        GenerateObservationsJob.perform_now(@report)
+      end
+    end
+
+    notification = Notification.order(created_at: :desc).first
+    assert_equal "observation.generated", notification.event_type
+    assert_equal users(:admin), notification.recipient
+    assert_includes notification.message, "1 new pending observation"
+  end
 end

@@ -11,7 +11,7 @@ class GenerateObservationsJob < ApplicationJob
         "observations": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "1-3 distinct, high-value observations about the student's learning."
+          "description": "1-3 distinct, concise, high-value observations about the student's learning."
         }
       },
       "required": [ "observations" ],
@@ -84,6 +84,18 @@ class GenerateObservationsJob < ApplicationJob
       end
 
       Rails.logger.info "Generated #{new_observations.count} observations for student #{student.id}"
+
+      if new_observations.any? && teacher
+        count = new_observations.count
+        Rails.event.notify(Events::ObservationGenerated.new(
+          recipient_ids: [ teacher.id ],
+          link: Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal"),
+          student_name: student.name,
+          lesson_title: lesson_progress.lesson.title,
+          quantity_str: "#{count} new pending #{"observation".pluralize(count)}",
+          student_id: student.id
+        ))
+      end
 
     rescue StandardError => e
       Rails.logger.error "Error generating observations: #{e.message}"

@@ -37,6 +37,10 @@ rubocop
 # Security audits
 brakeman
 bundler-audit
+
+# Full local CI (takes a while)
+# Includes setup, rubocop, audits, brakeman, tests, system tests, seeds
+bin/ci
 ```
 
 - The dev server uses https. When using any browser tool to view the site locally, use https://localhost:3000.

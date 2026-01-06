@@ -426,9 +426,6 @@ tool.specifications = {
 tool.save!
 
 # Applet tools
-
-Tool.where(name: [ "List_Applets", "Get_Applet", "Update_Applet", "Save_Applet_As_Resource", "Run_Applet_On_Chalkboard" ]).destroy_all
-
 tool = Tool.find_or_initialize_by(name: 'Applet')
 tool.access = :admin
 tool.specifications = {

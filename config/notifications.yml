@@ -58,3 +58,13 @@ events:
     required_params:
       - student_name
       - report_id
+
+  observation.generated:
+    category: student_progress
+    subject: "New Observations"
+    message: "%{quantity_str} for %{student_name} from lesson: %{lesson_title}."
+    required_params:
+      - student_name
+      - lesson_title
+      - quantity_str
+      - student_id
