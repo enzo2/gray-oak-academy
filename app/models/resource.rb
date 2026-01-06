@@ -43,7 +43,7 @@ class Resource < ApplicationRecord
       if resource.applet.present?
         resource_info["applet_title"] = resource.applet.title
         resource_info["applet_id"] = resource.applet.id
-        resource_info["applet_reminder_msg"] = "Code not included for brevity. Do not invent your own code! To retrieve, use the Get_Applet tool with the applet_id: #{resource.applet.id}"
+        resource_info["applet_reminder_msg"] = "Code not included for brevity. Do not invent your own code! To retrieve, use the Applet tool with action: get and applet_id: #{resource.applet.id}"
         # resource_info["applet_code"] = resource.applet.code  # Including the full code within JSON causes syntax errors when LLM forgets to remove escaping.
       end
       resource_info

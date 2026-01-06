@@ -776,13 +776,32 @@ class ToolHandlerService
   end
 
   # ---- Applets tools ----
-  def execute_list_applets
+  def execute_applet
+    action = @args["action"].to_s
+
+    case action
+    when "list"
+      applet_list
+    when "get"
+      applet_get
+    when "upsert"
+      applet_upsert
+    when "save_as_resource"
+      applet_save_as_resource
+    when "run_on_chalkboard"
+      applet_run_on_chalkboard
+    else
+      raise ToolExecutionError, "Unknown Applet action: #{action.inspect}"
+    end
+  end
+
+  def applet_list
     applets = current_teacher.applets.order(created_at: :desc).limit(100)
     payload = applets.map { |a| { id: a.id, title: a.title, created_at: a.created_at } }
     create_tool_message(JSON.pretty_generate(payload))
   end
 
-  def execute_get_applet
+  def applet_get
     applet_id = @args["applet_id"].to_i
     applet = current_teacher.applets.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
@@ -790,7 +809,7 @@ class ToolHandlerService
     create_tool_message(payload) # Avoid using JSON to avoid LLM syntax issues due to escaping
   end
 
-  def execute_update_applet
+  def applet_upsert
     if @args.key?("code") && @args["code"].present?
       syntax_check = NodeJsSyntaxChecker.check(@args["code"])
       unless syntax_check[:valid]
@@ -839,7 +858,7 @@ class ToolHandlerService
     })
   end
 
-  def execute_save_applet_as_resource
+  def applet_save_as_resource
     applet_id = @args["applet_id"].to_i
     lesson_id = @args["lesson_id"]
 
@@ -890,7 +909,7 @@ class ToolHandlerService
     create_tool_message(JSON.pretty_generate(payload))
   end
 
-  def execute_run_applet_on_chalkboard
+  def applet_run_on_chalkboard
     applet_id = @args["applet_id"].to_i
     applet = current_teacher.applets.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet

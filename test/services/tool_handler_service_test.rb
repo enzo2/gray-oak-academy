@@ -245,4 +245,48 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     temp_image.close
     temp_image.unlink
   end
+
+  test "consolidated Applet tool routes list and get actions" do
+    Tool.create!(
+      access: :admin,
+      specifications: {
+        "name" => "Applet",
+        "description" => "Applet tool",
+        "strict_mode" => true,
+        "parameters" => {
+          "type" => "object",
+          "properties" => {
+            "action" => { "type" => "string", "description" => "Action", "enum" => [ "list", "get" ] },
+            "applet_id" => { "type" => "integer", "description" => "Applet ID" }
+          },
+          "required" => [ "action" ],
+          "additionalProperties" => false,
+          "anyOf" => [
+            { "properties" => { "action" => { "type" => "string", "enum" => [ "list" ] } }, "required" => [ "action" ] },
+            { "properties" => { "action" => { "type" => "string", "enum" => [ "get" ] } }, "required" => [ "action", "applet_id" ] }
+          ]
+        }
+      }
+    )
+
+    NodeJsSyntaxChecker.stub(:check, { valid: true, errors: [] }) do
+      @teacher.applets.create!(title: "Test Applet", code: "console.log('hi')")
+    end
+    applet = @teacher.applets.last
+
+    service = ToolHandlerService.new(conversation: conversations(:teacher_generic_conversation), message: nil)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_calls([ { id: "tc-applet-1", function: { name: "Applet", arguments: { action: "list" }.to_json } } ])
+    end
+    list_msg = Message.last
+    assert_match(/Test Applet/, list_msg.content)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_calls([ { id: "tc-applet-2", function: { name: "Applet", arguments: { action: "get", applet_id: applet.id }.to_json } } ])
+    end
+    get_msg = Message.last
+    assert_match(/Test Applet/, get_msg.content.to_s)
+    assert_match(/console\.log/, get_msg.content.to_s)
+  end
 end

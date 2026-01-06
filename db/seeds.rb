@@ -427,86 +427,43 @@ tool.save!
 
 # Applet tools
 
-tool = Tool.find_or_initialize_by(name: 'List_Applets')
+Tool.where(name: [ "List_Applets", "Get_Applet", "Update_Applet", "Save_Applet_As_Resource", "Run_Applet_On_Chalkboard" ]).destroy_all
+
+tool = Tool.find_or_initialize_by(name: 'Applet')
 tool.access = :admin
 tool.specifications = {
-  name: "List_Applets",
-  description: "List applets created by the teacher (id, title, created_at). Useful for finding applets to reuse or edit. Limited to most recent 100 applets.",
-  # strict_mode: true,
-  parameters: {
-    type: "object",
-    properties: {},
-    required: [],
-    additionalProperties: false
-  }
-}
-tool.save!
-
-tool = Tool.find_or_initialize_by(name: 'Get_Applet')
-tool.specifications = {
-  name: "Get_Applet",
-  description: "Retrieve a specific applet's code by ID. Returns title, code, and metadata. Code will be returned in a tool message (not visible to user).",
-  # strict_mode: true,
+  name: "Applet",
+  description: "Manage saved JavaScript applets (list/get/create-or-update/save-as-resource/run-on-chalkboard).",
+  strict_mode: true,
   parameters: {
     type: "object",
     properties: {
-      "applet_id" => { "type" => "integer", "description" => "ID of the applet" }
+      "action" => {
+        "type" => "string",
+        "description" => "Which operation to perform: list, get, upsert, save_as_resource, run_on_chalkboard.",
+        "enum" => [ "list", "get", "upsert", "save_as_resource", "run_on_chalkboard" ]
+      },
+      "applet_id" => { "type" => "integer", "description" => "Applet ID (required for get/save_as_resource/run_on_chalkboard; required for upsert when updating)." },
+      "title" => { "type" => "string", "description" => "Applet title (required when creating, optional when updating)." },
+      "code" => { "type" => "string", "description" => "Full JavaScript applet code (required when creating, optional when updating). Keep raw backticks; do not escape template literals." },
+      "lesson_id" => { "type" => "integer", "description" => "Lesson ID to link the saved resource to (optional; only for save_as_resource)." }
     },
-    "required" => [ "applet_id" ],
-    "additionalProperties" => false
-  }
-}
-tool.save!
-
-tool = Tool.find_or_initialize_by(name: 'Update_Applet')
-tool.access = :admin
-tool.specifications = {
-  name: "Update_Applet",
-  description: "Update a specific applet's title and/or code, or create a new applet if no ID is provided. Validates JavaScript syntax before saving.",
-  # strict_mode: true,
-  parameters: {
-    type: "object",
-    properties: {
-      "applet_id" => { "type" => "integer", "description" => "ID of the applet. If omitted, creates a new applet. (title and code required)" },
-      "title" => { "type" => "string", "description" => "Applet title. (required when creating, optional when updating)" },
-      "code" => { "type" => "string", "description" => "Javascript code according to the app's JS applet specs. (Required when creating, optional when updating.) Include the full complete applet code. Don't escape template literals; keep raw backticks." }
-    },
-    "required" => [],
-    "additionalProperties" => false
-  }
-}
-tool.save!
-
-tool = Tool.find_or_initialize_by(name: 'Save_Applet_As_Resource')
-tool.access = :admin
-tool.specifications = {
-  name: "Save_Applet_As_Resource",
-  description: "Save an applet as a resource and optionally link it to a lesson plan. (Applets can only be linked to lesson plans once they become a resource.) If applet is already a resource, existing resource will be re-used.",
-  # strict_mode: true,
-  parameters: {
-    type: "object",
-    properties: {
-      "applet_id" => { "type" => "integer", "description" => "ID of the applet" },
-      "lesson_id" => { "type" => "integer", "description" => "ID of the lesson to which the resource will be linked (optional)" }
-    },
-    "required" => [ "applet_id" ],
-    "additionalProperties" => false
-  }
-}
-tool.save!
-
-tool = Tool.find_or_initialize_by(name: 'Run_Applet_On_Chalkboard')
-tool.specifications = {
-  name: "Run_Applet_On_Chalkboard",
-  description: "Execute a saved applet directly on the chalkboard without needing to retype the code in an executable markdown block. Code will not be visible to user. (To display the code, or for inline execution in the chat, use Get_Applet instead and then copy the code into an executable markdown block.)",
-  # strict_mode: true,
-  parameters: {
-    type: "object",
-    properties: {
-      "applet_id" => { "type" => "integer", "description" => "ID of the applet" }
-    },
-    "required" => [ "applet_id" ],
-    "additionalProperties" => false
+    required: [ "action" ],
+    additionalProperties: false,
+    anyOf: [
+      { properties: { "action" => { "type" => "string", "enum" => [ "list" ] } }, required: [ "action" ] },
+      { properties: { "action" => { "type" => "string", "enum" => [ "get" ] } }, required: [ "action", "applet_id" ] },
+      { properties: { "action" => { "type" => "string", "enum" => [ "run_on_chalkboard" ] } }, required: [ "action", "applet_id" ] },
+      { properties: { "action" => { "type" => "string", "enum" => [ "save_as_resource" ] } }, required: [ "action", "applet_id" ] },
+      # Upsert: update existing (requires applet_id and at least one of title/code)
+      {
+        properties: { "action" => { "type" => "string", "enum" => [ "upsert" ] } },
+        required: [ "action", "applet_id" ],
+        anyOf: [ { required: [ "title" ] }, { required: [ "code" ] } ]
+      },
+      # Upsert: create new (requires title+code)
+      { properties: { "action" => { "type" => "string", "enum" => [ "upsert" ] } }, required: [ "action", "title", "code" ] }
+    ]
   }
 }
 tool.save!
