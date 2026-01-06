@@ -79,17 +79,21 @@ class ToolHandlerService
   # Tolerant JSON parse + schema-aware coercion for common primitive types.
   def validate_and_parse_arguments(tool, arguments)
     # Parse JSON arguments
-    begin
-      parsed_arguments = JSON.parse(arguments)
-    rescue JSON::ParserError
-      # If invalid, try repairing the JSON
+    if arguments.blank?
+      parsed_arguments = {}
+    else
       begin
-        Rails.logger.debug "Invalid JSON in tool arguments, attempting to repair: #{arguments}"
-        repaired_arguments = JSON.repair(arguments)
-        parsed_arguments = JSON.parse(repaired_arguments)
-        Rails.logger.debug "Repaired JSON successfully."
+        parsed_arguments = JSON.parse(arguments)
       rescue JSON::ParserError
-        raise ToolExecutionError, "Invalid JSON in tool arguments, unable to repair."
+        # If invalid, try repairing the JSON
+        begin
+          Rails.logger.debug "Invalid JSON in tool arguments, attempting to repair: #{arguments}"
+          repaired_arguments = JSON.repair(arguments)
+          parsed_arguments = JSON.parse(repaired_arguments)
+          Rails.logger.debug "Repaired JSON successfully."
+        rescue JSON::ParserError
+          raise ToolExecutionError, "Invalid JSON in tool arguments, unable to repair."
+        end
       end
     end
 
@@ -554,7 +558,7 @@ class ToolHandlerService
 
     Lesson.transaction do
       # Build/find lesson plan
-      lp = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher, status: "draft")
+      lp = lesson.lesson_plan || lesson.build_lesson_plan(status: "draft")
 
       # Expect flattened, explicit arrays:
       # lesson_plan_content: [{ "type": "...", "details": "..." }, ...] (OPTIONAL)
@@ -609,7 +613,6 @@ class ToolHandlerService
       lp.audio = @args["audio"] if @args.key?("audio")
       lp.chalkboard_enabled = !!@args["chalkboard_enabled"] if @args.key?("chalkboard_enabled")
 
-      lp.teacher = current_teacher if lp.teacher_id.nil?
       lp.save!
 
       create_tool_message(JSON.pretty_generate({
@@ -743,7 +746,7 @@ class ToolHandlerService
     raise ToolExecutionError, "Lesson not found" unless lesson
     raise ToolExecutionError, "Permission denied" unless lesson.course.teacher == current_teacher
 
-    lp = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher, status: "draft")
+    lp = lesson.lesson_plan || lesson.build_lesson_plan(status: "draft")
     lp.save! if lp.new_record?
 
     begin
@@ -850,7 +853,7 @@ class ToolHandlerService
       lesson = Lesson.find_by(id: lesson_id)
       raise ToolExecutionError, "Lesson not found" unless lesson
       raise ToolExecutionError, "Permission denied, lesson does not belong to the current user" unless lesson.teacher == current_teacher
-      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(teacher: current_teacher, status: "draft")
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(status: "draft")
     end
 
     # Reuse existing resource if the applet already has one

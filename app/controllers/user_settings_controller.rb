@@ -22,7 +22,13 @@ class UserSettingsController < ApplicationController
     if api_uri.present?
       # Ensure the URI we query with has a trailing slash, matching the normalized Llm.api_provider
       normalized_uri_with_slash = api_uri.end_with?("/") ? api_uri : "#{api_uri}/"
-      @models = Llm.where(api_provider: normalized_uri_with_slash).pluck(:model)
+      scope = Llm.where(api_provider: normalized_uri_with_slash)
+
+      if params[:q].present?
+        scope = scope.where("model ILIKE ?", "%#{params[:q]}%")
+      end
+
+      @models = scope.pluck(:model)
     else
       @models = []
     end

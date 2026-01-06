@@ -110,6 +110,19 @@ class Message < ApplicationRecord
       msg_hash = { role: message.role, content: audio ? message.content_with_media : message.content_with_images }
       msg_hash[:tool_call_id] = message.tool_call_id if message.role_tool? && message.respond_to?(:tool_call_id) && message.tool_call_id.present?
       msg_hash[:tool_calls] = message.tool_calls if message.role_assistant? && message.respond_to?(:tool_calls) && message.tool_calls.present?
+      # Include reasoning_details only for assistant messages with tool_calls (for thinking model continuity)
+      # Reasoning is only needed for tool call continuity - sending it for all messages wastes tokens
+      # Strip OpenAI reasoning session IDs (rs_*) which are stateful, but preserve IDs that link to tool calls (Gemini)
+      if message.role_assistant? && message.tool_calls.present? && message.reasoning_details.present?
+        msg_hash[:reasoning_details] = message.reasoning_details.map do |detail|
+          # Only strip 'id' if it's an OpenAI reasoning session ID (starts with 'rs_')
+          if detail["id"]&.start_with?("rs_")
+            detail.except("id")
+          else
+            detail
+          end
+        end
+      end
       msg_hash
     end
   end

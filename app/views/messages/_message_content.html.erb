@@ -81,6 +81,23 @@
         <% end %>
       <% end %>
 
+<!-- reasoning details
+      <% if Rails.env.development? && message.reasoning_details.present? %>
+        <details class="mt-4 p-3 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-600 text-sm">
+          <summary class="cursor-pointer font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
+            🧠 Reasoning Details
+          </summary>
+          <div class="mt-2 space-y-2">
+            <% message.reasoning_details.each_with_index do |detail, idx| %>
+              <div class="pl-3 border-l-2 border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400">
+                <div class="text-xs font-mono text-stone-500 dark:text-stone-500"><%= detail["id"] %></div>
+                <div class="mt-1 whitespace-pre-wrap"><%= detail.dig("text") || detail.inspect %></div>
+              </div>
+            <% end %>
+          </div>
+        </details>
+      <% end %>
+-->
       <%= markdown(message.content) if message.content.present? && !message.role_tool? %>
 
       <% if message.tool_calls.present? %> 

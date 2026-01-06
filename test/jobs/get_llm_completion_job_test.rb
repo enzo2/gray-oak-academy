@@ -52,4 +52,226 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_not_nil assistant_msg, "Assistant message should have been created"
     assert_equal "Hello world", assistant_msg.content
   end
+
+  test "preserves thought_signature on streamed tool calls" do
+    @conversation.messages.create!(role: :user, content: "Do the thing")
+
+    captured_tool_calls = nil
+    fake_tool_handler = Object.new.tap do |o|
+      o.define_singleton_method(:execute_tool_calls) do |tool_calls|
+        captured_tool_calls = tool_calls
+      end
+    end
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          handler.call({
+            "delta" => {
+              "tool_calls" => [
+                {
+                  "index" => 0,
+                  "id" => "call_123",
+                  "type" => "function",
+                  "thought_signature" => "sig_abc",
+                  "function" => { "name" => "Complete_Lesson", "arguments" => "{\"x\":" }
+                }
+              ]
+            }
+          })
+          handler.call({
+            "delta" => {
+              "tool_calls" => [
+                {
+                  "index" => 0,
+                  "function" => { "arguments" => "1}" }
+                }
+              ]
+            }
+          })
+          handler.call({ "finish_reason" => "tool_calls" })
+          handler.call({ "usage" => { "prompt_tokens" => 1, "completion_tokens" => 2, "total_tokens" => 3 } })
+          ""
+        end
+      end
+    }) do
+      ToolHandlerService.stub(:new, ->(**_kwargs) { fake_tool_handler }) do
+        GetLlmCompletionJob.perform_now(conversation: @conversation)
+      end
+    end
+
+    assert_not_nil captured_tool_calls
+    assert_equal "sig_abc", captured_tool_calls.first[:thought_signature]
+
+    assistant_msg = @conversation.reload.messages.role_assistant.last
+    assert_equal "sig_abc", assistant_msg.tool_calls.first["thought_signature"]
+    assert_equal "{\"x\":1}", assistant_msg.tool_calls.first.dig("function", "arguments")
+  end
+
+  test "preserves reasoning_details from thinking models" do
+    @conversation.messages.create!(role: :user, content: "Think about this")
+
+    reasoning_data = [
+      { "id" => "rd_1", "index" => 0, "format" => "anthropic-claude-v1", "type" => "reasoning.text", "text" => "Let me think..." },
+      { "id" => "rd_2", "index" => 1, "format" => "anthropic-claude-v1", "type" => "reasoning.text", "text" => "I conclude..." }
+    ]
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          # Stream reasoning_details with explicit indices for separate blocks
+          handler.call({ "delta" => { "reasoning_details" => [ reasoning_data[0] ] } })
+          handler.call({ "delta" => { "reasoning_details" => [ reasoning_data[1] ] } })
+          # Stream content
+          handler.call({ "delta" => { "content" => "Here is my answer." } })
+          handler.call({ "finish_reason" => "stop" })
+          handler.call({ "usage" => { "prompt_tokens" => 100, "completion_tokens" => 50, "total_tokens" => 150 } })
+          ""
+        end
+      end
+    }) do
+      GetLlmCompletionJob.perform_now(conversation: @conversation)
+    end
+
+    assistant_msg = @conversation.reload.messages.role_assistant.last
+    assert_not_nil assistant_msg.reasoning_details, "reasoning_details should be saved"
+    assert_equal 2, assistant_msg.reasoning_details.length
+    assert_equal "rd_1", assistant_msg.reasoning_details.first["id"]
+    assert_equal "Here is my answer.", assistant_msg.content
+
+    # Test serialization excludes reasoning_details when no tool_calls present
+    # (reasoning is only needed for tool call continuity)
+    serialized = Message.for_completion_with_media(messages: [ assistant_msg ])
+    assert_nil serialized.first[:reasoning_details], "reasoning_details should NOT be serialized without tool_calls"
+  end
+
+  test "includes reasoning_details in serialization only when tool_calls present" do
+    @conversation.messages.create!(role: :user, content: "Do the thing")
+
+    reasoning_data = [
+      { "id" => "rd_1", "index" => 0, "format" => "anthropic-claude-v1", "type" => "reasoning.text", "text" => "Let me think..." }
+    ]
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          # Stream reasoning_details
+          handler.call({ "delta" => { "reasoning_details" => reasoning_data } })
+          # Stream tool call
+          handler.call({
+            "delta" => {
+              "tool_calls" => [ {
+                "index" => 0,
+                "id" => "call_456",
+                "type" => "function",
+                "function" => { "name" => "Complete_Lesson", "arguments" => "{}" }
+              } ]
+            }
+          })
+          handler.call({ "finish_reason" => "tool_calls" })
+          handler.call({ "usage" => { "prompt_tokens" => 10, "completion_tokens" => 5, "total_tokens" => 15 } })
+          ""
+        end
+      end
+    }) do
+      ToolHandlerService.stub(:new, ->(**_kwargs) {
+        Object.new.tap { |o| o.define_singleton_method(:execute_tool_calls) { |_| } }
+      }) do
+        GetLlmCompletionJob.perform_now(conversation: @conversation)
+      end
+    end
+
+    assistant_msg = @conversation.reload.messages.role_assistant.last
+    assert_not_nil assistant_msg.reasoning_details, "reasoning_details should be saved"
+    assert_not_nil assistant_msg.tool_calls, "tool_calls should be present"
+
+    # Test serialization INCLUDES reasoning_details when tool_calls present, preserving non-OpenAI IDs
+    serialized = Message.for_completion_with_media(messages: [ assistant_msg ])
+    assert_equal reasoning_data, serialized.first[:reasoning_details], "reasoning_details should be serialized with non-rs_ IDs preserved"
+  end
+
+  test "strips OpenAI reasoning session IDs (rs_*) but preserves other IDs" do
+    @conversation.messages.create!(role: :user, content: "Do the thing")
+
+    # Simulate OpenAI-style reasoning with rs_ prefixed IDs (stateful session IDs)
+    reasoning_data = [
+      { "id" => "rs_abc123", "index" => 0, "format" => "openai-v1", "type" => "reasoning.text", "text" => "Thinking..." }
+    ]
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          handler.call({ "delta" => { "reasoning_details" => reasoning_data } })
+          handler.call({
+            "delta" => {
+              "tool_calls" => [ {
+                "index" => 0,
+                "id" => "call_789",
+                "type" => "function",
+                "function" => { "name" => "Complete_Lesson", "arguments" => "{}" }
+              } ]
+            }
+          })
+          handler.call({ "finish_reason" => "tool_calls" })
+          handler.call({ "usage" => { "prompt_tokens" => 10, "completion_tokens" => 5, "total_tokens" => 15 } })
+          ""
+        end
+      end
+    }) do
+      ToolHandlerService.stub(:new, ->(**_kwargs) {
+        Object.new.tap { |o| o.define_singleton_method(:execute_tool_calls) { |_| } }
+      }) do
+        GetLlmCompletionJob.perform_now(conversation: @conversation)
+      end
+    end
+
+    assistant_msg = @conversation.reload.messages.role_assistant.last
+    assert_not_nil assistant_msg.reasoning_details, "reasoning_details should be saved"
+
+    # Test serialization strips rs_ IDs but keeps other fields
+    serialized = Message.for_completion_with_media(messages: [ assistant_msg ])
+    expected = reasoning_data.map { |d| d.except("id") }
+    assert_equal expected, serialized.first[:reasoning_details], "OpenAI reasoning session IDs (rs_*) should be stripped"
+  end
+
+  test "merges reasoning_details chunks by index" do
+    @conversation.messages.create!(role: :user, content: "Think about this")
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          # Simulate fragmented reasoning chunks with same index (like OpenRouter sends them)
+          handler.call({ "delta" => { "reasoning_details" => [
+            { "id" => "rd_1", "index" => 0, "format" => "openai-responses-v1", "type" => "reasoning.summary", "summary" => "First " }
+          ] } })
+          handler.call({ "delta" => { "reasoning_details" => [
+            { "index" => 0, "summary" => "part. " }
+          ] } })
+          handler.call({ "delta" => { "reasoning_details" => [
+            { "index" => 0, "summary" => "Second part." }
+          ] } })
+          handler.call({ "delta" => { "content" => "Done." } })
+          handler.call({ "finish_reason" => "stop" })
+          handler.call({ "usage" => { "prompt_tokens" => 10, "completion_tokens" => 5, "total_tokens" => 15 } })
+          ""
+        end
+      end
+    }) do
+      GetLlmCompletionJob.perform_now(conversation: @conversation)
+    end
+
+    assistant_msg = @conversation.reload.messages.role_assistant.last
+    assert_not_nil assistant_msg.reasoning_details
+    assert_equal 1, assistant_msg.reasoning_details.length, "Should have 1 merged entry, not 3 separate ones"
+    assert_equal "First part. Second part.", assistant_msg.reasoning_details.first["summary"]
+    assert_equal "rd_1", assistant_msg.reasoning_details.first["id"]
+    assert_equal "openai-responses-v1", assistant_msg.reasoning_details.first["format"]
+    assert_equal "reasoning.summary", assistant_msg.reasoning_details.first["type"]
+    assert_equal 0, assistant_msg.reasoning_details.first["index"]
+  end
 end

@@ -51,6 +51,8 @@ class GetLlmCompletionJob < ApplicationJob
     tool_calls_buffer = {}
     # Buffer for message content to slow down unnecessarily rapid streams
     content_buffer = ""
+    # Buffer for reasoning_details from thinking models (OpenRouter), accumulated by index
+    reasoning_details_buffer = {}
     last_update_time = Time.current
     update_interval = 0.120 # seconds. Want to balance a fast UX with reducing turbo_stream broadcasts
 
@@ -85,9 +87,43 @@ class GetLlmCompletionJob < ApplicationJob
                 arguments: "" # Initialize as empty string, will be updated with actual arguments
               }
             }
+            # Preserve any provider-specific metadata required for subsequent requests (e.g. Gemini `thought_signature`).
+            tool_calls_buffer[idx].merge!(extract_tool_call_metadata(tool_call))
+            if tool_call["function"].is_a?(Hash)
+              tool_calls_buffer[idx][:function].merge!(extract_function_metadata(tool_call["function"]))
+            end
             # id/type/name are supposed to be set in the first chunk, so we won't change them.
             # Append arguments
             tool_calls_buffer[idx][:function][:arguments] += tool_call.dig("function", "arguments") if tool_call.dig("function", "arguments")
+          end
+        end
+
+        # Capture reasoning_details from thinking models
+        # These come in fragments across multiple chunks, so we accumulate them by index like tool_calls
+        if chunk.dig("delta", "reasoning_details").present?
+          chunk.dig("delta", "reasoning_details").each do |detail|
+            idx = (detail["index"] || 0).to_i
+
+            # Initialize this reasoning block if this is the first chunk for this index
+            reasoning_details_buffer[idx] ||= {
+              "type" => detail["type"],
+              "index" => idx,
+              "format" => detail["format"]
+            }
+
+            # Merge/accumulate text fields (e.g., summary, text, etc.)
+            detail.each do |key, value|
+              next if [ "type", "index", "format" ].include?(key)
+
+              if value.is_a?(String)
+                # Concatenate string fields
+                reasoning_details_buffer[idx][key] ||= ""
+                reasoning_details_buffer[idx][key] += value
+              else
+                # For non-string fields, use last value
+                reasoning_details_buffer[idx][key] = value
+              end
+            end
           end
         end
 
@@ -108,6 +144,14 @@ class GetLlmCompletionJob < ApplicationJob
           # When finished, broadcast the completion event to the client (e.g. to trigger TTS)
           flush_buffer.call(force: true)
 
+          # Save reasoning_details if present (for thinking model continuity across tool calls)
+          if reasoning_details_buffer.present?
+            message ||= conversation.messages.build(role: "assistant")
+            # Convert hash to array, sorted by index
+            message.reasoning_details = reasoning_details_buffer.sort_by { |idx, _| idx }.map { |_, detail| detail }
+            message.save! if message.persisted? # Save immediately if already persisted, otherwise will be saved below
+          end
+
           if tool_calls_buffer.present?
             message ||= conversation.messages.build(role: "assistant") # Create message if not already created (i.e. if there was no content)
             final_tool_calls = tool_calls_buffer.sort_by { |idx, _tc| idx }.map { |_idx, tc| tc } # Order by the index
@@ -127,6 +171,30 @@ class GetLlmCompletionJob < ApplicationJob
         Rails.logger.error "Error during streaming."
         raise e
       end
+    end
+  end
+
+  # OpenRouter (Gemini) may return tool call metadata that must be preserved in subsequent requests,
+  # like `thought_signature`. Keep these keys, but exclude standard fields we handle explicitly.
+  def extract_tool_call_metadata(tool_call)
+    return {} unless tool_call.is_a?(Hash)
+
+    excluded = %w[index type id function]
+    tool_call.each_with_object({}) do |(k, v), acc|
+      next if excluded.include?(k.to_s)
+      next if v.nil? || (v.respond_to?(:empty?) && v.empty?)
+      acc[k.to_sym] = v
+    end
+  end
+
+  def extract_function_metadata(function_hash)
+    return {} unless function_hash.is_a?(Hash)
+
+    excluded = %w[name arguments]
+    function_hash.each_with_object({}) do |(k, v), acc|
+      next if excluded.include?(k.to_s)
+      next if v.nil? || (v.respond_to?(:empty?) && v.empty?)
+      acc[k.to_sym] = v
     end
   end
 

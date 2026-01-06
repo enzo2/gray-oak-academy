@@ -76,7 +76,7 @@ class OpenaiApiService
           **(@reasoning_model_flag && @base_uri.include?("openrouter.ai") ? {
             reasoning: {
               effort: "high",
-              exclude: true
+              exclude: false
             }
           } : {}),
 
