@@ -79,7 +79,7 @@ module Admin
 
       @observation.destroy
       respond_to do |format|
-        format.turbo_stream { render turbo_stream: turbo_stream.remove("#{dom_id(@observation)}_card_container") }
+        format.turbo_stream
         format.html { redirect_to admin_student_path(@observation.student, active_tab: :journal) }
       end
     end

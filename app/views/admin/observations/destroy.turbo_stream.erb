@@ -1,0 +1,5 @@
+<%= turbo_stream.remove "#{dom_id(@observation)}_card_container" %>
+
+<% if @observation.status_pending? && @observation.student.observations.pending.empty? %>
+  <%= turbo_stream.update "pending_observations", "" %>
+<% end %>
