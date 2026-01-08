@@ -792,6 +792,9 @@ p.prompt = <<~PROMPT
   === MEMORIES ===
   {memories}
 
+  === STUDENT FEEDBACK (most recent first) ===
+  {student_feedback}
+
   Your task is to create a synthesized profile that:
   1. Emphasizes CURRENT state and RECENT progress - older information should only be included if it remains relevant
   2. Identifies patterns in learning style, engagement, and comprehension

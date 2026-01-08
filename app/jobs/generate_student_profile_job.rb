@@ -61,6 +61,7 @@ class GenerateStudentProfileJob < ApplicationJob
     course_reports = format_course_reports(student)
     observations = format_observations(student)
     memories = format_memories(student)
+    student_feedback = format_student_feedback(student)
     previous_profile = student.student_reports.profile_reports.status_completed.order(created_at: :desc).first
     previous_profile_date = previous_profile&.created_at&.strftime("%B %d, %Y")
 
@@ -72,6 +73,7 @@ class GenerateStudentProfileJob < ApplicationJob
       .gsub("{course_reports}", course_reports.presence || "No course reports available.")
       .gsub("{observations}", observations.presence || "No observations available.")
       .gsub("{memories}", memories.presence || "No memories recorded.")
+      .gsub("{student_feedback}", student_feedback.presence || "No student feedback available.")
 
     messages = [ { role: "user", content: customized_prompt } ]
 
@@ -172,6 +174,21 @@ class GenerateStudentProfileJob < ApplicationJob
     student.memories.map do |memory|
       visibility = memory.hidden_from_student? ? " [hidden from student]" : ""
       "- #{memory.body}#{visibility}"
+    end.join("\n")
+  end
+
+  def format_student_feedback(student)
+    feedbacks = student.student_feedbacks
+                       .order(created_at: :desc)
+                       .limit(30)
+
+    feedbacks.map do |feedback|
+      lesson_context = if feedback.lesson_progress&.lesson
+        " (during #{feedback.lesson_progress.lesson.title})"
+      else
+        ""
+      end
+      "- [#{feedback.created_at.strftime("%B %d, %Y")}]#{lesson_context} #{feedback.content}"
     end.join("\n")
   end
 end
