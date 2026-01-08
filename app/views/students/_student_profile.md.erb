@@ -1,0 +1,142 @@
+# Student: <%= student.name %>
+
+Teacher: <%= teacher.name %>
+Last activity: <%= last_activity_at ? last_activity_at.strftime("%B %d, %Y") : "Unknown" %>
+
+<% Rails.logger.debug journal_link %>
+Journal: <%= link_to "View Journal", journal_link, target: "_blank" %>
+
+<% if pending_observation_count.to_i > 0 %>
+## Before discussing
+
+There are **<%= pending_observation_count %> pending observations** to review in the Journal first (not included here until reviewed).
+<% end %>
+
+## Current courses (in progress)
+
+<% if enrollments_in_progress.any? %>
+<% enrollments_in_progress.each do |enrollment| %>
+<% course = enrollment.course %>
+- **<%= course.title %>** (Grade: <%= course.grade_level %>) — <%= enrollment.completed_lessons_count %>/<%= enrollment.total_lessons_count %> lessons completed (<%= enrollment.progress_percentage %>%)
+  - Next available lesson: <%= enrollment.next_available_lesson&.title || "None" %>
+  - Last completed lesson: <%= enrollment.completed_lessons.last&.title || "None" %>
+<% end %>
+<% else %>
+- None
+<% end %>
+
+## Latest student profile report (AI-generated)
+
+<% if profile_report.present? %>
+Generated: <%= profile_report.created_at.strftime("%B %d, %Y") %>
+
+<%= profile_report.to_markdown %>
+<% else %>
+None yet.
+<% end %>
+
+## Recent lesson reports
+
+<% if lesson_reports.any? %>
+<% lesson_reports.each do |report| %>
+<% lesson = report.reportable&.lesson %>
+<% course = lesson&.course %>
+### [<%= report.created_at.strftime("%B %d, %Y") %>] <%= course&.title || "Unknown course" %> — <%= lesson&.title || "Unknown lesson" %>
+
+<%= report.to_markdown %>
+---
+<% end %>
+<% else %>
+None.
+<% end %>
+
+## Recent course reports
+
+<% if course_reports.any? %>
+<% course_reports.each do |report| %>
+<% course = report.reportable&.course %>
+### [<%= report.created_at.strftime("%B %d, %Y") %>] Course completed: <%= course&.title || "Unknown course" %>
+
+<%= report.to_markdown %>
+---
+<% end %>
+<% else %>
+None.
+<% end %>
+
+## Recent memories
+
+<% if memories_recent.any? %>
+<% memories_recent.each do |memory| %>
+- [<%= memory.created_at.strftime("%B %d, %Y") %>] <%= memory.body %><%= " [hidden from student]" if memory.hidden_from_student? %>
+<% end %>
+<% else %>
+- None
+<% end %>
+
+## Recent observations
+
+<% if observations_recent.any? %>
+<% observations_recent.each do |obs| %>
+<% source_str =
+  if obs.source.is_a?(LessonProgress)
+    lp = obs.source
+    lesson = lp.lesson
+    course = lesson&.course
+    parts = []
+    parts << course.title if course
+    parts << lesson.title if lesson
+    parts.any? ? " (Source: #{parts.join(' — ')})" : ""
+  else
+    ""
+  end
+%>
+- [<%= obs.created_at.strftime("%B %d, %Y") %>] <%= obs.content %><%= source_str %>
+<% end %>
+<% else %>
+- None
+<% end %>
+
+## Recent student feedback
+
+<% if feedback_recent.any? %>
+<% feedback_recent.each do |fb| %>
+<% lesson_title =
+  if fb.lesson_progress&.lesson
+    lesson = fb.lesson_progress.lesson
+    course = lesson.course
+    " (#{course.title} — #{lesson.title})"
+  else
+    ""
+  end
+%>
+- [<%= fb.created_at.strftime("%B %d, %Y") %>] <%= fb.content %><%= lesson_title %>
+<% end %>
+<% else %>
+- None
+<% end %>
+
+<% if focus.present? %>
+## Focus: <%= focus %>
+
+Mode: <%= focus_mode || "none" %>
+
+### Most relevant memories
+<% if focus_memories.any? %>
+<% focus_memories.each do |memory| %>
+- [<%= memory.created_at.strftime("%B %d, %Y") %>] <%= memory.body %><%= " [hidden from student]" if memory.respond_to?(:hidden_from_student?) && memory.hidden_from_student? %>
+<% end %>
+<% else %>
+- None found.
+<% end %>
+
+### Most relevant observations
+<% if focus_observations.any? %>
+<% focus_observations.each do |obs| %>
+- [<%= obs.created_at.strftime("%B %d, %Y") %>] <%= obs.content %>
+<% end %>
+<% else %>
+- None found.
+<% end %>
+<% end %>
+

@@ -199,6 +199,25 @@ tool.specifications = {
 }
 tool.save!
 
+tool = Tool.find_or_initialize_by(name: 'Get_Student_Profile')
+tool.access = :admin
+tool.specifications = {
+  name: "Get_Student_Profile",
+  description: "Get a complete, recent picture of a student for teacher discussion, with optional focus-based semantic retrieval. Always includes recent context (reports, memories, approved observations, feedback). Excludes unreviewed/pending observations.",
+  strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "student_id" => { "type" => "integer", "description" => "ID of the student" },
+      "focus" => { "type" => "string", "description" => "Optional: a question or topic to focus on (e.g. 'math anxiety', 'reading comprehension'). The tool will still include recent context regardless." },
+      "show_on_chalkboard" => { "type" => "boolean", "description" => "If true, also display the student profile on the chalkboard in a nicely formatted view. Defaults to true." }
+    },
+    "required" => [ "student_id" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
 tool = Tool.find_or_initialize_by(name: 'Create_Course')
 tool.access = :admin
 tool.specifications = {

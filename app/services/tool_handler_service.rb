@@ -1,6 +1,7 @@
 require "json/repair"
 require "resolv"
 require "ipaddr"
+require "set"
 
 class ToolHandlerService
   class ToolExecutionError < StandardError; end
@@ -496,6 +497,136 @@ class ToolHandlerService
     create_tool_message(JSON.pretty_generate(payload))
   end
 
+  def execute_get_student_profile
+    student_id = @args["student_id"].to_i
+    focus = @args["focus"].to_s.strip.presence
+    show_on_chalkboard = @args.key?("show_on_chalkboard") ? @args["show_on_chalkboard"] : true
+
+    student =
+      if student_id == current_teacher.id
+        current_teacher
+      else
+        current_teacher.students.find_by(id: student_id)
+      end
+    raise ToolExecutionError, "Student not found" unless student
+
+    teacher = current_teacher
+    today_str = Time.current.strftime("%B %d, %Y")
+    journal_link = Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal")
+
+    pending_observation_count = student.observations.pending.count
+
+    # Recent context (always included)
+    lesson_reports = student.student_reports
+                          .lesson_reports
+                          .status_completed
+                          .where(teacher: teacher)
+                          .order(created_at: :desc)
+                          .limit(6)
+
+    course_reports = student.student_reports
+                          .course_reports
+                          .status_completed
+                          .where(teacher: teacher)
+                          .order(created_at: :desc)
+                          .limit(3)
+
+    profile_report = student.student_reports
+                            .profile_reports
+                            .status_completed
+                            .where(teacher: teacher)
+                            .order(created_at: :desc)
+                            .first
+
+    memories_recent = student.memories.order(created_at: :desc).limit(8)
+    observations_recent = student.observations.approved.order(created_at: :desc).limit(12)
+    feedback_recent = student.student_feedbacks.includes(:lesson_progress).order(created_at: :desc).limit(5)
+
+    # Courses snapshot (in-progress only)
+    enrollments_in_progress = student.enrollments.in_progress.includes(:course).order(created_at: :desc)
+
+    # Focus-based semantic retrieval (additive; never replaces recent context)
+    focus_mode = nil
+    focus_memories = []
+    focus_observations = []
+    if focus.present?
+      if AppSetting.embeddings_configured?
+        vector = EmbeddingService.get(focus)
+        if vector
+          focus_mode = "embeddings"
+          begin
+            focus_memories = Memory.nearest_neighbors(:embedding, vector, distance: "cosine")
+                                   .where(student: student)
+                                   .limit(5)
+            focus_observations = Observation.nearest_neighbors(:embedding, vector, distance: "cosine")
+                                            .where(student: student)
+                                            .approved
+                                            .limit(5)
+          rescue StandardError => e
+            Rails.logger.error "Get_Student_Profile focus retrieval failed: #{e.message}"
+            focus_mode = "keyword"
+          end
+        else
+          focus_mode = "keyword"
+        end
+      else
+        focus_mode = "keyword"
+      end
+
+      if focus_mode == "keyword"
+        q = focus.downcase
+        focus_memories = memories_recent.select { |m| m.body.to_s.downcase.include?(q) }.first(5)
+        focus_observations = observations_recent.select { |o| o.content.to_s.downcase.include?(q) }.first(5)
+      end
+    end
+
+    # Deduplicate focus items against recent items (and within themselves)
+    recent_memory_ids = memories_recent.map(&:id).to_set
+    recent_observation_ids = observations_recent.map(&:id).to_set
+    focus_memories = focus_memories.uniq { |m| m.id }.reject { |m| recent_memory_ids.include?(m.id) }
+    focus_observations = focus_observations.uniq { |o| o.id }.reject { |o| recent_observation_ids.include?(o.id) }
+
+    # Activity signal (best-effort)
+    last_message_at = Message.joins(:conversation)
+                             .where(conversations: { user_id: student.id })
+                             .order(created_at: :desc)
+                             .limit(1)
+                             .pluck(:created_at)
+                             .first
+    last_activity_at = [ last_message_at, lesson_reports.first&.created_at, course_reports.first&.created_at, feedback_recent.first&.created_at ].compact.max
+
+    profile_markdown = ApplicationController.render(
+      partial: "students/student_profile",
+      formats: [ :md ],
+      locals: {
+        student: student,
+        teacher: teacher,
+        today_str: today_str,
+        journal_link: journal_link,
+        pending_observation_count: pending_observation_count,
+        enrollments_in_progress: enrollments_in_progress,
+        lesson_reports: lesson_reports,
+        course_reports: course_reports,
+        profile_report: profile_report,
+        memories_recent: memories_recent,
+        observations_recent: observations_recent,
+        feedback_recent: feedback_recent,
+        focus: focus,
+        focus_mode: focus_mode,
+        focus_memories: focus_memories,
+        focus_observations: focus_observations,
+        last_activity_at: last_activity_at
+      }
+    ).to_s
+
+    if show_on_chalkboard
+      broadcast_chalkboard_student_profile(profile_markdown)
+      create_tool_message(profile_markdown + "\n\n(Also displayed on chalkboard.)\n")
+    else
+      create_tool_message(profile_markdown)
+    end
+  end
+
   def execute_create_course
     # Teacher-only tool
     title = @args["title"]
@@ -971,6 +1102,15 @@ class ToolHandlerService
       target: "chalkboard",
       partial: "lessons/chalkboard_markdown",
       locals: { lesson: lesson }
+    )
+  end
+
+  def broadcast_chalkboard_student_profile(profile_markdown)
+    Turbo::StreamsChannel.broadcast_update_to(
+      "#{dom_id(@conversation)}",
+      target: "chalkboard",
+      partial: "shared/chalkboard_student_profile",
+      locals: { profile_markdown: profile_markdown }
     )
   end
 

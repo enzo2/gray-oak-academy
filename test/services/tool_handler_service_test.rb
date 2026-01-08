@@ -289,4 +289,130 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     assert_match(/Test Applet/, get_msg.content.to_s)
     assert_match(/console\.log/, get_msg.content.to_s)
   end
+
+  test "get_student_profile returns markdown and excludes pending observations content" do
+    Tool.create!(
+      access: :admin,
+      specifications: {
+        "name" => "get_student_profile",
+        "description" => "Get student profile",
+        "strict_mode" => true,
+        "parameters" => {
+          "type" => "object",
+          "properties" => {
+            "student_id" => { "type" => "integer", "description" => "Student ID" },
+            "focus" => { "type" => "string", "description" => "Focus" },
+            "show_on_chalkboard" => { "type" => "boolean", "description" => "Show on chalkboard" }
+          },
+          "required" => [ "student_id" ],
+          "additionalProperties" => false
+        }
+      }
+    )
+
+    student = @student
+    student.update!(teacher: @teacher)
+
+    # Ensure we have at least one approved + one pending observation
+    Observation.create!(student: student, content: "Approved observation", status: :approved, relevance_weight: 1.0)
+    Observation.create!(student: student, content: "PENDING SECRET", status: :pending, relevance_weight: 1.0)
+
+    # Feedback and a profile report
+    StudentFeedback.create!(student: student, content: "I liked this lesson", lesson_progress: lesson_progresses(:one))
+    StudentReport.create!(
+      student: student,
+      teacher: @teacher,
+      reportable: student,
+      progress_data: {
+        "current_snapshot" => "Doing well",
+        "learning_patterns" => [ "Asks good questions" ],
+        "current_strengths" => [ "Fractions" ],
+        "areas_for_focus" => [ "Long division" ],
+        "effective_approaches" => [ "Worked examples" ],
+        "approaches_to_avoid" => [ "Too much speed" ],
+        "recommendations" => [ "More practice sets" ]
+      },
+      author_type: :ai_generated,
+      status: :completed
+    )
+
+    # Course report
+    StudentReport.create!(
+      student: student,
+      teacher: @teacher,
+      reportable: enrollments(:one),
+      progress_data: { "summary" => "Course summary" },
+      author_type: :ai_generated,
+      status: :completed
+    )
+
+    called = false
+    Turbo::StreamsChannel.stub :broadcast_update_to, ->(*_args, **_kwargs) { called = true } do
+      assert_difference "Message.count", 1 do
+        ToolHandlerService.new(conversation: conversations(:teacher_generic_conversation), message: nil).execute_tool_calls(
+          [ { id: "tc-prof-1", function: { name: "get_student_profile", arguments: { student_id: student.id }.to_json } } ]
+        )
+      end
+    end
+
+    assert called, "expected chalkboard broadcast"
+    msg = Message.last
+    assert_match(/# Student: #{Regexp.escape(student.name)}/, msg.content)
+    assert_match(/Latest student profile report/, msg.content)
+    assert_match(/\*\*1 pending observations\*\*/i, msg.content)
+    assert_match(/Approved observation/, msg.content)
+    refute_match(/PENDING SECRET/, msg.content)
+  end
+
+  test "get_student_profile uses embeddings focus mode when configured" do
+    Tool.create!(
+      access: :admin,
+      specifications: {
+        "name" => "get_student_profile",
+        "description" => "Get student profile",
+        "strict_mode" => true,
+        "parameters" => {
+          "type" => "object",
+          "properties" => {
+            "student_id" => { "type" => "integer", "description" => "Student ID" },
+            "focus" => { "type" => "string", "description" => "Focus" }
+          },
+          "required" => [ "student_id" ],
+          "additionalProperties" => false
+        }
+      }
+    )
+
+    student = @student
+    student.update!(teacher: @teacher)
+
+    # Ensure we have enough records so focus results can include non-recent items
+    8.times do |i|
+      Memory.create!(student: student, author: @teacher, body: "Recent memory #{i}", hidden_from_student: false, created_at: (i + 1).hours.ago)
+    end
+    Memory.create!(student: student, author: @teacher, body: "Old memory for focus", hidden_from_student: false, created_at: 2.years.ago)
+
+    12.times do |i|
+      Observation.create!(student: student, content: "Recent obs #{i}", status: :approved, relevance_weight: 1.0, created_at: (i + 1).hours.ago)
+    end
+    Observation.create!(student: student, content: "Old obs for focus", status: :approved, relevance_weight: 1.0, created_at: 2.years.ago)
+
+    AppSetting.stub :embeddings_configured?, true do
+      EmbeddingService.stub :get, [ 0.1, 0.2, 0.3 ] do
+        Memory.stub :nearest_neighbors, Memory.all do
+          Observation.stub :nearest_neighbors, Observation.all do
+            assert_difference "Message.count", 1 do
+              ToolHandlerService.new(conversation: conversations(:teacher_generic_conversation), message: nil).execute_tool_calls(
+                [ { id: "tc-prof-2", function: { name: "get_student_profile", arguments: { student_id: student.id, focus: "anxiety" }.to_json } } ]
+              )
+            end
+          end
+        end
+      end
+    end
+
+    msg = Message.last
+    assert_match(/## Focus: anxiety/i, msg.content)
+    assert_match(/Mode: embeddings/i, msg.content)
+  end
 end

@@ -35,7 +35,7 @@ class OpenaiApiService
     @log_completion = log_completion
 
     # Start with the full system prompt (base system prompt + teaching principles)
-    @system_prompt = Prompt.full_system_prompt(user: current_user)
+    @system_prompt = "Today's date: #{Time.current.strftime("%B %d, %Y")}\n\n" + Prompt.full_system_prompt(user: current_user)
     # If a task-specific system prompt is provided, append it
     if task_system_prompt
       @system_prompt += "Now, focusing on your current task/role: \n\n" + task_system_prompt
