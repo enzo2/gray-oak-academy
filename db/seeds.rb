@@ -890,6 +890,27 @@ p.prompt = <<~PROMPT
 PROMPT
 p.save!
 
+p = Prompt.find_or_initialize_by(category: 'auto_name_conversation', teacher_id: nil)
+p.title = "Auto-Name Conversation"
+p.prompt = <<~PROMPT
+  You are naming a chat conversation for a sidebar list.
+
+  Based on the transcript below, write a short, specific title (2–6 words) that captures the main topic.
+  Rules:
+  - No quotes
+  - No emojis
+  - No trailing punctuation
+  - Be concrete; prefer a topic over a generic label
+  - If the conversation is too short or generic (e.g. just a greeting) to generate a specific title, return an empty string.
+
+  Transcript:
+  {conversation_excerpt}
+
+  Respond in JSON:
+  { "title": "..." }
+PROMPT
+p.save!
+
 p = Prompt.find_or_initialize_by(category: 'delegate_to_frontier_llm', teacher_id: nil)
 p.title = "Default Delegate to Frontier LLM"
 p.prompt = <<~PROMPT

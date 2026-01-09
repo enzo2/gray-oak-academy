@@ -8,7 +8,7 @@
 # For any private or local files.
 /private
 
-.claude/settings.local.json
+/.claude/settings.local.json
 
 # Ignore bundler config.
 /.bundle

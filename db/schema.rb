@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_23_021349) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_08_135700) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -22,7 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_021349) do
   create_enum "course_status", ["active", "archived"]
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
   create_enum "observation_status", ["pending", "approved", "rejected", "archived"]
-  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "delegate_to_frontier_llm", "memories_semantic_merge", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt", "generate_observations"]
+  create_enum "prompt_category", ["other", "generate_course_outline", "generate_lessons", "generate_lesson_plan", "suggest_resources", "lesson_tutor_session", "open_ended_student_chat", "auto_name_conversation", "student_progress_tutor_session", "generate_student_lesson_report", "generate_student_course_report", "generate_student_assessment_report", "generate_student_profile", "tool_usage", "delegate_to_frontier_llm", "memories_semantic_merge", "generative_guidelines", "teacher_assistant", "teaching_principles", "base_system_prompt", "generate_observations"]
   create_enum "report_author_type", ["ai_generated", "teacher_written"]
   create_enum "role_name", ["system", "user", "assistant", "tool"]
   create_enum "student_report_status", ["in_progress", "completed"]

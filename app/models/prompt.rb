@@ -11,6 +11,7 @@ class Prompt < ApplicationRecord
     suggest_resources: "suggest_resources", # unused, need to implement
     lesson_tutor_session: "lesson_tutor_session", # for conducting the lesson plan with student
     open_ended_student_chat: "open_ended_student_chat", # for student 1:1 chat outside of lessons
+    auto_name_conversation: "auto_name_conversation", # auto-generate short chat titles
     # student_progress_tutor_session: "student_progress_tutor_session", # Unused, can be for a planning session, 'office hours', student-directed lesson planning, etc.
     # generate_student_lesson_report: "generate_student_lesson_report", # Unused; specified in a Tool
     generate_student_course_report: "generate_student_course_report", # Generate the course-end report
@@ -34,6 +35,7 @@ class Prompt < ApplicationRecord
     suggest_resources: "Suggest Resources",
     lesson_tutor_session: "Lesson Tutor Session",
     open_ended_student_chat: "Open-Ended Student Chat",
+    auto_name_conversation: "Auto-Name Conversation",
     # student_progress_tutor_session: "Student Progress Tutor Session",
     # generate_student_lesson_report: "Generate Student Lesson Report",
     generate_student_course_report: "Generate Student Course Report",

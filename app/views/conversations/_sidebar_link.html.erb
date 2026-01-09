@@ -1,0 +1,6 @@
+<% current = local_assigns[:current_conversation] %>
+
+<%= link_to conversation.title, conversation_path(conversation),
+  id: dom_id(conversation, :sidebar_link),
+  class: "text-sm line-clamp-2 whitespace-normal break-words flex-1 hover:underline #{'font-bold text-[#2980B9]' if current && conversation == current}" %>
+

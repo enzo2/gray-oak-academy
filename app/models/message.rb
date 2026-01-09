@@ -13,8 +13,17 @@ class Message < ApplicationRecord
 
   # Include broadcast logic in the model, since it's an inherent property of Messages
   # that they will need to be viewed immediately and should always be kept up to date.
-  after_create_commit -> { broadcast_created; check_context_limit }
-  after_update_commit -> { broadcast_updated }
+  after_create_commit do
+    broadcast_created
+    check_context_limit
+    enqueue_auto_name_conversation if should_enqueue_auto_name_conversation?
+  end
+
+  after_update_commit do
+    broadcast_updated
+    enqueue_auto_name_conversation if should_enqueue_auto_name_conversation?
+  end
+
   after_commit :broadcast_tool_call_placeholder, if: :tool_calls_added?
   after_destroy_commit -> { broadcast_destroyed }
 
@@ -174,6 +183,29 @@ class Message < ApplicationRecord
         title: conversation.title || "Conversation"
       ))
     end
+  end
+
+  def should_enqueue_auto_name_conversation?
+    return false unless role_user?
+    return false unless conversation.lesson_progress_id.nil?
+    return false unless conversation.default_title?
+
+    if previous_changes.key?("id") # created
+      return false if content.to_s.strip.blank?
+      return true
+    end
+
+    return false unless previous_changes.key?("content")
+
+    old_content, new_content = previous_changes["content"]
+    return false unless old_content.to_s.strip.blank?
+    return false if new_content.to_s.strip.blank?
+
+    true
+  end
+
+  def enqueue_auto_name_conversation
+    AutoNameConversationJob.perform_later(conversation: conversation) if conversation.auto_name_candidate?
   end
 
   # Check if tool calls were added to an assistant message

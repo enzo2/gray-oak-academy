@@ -11,6 +11,18 @@ class Conversation < ApplicationRecord
   scope :generic, -> { where(lesson_progress_id: nil) }
   scope :belongs_to_lesson, -> { where.not(lesson_progress_id: nil) }
 
+  DEFAULT_TITLE_REGEX = /\AChat\s+\d+\z/.freeze
+
+  def default_title?
+    title.to_s.match?(DEFAULT_TITLE_REGEX)
+  end
+
+  def auto_name_candidate?
+    return false unless default_title?
+    return false unless lesson_progress_id.nil?
+    messages.role_user.where.not(content: [ nil, "" ]).exists?
+  end
+
   def last_prompt_tokens
     completions.last&.prompt_tokens || 0
   end

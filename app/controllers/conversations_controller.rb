@@ -17,6 +17,7 @@ class ConversationsController < ApplicationController
 
   def show
     set_conversations
+    AutoNameConversationJob.perform_later(conversation: @conversation) if @conversation.auto_name_candidate?
   end
 
   def create

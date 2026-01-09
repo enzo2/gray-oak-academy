@@ -1,49 +1,5 @@
 <ul class="divide-y divide-stone-200 dark:divide-stone-700">
   <% conversations.each do |conversation| %>
-    <li class="py-1">
-      <div class="flex justify-between items-center">
-        <%= link_to conversation.title, conversation_path(conversation),
-          class: "hover:underline #{'font-bold text-[#2980B9]' if defined?(current_conversation) && conversation == current_conversation}" %>
-        
-        <sl-dropdown class="" placement="bottom-end">
-          <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
-          <sl-menu>
-            <sl-menu-item data-action="click->drawer#showDialog" data-dialog-id="<%= dom_id(conversation) %>_rename_dialog">
-              <div class="flex items-center">
-                <sl-icon name="pencil" label="Rename conversation" class=""></sl-icon>
-                <span class="pl-2">Rename</span>
-              </div>
-            </sl-menu-item>
-            <sl-menu-item onclick="this.querySelector('button').click();">
-              <%= button_to clear_conversation_path(conversation), method: :delete,
-                  data: { turbo_method: :delete, turbo_confirm: 'This will delete all messages in the conversation.' } do %>
-                <div class="flex items-center">
-                  <sl-icon name="eraser" label="Clear conversation" class="hover:text-red-700"></sl-icon>
-                  <span class="pl-2">Clear</span>
-                </div>
-              <% end %>
-            </sl-menu-item>
-            <sl-menu-item onclick="this.querySelector('button').click();">
-              <%= button_to conversation_path(conversation), method: :delete, 
-                    data: { turbo_method: :delete, turbo_confirm: "Are you sure?" },
-                    class: "" do %>
-                <div class="flex items-center">
-                  <sl-icon name="trash" label="Delete conversation" class="hover:text-red-700"></sl-icon>
-                  <span class="pl-2">Delete</span>
-                </div>
-              <% end %>
-            </sl-menu-item>
-          </sl-menu>
-        </sl-dropdown>
-      </div>
-    </li>
-
-    <sl-dialog label="Rename Conversation" class="" data-dialog-id="<%= dom_id(conversation) %>_rename_dialog">
-      <%= form_with model: conversation, url: conversation_path(conversation), method: :patch, data: { turbo: false } do |form| %>
-        <%= form.label :title, "New Title", class: "block mb-2" %>
-        <%= form.text_field :title, class: "input-primary mb-2", autofocus: true %>
-        <sl-button slot="footer" type="submit" variant="success">Submit</sl-button>
-      <% end %>
-    </sl-dialog>
+    <%= render partial: "conversations/list_item", locals: { conversation: conversation, current_conversation: (defined?(current_conversation) ? current_conversation : nil) } %>
   <% end %>
 </ul>

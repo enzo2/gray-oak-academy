@@ -114,3 +114,26 @@ generate_lesson_plan:
   teacher:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
+
+auto_name_conversation:
+  title: Auto-Name Conversation
+  category: auto_name_conversation
+  prompt: |
+    You are naming a chat conversation for a sidebar list.
+
+    Based on the transcript below, write a short, specific title (2–6 words) that captures the main topic.
+    Rules:
+    - No quotes
+    - No emojis
+    - No trailing punctuation
+    - Be concrete; prefer a topic over a generic label
+    - If the conversation is too short or generic (e.g. just a greeting) to generate a specific title, return an empty string.
+
+    Transcript:
+    {conversation_excerpt}
+
+    Respond in JSON:
+    { "title": "..." }
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
