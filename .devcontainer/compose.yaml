@@ -42,7 +42,7 @@ services:
         POSTGRES_PASSWORD: postgres
 
   terrarium:
-    image: ghcr.io/khoj-ai/terrarium:latest
+    image: ghcr.io/enzo2/terrarium:latest
     networks:
     - default
     restart: unless-stopped

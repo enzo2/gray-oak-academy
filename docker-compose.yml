@@ -28,7 +28,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
 
   terrarium:
-    image: ghcr.io/khoj-ai/terrarium:latest
+    image: ghcr.io/enzo2/terrarium:latest
     restart: unless-stopped
     networks:
     - default
