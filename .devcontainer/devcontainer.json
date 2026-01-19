@@ -17,7 +17,8 @@
     "ghcr.io/rails/devcontainer/features/postgres-client": {},
     "ghcr.io/devcontainers/features/node:1": { //not included for the app, just for any dev tools like Gemini CLI
       "version": "24"
-    }
+    },
+    "ghcr.io/danzilberdan/devcontainers/opencode:0": {}
   },
 
   "containerEnv": {
