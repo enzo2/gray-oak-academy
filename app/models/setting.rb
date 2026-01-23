@@ -9,6 +9,7 @@ class Setting < ApplicationRecord
   encrypts :settings
 
   before_validation :ensure_llm_api_base_uri_trailing_slash
+  validate :validate_model_availability
 
   # add a store_accessor for each settings key to add methods to read/write it
   # e.g. user.settings.pref1="123", user.settings.save!
@@ -78,5 +79,34 @@ class Setting < ApplicationRecord
     # Note: We are modifying the value directly using the store_accessor method
     # This ensures the change is saved to the JSONB column
     self.llm_api_base_uri = ensure_trailing_slash(llm_api_base_uri) if llm_api_base_uri.present?
+  end
+
+  # Ensure teachers cannot select non-approved models using app/shared credentials.
+  def validate_model_availability
+    # If the user provides their own access token, they can use any model they want.
+    return if llm_api_access_token.present?
+
+    # Determine the effective base URI
+    base_uri = ensure_trailing_slash(llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+    return if base_uri.blank?
+
+    # Check if this is a supported API (shared token)
+    is_shared_api = SupportedApi.selectable_for_teachers.exists?(api_base_uri: base_uri)
+    env_base = ensure_trailing_slash(ENV["OPENAI_API_BASE_URL"])
+    # Check if we are falling back to ENV credentials
+    is_env_fallback = ENV["OPENAI_API_KEY"].present? && env_base.present? && (env_base == base_uri)
+
+    # If this is a supported API or we are falling back to ENV credentials, validate the model availability
+    return unless is_shared_api || is_env_fallback
+
+    # Validate primary model
+    if llm_model_name.present? && !Llm.exists?(model: llm_model_name, api_provider: base_uri)
+      errors.add(:llm_model_name, "is not available or has been archived for this shared API. Add an override token to use new models.")
+    end
+
+    # Validate reasoning model
+    if reasoning_model_name.present? && !Llm.exists?(model: reasoning_model_name, api_provider: base_uri)
+      errors.add(:reasoning_model_name, "is not available or has been archived for this shared API. Add an override token to use new models.")
+    end
   end
 end

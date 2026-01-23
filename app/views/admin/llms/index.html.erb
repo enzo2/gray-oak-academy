@@ -3,9 +3,10 @@
 </div>
 
 <p class="mb-4 text-sm text-dim">
-  Verified LLMs are shown on a per-API basis. Please set whether raw audio input is supported for each combination.<br>
-  If an API has been <%= link_to "added for teachers to use", admin_supported_apis_path, class: 'underline' %>, a checkbox is shown.<br>
-  To add another model, verify it from the API dashboard or just chat with it.
+  Verified LLMs are shown on a per-API basis. If an API has been <%= link_to "added for teachers to use", admin_supported_apis_path, class: 'underline' %>, a checkbox is shown.<br>
+  When using a shared API, teachers can only use models that have been verified. To add another model, verify it from the API dashboard or just chat with it.<br>
+  To disallow a model from being used by teachers, archive it, or don't add it to start with. (Teachers can still use a personal API key with any provider/model.)<br>
+  Please set whether raw audio input is supported for each model.
 </p>
 
 <%= form_with url: admin_llms_path, method: :get, local: true, class: "mb-4 flex flex-wrap items-end gap-2" do %>
@@ -22,64 +23,26 @@
     <%= text_field_tag :q, @q, class: "input-primary" %>
   </div>
 
-  <div class="">
+  <div class="flex items-center gap-4 mb-3">
+    <div class="flex items-center gap-2">
+      <%= radio_button_tag :archived, "", !params[:archived].present?, id: "archived_false", class: "radio-primary" %>
+      <label for="archived_false" class="text-sm cursor-pointer">Active</label>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= radio_button_tag :archived, "1", params[:archived].present?, id: "archived_true", class: "radio-primary" %>
+      <label for="archived_true" class="text-sm cursor-pointer">Archived</label>
+    </div>
+  </div>
+
+  <div class="mb-1">
     <%= submit_tag "Filter", class: "btn-primary" %>
     <%= link_to "Clear Filters", admin_llms_path, class: "btn-secondary ml-2" %>
   </div>
 <% end %>
 
-<% if @llms.any? %>
-  <table class="table-auto">
-    <thead>
-    <tr class="bg-stone-50 dark:bg-stone-900">
-      <th class="px-2 py-1 text-left">Model</th>
-      <th class="px-2 py-1 text-left">Provider (✅=Shared)</th>
-      <th class="px-2 py-1 text-right">Audio Input</th>
-      <th class="px-2 py-1 text-right">Image Input</th>
-      <th class="px-2 py-1 text-right">Image Output</th>
-    </tr>
-    </thead>
-    <tbody>
-      <% @llms.each_with_index do |llm, idx| %>
-        <% is_supported = @supported_uris.include?(llm.api_provider) %>
-        <tr class="<%= idx.odd? ? 'bg-stone-200 dark:bg-stone-700' : '' %>">
-          <td class="px-2 py-1"><%= llm.model %></td>
-          <td class="px-2 py-1">
-            <%= llm.api_provider %>
-              <% if is_supported %>
-                <%= link_to "✅", edit_admin_supported_api_path(SupportedApi.find_by(api_base_uri: llm.api_provider.to_s)), class: "ml-2" %>
-              <% end %>
-          </td>
-          <td class="px-2 py-1 text-right">
-            <% if current_user.role_superuser? %>
-              <%= form_with(model: llm, url: admin_llm_path(llm), method: :patch, data: { turbo_stream: true }) do |f| %>
-                <%= f.check_box :supports_audio_input,
-                      {
-                        checked: llm.supports_audio_input,
-                        data: {
-                          controller: "auto-submit-toggle",
-                          action: "auto-submit-toggle#submit"
-                        },
-                        class: "checkbox-primary",
-                        id: "llm_#{llm.id}_supports_audio_input"
-                      } %>
-              <% end %>
-            <% else %>
-              <%= case llm.supports_audio_input? when true then "Yes" when false then "No" else "" end %>
-            <% end %>
-          <td class="px-2 py-1 text-right">
-            <%= case llm.supports_image_input? when true then "Yes" when false then "No" else "" end %>
-          </td>
-          <td class="px-2 py-1 text-right">
-            <%= case llm.supports_image_output? when true then "Yes" when false then "No" else "" end %>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% else %>
-  <p class="text-sm text-dim">No LLM models found for the current filters.</p>
-<% end %>
+<div id="llms_table">
+  <%= render partial: "table" %>
+</div>
 
 <p class="text-dim text-xs mt-2">
   Image capability is only shown for OpenRouter.<br>

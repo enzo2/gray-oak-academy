@@ -81,8 +81,29 @@ class ApplicationController < ActionController::Base
       flash[:error] = "Your teacher must add an LLM before you can chat."
       redirect_to student_root_path
     else
-      flash[:error] = "You need to configure an LLM before you can do that."
-      redirect_to edit_user_registration_path
+      if llm_access_token_required?
+        flash[:warning] = "This API has no shared token. Add your own API key or choose a shared provider in settings."
+      else
+        flash[:error] = "You need to configure an LLM first."
+      end
+      redirect_to edit_user_registration_path(active_tab: :api)
     end
+  end
+
+  def llm_access_token_required?
+    settings = current_user.settings
+    base_uri = ensure_trailing_slash(settings.llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+    return false if base_uri.blank?
+    return false if settings.llm_api_access_token.present?
+
+    shared_api = SupportedApi.selectable_for_teachers.exists?(api_base_uri: base_uri)
+    env_base = ensure_trailing_slash(ENV["OPENAI_API_BASE_URL"])
+    env_fallback = ENV["OPENAI_API_KEY"].present? && env_base.present? && env_base == base_uri
+    !shared_api && !env_fallback
+  end
+
+  def ensure_trailing_slash(url)
+    return url if url.blank? || url.end_with?("/")
+    "#{url}/"
   end
 end

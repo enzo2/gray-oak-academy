@@ -38,6 +38,7 @@ class AppSetting < ApplicationRecord
   end
 
   validates :singleton, inclusion: { in: [ true, false ] }
+  validate :llms_not_archived, on: :update
   validate :embedding_model_validity, on: :update
 
   after_save :clear_embeddings_if_model_changed
@@ -133,6 +134,22 @@ class AppSetting < ApplicationRecord
   end
 
   private
+
+  def llms_not_archived
+    if image_llm_id.present?
+      llm = Llm.with_archived.find_by(id: image_llm_id.to_i)
+      if llm&.archived?
+        errors.add(:image_llm_id, "cannot be an archived model")
+      end
+    end
+
+    if stt_model_id.present?
+      llm = Llm.with_archived.find_by(id: stt_model_id.to_i)
+      if llm&.archived?
+        errors.add(:stt_model_id, "cannot be an archived model")
+      end
+    end
+  end
 
   def embedding_model_validity
     return unless embedding_model.present?

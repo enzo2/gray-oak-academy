@@ -7,14 +7,32 @@ class Llm < ApplicationRecord
 
   validates :model, presence: true
   validates :api_provider, presence: true
-  validates :model, uniqueness: { scope: :api_provider }
+  validates :model, uniqueness: { scope: :api_provider, conditions: -> { with_archived } }
+  validate :not_referenced_in_app_setting, on: :archive
 
   before_create :extract_model_provider_for_openrouter
   before_save :update_feature_flags_from_supported_parameters
   after_create_commit :update_metadata
 
+  default_scope { where(archived_at: nil) }
+  scope :with_archived, -> { unscope(where: :archived_at) }
+  scope :archived, -> { with_archived.where.not(archived_at: nil) }
+
   def supports_bidirectional_speech?
     supports_audio_input && supports_audio_output
+  end
+
+  def archive
+    self.archived_at = Time.current
+    save(context: :archive)
+  end
+
+  def unarchive
+    update!(archived_at: nil)
+  end
+
+  def archived?
+    archived_at.present?
   end
 
   DEFAULT_API_BASE_URLS = [
@@ -101,5 +119,18 @@ class Llm < ApplicationRecord
     return unless api_provider.include?("openrouter.ai") && metadata_stale?
     Rails.logger.debug "Updating metadata for LLM: #{self.inspect}"
     UpdateOpenrouterModelMetadataJob.set(wait: 5.seconds).perform_later(self) if metadata_stale?
+  end
+
+  def not_referenced_in_app_setting
+    app_setting = AppSetting.first
+    return unless app_setting
+
+    if app_setting.image_llm_id.to_i == id
+      errors.add(:archived_at, "cannot be set because this LLM is configured for image generation in app settings")
+    end
+
+    if app_setting.stt_model_id.to_i == id
+      errors.add(:archived_at, "cannot be set because this LLM is configured for speech-to-text in app settings")
+    end
   end
 end

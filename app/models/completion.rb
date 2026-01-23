@@ -1,6 +1,6 @@
 # For storing token usage and cost data.
 class Completion < ApplicationRecord
-  belongs_to :llm
+  belongs_to :llm, -> { with_archived }
   belongs_to :conversation, optional: true
   belongs_to :user, optional: true
   before_validation :associate_llm, :set_user_from_conversation
@@ -52,7 +52,7 @@ class Completion < ApplicationRecord
   # The Llm model is generated here, if it doesn't exist already.
   # This assures that any Llm instance is a valid model/API combination, since a completion had to be created first.
   def associate_llm
-    self.llm = Llm.find_or_create_by!(
+    self.llm = Llm.with_archived.find_or_create_by!(
       model: model,
       api_provider: api_provider
     )

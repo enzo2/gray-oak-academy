@@ -110,7 +110,10 @@ Rails.application.routes.draw do
     # App-wide settings (singleton)
     resource :app_setting, only: [ :edit, :update ]
 
-    resources :llms, only: [ :index, :update ]
+    resources :llms, only: [ :index, :update ] do
+      patch "archive", on: :member
+      patch "unarchive", on: :member
+    end
     resources :observations, only: [ :create, :show, :edit, :update, :destroy ]
   end
 

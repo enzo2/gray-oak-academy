@@ -36,10 +36,12 @@ class SpeechService
 
     # Determine chat STT model and base URI:
     if @stt_via == "chat" && app_setting.stt_model_id.present?
-      llm = Llm.find_by(id: app_setting.stt_model_id.to_i)
-      if llm
+      llm = Llm.with_archived.find_by(id: app_setting.stt_model_id.to_i)
+      if llm && !llm.archived?
         @stt_chat_model_name = llm.model
         @stt_chat_api_base_uri = llm.api_provider
+      elsif llm&.archived?
+        raise SpeechServiceError, "STT via LLM was set up, but the selected model is archived."
       else
         raise SpeechServiceError, "STT via LLM was set up, but selected stt_model_id #{app_setting.stt_model_id} not found."
       end

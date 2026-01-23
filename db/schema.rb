@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_08_135700) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_22_154649) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -202,6 +202,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_08_135700) do
 
   create_table "llms", force: :cascade do |t|
     t.string "api_provider", null: false
+    t.datetime "archived_at"
     t.integer "context_length"
     t.datetime "created_at", null: false
     t.datetime "metadata_fetched_at"
@@ -216,6 +217,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_08_135700) do
     t.boolean "supports_structured_outputs"
     t.boolean "supports_tool_use"
     t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_llms_on_archived_at"
     t.index ["model", "api_provider"], name: "index_llms_on_model_and_api_provider", unique: true
   end
 
