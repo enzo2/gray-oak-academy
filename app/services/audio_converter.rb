@@ -10,7 +10,11 @@ class AudioConverter
     begin
       # ffmpeg: convert to 24kHz mono wav
       # -y to overwrite, -ar 24000 sample rate, -ac 1 forces mono
-      system("ffmpeg", "-i", input_path, "-ar", "24000", "-ac", "1", "-y", temp_wav.path)
+      ffmpeg_args = [ "ffmpeg", "-i", input_path, "-ar", "24000", "-ac", "1", "-y" ]
+      ffmpeg_args += [ "-loglevel", "error" ] if Rails.env.test?
+      ffmpeg_args << temp_wav.path
+
+      system(*ffmpeg_args)
 
       unless File.exist?(temp_wav.path) && File.size(temp_wav.path) > 0
         Rails.logger.error "FFmpeg conversion failed or produced an empty file for input: #{input_path}"
