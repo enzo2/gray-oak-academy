@@ -39,7 +39,7 @@
 
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": {
-    "setup": "chmod +x bin/* && bin/setup --skip-server",
-    "claude": "curl -fsSL https://claude.ai/install.sh | bash"
+    "setup": "chmod +x bin/* && bin/setup --skip-server"//,
+    //"claude": "curl -fsSL https://claude.ai/install.sh | bash"
   }
 }
