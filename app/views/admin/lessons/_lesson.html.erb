@@ -1,31 +1,42 @@
-<tr id="<%= dom_id(lesson) %>" class="border-b border-stone-600 dark:border-stone-400">
-  <td class="">
-    <div class="flex flex-col items-center">
-      <% unless lesson.first? %>
-        <%= button_to move_higher_admin_course_lesson_path(lesson.course, lesson), 
-          method: :patch, class: "[&_sl-icon-button::part(base)]:p-0 ", 
-          data: { turbo_stream: true } do %>
-          <sl-icon-button name="chevron-up" class="[&::part(base)]:transform [&::part(base)]:-translate-y-[-2px]"></sl-icon-button>
-        <% end %>
-      <% else %><div class="h-[18px]"></div><% end %>
-      <span class=""><%= lesson.position %></span>
-      <% unless lesson.last? %>
-        <%= button_to move_lower_admin_course_lesson_path(lesson.course, lesson),
-          method: :patch, class: "[&_sl-icon-button::part(base)]:p-0", 
-          data: { turbo_stream: true } do %>
-          <sl-icon-button name="chevron-down" class="[&::part(base)]:transform [&::part(base)]:-translate-y-[-2px]"></sl-icon-button>
-        <% end %>
-      <% else %><div class="h-[18px]"></div><% end %>
+<div id="<%= dom_id(lesson) %>" class="grid grid-cols-1
+            md:grid-cols-[minmax(0,1.5fr)_minmax(0,3.4fr)_minmax(0,0.6fr)_minmax(0,0.5fr)]
+            lg:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(11rem,0.5fr)]
+            gap-2 md:gap-3 border-t md:first:border-t-0 border-stone-600 dark:border-stone-400 py-4 md:py-2">
+  <%# Mobile: stacked with labels. Desktop: grid matching header order %>
+  <div class="col-span-1 flex flex-col justify-center order-1 md:order-none">
+    <div class="flex justify-between items-start md:items-center md:justify-start md:gap-3">
+      <%# Wrapper for Desktop Controls + Text %>
+      <div class="flex md:items-center md:gap-3">
+        <%# Desktop: Left of title %>
+        <div class="hidden md:block">
+          <%= render "admin/lessons/lesson_order_controls", lesson: lesson %>
+        </div>
+
+        <div class="flex flex-col pr-2">
+          <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Title</span>
+          <span class="text-[1.05rem] md:text-base font-semibold tracking-tight text-stone-900 dark:text-stone-100"><%= lesson.title %></span>
+          <span class="text-sm text-stone-500 dark:text-stone-400"><%= lesson.approx_duration_min %> min</span>
+        </div>
+      </div>
+
+      <%# Mobile: Right aligned, sharing row with label %>
+      <div class="block md:hidden pt-1">
+        <%= render "admin/lessons/lesson_order_controls", lesson: lesson %>
+      </div>
     </div>
-  </td>
-  <td class="py-2 px-3"><%= lesson.title %></td>
-  <td class="py-2 px-3"><%= truncate(lesson.goals, length: 500) %></td>
-  <td class="py-2 px-3 text-center"><%= lesson.approx_duration_min %></td>
-  <td class="py-2 px-3 text-center">
-    <%= link_to edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson), 
-          class: "btn-table-action" do %>
-      <sl-icon name="pencil-square" class="text-base"></sl-icon>
-      <span class="">
+  </div>
+
+  <div class="col-span-1 flex flex-col justify-start order-3 md:order-none">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Goals</span>
+    <span class="text-[0.95rem] md:text-sm leading-snug text-stone-600 dark:text-stone-300/90 md:pr-2"><%= truncate(lesson.goals, length: 500) %></span>
+  </div>
+
+  <div class="col-span-1 flex flex-col justify-center md:items-center order-4 md:order-none">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Lesson Plan</span>
+    <%= link_to edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+          class: "btn-table-action justify-start md:justify-center gap-2 self-start md:self-auto" do %>
+      <sl-icon name="pencil-square" class="text-base flex-shrink-0"></sl-icon>
+      <span class="truncate">
         <% if lesson.lesson_plan.present? %>
           <%= lesson.lesson_plan.status.titleize %>
         <% else %>
@@ -33,22 +44,24 @@
         <% end %>
       </span>
     <% end %>
-  </td>
-  <td class="py-2 px-3 text-right">
-    <div class="flex-col space-y-2 items-center justify-end gap-1">
-      <%= link_to edit_admin_course_lesson_path(lesson.course, lesson), class: "btn-table-action", data: { turbo_stream: true } do %>
-        <sl-icon name="pencil"></sl-icon>
-        Edit
+  </div>
+
+  <div class="col-span-1 flex flex-col justify-center order-5 md:order-none">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-2">Actions</span>
+    <div class="flex flex-row md:flex-col items-center md:items-end gap-2 [&_sl-icon]:text-base flex-wrap">
+      <%= link_to edit_admin_course_lesson_path(lesson.course, lesson), class: "btn-table-action justify-center w-auto gap-2", data: { turbo_stream: true } do %>
+        <sl-icon name="pencil" class="flex-shrink-0"></sl-icon>
+        <span class="md:hidden lg:inline">Edit</span>
       <% end %>
-      <%= button_to admin_course_lesson_path(lesson.course, lesson), 
-            method: :delete, 
-            class: "btn-table-danger", 
-            data: { 
-              turbo_confirm: "Are you sure? This will delete the associated lesson plan too." 
+      <%= button_to admin_course_lesson_path(lesson.course, lesson),
+            method: :delete,
+            class: "btn-table-danger justify-center w-auto gap-2",
+            data: {
+              turbo_confirm: "Are you sure? This will delete the associated lesson plan too."
             } do %>
-            <sl-icon name="trash"></sl-icon>
-            Delete
+            <sl-icon name="trash" class="flex-shrink-0"></sl-icon>
+            <span class="md:hidden lg:inline">Delete</span>
       <% end %>
     </div>
-  </td>
-</tr>
+  </div>
+</div>

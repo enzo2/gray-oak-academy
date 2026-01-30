@@ -27,11 +27,11 @@ class JournalService
         #{memories_sql}
       ) AS timeline_items
       ORDER BY created_at DESC
-      LIMIT #{per_page} OFFSET #{offset}
+      LIMIT $1 OFFSET $2
     SQL
 
     # 3. Execute
-    results = ActiveRecord::Base.connection.select_all(sql)
+    results = ActiveRecord::Base.connection.select_all(sql, nil, [ per_page, offset ])
 
     # 4. Load Records
     ids_by_type = results.each_with_object(Hash.new { |h, k| h[k] = [] }) do |row, hash|

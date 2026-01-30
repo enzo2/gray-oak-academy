@@ -1,5 +1,6 @@
 class GenerateCourseOutlineJob < ApplicationJob
   queue_as :default
+  include Rails.application.routes.url_helpers
 
   OUTLINE_SCHEMA = {
     "strict": true,
@@ -71,40 +72,41 @@ class GenerateCourseOutlineJob < ApplicationJob
 
   def broadcast_success(course, current_user)
     Rails.logger.info "Broadcasting success for course: #{course.id}"
-    # Broadcast the updated course row via Turbo Streams
+    channel = "teacher_#{current_user.id}-dashboard"
     renderer = ApplicationController.renderer_with_signed_in_user(current_user)
     html = renderer.render(
-      template: "admin/courses/edit", formats: [ :turbo_stream ],
-      layout: false,
-      locals: { course: course }
+      partial: "admin/courses/course", locals: { course: course }, layout: false
     )
-    Turbo::StreamsChannel.broadcast_update_to(
-      "teacher_#{current_user.id}-dashboard",
-     target: course,
-     html: html
-     )
-    Turbo::StreamsChannel.broadcast_update_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "flash_bar",
-      partial: "shared/flash",
-      locals: { flash: { success: "Course outline generated successfully!" } }
-      )
+
+    # Broadcast the updated course row so the button is back to normal, in case user navigates back
+    Turbo::StreamsChannel.broadcast_replace_to(
+      channel, target: course, html: html
+    )
+
+    # Broadcast a visit action to navigate to the edit page so user sees the new outline
+    Turbo::StreamsChannel.broadcast_action_to(
+      channel, action: :visit,
+      attributes: { "url": "#{edit_admin_course_path(course)}" }
+    )
   end
 
   def broadcast_error(current_user, course, message)
-    # Broadcast an error message via Turbo Streams
-    Turbo::StreamsChannel.broadcast_update_to(
-      "teacher_#{current_user.id}-dashboard",
-      target: "flash_bar",
-      partial: "shared/flash",
-      locals: { flash: { error: message } }
-    )
+    Rails.logger.error "Broadcasting error for course: #{course.id}"
+    channel = "teacher_#{current_user.id}-dashboard"
     # Re-render the course row to reset the button state
     Turbo::StreamsChannel.broadcast_replace_to(
-      "teacher_#{current_user.id}-dashboard",
+      channel,
       target: course,
       partial: "admin/courses/course",
       locals: { course: course }
+    )
+
+    # Broadcast an error message via Turbo Streams
+    Turbo::StreamsChannel.broadcast_update_to(
+      channel,
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { error: message } }
     )
   end
 end

@@ -33,12 +33,12 @@
 
 	--color-success-50: var(--goa-success-50);
 	--color-success-100: var(--goa-success-100);
-	--color-success-200: var(--goa-success-100);
+  --color-success-200: var(--goa-success-200);
 	--color-success-300: var(--goa-success-300);
 	--color-success-400: var(--goa-success-400);
 	--color-success-500: var(--goa-success-500);
 	--color-success-600: var(--goa-success-600);
-	--color-success-700: var(--goa-success-100);
+	--color-success-700: var(--goa-success-700);
 	--color-success-800: var(--goa-success-800);
 	--color-success-900: var(--goa-success-900);
 	--color-success-950: var(--goa-success-950);
@@ -175,6 +175,22 @@
 
 @utility btn-table-danger {
   @apply btn-danger px-2 py-1 text-sm gap-1;
+}
+
+@utility btn-table-action-success {
+  @apply btn-table-action 
+         !text-success-700 dark:!text-success-400
+         !border-success-600 dark:!border-success-500
+         hover:!bg-success-50 dark:hover:!bg-success-950
+         focus-visible:!ring-success-500 dark:focus-visible:!ring-success-400;
+}
+
+@utility btn-success {
+  @apply btn-secondary
+         !text-success-700 dark:!text-success-400
+         !border-success-600 dark:!border-success-500
+         hover:!bg-success-50 dark:hover:!bg-success-950
+         focus-visible:!ring-success-500 dark:focus-visible:!ring-success-400;
 }
 
 @utility form-label {

@@ -3,7 +3,7 @@
     <%= render "admin/lessons/lesson", lesson: lesson %>
   <% end %>
 <% else %>
-  <tr id="no_lessons">
-    <td colspan="6" class="py-4 px-6 text-center">No lessons added.</td>
-  </tr>
+  <div id="no_lessons" class="py-4 px-6 text-center border-b border-stone-600 dark:border-stone-400">
+    No lessons added.
+  </div>
 <% end %>

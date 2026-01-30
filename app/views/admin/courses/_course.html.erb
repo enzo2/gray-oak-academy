@@ -1,62 +1,80 @@
-<tr id="<%= dom_id(course) %>" class="border-b border-stone-600 dark:border-stone-400">
-  <td class="py-2 px-3"><%= course.title %></td>
-  <td class="py-2 px-3"><%= course.summary %></td>
-  <td class="py-2 px-3 text-center"><%= course.grade_level %></td>
-  <td class="py-2 px-3 text-center">
-    <% if course.enrollments.any? %>
-      <% count = course.enrollments.count %>
-      <%= count %> <%= "student".pluralize(count) %> enrolled
-    <% elsif course.status_archived? %>
-      Archived
-    <% elsif course.outline.empty? %>
-      <%= form_with url: generate_outline_admin_course_path(course), method: :post, 
-        data: { 
-          turbo_confirm: "This will call the LLM to generate an outline. You may want to set a thinking LLM. Proceed?",
-          controller: "shoelace-button-loading" }, 
-        class: "inline-block" do |form| %>
-        <sl-button type="submit" size="small" variant="success" id="generate-outline-button-<%= course.id %>" 
-          outline>
-          <sl-icon slot="prefix" name="lightbulb"></sl-icon>
-          Generate outline
-        </sl-button>
+<div id="<%= dom_id(course) %>" class="grid grid-cols-1
+            md:grid-cols-[minmax(0,1.5fr)_minmax(0,3.4fr)_minmax(0,0.6fr)_minmax(0,0.5fr)]
+            lg:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(11rem,0.5fr)]
+            gap-2 md:gap-3 border-t md:first:border-t-0 border-stone-600 dark:border-stone-400 py-4 md:py-2">
+  <div class="col-span-1 flex flex-col justify-center">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Title</span>
+    <span class="text-[1.05rem] lg:text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100"><%= course.title %></span>
+    <span class="text-sm text-stone-500 dark:text-stone-400 mt-auto pt-2"><span class="font-bold text-stone-500 uppercase">Grade level:</span> <%= course.grade_level %></span>
+  </div>
+  
+  <div class="col-span-1 flex flex-col justify-start">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Summary</span>
+    <span class="text-[0.95rem] md:text-sm leading-snug text-stone-700 dark:text-stone-300 md:pr-2"><%= course.summary %></span>
+  </div>
+  
+  <div class="col-span-1 flex flex-col justify-center md:items-center">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Status</span>
+    <div class="w-full md:text-left text-stone-700 dark:text-stone-300">
+      <% if course.enrollments.any? %>
+        <% count = course.enrollments.count %>
+        <%= count %> <%= "student".pluralize(count) %> enrolled
+      <% elsif course.status_archived? %>
+        Archived
+      <% elsif course.outline.empty? %>
+        No outline
+      <% elsif course.lessons.empty? %>
+        No lessons added
+      <% else %>
+        Under development
       <% end %>
-    <% elsif course.lessons.empty? %>
-      No lessons added
-    <% else %>
-      Under development
-    <% end %>
-  </td>
-  <td class="py-2 px-3 text-right">
-    <div class="flex flex-col items-end gap-1 [&_sl-icon]:text-base">
+    </div>
+  </div>
+  
+  <div class="col-span-1 flex flex-col justify-center">
+    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-2">Actions</span>
+    <div class="flex flex-row md:flex-col items-center md:items-end gap-2 [&_sl-icon]:text-base flex-wrap">
       <% if course.status_active? %>
-        <%= link_to admin_course_lessons_path(course), class: "btn-table-action w-full" do %>
-          <sl-icon name="collection" class="text-xl!"></sl-icon>
-          View/Edit Lessons
+        <% if course.outline.empty? %>
+          <%= form_with url: generate_outline_admin_course_path(course), method: :post,
+            data: {
+              turbo_confirm: "This will call the LLM to generate an outline. You may want to set a thinking LLM. Proceed?",
+              controller: "button-loading" },
+            class: "inline-flex" do |form| %>
+            <button type="submit" id="generate-outline-button-<%= course.id %>" class="btn-table-action btn-table-action-success justify-center gap-2">
+              <sl-icon name="lightbulb"></sl-icon>
+              <span class="md:hidden lg:inline">Generate outline</span>
+            </button>
+          <% end %>
         <% end %>
-        <%= link_to edit_admin_course_path(course), class: "btn-table-action w-full" do %>
+        <%= link_to admin_course_lessons_path(course), class: "btn-table-action justify-center gap-2" do %>
+          <sl-icon name="collection" class=""></sl-icon>
+          <span class="md:hidden lg:inline">Lessons</span>
+        <% end %>
+        <%= link_to edit_admin_course_path(course), class: "btn-table-action justify-center gap-2" do %>
           <sl-icon name="pencil"></sl-icon>
-          Edit Course
+          <span class="md:hidden lg:inline">Edit</span>
         <% end %>
-        <%= button_to archive_admin_course_path(course), method: :patch, class: "btn-table-action w-full", data: { turbo_stream: true } do %>
+        <%= button_to archive_admin_course_path(course), method: :patch, class: "btn-table-action justify-center gap-2", data: { turbo_stream: true } do %>
           <sl-icon name="archive"></sl-icon>
-          Archive
+          <span class="md:hidden lg:inline">Archive</span>
         <% end %>
       <% else %>
-        <%= button_to unarchive_admin_course_path(course), method: :patch, class: "btn-table-action w-full", data: { turbo_stream: true } do %>
+        <%= button_to unarchive_admin_course_path(course), method: :patch, class: "btn-table-action justify-center gap-2", data: { turbo_stream: true } do %>
           <sl-icon name="arrow-counterclockwise"></sl-icon>
-          Unarchive
+          <span class="md:hidden lg:inline">Unarchive</span>
         <% end %>
       <% end %>
 
       <% if course.enrollments.empty? && course.status_archived? %>
-        <%= button_to admin_course_path(course), 
-          method: :delete, 
-          class: "btn-table-danger w-full", 
+        <%= button_to admin_course_path(course),
+          method: :delete,
+          class: "btn-table-danger justify-center gap-2",
           data: { turbo_confirm: "Are you sure you want to delete this course? This will delete everything, and you will also lose track of any student reports!" } do %>
           <sl-icon name="trash"></sl-icon>
-          Delete
+          <span class="md:hidden lg:inline">Delete</span>
         <% end %>
       <% end %>
     </div>
-  </td>
-</tr>
+  </div>
+</div>

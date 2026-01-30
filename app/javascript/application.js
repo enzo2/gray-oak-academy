@@ -1,9 +1,9 @@
 // Configure your import map in config/importmap.rb. Read more: https://github.com/rails/importmap-rails
-import 'darkModeManager';
+import "darkModeManager";
 import "@hotwired/turbo-rails";
+import "turbo_stream_actions";
 import "controllers"; //pin of all from app/javascript/controllers
 import "channels"; //pin of all from app/javascript/channels
-import "turbo_stream_actions"; 
 import "sl-tab-group_handler";
 
 //shoelace (with Webawesome (WA) replacements)

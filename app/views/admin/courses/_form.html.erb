@@ -18,7 +18,7 @@
   <div class="mb-4">
     <%= f.label :summary, class: "form-label" %>
     <p class="block text-sm mb-2"><i>Briefly describe the course goals.</i></p>
-    <%= f.text_area :summary, class: "input-primary", required: true %>
+    <%= f.text_area :summary, class: "input-primary", required: true, rows: 4 %>
   </div>
 
   <div class="mb-2">
@@ -37,13 +37,17 @@
     </p>
 
     <% if course.outline.any? %>
-      <% course.outline.each do |item| %>
-        <div class="flex items-center mb-2 space-x-2">
-          <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "input-primary w-1/4 py-1" %>
-          <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "input-primary w-3/4 py-1" %>
-          <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
-          <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
-          <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      <% course.outline.each_with_index do |item, index| %>
+        <div class="outline-field flex flex-col lg:flex-row lg:items-center mb-3 lg:mb-1 border-stone-300 dark:border-stone-700 border-l-2 pl-1 lg:border-none lg:pl-0" data-index="<%= index %>">
+          <div class="flex flex-col lg:flex-row lg:gap-2 lg:items-center w-full">
+            <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "input-primary w-full lg:w-1/4 py-1 mb-1 lg:mb-0" %>
+            <%= text_field_tag "course[outline_details][]", item.values.first, placeholder: "Details", class: "input-primary w-full lg:w-3/4 py-1" %>
+          </div>
+          <div class="flex gap-2 shrink-0 items-start">
+            <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp" data-index="<%= index %>"></sl-icon-button>
+            <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown" data-index="<%= index %>"></sl-icon-button>
+            <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+          </div>
         </div>
       <% end %>
     <% end %>
@@ -52,18 +56,22 @@
       Add outline item
     </sl-button>
     <template>
-      <div class="flex items-center mb-2 space-x-2">
-        <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "input-primary w-1/4 py-1", required: true %>
-        <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "input-primary w-3/4 py-1", required: true %>
-        <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
-        <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
-        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      <div class="outline-field flex flex-col lg:flex-row lg:items-center mb-3 lg:mb-1 border-stone-300 dark:border-stone-700 border-l-2 pl-1 lg:border-none lg:pl-0">
+        <div class="flex flex-col lg:flex-row lg:gap-2 lg:items-center w-full">
+          <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "input-primary w-full lg:w-1/4 py-1 mb-1 lg:mb-0", required: true %>
+          <%= text_field_tag "course[outline_details][]", "", placeholder: "Details", class: "input-primary w-full lg:w-3/4 py-1", required: true %>
+        </div>
+        <div class="flex gap-2 shrink-0 items-start">
+          <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
+          <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
+          <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+        </div>
       </div>
     </template>
   </div>
 
   <div class="flex flex-row space-x-5">
-    <span> <!-- prevent buttons from taking height of flex container -->
+    <span>
       <%= f.submit "Save", class: "btn-primary" %>
       <%= link_to "Cancel", admin_courses_path, class: "btn-secondary" %>
     </span>

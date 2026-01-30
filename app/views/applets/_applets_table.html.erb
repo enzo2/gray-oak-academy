@@ -1,17 +1,16 @@
 <div data-controller="copy-code">
   <% if applets.presence %>
-    <table class="w-1/2screen border-separate border-spacing-y-2">
-      <thead>
-        <tr class="">
-          <th class="py-2 text-left border-b border-stone-800 dark:border-stone-200"></th>
-          <th class="py-2 text-right border-b border-stone-800 dark:border-stone-200"></th>
-        </tr>
-      </thead>
-      <tbody id="applets-table-body">
+    <div class="w-full md:max-w-3xl flex flex-col gap-2">
+      <div class="hidden md:flex flex-row justify-between border-b border-stone-800 dark:border-stone-200 py-2">
+        <div class="font-bold">Title</div>
+        <div class="font-bold">Actions</div>
+      </div>
+      
+      <div id="applets-table-body" class="flex flex-col gap-2">
           <% applets.each do |applet| %>
-            <tr id="<%= dom_id(applet) %>" class="">
-              <td><%= applet.title %></td>
-              <td class="text-right flex justify-end space-x-2">
+            <div id="<%= dom_id(applet) %>" class="flex flex-col md:flex-row md:items-center justify-between p-3 border border-stone-200 dark:border-stone-700 rounded-md bg-stone-50 dark:bg-stone-900 gap-3">
+              <div class="font-medium break-all"><%= applet.title %></div>
+              <div class="flex flex-wrap items-center gap-2 md:justify-end">
                 <sl-button variant="default" size="small" data-action="click->copy-code#copy" data-copy-code-url="<%= applet_path(applet) %>">
                   <sl-icon slot="prefix" name="copy"></sl-icon>
                   Copy
@@ -28,12 +27,12 @@
                     </sl-button>
                   <% end %>
                   <%= link_to applet_path(applet),
-                    class: "flex items-center text-red-400 dark:text-red-700 hover:text-red-600 dark:hover:text-red-900",
+                    class: "flex items-center justify-center text-red-400 dark:text-red-700 hover:text-red-600 dark:hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950",
                     data: {
                       turbo_method: :delete,
                       turbo_confirm: "Are you sure you want to delete this applet?"
                     } do %>
-                    <sl-icon name="trash" class=""></sl-icon>
+                    <sl-icon name="trash" class="text-base"></sl-icon>
                   <% end %>
                 <% elsif applet.resource_id? && current_user.role_teacher? %>
                   <%= link_to admin_resource_path(applet.resource), class: "flex items-center" do %>
@@ -43,12 +42,11 @@
                     </sl-button>
                   <% end %>
                 <% end %>
-              </td>
-            </tr>
+              </div>
+            </div>
           <% end %>
-          <td colspan="2" class="py-4 px-6 text-center"></td>
-      </tbody>
-    </table>
+      </div>
+    </div>
   <% else %>
     <hr class="mb-4 prose dark:prose-invert prose-stone">
     No applets found.

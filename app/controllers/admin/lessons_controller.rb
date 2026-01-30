@@ -53,7 +53,12 @@ module Admin
 
     def generate_lessons
       GenerateCourseLessonsJob.perform_later(@course, current_user)
-      head :accepted  # No view needed. The Job will broadcast when done.
+      respond_to do |format|
+        format.turbo_stream
+        format.html do
+          redirect_to admin_course_lessons_path(@course), notice: "Generating lessons. Refresh in a minute."
+        end
+      end
     end
 
     def move_higher

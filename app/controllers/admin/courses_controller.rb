@@ -60,7 +60,14 @@ module Admin
     def generate_outline
       # Enqueue the background job
       GenerateCourseOutlineJob.perform_later(@course, current_user)
-      head :accepted # No view needed. The Job will broadcast when done.
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html do
+          flash[:success] = "Course outline generation started. Refresh in about a minute."
+          redirect_to admin_courses_path, status: :see_other
+        end
+      end
     end
 
     private

@@ -1,15 +1,6 @@
 <% if lesson_plan.content.blank? %>
   <p class="mb-2"><i>You can use the LLM to generate lesson plan content. You should review and enhance it with your own resources.</i></p>
-  <%= form_with url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :post, 
-    data: { 
-      turbo_confirm: "This will call the LLM to generate lesson plan content and suggested resources. You may want to set a thinking LLM. Proceed?",
-      controller: "shoelace-button-loading" }, 
-    class: "inline-block mb-4" do |form| %>
-    <sl-button type="submit" variant="success" outline id="">
-      <sl-icon slot="prefix" name="lightbulb"></sl-icon>
-      Generate Lesson Plan
-    </sl-button>
-  <% end %>
+  <%= render "admin/lesson_plans/generate_lesson_plan_button", lesson: lesson, lesson_plan: lesson_plan %>
 <% end %>
 
 <%= form_with(model: [:admin, lesson.course, lesson, lesson_plan], url: admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :patch, id: "lesson-plan-form") do |f| %>
@@ -31,16 +22,20 @@
       The content will be used by the LLM tutor to conduct the lesson.<br>
       As examples, you could specify <b>knowledge, resources, exercises, teaching methods, generative applets, or evaluation criteria</b> for the lesson.<br>
       <b>Resources</b> may be referenced, but the actual resource should be linked to the lesson plan below ('Linked Resources').<br>
-      To create a reflection/recap/debrief lesson, add an <b>"Offline Activity"</b> content item with instructions for the student to perform away from the device, followed by a <b>"Reflection"</b> or <b>"Recap"</b> content item with debrief prompts.</i>
+      To create a reflection/recap/debrief lesson, add an <b>"Offline Activity"</b> content item with instructions for the student to perform away from the device, followed by a <b>"Reflection"</b> or <b>"Recap"</b> content item with debrief prompts.
     </details>
     <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
-    <% content_data.each do |item| %>
-      <div class="flex items-center mb-1 space-x-2">
-        <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Content type", class: "input-primary w-1/4 py-1", required: true %>
-        <%= text_field_tag "lesson_plan[content_values][]", item.values.first, placeholder: "Details", class: "input-primary w-3/4 py-1", required: true %>
-        <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
-        <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
-        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+    <% content_data.each_with_index do |item, index| %>
+      <div class="outline-field flex flex-col lg:flex-row lg:items-center mb-3 lg:mb-0 border-stone-300 dark:border-stone-700 border-l-2 pl-1 lg:border-none lg:pl-0" data-index="<%= index %>">
+        <div class="flex flex-col lg:flex-row lg:gap-2 lg:items-center w-full">
+          <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Content type", class: "input-primary w-full lg:w-1/4 py-1 mb-1", required: true %>
+          <%= text_field_tag "lesson_plan[content_values][]", item.values.first, placeholder: "Details", class: "input-primary w-full lg:w-3/4 py-1", required: true %>
+        </div>
+        <div class="flex gap-2 shrink-0 items-start">
+          <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp" data-index="<%= index %>"></sl-icon-button>
+          <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown" data-index="<%= index %>"></sl-icon-button>
+          <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+        </div>
       </div>
     <% end %>
     <sl-button class="mb-2" data-action="click->outline#addField" outline>
@@ -48,12 +43,16 @@
       Add content section
     </sl-button>
     <template>
-      <div class="flex items-center mb-2 space-x-2">
-        <%= text_field_tag "lesson_plan[content_keys][]", "", placeholder: "Content type", class: "input-primary w-1/4 py-1", required: true %>
-        <%= text_field_tag "lesson_plan[content_values][]", "", placeholder: "Details", class: "input-primary w-3/4 py-1", required: true %>
-        <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
-        <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
-        <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+      <div class="outline-field flex flex-col lg:flex-row lg:items-center mb-3 lg:mb-0 border-stone-300 dark:border-stone-700 border-l-2 pl-1 lg:border-none lg:pl-0">
+        <div class="flex flex-col lg:flex-row lg:gap-2 lg:items-center w-full">
+          <%= text_field_tag "lesson_plan[content_keys][]", "", placeholder: "Content type", class: "input-primary w-full lg:w-1/4 py-1 mb-1", required: true %>
+          <%= text_field_tag "lesson_plan[content_values][]", "", placeholder: "Details", class: "input-primary w-full lg:w-3/4 py-1", required: true %>
+        </div>
+        <div class="flex gap-2 shrink-0 items-start">
+          <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
+          <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
+          <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
+        </div>
       </div>
     </template>
   </div>

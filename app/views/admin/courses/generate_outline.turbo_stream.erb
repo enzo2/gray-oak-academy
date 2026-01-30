@@ -1,0 +1,4 @@
+<%= turbo_stream.replace("generate-outline-button-#{@course.id}",
+  partial: "admin/courses/generating_outline_button",
+  locals: { course: @course }
+) %>

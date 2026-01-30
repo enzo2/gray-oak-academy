@@ -9,41 +9,43 @@
   <% end %>
 </div>
 
-<table class="w-full border-collapse mb-8">
-  <thead>
-    <tr class="border-b border-stone-800 dark:border-stone-200">
-      <th class="py-2 px-3 text-left">Title</th>
-      <th class="py-2 px-3 text-left">Summary</th>
-      <th class="py-2 px-3 text-center">Grade Level</th>
-      <th class="py-2 px-3 text-center">Status</th>
-      <th class="py-2 px-3 text-right">Actions</th>
-    </tr>
-  </thead>
-  <tbody id="courses-table-body">
+<div class="w-full mb-8">
+  <div class="hidden md:grid items-end
+              md:grid-cols-[minmax(0,1.5fr)_minmax(0,3.4fr)_minmax(0,0.6fr)_minmax(0,0.5fr)]
+              lg:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(9rem,0.5fr)]
+              gap-3 border-b border-stone-800 dark:border-stone-200 py-2 font-bold">
+    <div>Title</div>
+    <div>Summary</div>
+    <div class="text-left">Status</div>
+    <div class="text-right">Actions</div>
+  </div>
+  
+  <div id="courses-table-body">
       <% if @active_courses.any? %>
         <%= render @active_courses %>
       <% else %>
-        <tr id="no_courses">
-          <td colspan="5" class="py-4 px-6 text-center">No courses added.</td>
-        </tr>
+        <div id="no_courses" class="py-4 px-6 text-center border-b border-stone-600 dark:border-stone-400">
+          No courses added.
+        </div>
       <% end %>
-  </tbody>
-</table>
+  </div>
+</div>
 
 <% if @archived_courses.any? %>
   <h3 class="text-xl font-semibold mb-2">Archived Courses</h3>
-  <table class="w-full border-collapse">
-    <thead>
-      <tr class="border-b border-stone-800 dark:border-stone-200">
-        <th class="py-2 px-3 text-left">Title</th>
-        <th class="py-2 px-3 text-left">Summary</th>
-        <th class="py-2 px-3 text-center">Grade Level</th>
-        <th class="py-2 px-3 text-center">Status</th>
-        <th class="py-2 px-3 text-right">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="archived-courses-table-body">
+  <div class="w-full">
+    <div class="hidden md:grid
+                md:grid-cols-[minmax(0,1.5fr)_minmax(0,3.4fr)_minmax(0,0.6fr)_minmax(0,0.5fr)]
+              lg:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(11rem,0.5fr)]
+                gap-3 border-b border-stone-800 dark:border-stone-200 py-2 font-bold">
+      <div>Title</div>
+      <div>Summary</div>
+      <div class="text-left">Status</div>
+      <div class="text-right">Actions</div>
+    </div>
+
+    <div id="archived-courses-table-body">
       <%= render @archived_courses %>
-    </tbody>
-  </table>
+    </div>
+  </div>
 <% end %>

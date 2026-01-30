@@ -54,7 +54,9 @@ module Admin
       # Persist the lesson plan before generating content, since it may be new
       @lesson_plan.save!
       GenerateLessonPlanContentJob.perform_later(@lesson_plan, current_user)
-      head :accepted # No view needed; the Job will broadcast on completion
+      respond_to do |format|
+        format.turbo_stream
+      end
     end
 
     def remove_suggested_resource

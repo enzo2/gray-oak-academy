@@ -114,8 +114,8 @@ class AdminControllersIntegrationTest < ActionDispatch::IntegrationTest
     assert_equal "Test Course", course.title
 
     assert_enqueued_jobs 0
-    post generate_outline_admin_course_path(course)
-    assert_response :accepted
+    post generate_outline_admin_course_path(course), as: :turbo_stream
+    assert_response :success
     assert_enqueued_jobs 1, only: GenerateCourseOutlineJob
   end
 

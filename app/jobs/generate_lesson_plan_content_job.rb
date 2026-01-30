@@ -119,8 +119,12 @@ class GenerateLessonPlanContentJob < ApplicationJob
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
-    # Restore the button by replacing the form
+    # Restore the button by replacing it with the original partial
     Turbo::StreamsChannel.broadcast_replace_to(
-      channel, target: "lesson-plan-form", html: html)
+      channel,
+      target: "generate-lesson-plan-button",
+      partial: "admin/lesson_plans/generate_lesson_plan_button", # We need to extract this or inline it
+      locals: { lesson: lesson_plan.lesson, lesson_plan: lesson_plan }
+    )
   end
 end

@@ -114,7 +114,7 @@ class GenerateCourseLessonsJob < ApplicationJob
       target: "lessons-table-body",
       html: html)
     Turbo::StreamsChannel.broadcast_remove_to( # The lessons list is now complete and we can get rid of the generate button
-      channel, target: "generate-lessons")
+      channel, target: "generate-lessons-button")
   end
 
   def broadcast_error(current_user, course, message)
@@ -127,7 +127,7 @@ class GenerateCourseLessonsJob < ApplicationJob
     )
     Turbo::StreamsChannel.broadcast_update_to(
       "teacher_#{current_user.id}-dashboard",
-      target: "generate-lessons",
+      target: "generate-lessons-button",
       partial: "admin/lessons/generate_lessons_button",
       locals: { course: course }
     )
