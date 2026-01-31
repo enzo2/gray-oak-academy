@@ -12,7 +12,7 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
     get admin_resources_path
     assert_response :success
-    assert_select "tr[id^='resource_']", count: @teacher.resources.count
+    assert_select "div[id^='resource_']", count: @teacher.resources.count
   end
 
   test "should get new" do

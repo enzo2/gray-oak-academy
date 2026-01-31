@@ -129,8 +129,8 @@ class AdminControllersIntegrationTest < ActionDispatch::IntegrationTest
 
     # Generate content
     assert_enqueued_jobs 0
-    post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), params: {}, as: :json
-    assert_response :accepted
+    post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), params: {}, as: :turbo_stream
+    assert_response :success
     assert_enqueued_jobs 1, only: GenerateLessonPlanContentJob
 
     # Link resource
