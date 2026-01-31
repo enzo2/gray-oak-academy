@@ -17,57 +17,59 @@
 </p>
 
 <% if @supported_apis.any? %>
-  <table class="table-auto w-full">
-    <thead>
-      <tr class="bg-stone-50 dark:bg-stone-900">
-        <th class="px-2 py-1 text-left">API Base URI</th>
-        <th class="px-2 py-1 text-left">Shared Token</th>
-        <th class="px-2 py-1 text-left">Enabled</th>
-        <% if current_user.role_superuser? %>
-          <th class="px-2 py-1 text-left">Notes</th>
-          <th class="px-2 py-1 text-right">Actions</th>
-        <% end %>
-      </tr>
-    </thead>
-    <tbody>
-      <% @supported_apis.each_with_index do |api, idx| %>
-        <tr class="<%= idx.odd? ? 'bg-stone-200 dark:bg-stone-700' : '' %>">
-          <td class="px-2 py-1"><%= api.api_base_uri %></td>
-          <td class="px-2 py-1">
-            <% if api.api_access_token.present? %>
-              <span class="text-emerald-700 dark:text-emerald-300">Present</span>
-            <% else %>
-              <span class="text-stone-500">None</span>
-            <% end %>
-          </td>
-          <td class="px-2 py-1">
-            <% if api.enabled? %>
-              <span class="text-emerald-700 dark:text-emerald-300">Enabled</span>
-            <% else %>
-              <span class="text-stone-500">Disabled</span>
-            <% end %>
-          </td>
-          
+  <div class="overflow-x-auto">
+    <table class="table-auto w-full">
+      <thead>
+        <tr class="bg-stone-50 dark:bg-stone-900">
+          <th class="px-2 py-1 text-left">API Base URI</th>
+          <th class="px-2 py-1 text-left">Shared Token</th>
+          <th class="px-2 py-1 text-left">Enabled</th>
           <% if current_user.role_superuser? %>
-            <td class="px-2 py-1 text-sm text-stone-700 dark:text-stone-300"><%= api.notes %></td>
-            <td class="px-2 py-1 text-right">
-              <div class="flex items-center justify-end gap-1">
-                <%= link_to edit_admin_supported_api_path(api), class: "btn-table-action" do %>
-                  <sl-icon name="pencil"></sl-icon>
-                  Edit
-                <% end %>
-                <%= link_to admin_supported_api_path(api), data: { turbo_method: :delete, turbo_confirm: "Delete this Supported API?" }, class: "btn-table-danger" do %>
-                  <sl-icon name="trash"></sl-icon>
-                  Delete
-                <% end %>
-              </div>
-            </td>
+            <th class="px-2 py-1 text-left">Notes</th>
+            <th class="px-2 py-1 text-right">Actions</th>
           <% end %>
-
         </tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @supported_apis.each_with_index do |api, idx| %>
+          <tr class="<%= idx.odd? ? 'bg-stone-200 dark:bg-stone-700' : '' %>">
+            <td class="px-2 py-1"><%= api.api_base_uri %></td>
+            <td class="px-2 py-1">
+              <% if api.api_access_token.present? %>
+                <span class="text-emerald-700 dark:text-emerald-300">Present</span>
+              <% else %>
+                <span class="text-stone-500">None</span>
+              <% end %>
+            </td>
+            <td class="px-2 py-1">
+              <% if api.enabled? %>
+                <span class="text-emerald-700 dark:text-emerald-300">Enabled</span>
+              <% else %>
+                <span class="text-stone-500">Disabled</span>
+              <% end %>
+            </td>
+            
+            <% if current_user.role_superuser? %>
+              <td class="px-2 py-1 text-sm text-stone-700 dark:text-stone-300"><%= api.notes %></td>
+              <td class="px-2 py-1 text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <%= link_to edit_admin_supported_api_path(api), class: "btn-table-action" do %>
+                    <sl-icon name="pencil"></sl-icon>
+                    Edit
+                  <% end %>
+                  <%= link_to admin_supported_api_path(api), data: { turbo_method: :delete, turbo_confirm: "Delete this Supported API?" }, class: "btn-table-danger" do %>
+                    <sl-icon name="trash"></sl-icon>
+                    Delete
+                  <% end %>
+                </div>
+              </td>
+            <% end %>
+
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 <% else %>
   <p class="text-sm text-dim">No Supported APIs found.</p>
 <% end %>

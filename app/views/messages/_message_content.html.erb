@@ -8,14 +8,41 @@
       <i class="text-dim text-sm">Transcribing...</i>&nbsp;<sl-spinner></sl-spinner>
     <% else %>
       <% message.images.each_with_index do |image, idx| %>
-        <% if image.uri.present? %>
-          <%= image_tag(image.uri, alt: (image.description.presence || "Image #{idx + 1}"), class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
-        <% else %>
-          <% variant_thumb = image.file.variant(resize_to_limit: [150, 150]) %>
-          <%= image_tag(rails_representation_path(variant_thumb),
-                        alt: (image.description.presence || "Image #{idx + 1}"),
-                        class: "m-2 max-w-[150px] max-h-[150px] object-contain") %>
-        <% end %>
+        <div data-controller="modal" 
+             class="inline-block"
+             data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 w-auto max-w-[95vw] border border-stone-200 dark:border-stone-700">
+          <% if image.uri.present? %>
+            <%= image_tag(image.uri, 
+                  alt: (image.description.presence || "Image #{idx + 1}"), 
+                  class: "m-2 max-w-[150px] max-h-[150px] object-contain cursor-pointer hover:opacity-90",
+                  data: { action: "click->modal#open" }) %>
+            
+            <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+                  <sl-icon name="x-lg" class="text-2xl"></sl-icon>
+               </button>
+               <%= image_tag(image.uri, 
+                    alt: (image.description.presence || "Image #{idx + 1}"), 
+                    class: "max-h-[85vh] max-w-full object-contain") %>
+            </div>
+          <% else %>
+            <% variant_thumb = image.file.variant(resize_to_limit: [150, 150]) %>
+            <% variant_large = image.file.variant(resize_to_limit: [1200, 1200]) %>
+            <%= image_tag(rails_representation_path(variant_thumb),
+                          alt: (image.description.presence || "Image #{idx + 1}"),
+                          class: "m-2 max-w-[150px] max-h-[150px] object-contain cursor-pointer hover:opacity-90",
+                          data: { action: "click->modal#open" }) %>
+            
+            <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+                  <sl-icon name="x-lg" class="text-2xl"></sl-icon>
+               </button>
+               <%= image_tag(rails_representation_path(variant_large),
+                             alt: (image.description.presence || "Image #{idx + 1}"),
+                             class: "max-h-[85vh] max-w-full object-contain") %>
+            </div>
+          <% end %>
+        </div>
       <% end %>
       <%# No need to provide the audio, since it is going to be transcribed and purged within a few seconds. %>
       <%# message.audios.each do |audio| %>
@@ -52,33 +79,41 @@
     <% else %>
 
       <% message.images.each_with_index do |image, idx| %>
-        <% if image.uri.present? %>
-          <%= image_tag(image.uri,
-                        alt: (image.description.presence || "Image #{idx + 1}"),
-                        class: "max-w-[150px] max-h-[150px] object-contain",
-                        onclick: "this.parentElement.querySelector('sl-dialog').show()") %>
-          <sl-dialog style="--width:600px; --header-spacing:0; --header-spacing:0;">
-            <div class="flex flex-row items-center justify-center">
-              <%= image_tag(image.uri,
-                            alt: (image.description.presence || "Image #{idx + 1}"),
-                            class: "") %>
+        <div data-controller="modal" 
+             class="inline-block"
+             data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 w-auto max-w-[95vw] border border-stone-200 dark:border-stone-700">
+          <% if image.uri.present? %>
+            <%= image_tag(image.uri,
+                          alt: (image.description.presence || "Image #{idx + 1}"),
+                          class: "max-w-[150px] max-h-[150px] object-contain cursor-pointer hover:opacity-90",
+                          data: { action: "click->modal#open" }) %>
+
+            <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+                  <sl-icon name="x-lg" class="text-2xl"></sl-icon>
+               </button>
+               <%= image_tag(image.uri,
+                             alt: (image.description.presence || "Image #{idx + 1}"),
+                             class: "max-h-[85vh] max-w-full object-contain") %>
             </div>
-          </sl-dialog>
-        <% else %>
-          <% small_variant = image.file.variant(resize_to_limit: [512,512]) %>
-          <% large_variant = image.file.variant(resize_to_limit: [1024,1024]) %>
-          <%= image_tag(rails_representation_path(small_variant),
-                        alt: (image.description.presence || "Image #{idx + 1}"),
-                        class: "object-contain",
-                        onclick: "this.parentElement.querySelector('sl-dialog').show()") %>
-          <sl-dialog style="--width:1100px; --header-spacing:0; --footer-spacing:0;">
-            <div class="flex flex-row items-center justify-center">
-              <%= image_tag(rails_representation_path(large_variant),
-                            alt: (image.description.presence || "Image #{idx + 1}"),
-                            class: "") %>
+          <% else %>
+            <% small_variant = image.file.variant(resize_to_limit: [512,512]) %>
+            <% large_variant = image.file.variant(resize_to_limit: [1200,1200]) %>
+            <%= image_tag(rails_representation_path(small_variant),
+                          alt: (image.description.presence || "Image #{idx + 1}"),
+                          class: "max-w-full rounded-md object-contain cursor-pointer hover:opacity-90",
+                          data: { action: "click->modal#open" }) %>
+
+            <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+                  <sl-icon name="x-lg" class="text-2xl"></sl-icon>
+               </button>
+               <%= image_tag(rails_representation_path(large_variant),
+                             alt: (image.description.presence || "Image #{idx + 1}"),
+                             class: "max-h-[85vh] max-w-full object-contain") %>
             </div>
-          </sl-dialog>
-        <% end %>
+          <% end %>
+        </div>
       <% end %>
 
 <!-- reasoning details

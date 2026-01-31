@@ -1,5 +1,5 @@
 <sl-dialog id="new-observation-dialog" class="dialog-overview" 
-           style="--width: 80vw; --header-spacing:0; --body-spacing:0;">
+           style="--width: min(90vw, 600px); --header-spacing:0; --body-spacing:0;">
   <%= form_with model: [ :admin, Observation.new(student: @student) ], 
         data: { turbo_stream: true }, 
         class: "pt-0 px-8 pb-6 space-y-4" do |f| %>

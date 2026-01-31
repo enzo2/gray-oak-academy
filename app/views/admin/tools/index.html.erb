@@ -3,22 +3,23 @@
 <p>Tools for LLM use specified in JSON.</p>
 <p class="mb-4"><i><b>Warning! Power users only.</b>&nbsp;Editing these could break the app.</i></p>
 
-<table class="w-full border-collapse">
-  <thead>
-    <tr class="border-b border-stone-800 dark:border-stone-200">
-      <th class="py-2 px-3 text-left">Name</th>
-      <th class="py-2 px-3 text-left">Description</th>
-      <th class="py-2 px-3 text-right">Actions</th>
-    </tr>
-  </thead>
-  <tbody id="tools-table-body">
-    <% if @tools.any? %>
-      <%= render @tools %>
-    <% else %>
-      <tr id="no_tools">
-        <td colspan="3" class="py-4 px-6 text-center">No tools available.</td>
+<div class="overflow-x-auto">
+  <table class="w-full min-w-4xl border-collapse">
+    <thead>
+      <tr class="border-b border-stone-800 dark:border-stone-200">
+        <th class="py-2 px-3 text-left whitespace-nowrap">Name</th>
+        <th class="py-2 px-3 text-left">Description</th>
+        <th class="py-2 px-3 text-right whitespace-nowrap">Actions</th>
       </tr>
-    <% end %>
-  </tbody>
-</table>
-
+    </thead>
+    <tbody id="tools-table-body">
+      <% if @tools.any? %>
+        <%= render @tools %>
+      <% else %>
+        <tr id="no_tools">
+          <td colspan="3" class="py-4 px-6 text-center">No tools available.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,77 +1,79 @@
-<table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700 mt-5">
-  <thead class="bg-stone-50 dark:bg-stone-800">
-    <tr class="[&>th]:px-6 [&>th]:py-3 [&>th]:text-left [&>th]:text-sm [&>th]:uppercase [&>th]:tracking-wider text-stone-500 dark:text-stone-400">
-      <th>Model</th>
-      <th>API Provider</th>
-      <th>Prompt tokens</th>
-      <th>Cached tokens</th>
-      <th>Reasoning tokens</th>
-      <th>Completion tokens</th>
-      <th>Total Tokens</th>
-      <th>Costs (USD)</th>
-    </tr>
-  </thead>
-  <tbody class="divide-y divide-stone-200 dark:divide-stone-700">
-    <% total_prompt_tokens = 0 %>
-    <% total_cached_tokens = 0 %>
-    <% total_reasoning_tokens = 0 %>
-    <% total_completion_tokens = 0 %>
-    <% total_tokens = 0 %>
-    <% total_costs = 0 %>
-    <%# Sum the totals across all models for the bottom totals row %>
-    <% @usage_data.each_with_index do |data, index| %>
-      <% total_prompt_tokens += data.total_prompt_tokens.to_i %>
-      <% total_cached_tokens += data.total_cached_tokens.to_i %>
-      <% total_reasoning_tokens += data.total_reasoning_tokens.to_i %>
-      <% total_completion_tokens += data.total_completion_tokens.to_i %>
-      <% total_tokens += data.total_tokens.to_i %>
-      <% total_costs += data.total_cost.to_f || 0 %>
-      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-stone-200 dark:bg-stone-700' %>">
-        <td>
-          <sl-details summary="<%= data.model %>" class="
-            [&::part(base)]:bg-transparent
-            [&::part(base)]:border-0
-            [&::part(base)]:p-0
-            [&::part(header)]:p-0
-            [&::part(summary)]:p-0
-            [&::part(summary-icon)]:pl-3
-            [&::part(summary-icon)]:[rotate:none]">
-            <sl-icon name="plus-square" slot="expand-icon"></sl-icon>
-            <sl-icon name="dash-square" slot="collapse-icon"></sl-icon>
-            <div class="text-sm mt-2">
-              <p><strong>Context Length:</strong> <%= number_to_delimited(data.context_length) || 'Unknown' %></p>
-              <% if data.api_provider.include?("openrouter.ai") %>
-                <p class="mt-2"><strong>Features:</strong></p>
-                <ul class="list-disc ml-4">
-                  <li>Tool use: <%= data.supports_tool_use ? '✅' : '❌' %></li>
-                  <li>Structured outputs: <%= data.supports_structured_outputs ? '✅' : '❌' %></li>
-                  <li>Image input: <%= data.supports_image_input ? '✅' : '❌' %></li>
-                  <li>Image output: <%= data.supports_image_output ? '✅' : '❌' %></li>
-                  <li>Audio input: <%= data.supports_audio_input ? '✅' : '❌' %></li>
-                  <li>Audio output: <%= data.supports_audio_output ? '✅' : '❌' %></li>
-                  <!--<li>Streaming audio: <%= data.supports_streaming_audio ? '✅' : '❌' %></li> -->
-                </ul>
-              <% end %>
-            </div>
-          </sl-details>
-        </td>
-        <td><%= format_api_provider(data.api_provider) %></td>
-        <td><%= number_to_delimited(data.total_prompt_tokens) %></td>
-        <td><%= number_to_delimited(data.total_cached_tokens) %></td>
-        <td><%= data.total_reasoning_tokens&.positive? ? number_to_delimited(data.total_reasoning_tokens) : "" %></td>
-        <td><%= number_to_delimited(data.total_completion_tokens) %></td>
-        <td><%= number_to_delimited(data.total_tokens) %></td>
-        <td><%= number_to_currency(data.total_cost) %></td>
+<div class="overflow-x-auto">
+  <table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700 mt-5">
+    <thead class="bg-stone-50 dark:bg-stone-800">
+      <tr class="[&>th]:px-6 [&>th]:py-3 [&>th]:text-left [&>th]:text-sm [&>th]:uppercase [&>th]:tracking-wider text-stone-500 dark:text-stone-400">
+        <th>Model</th>
+        <th>API Provider</th>
+        <th>Prompt tokens</th>
+        <th>Cached tokens</th>
+        <th>Reasoning tokens</th>
+        <th>Completion tokens</th>
+        <th>Total Tokens</th>
+        <th>Costs (USD)</th>
       </tr>
-    <% end %>
-    <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-stone-300 dark:bg-stone-900">
-      <td colspan="2" class="font-bold">Total</td>
-      <td class=""><%= number_to_delimited(total_prompt_tokens) %><sup>*</sup></td>
-      <td class=""><%= number_to_delimited(total_cached_tokens) %><sup>*</sup></td>
-      <td class=""><%= number_to_delimited(total_reasoning_tokens) %><sup>*</sup></td>
-      <td class=""><%= number_to_delimited(total_completion_tokens) %>*</td>
-      <td class=""><%= number_to_delimited(total_tokens) %><sup>*</sup></td>
-      <td class=""><%= number_to_currency(total_costs) %><sup>**</sup></td>
-    </tr>
-  </tbody>
-</table>
+    </thead>
+    <tbody class="divide-y divide-stone-200 dark:divide-stone-700">
+      <% total_prompt_tokens = 0 %>
+      <% total_cached_tokens = 0 %>
+      <% total_reasoning_tokens = 0 %>
+      <% total_completion_tokens = 0 %>
+      <% total_tokens = 0 %>
+      <% total_costs = 0 %>
+      <%# Sum the totals across all models for the bottom totals row %>
+      <% @usage_data.each_with_index do |data, index| %>
+        <% total_prompt_tokens += data.total_prompt_tokens.to_i %>
+        <% total_cached_tokens += data.total_cached_tokens.to_i %>
+        <% total_reasoning_tokens += data.total_reasoning_tokens.to_i %>
+        <% total_completion_tokens += data.total_completion_tokens.to_i %>
+        <% total_tokens += data.total_tokens.to_i %>
+        <% total_costs += data.total_cost.to_f || 0 %>
+        <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left <%= index.even? ? '' : 'bg-stone-200 dark:bg-stone-700' %>">
+          <td>
+            <sl-details summary="<%= data.model %>" class="
+              [&::part(base)]:bg-transparent
+              [&::part(base)]:border-0
+              [&::part(base)]:p-0
+              [&::part(header)]:p-0
+              [&::part(summary)]:p-0
+              [&::part(summary-icon)]:pl-3
+              [&::part(summary-icon)]:[rotate:none]">
+              <sl-icon name="plus-square" slot="expand-icon"></sl-icon>
+              <sl-icon name="dash-square" slot="collapse-icon"></sl-icon>
+              <div class="text-sm mt-2">
+                <p><strong>Context Length:</strong> <%= number_to_delimited(data.context_length) || 'Unknown' %></p>
+                <% if data.api_provider.include?("openrouter.ai") %>
+                  <p class="mt-2"><strong>Features:</strong></p>
+                  <ul class="list-disc ml-4">
+                    <li>Tool use: <%= data.supports_tool_use ? '✅' : '❌' %></li>
+                    <li>Structured outputs: <%= data.supports_structured_outputs ? '✅' : '❌' %></li>
+                    <li>Image input: <%= data.supports_image_input ? '✅' : '❌' %></li>
+                    <li>Image output: <%= data.supports_image_output ? '✅' : '❌' %></li>
+                    <li>Audio input: <%= data.supports_audio_input ? '✅' : '❌' %></li>
+                    <li>Audio output: <%= data.supports_audio_output ? '✅' : '❌' %></li>
+                    <!--<li>Streaming audio: <%= data.supports_streaming_audio ? '✅' : '❌' %></li> -->
+                  </ul>
+                <% end %>
+              </div>
+            </sl-details>
+          </td>
+          <td><%= format_api_provider(data.api_provider) %></td>
+          <td><%= number_to_delimited(data.total_prompt_tokens) %></td>
+          <td><%= number_to_delimited(data.total_cached_tokens) %></td>
+          <td><%= data.total_reasoning_tokens&.positive? ? number_to_delimited(data.total_reasoning_tokens) : "" %></td>
+          <td><%= number_to_delimited(data.total_completion_tokens) %></td>
+          <td><%= number_to_delimited(data.total_tokens) %></td>
+          <td><%= number_to_currency(data.total_cost) %></td>
+        </tr>
+      <% end %>
+      <tr class="[&>td]:px-6 [&>td]:py-2 whitespace-nowrap text-left bg-stone-300 dark:bg-stone-900">
+        <td colspan="2" class="font-bold">Total</td>
+        <td class=""><%= number_to_delimited(total_prompt_tokens) %><sup>*</sup></td>
+        <td class=""><%= number_to_delimited(total_cached_tokens) %><sup>*</sup></td>
+        <td class=""><%= number_to_delimited(total_reasoning_tokens) %><sup>*</sup></td>
+        <td class=""><%= number_to_delimited(total_completion_tokens) %>*</td>
+        <td class=""><%= number_to_delimited(total_tokens) %><sup>*</sup></td>
+        <td class=""><%= number_to_currency(total_costs) %><sup>**</sup></td>
+      </tr>
+    </tbody>
+  </table>
+</div>

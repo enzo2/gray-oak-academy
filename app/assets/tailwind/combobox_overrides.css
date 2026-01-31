@@ -1,10 +1,15 @@
 
+/* Container - Ensure it takes full width */
+.hw-combobox {
+  @apply !w-full;
+}
+
 /* Main wrapper - Mimics input-primary look */
 .hw-combobox__main__wrapper {
   @apply
     !relative
     !flex !items-center !flex-wrap /* Needed for chips */
-    !w-[31rem]
+    !w-full !max-w-full
     !rounded-none /* Match input-primary */
     !border !border-stone-300 dark:!border-stone-600 /* Match input-primary */
     !bg-stone-50 dark:!bg-stone-900 /* Match input-primary */

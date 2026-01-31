@@ -84,6 +84,6 @@
 <% end %>
 
 
-<sl-dialog id="new-student-modal" label="Add Student" class="w-[400px]">
+<sl-dialog id="new-student-modal" label="Add Student" style="--width: min(90vw, 400px);">
   <%= render 'new_student_modal' unless current_user.role_student? %>
 </sl-dialog>

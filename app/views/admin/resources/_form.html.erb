@@ -50,7 +50,7 @@
     <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
       Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
     </p>
-    <sl-dialog style="--width: 50vw;" data-embed-checker-target="dialog" label="Embed checker">
+    <sl-dialog style="--width: min(90vw, 800px);" data-embed-checker-target="dialog" label="Embed checker">
         <p>Make sure the site loads correctly. Many sites do not allow embedding.</p>
         <iframe width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
     </sl-dialog>

@@ -12,6 +12,12 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["content"]
+  static values = {
+    panelClass: { 
+      type: String, 
+      default: "relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-stone-200 dark:border-stone-700" 
+    }
+  }
 
   connect() {
     // Pre-bind the handleKeydown method so we can add/remove it easily
@@ -132,7 +138,7 @@ export default class extends Controller {
 
     // 5. The generic Panel (White box)
     this.panel = document.createElement("div")
-    this.panel.className = "relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-stone-200 dark:border-stone-700"
+    this.panel.className = this.panelClassValue
     // Re-enable pointer events for the panel
     this.panel.style.pointerEvents = "auto"
 
