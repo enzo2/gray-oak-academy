@@ -34,6 +34,17 @@
         <% if lesson_progress.duration.to_i > 0 %>
           <p>Time Spent: <%= (lesson_progress.duration / 60.0).round(1) %> minutes</p>
         <% end %>
+
+        <% if lesson_progress.conversation %>
+          <div class="mt-2">
+            <%= link_to conversation_path(lesson_progress.conversation), 
+                  class: "inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200", 
+                  target: "_blank" do %>
+              <sl-icon name="chat-square-text"></sl-icon>
+              <span>Review Conversation</span>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     <% end %>
 

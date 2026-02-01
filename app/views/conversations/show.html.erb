@@ -162,6 +162,32 @@
 
     <hr class="border-stone-500 mb-2">
 
+    <%# Show lesson info in review mode %>
+    <% if @conversation.lesson_progress && current_user != @conversation.user %>
+       <div class="bg-stone-100 dark:bg-stone-800 p-3 mb-2 rounded-md border border-stone-200 dark:border-stone-700 text-sm">
+          <div class="flex justify-between items-start">
+             <div>
+                <h3 class="font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                   <sl-icon name="journal-bookmark"></sl-icon>
+                   <%= @conversation.lesson_progress.lesson.title %>
+                </h3>
+                <p class="text-stone-600 dark:text-stone-400 mt-1">
+                   <%= @conversation.lesson_progress.course.title %> • <%= @conversation.user.name %>
+                </p>
+             </div>
+             <div class="text-right">
+                <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium 
+                   <%= @conversation.lesson_progress.completed? ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' %>">
+                   <%= @conversation.lesson_progress.completed? ? 'Completed' : 'In Progress' %>
+                </span>
+                <div class="text-xs text-stone-500 mt-1">
+                   <%= @conversation.created_at.strftime("%b %d, %Y") %>
+                </div>
+             </div>
+          </div>
+       </div>
+    <% end %>
+
     <%= render partial: "conversations/conversation", locals: { conversation: @conversation } %>
   </div>
 

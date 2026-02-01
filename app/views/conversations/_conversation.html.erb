@@ -1,6 +1,5 @@
 <%= turbo_stream_from "#{dom_id(conversation)}" %>
 
-
 <div class="grow overflow-hidden h-full max-w-full
             flex flex-col"
      data-controller="tts-stream"
@@ -20,6 +19,16 @@
   </div>
 
   <div class="flex-none">
-    <%= render partial: "messages/form", locals: { conversation: conversation } %>
+    <% if current_user == conversation.user %>
+      <%= render partial: "messages/form", locals: { conversation: conversation } %>
+    <% else %>
+      <div class="flex flex-col items-center justify-center p-4 bg-stone-100 dark:bg-stone-800 text-center text-sm text-stone-600 dark:text-stone-400 border-t border-stone-200 dark:border-stone-700">
+        <div class="flex items-center gap-2 mb-1">
+          <sl-icon name="eye" class="text-lg"></sl-icon>
+          <span class="font-semibold">Review Mode</span>
+        </div>
+        <p class="opacity-90">Viewing conversation of <span class="font-medium"><%= conversation.user.name %></span>.</p>
+      </div>
+    <% end %>
   </div>
 </div>

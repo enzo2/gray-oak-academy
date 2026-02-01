@@ -60,7 +60,7 @@ class ConversationsController < ApplicationController
   def set_conversation
     conversation = Conversation.find(params[:id])
     # Ensure the conversation belongs to the current user, or one of his students if a teacher
-    if conversation.user == current_user || current_user.students.include?(conversation.user)
+    if conversation.user == current_user || current_user.students.include?(conversation.user) || current_user.role_superuser?
       @conversation = conversation
     else
       redirect_to conversations_path, status: :forbidden, alert: "That conversation does not belong to you."
