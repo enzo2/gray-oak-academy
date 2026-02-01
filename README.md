@@ -40,10 +40,11 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Works with any OpenAI-compatible API (including local)
 - Highly configurable LLM tutoring: design your own curriculum with Courses, Lessons, Resources, Applets
 - Rapid yet deliberate curriculum planning: Use a frontier LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
-- Integrated multimodal LLM chat for teachers and students, with images, STT/TTS/auto-read (no need for costly realtime models), and "chalkboard" (multipurpose frame accessible by the LLM)
+- Integrated multimodal LLM chat for teachers and students, with STT/TTS/auto-read, images & webcam, and "chalkboard" (multipurpose frame accessible by the LLM)
 - LLM can create/run Javascript applets, display files and URLs, finish lessons, save memories, and generate student reports
 - Longitudinal student model with atomic observations keeps a fluid view of student progress
-- Reports, observations, and memories feed forward, ensuring continuity and personalization
+- Reports, observations, and memories feed forward, ensuring continuity
+- Discuss student progress with the LLM in depth, or review progress reports manually
 - Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 
 ### More cool stuff
@@ -60,11 +61,10 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Installable PWA
 
 ### Frameworks/Tooling
- - Rails 8.0, Ruby 3.4, Postgres
+ - Rails 8, Ruby 4, Postgres 18
  - Turbo/Stimulus
  - Tailwind CSS + Shoelace components
  - No npm, just importmaps
- - OpenAI-compatible API support (tested with OpenRouter, OpenAI, Gemini, and LM Studio)
 
 ### Security
 - Devise for authentication
@@ -113,19 +113,17 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
-- Periodic student profile generation
-- Teacher alerts, notifications, mobile push, etc. 
 - Improve curriculum design:
    - web search / open textbook / deep research support
    - Automated resource finding/validation 
 - MCP support
 - Improve student analytics
 - Resource tagging, archive
-- Camera input/snapshots (e.g. show the LLM your desk)
 - Hide more advanced settings/features under a Power User setting
 - Python applets (pyodide iframe)
 - Speed up audio input with ffmpeg to reduce cost
-- Experiment with live/realtime APIs for voice lessons - if not cost-prohibitive
+- Experiment with live/realtime APIs for voice lessons - if doesn't reduce intelligence
+- Mobile push notifications
 
 ## Contributor guidelines:
 Maintain the core app principles:

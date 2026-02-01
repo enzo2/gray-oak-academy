@@ -6,6 +6,7 @@
       class: "",
       data: { 
         controller: "new-message audio-recorder",
+        action: "camera:photo@document->new-message#addCameraPhoto camera:availability@document->new-message#setCameraAvailability",
         new_message_audio_setting_value: audio_setting, # Refers to whether audio input is disabled/enabled/enforced for the conversation/lesson.
         audio_recorder_audio_setting_value: audio_setting, 
         audio_recorder_audio_input_permitted_value: conversation.audio_input_permitted?, # Refers to whether the LLM supports raw audio input, and audio_setting is not disabled.
@@ -21,7 +22,7 @@
   <% end %>
 
   <div data-new-message-target="previewArea" id="previewArea"
-       class="flex mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-4 hidden"></div>
+       class="flex flex-wrap gap-2 mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-3 hidden"></div>
 
   <div class="relative">
     <div class="relative
@@ -73,9 +74,21 @@
     <div class="absolute right-[8px] <%= audio_setting == "only" ? "bottom-[6px]" : "" %> top-[6px] flex items-center">
       <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "new-message#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
 
+      <sl-icon-button
+        name="camera"
+        label="Take Photo"
+        class="hidden mr-1 text-xl"
+        data-new-message-target="cameraButton"
+        data-action="click->new-message#openCamera">
+      </sl-icon-button>
+
       <sl-dropdown placement="top-end">
-        <sl-icon-button slot="trigger" name="images" class="" data-new-message-target="imagesMenuButton"></sl-icon-button>
+        <sl-icon-button slot="trigger" name="images" class="text-xl" data-new-message-target="imagesMenuButton"></sl-icon-button>
         <sl-menu data-new-message-target="imagesMenu">
+          <sl-menu-item value="camera" class="hidden" data-new-message-target="cameraMenuItem">
+            Take Photo
+            <sl-icon slot="suffix" name="camera"></sl-icon>
+          </sl-menu-item>
           <sl-menu-item value="file">
             Upload Image
             <sl-icon slot="suffix" name="paperclip"></sl-icon>
@@ -116,4 +129,55 @@
               class=""></sl-input>
     <sl-button slot="footer" data-action="click->new-message#handleUrlInput">Submit</sl-button>
   </sl-dialog>
+
+  <div data-controller="modal"
+       id="<%= dom_id(conversation) %>_camera_modal"
+       data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-stone-200 dark:border-stone-700">
+    <div data-modal-target="content"
+         data-controller="camera"
+         data-camera-modal-id-value="<%= dom_id(conversation) %>_camera_modal"
+         data-action="new-message:camera-open@document->camera#open new-message:camera-check@document->camera#initializeAvailability modal:open@document->camera#handleModalOpen modal:close@document->camera#handleModalClose"
+         class="hidden">
+      <div class="p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Capture photo</h2>
+          <button type="button" class="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200" data-action="modal#close">
+            <sl-icon name="x-lg" class="text-xl"></sl-icon>
+          </button>
+        </div>
+
+        <div class="bg-black/80 rounded-md overflow-hidden flex items-center justify-center relative">
+          <div class="absolute top-2 right-2 z-10 flex gap-2">
+            <sl-icon-button
+              name="phone-flip"
+              label="Switch camera"
+              class="text-white [&::part(base)]:bg-black/60 [&::part(base)]:border-0 [&::part(base)]:rounded-full [&::part(base)]:hover:bg-black/70"
+              data-camera-target="switchButton"
+              data-action="click->camera#switchCamera">
+            </sl-icon-button>
+            <sl-icon-button
+              name="arrow-left-right"
+              label="Mirror preview"
+              class="text-white [&::part(base)]:bg-black/60 [&::part(base)]:border-0 [&::part(base)]:rounded-full [&::part(base)]:hover:bg-black/70"
+              data-camera-target="mirrorButton"
+              data-action="click->camera#toggleMirror"
+              aria-pressed="false">
+            </sl-icon-button>
+          </div>
+          <video data-camera-target="video" class="w-full max-h-[60vh] object-contain" autoplay playsinline></video>
+          <img data-camera-target="preview" class="hidden w-full max-h-[60vh] object-contain" alt="Captured preview" />
+        </div>
+
+        <p class="mt-2 text-sm text-stone-500 dark:text-stone-400" data-camera-target="status"></p>
+        <canvas data-camera-target="canvas" class="hidden"></canvas>
+
+        <div class="mt-4 flex flex-wrap gap-2 justify-end">
+          <sl-button variant="default" data-action="modal#close">Cancel</sl-button>
+          <sl-button variant="default" class="hidden" data-camera-target="retakeButton" data-action="click->camera#retakeCamera">Retake</sl-button>
+          <sl-button variant="primary" data-camera-target="captureButton" data-action="click->camera#captureCamera">Capture</sl-button>
+          <sl-button variant="primary" class="hidden" data-camera-target="useButton" data-action="click->camera#useCameraPhoto">Use photo</sl-button>
+        </div>
+      </div>
+    </div>
+  </div>
 <% end %>

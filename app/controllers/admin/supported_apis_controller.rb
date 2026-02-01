@@ -62,11 +62,6 @@ module Admin
       end
     end
 
-    # DEL /admin/supported_apis/:id/models/:model
-    def remove_model
-      # TODO
-    end
-
     private
 
     def set_supported_api

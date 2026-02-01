@@ -103,7 +103,6 @@ Rails.application.routes.draw do
     resources :supported_apis, only: [ :index, :new, :create, :edit, :update, :destroy ] do
       member do
         post :verify_models
-        # delete "models/:model_name", to: "supported_apis#remove_model", as: :remove_model
       end
     end
 

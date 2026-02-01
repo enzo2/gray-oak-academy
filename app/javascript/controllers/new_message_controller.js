@@ -3,14 +3,37 @@ import { Controller } from "@hotwired/stimulus"
 // Handles the message form in LLM conversations
 // Enables image uploads, URL image previews, pasting images, shift+enter for new lines, and form submission
 export default class extends Controller {
-  static targets = ["fileInput", "urlInput", "previewArea", "contentField", "imagesData", "imagesMenuButton", "imagesMenu", "urlDialog", "submitButton", "submitSpinner", "submitIcon", "helpText"];
+  static targets = [
+    "fileInput",
+    "urlInput",
+    "previewArea",
+    "contentField",
+    "imagesData",
+    "imagesMenuButton",
+    "imagesMenu",
+    "urlDialog",
+    "submitButton",
+    "submitSpinner",
+    "submitIcon",
+    "helpText",
+    "cameraMenuItem",
+    "cameraButton"
+  ];
   static values = { audioSetting: String };
   static MAX_IMAGES = 4;
 
   connect() {
     //console.log("New message controller connected")
     this.images = []
-    this.imagesMenuTarget.addEventListener('sl-select', this.handleMenuSelect.bind(this))
+    this.boundHandleMenuSelect = this.handleMenuSelect.bind(this)
+    this.imagesMenuTarget.addEventListener('sl-select', this.boundHandleMenuSelect)
+    if (this.hasCameraMenuItemTarget) {
+      this.cameraMenuItemTarget.classList.add("hidden")
+    }
+    if (this.hasCameraButtonTarget) {
+      this.cameraButtonTarget.classList.add("hidden")
+    }
+    this.dispatch("camera-check", { bubbles: true })
   }
 
   /* It's annoying to autofocus on mobile since the keyboard pops up 
@@ -40,7 +63,13 @@ export default class extends Controller {
       this.fileInputTarget.click()
     } else if (event.detail.item.value === 'url') {
       this.urlDialogTarget.show()
+    } else if (event.detail.item.value === 'camera') {
+      this.openCamera()
     }
+  }
+
+  openCamera() {
+    this.dispatch("camera-open", { bubbles: true })
   }
   
   canAddMoreImages() {
@@ -144,6 +173,33 @@ export default class extends Controller {
     }
   }
 
+  addCameraPhoto(event) {
+    const file = event?.detail?.file
+    if (!file) return
+    if (!this.canAddMoreImages()) return
+    this.addImage(file)
+  }
+
+  setCameraAvailability(event) {
+    const available = Boolean(event?.detail?.available)
+    if (this.audioSettingValue === "only") {
+      if (this.hasCameraMenuItemTarget) {
+        this.cameraMenuItemTarget.classList.add("hidden")
+      }
+      if (this.hasCameraButtonTarget) {
+        this.cameraButtonTarget.classList.toggle("hidden", !available)
+      }
+      return
+    }
+
+    if (this.hasCameraMenuItemTarget) {
+      this.cameraMenuItemTarget.classList.toggle("hidden", !available)
+    }
+    if (this.hasCameraButtonTarget) {
+      this.cameraButtonTarget.classList.add("hidden")
+    }
+  }
+
   updatePreview() {
     //console.log("Updating preview")
     this.previewAreaTarget.innerHTML = ""
@@ -155,10 +211,10 @@ export default class extends Controller {
     this.images.forEach((image, index) => {
       // Create a div for each image preview and append it to the previewAreaTarget 
       const previewElement = document.createElement('div')
-      previewElement.classList.add('mr-2', 'relative')
+      previewElement.classList.add('relative')
       if (image.url) {
         previewElement.innerHTML = `
-          <img src="${image.url}" class="h-20 w-20 object-cover rounded-sm" alt="Image ${index + 1}">
+          <img src="${image.url}" class="h-16 w-16 sm:h-20 sm:w-20 object-cover rounded-sm" alt="Image ${index + 1}">
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
             data-index="${index}" 
@@ -166,8 +222,8 @@ export default class extends Controller {
           </sl-icon-button>`
       } else {
         previewElement.innerHTML = `
-          <img src="${image.data}" class="h-20 w-20 object-cover rounded-sm" alt="Image ${index + 1}">
-          <span class="block text-xs mt-1">${image.name.length > 15 ? `${image.name.slice(0, 10)}...${image.name.slice(-5)}` : image.name}</span>
+          <img src="${image.data}" class="h-16 w-16 sm:h-20 sm:w-20 object-cover rounded-sm" alt="Image ${index + 1}">
+          <span class="block text-xs mt-1 text-center max-w-[4.5rem]">${image.name.length > 15 ? `${image.name.slice(0, 10)}...${image.name.slice(-5)}` : image.name}</span>
           <sl-icon-button name="x"
             data-action="click->new-message#removeImage" 
             data-index="${index}" 
@@ -237,6 +293,12 @@ export default class extends Controller {
         this.addImage(file)
         event.preventDefault()
       }
+    }
+  }
+
+  disconnect() {
+    if (this.imagesMenuTarget && this.boundHandleMenuSelect) {
+      this.imagesMenuTarget.removeEventListener('sl-select', this.boundHandleMenuSelect)
     }
   }
 }

@@ -62,6 +62,8 @@ export default class extends Controller {
     
     // Add event listener for Escape
     window.addEventListener("keydown", this.boundHandleKeydown)
+
+    this.element.dispatchEvent(new CustomEvent("modal:open", { bubbles: true }))
   }
 
   close(event) {
@@ -92,6 +94,8 @@ export default class extends Controller {
       document.body.classList.remove("overflow-hidden")
       window.removeEventListener("keydown", this.boundHandleKeydown)
     }
+
+    this.element.dispatchEvent(new CustomEvent("modal:close", { bubbles: true }))
   }
 
   closeBackground(event) {

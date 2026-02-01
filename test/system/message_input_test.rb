@@ -55,6 +55,40 @@ class MessageInputTest < ApplicationSystemTestCase
     JS
   end
 
+  def stub_camera!
+    page.execute_script(<<~JS)
+      try {
+        Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+      } catch (e) {}
+
+      const fakeDevices = [{ kind: 'videoinput', deviceId: 'test-device', label: 'Front Camera' }];
+      const fakeStream = new MediaStream();
+      const mediaDevices = {
+        enumerateDevices: () => Promise.resolve(fakeDevices),
+        getUserMedia: () => Promise.resolve(fakeStream)
+      };
+
+      try {
+        Object.defineProperty(navigator, 'mediaDevices', { value: mediaDevices, configurable: true });
+      } catch (e) {
+        navigator.mediaDevices = mediaDevices;
+      }
+
+      // Ensure camera capture doesn't depend on real video frames.
+      HTMLMediaElement.prototype.play = () => Promise.resolve();
+      HTMLCanvasElement.prototype.getContext = () => ({
+        drawImage: () => {},
+        save: () => {},
+        restore: () => {},
+        translate: () => {},
+        scale: () => {}
+      });
+      HTMLCanvasElement.prototype.toBlob = function(callback) {
+        callback(new Blob(["x"], { type: "image/jpeg" }));
+      };
+    JS
+  end
+
   test "sending a text message" do
     visit conversation_path(@conversation)
     fill_message_content "Testing"
@@ -188,5 +222,51 @@ class MessageInputTest < ApplicationSystemTestCase
     # Assert image is removed from preview
     assert_no_selector "#previewArea img", wait: 2
     assert_selector "#previewArea.hidden", visible: :all, wait: 2
+  end
+
+  test "audio-only lessons show a dedicated camera button when available" do
+    @conversation = conversations(:student_audio_only_conversation)
+    visit conversation_path(@conversation)
+
+    stub_camera!
+
+    page.execute_script(<<~JS)
+      document.dispatchEvent(new CustomEvent('new-message:camera-check', { bubbles: true }));
+    JS
+
+    assert_selector "sl-icon-button[data-new-message-target='cameraButton']:not(.hidden)", visible: :all, wait: 5
+    assert_selector "sl-menu-item[value='camera'].hidden", visible: :all, wait: 5
+  end
+
+  test "audio-only lessons can capture a photo and attach it" do
+    @conversation = conversations(:student_audio_only_conversation)
+    visit conversation_path(@conversation)
+
+    stub_camera!
+
+    page.execute_script(<<~JS)
+      document.dispatchEvent(new CustomEvent('new-message:camera-check', { bubbles: true }));
+    JS
+
+    assert_selector "sl-icon-button[data-new-message-target='cameraButton']:not(.hidden)", visible: :all, wait: 5
+    find("sl-icon-button[data-new-message-target='cameraButton']").click
+
+    assert_selector "sl-button[data-camera-target='captureButton']", wait: 5
+    page.execute_script(<<~JS)
+      const video = document.querySelector('[data-camera-target="video"]');
+      if (video) {
+        Object.defineProperty(video, 'videoWidth', { value: 640, configurable: true });
+        Object.defineProperty(video, 'videoHeight', { value: 480, configurable: true });
+      }
+    JS
+
+    assert_equal false, page.evaluate_script("document.querySelector('[data-camera-target=\"captureButton\"]').disabled")
+    find("sl-button[data-camera-target='captureButton']").click
+
+    assert_selector "img[data-camera-target='preview']:not(.hidden)", visible: :all, wait: 5
+    assert_selector "sl-button[data-camera-target='useButton']:not(.hidden)", visible: :all, wait: 5
+    find("sl-button[data-camera-target='useButton']").click
+
+    assert_selector "#previewArea img", wait: 5
   end
 end

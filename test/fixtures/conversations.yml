@@ -11,3 +11,9 @@ student_lesson_conversation:
   title: Test Conversation (Student Lesson)
   lesson_progress: one
   created_at: <%= Time.current %>
+
+student_audio_only_conversation:
+  user: student
+  title: Test Conversation (Audio Only)
+  lesson_progress: audio_only_progress
+  created_at: <%= Time.current %>
