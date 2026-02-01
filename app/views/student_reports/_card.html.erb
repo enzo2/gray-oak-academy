@@ -1,4 +1,9 @@
-<div id="<%= dom_id(report) %>_card">
+<div id="<%= dom_id(report) %>_card" 
+     data-controller="collapsible" 
+     data-collapsible-collapsed-class-value="max-h-48"
+     data-collapsible-check-overflow-value="true"
+     data-collapsible-more-text-value="Show More"
+     data-collapsible-less-text-value="Show Less">
   <div class="flex items-center gap-2 mb-2">
     <span class="badge text-xs">
       <% if report.reportable_type == 'User' %>
@@ -13,13 +18,16 @@
     </span>
   </div>
 
-  <div class="prose dark:prose-invert prose-sm leading-normal text-stone-800 dark:text-stone-300 max-h-48 overflow-hidden relative group">
+  <div class="prose dark:prose-invert prose-sm leading-normal text-stone-800 dark:text-stone-300 max-h-48 overflow-hidden relative group" 
+       data-collapsible-target="panel">
     <%= markdown(report.to_markdown) %>
-    <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white dark:from-stone-800 to-transparent group-hover:hidden"></div>
+    <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white dark:from-stone-900 to-transparent group-hover:hidden" 
+         data-collapsible-target="fade"></div>
   </div>
   
-  <!-- Expand button logic could be added here or just keep it simple for MVP -->
   <div class="mt-2 text-center">
-    <button class="text-xs text-blue-600 hover:underline" onclick="this.parentElement.previousElementSibling.classList.toggle('max-h-48'); this.parentElement.previousElementSibling.lastElementChild.classList.toggle('hidden'); this.innerText = this.innerText === 'Show Less' ? 'Show More' : 'Show Less'">Show More</button>
+    <button class="text-xs text-blue-600 dark:text-blue-400 hover:underline hidden" 
+            data-collapsible-target="button" 
+            data-action="collapsible#toggle">Show More</button>
   </div>
 </div>

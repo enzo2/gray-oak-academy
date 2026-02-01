@@ -34,8 +34,8 @@ gem "tailwindcss-rails", "~> 4.0"
 # Utilities
 gem "json_schemer"
 gem "json-repair"
-gem "rack-attack", github: "rack/rack-attack", branch: "main" # Use main branch since last version is from 2023
-gem "devise", github: "heartcombo/devise", branch: "main"  # use main for now until V5  is released
+gem "rack-attack"
+gem "devise", ">= 5"
 # gem "devise-jwt"
 gem "acts_as_list"
 gem "neighbor"

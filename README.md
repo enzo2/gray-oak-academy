@@ -17,7 +17,7 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 
 * **The Role of Teachers**: Some suppose that teachers should take on a non-academic role in an LLM-tutored world. With a superintelligent tutor for every child, what's left to do? 
 
-  *Solution*: Intelligence has been commoditized, but teachers remain invaluable. The supervising teacher (or parent) is the individual who has authority to define the LLM's prompts and curriculum. But now, he or she has more time to bring beauty, delight, and contentment into the lives of youth however they see fit: to spend time seeking out learning resources (both digital and physical), incorporating more memorable experiences, mentoring individual students and helping them to gain not only knowledge, but wisdom. *This app explicitly requires a fully engaged supervising teacher.*
+  *Solution*: Intelligence has been commoditized, but teachers remain invaluable. The supervising teacher (or parent) is the individual who has authority to define the LLM's prompts and curriculum. But now, he or she has more time to bring beauty, delight, and contentment into the lives of youth however they see fit: to spend time seeking out learning resources (both digital and physical), incorporating more memorable experiences, mentoring individual students and helping them to gain not only knowledge, but wisdom. *This app explicitly requires a fully engaged supervising teacher. For example, LLM observations of the student must be approved or rejected.*
 
 * **Ensloppification**: AI image, video, and audio generation can undoubtedly be used to create memorable educational material. This can be helpful, but it also leads to a proliferation of inaccurate, superficial, even mind-numbing content, when primary sources should be used instead. 
 
@@ -42,7 +42,7 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - Rapid yet deliberate curriculum planning: Use a frontier LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
 - Integrated multimodal LLM chat for teachers and students, with STT/TTS/auto-read, images & webcam, and "chalkboard" (multipurpose frame accessible by the LLM)
 - LLM can create/run Javascript applets, display files and URLs, finish lessons, save memories, and generate student reports
-- Longitudinal student model with atomic observations keeps a fluid view of student progress
+- Longitudinal student model with atomic observations keeps a fluid view of student progress; teacher may veto observations
 - Reports, observations, and memories feed forward, ensuring continuity
 - Discuss student progress with the LLM in depth, or review progress reports manually
 - Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons

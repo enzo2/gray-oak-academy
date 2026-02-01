@@ -5,9 +5,9 @@
   
   <div class="flex items-center justify-between text-xs mt-2">
     <% status_classes = case observation.status
-       when "approved" then "bg-emerald-100 text-emerald-800 border-emerald-200"
-       when "rejected" then "bg-red-100 text-red-800 border-red-200"
-       else "bg-yellow-100 text-yellow-800 border-yellow-200"
+       when "approved" then "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800"
+       when "rejected" then "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
+       else "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
        end %>
     
     <span class="px-2 py-0.5 rounded border <%= status_classes %>">
