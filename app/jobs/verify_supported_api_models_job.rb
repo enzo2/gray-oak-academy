@@ -17,6 +17,7 @@ class VerifySupportedApiModelsJob < ApplicationJob
     end
 
     models.each do |model|
+      retried = false
       begin
         # Minimal non-streaming call with explicit overrides so it doesn't rely on user settings
         service = OpenaiApiService.new(
@@ -32,11 +33,28 @@ class VerifySupportedApiModelsJob < ApplicationJob
           { role: "user", content: "Reply with a short confirmation message." }
         ]
 
+        if retried
+          audio_path = Rails.root.join("test/fixtures/files/sample.wav")
+          if File.exist?(audio_path)
+            audio_data = Base64.strict_encode64(File.read(audio_path))
+            messages[-1] = {
+              role: "user", content: [
+                { type: "input_audio", input_audio: { data: audio_data, format: "wav" } }
+              ] }
+          end
+        end
+
         # A successful completion will create a Completion which will auto-create/find the Llm row
         service.complete(messages)
 
         Rails.logger.info "Verified model '#{model}' for SupportedApi #{supported_api.api_base_uri}"
       rescue StandardError => e
+        if !retried && e.message.match?(/audio/i)
+          Rails.logger.info "Model '#{model}' requires audio. Retrying with audio input..."
+          retried = true
+          retry
+        end
+
         Rails.logger.error "Failed to verify model '#{model}' for SupportedApi #{supported_api.api_base_uri}: #{e.message}"
         # Continue verifying remaining models
       end
