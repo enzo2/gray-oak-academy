@@ -291,3 +291,8 @@
 
 /* Fixes KaTeX bug  https://github.com/KaTeX/KaTeX/pull/3859 */
 .katex { position: relative !important; }
+
+/* Custom component styles */
+.sl-theme-dark sl-progress-bar {
+  --track-color: var(--sl-color-neutral-300);
+}
