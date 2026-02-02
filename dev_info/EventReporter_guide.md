@@ -7,7 +7,7 @@ This guide covers the notification/event system built on Rails 8.1's `ActiveSupp
 The system uses a **Publish-Subscribe** pattern with these components:
 
 1. **`config/notifications.yml`** - Single source of truth for event definitions
-2. **`Notification::Type`** - Loads and validates event schemas
+2. **`Notification::Type`** - Reads and validates event schemas from notifications.yml
 3. **`Events::*`** - Typed event classes (auto-generated from YAML)
 4. **`NotificationSubscriber`** - Generic subscriber that handles all notification delivery
 5. **Models** - Fire events with `Rails.event.notify()` including recipient resolution
@@ -17,7 +17,7 @@ The system uses a **Publish-Subscribe** pattern with these components:
 - **Single source of truth**: `notifications.yml` defines all event types, required params, categories, and message templates
 - **Fat models**: Models determine who should be notified and fire events with pre-resolved `recipient_ids`
 - **Generic subscriber**: `NotificationSubscriber` needs no per-event handler methods
-- **Zero-touch additions**: Adding a new notification type requires only YAML + model code changes
+- **No-code additions**: Adding a new notification type requires only YAML
 
 ---
 
@@ -230,6 +230,7 @@ The same events can be consumed by multiple subscribers without model changes.
 |------|---------|
 | `config/notifications.yml` | Event definitions (source of truth) |
 | `app/models/notification.rb` | Notification model + `Type` class |
+| `app/models/events/base.rb` | Base event class |
 | `config/initializers/events.rb` | Auto-generates `Events::*` classes, registers subscribers |
 | `app/subscribers/notification_subscriber.rb` | Generic notification delivery |
 | `app/subscribers/app_error_subscriber.rb` | System error notifications |
