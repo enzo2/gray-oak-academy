@@ -445,10 +445,10 @@ tool.specifications = {
 tool.save!
 
 # Applet tools
-tool = Tool.find_or_initialize_by(name: 'Applet')
+tool = Tool.find_or_initialize_by(name: 'Manage_Applets')
 tool.access = :admin
 tool.specifications = {
-  name: "Applet",
+  name: "Manage_Applets",
   description: "Manage saved JavaScript applets (list/get/create-or-update/save-as-resource/run-on-chalkboard).",
   strict_mode: true,
   parameters: {
@@ -465,21 +465,30 @@ tool.specifications = {
       "lesson_id" => { "type" => "integer", "description" => "Lesson ID to link the saved resource to (optional; only for save_as_resource)." }
     },
     required: [ "action" ],
-    additionalProperties: false,
-    anyOf: [
-      { properties: { "action" => { "type" => "string", "enum" => [ "list" ] } }, required: [ "action" ] },
-      { properties: { "action" => { "type" => "string", "enum" => [ "get" ] } }, required: [ "action", "applet_id" ] },
-      { properties: { "action" => { "type" => "string", "enum" => [ "run_on_chalkboard" ] } }, required: [ "action", "applet_id" ] },
-      { properties: { "action" => { "type" => "string", "enum" => [ "save_as_resource" ] } }, required: [ "action", "applet_id" ] },
-      # Upsert: update existing (requires applet_id and at least one of title/code)
-      {
-        properties: { "action" => { "type" => "string", "enum" => [ "upsert" ] } },
-        required: [ "action", "applet_id" ],
-        anyOf: [ { required: [ "title" ] }, { required: [ "code" ] } ]
+    additionalProperties: false
+  }
+}
+tool.save!
+
+# Applets tool for lessons and students
+tool = Tool.find_or_initialize_by(name: 'View_Applets')
+tool.access = :student
+tool.specifications = {
+  name: "View_Applets",
+  description: "View or run saved JavaScript applets (list/get/run-on-chalkboard).",
+  strict_mode: true,
+  parameters: {
+    type: "object",
+    properties: {
+      "action" => {
+        "type" => "string",
+        "description" => "Which operation to perform: list, get, run_on_chalkboard.",
+        "enum" => [ "list", "get", "run_on_chalkboard" ]
       },
-      # Upsert: create new (requires title+code)
-      { properties: { "action" => { "type" => "string", "enum" => [ "upsert" ] } }, required: [ "action", "title", "code" ] }
-    ]
+      "applet_id" => { "type" => "integer", "description" => "Applet ID (required for get/run_on_chalkboard)." }
+    },
+    required: [ "action" ],
+    additionalProperties: false
   }
 }
 tool.save!

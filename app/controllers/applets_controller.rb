@@ -1,5 +1,5 @@
 class AppletsController < ApplicationController
-  before_action :set_applet, only: [ :show, :destroy, :save_as_resource ]
+  before_action :set_applet, only: [ :show, :destroy, :save_as_resource, :run ]
 
   # POST /applets, via code_executor_controller
   def create
@@ -34,14 +34,27 @@ class AppletsController < ApplicationController
   end
 
   def destroy
-    @applet.destroy
-    flash.now[:success] = "Applet deleted!"
-    respond_to do |format|
-      format.turbo_stream
+    if current_user.role_student? && (@applet.user_id != current_user.id || @applet.resource_id?)
+      head :not_found
+      return
+    end
+    if @applet.resource_id?
+      message = "This applet is linked to a Resource. Delete the Resource instead."
+      redirect_to applets_path, status: :unprocessable_content, alert: message
+    else
+      @applet.destroy
+      flash.now[:success] = "Applet deleted!"
+      respond_to do |format|
+        format.turbo_stream
+      end
     end
   end
 
   def save_as_resource
+    if current_user.role_student?
+      head :not_found
+      return
+    end
     resource = Resource.new(
       category: "Applet",
       teacher: current_user
@@ -56,10 +69,27 @@ class AppletsController < ApplicationController
     end
   end
 
+  def run
+    # This action renders the applet in a standalone page, suitable for iframing.
+    # It allows us to use standard CSP nonces for the scripts.
+    render layout: false
+  end
+
   private
 
   def set_applet
-    @applet = Applet.find(params[:id])
+    case current_user.role
+    when "student" # Allow own or teacher's applets.
+      scope = Applet.where(user_id: [ current_user.id, current_user.teacher_id ].compact)
+    when "admin" # Allow own or students' applets.
+      scope = Applet.where(user_id: current_user.id)
+                    .or(Applet.where(user_id: current_user.students.select(:id)))
+    when "superuser"
+      scope = Applet.all
+    else
+      scope = Applet.none
+    end
+    @applet = scope.find(params[:id])
   end
 
   def applet_params

@@ -210,6 +210,20 @@ class ToolHandlerService
     raise ToolExecutionError, "No teacher associated with current user"
   end
 
+  def applet_scope_for_user
+    case @user.role
+    when "student" # Allow own or teacher's applets.
+      Applet.where(user_id: [ @user.id, @user.teacher_id ].compact)
+    when "admin" # Allow own or students' applets.
+      Applet.where(user_id: @user.id)
+            .or(Applet.where(user_id: @user.students.select(:id)))
+    when "superuser"
+      Applet.all
+    else
+      Applet.none
+    end
+  end
+
   def runaway_tool_call_limit_exceeded?(limit = 10)
     # Determine the timestamp of the most recent user message in the conversation.
     last_user = @conversation.messages.where(role: "user").reorder(created_at: :desc).first
@@ -908,7 +922,30 @@ class ToolHandlerService
 
   # ---- Applets tools ----
   def execute_applet
+    # Legacy tool name. Keep for backward compatibility.
+    execute_applet_actions(allowed_actions: %w[list get upsert save_as_resource run_on_chalkboard])
+  end
+
+  def execute_manage_applets
+    execute_applet_actions(allowed_actions: %w[list get upsert save_as_resource run_on_chalkboard])
+  end
+
+  def execute_view_applets
+    execute_applet_actions(allowed_actions: %w[list get run_on_chalkboard])
+  end
+
+  def execute_applet_actions(allowed_actions:)
     action = @args["action"].to_s
+
+    unless allowed_actions.include?(action)
+      raise ToolExecutionError, "Unknown or disallowed Applet action: #{action.inspect}"
+    end
+    if %w[get run_on_chalkboard save_as_resource].include?(action) && @args["applet_id"].blank?
+      raise ToolExecutionError, "Missing required parameter: applet_id"
+    end
+    if action == "upsert" && @args["applet_id"].present? && !(@args.key?("title") || @args.key?("code"))
+      raise ToolExecutionError, "Missing required parameter: title or code"
+    end
 
     case action
     when "list"
@@ -927,14 +964,20 @@ class ToolHandlerService
   end
 
   def applet_list
-    applets = current_teacher.applets.order(created_at: :desc).limit(100)
+    scope = applet_scope_for_user
+    # If this is a lesson, only show applets that are in the lesson
+    if @conversation&.lesson_progress.present?
+      lesson_resource_ids = @conversation.lesson_progress.resources.select(:id)
+      scope = scope.where(resource_id: lesson_resource_ids)
+    end
+    applets = scope.order(created_at: :desc).limit(100)
     payload = applets.map { |a| { id: a.id, title: a.title, created_at: a.created_at } }
     create_tool_message(JSON.pretty_generate(payload))
   end
 
   def applet_get
     applet_id = @args["applet_id"].to_i
-    applet = current_teacher.applets.find_by(id: applet_id)
+    applet = applet_scope_for_user.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
     payload = { id: applet.id, title: applet.title, code: applet.code, warning: "If copying this code into an executable markdown block, there is no need to add escaping. Do not add extra backslashes." }
     create_tool_message(payload) # Avoid using JSON to avoid LLM syntax issues due to escaping
@@ -950,7 +993,7 @@ class ToolHandlerService
 
     if @args["applet_id"].present?  # Update existing applet
       applet_id = @args["applet_id"].to_i
-      applet = current_teacher.applets.find_by(id: applet_id)
+      applet = applet_scope_for_user.find_by(id: applet_id)
       raise ToolExecutionError, "Applet not found" unless applet
 
       if @args.key?("code") && @args["code"].present?
@@ -994,7 +1037,7 @@ class ToolHandlerService
     lesson_id = @args["lesson_id"]
 
     # Find the applet under teacher
-    applet = current_teacher.applets.find_by(id: applet_id)
+    applet = applet_scope_for_user.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
 
     # Verify lesson_plan if provided
@@ -1042,7 +1085,7 @@ class ToolHandlerService
 
   def applet_run_on_chalkboard
     applet_id = @args["applet_id"].to_i
-    applet = current_teacher.applets.find_by(id: applet_id)
+    applet = applet_scope_for_user.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
 
     # Broadcast to chalkboard
@@ -1050,7 +1093,7 @@ class ToolHandlerService
       "conversation_#{@conversation.id}",
       target: "chalkboard",
       partial: "shared/chalkboard_applet",
-      locals: { code: applet.code }
+      locals: { applet: applet }
     )
 
     Rails.logger.debug("Chalkboard updated with stored applet: #{applet.title}")

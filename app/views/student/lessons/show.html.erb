@@ -43,7 +43,7 @@
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
           <sl-menu>
             <% if AppSetting.speech_configured? %>
-              <sl-menu-item onclick="window.dispatchEvent(new Event('toggleAutoRead'))">
+              <sl-menu-item data-dispatch-event="toggleAutoRead">
                 <div class="flex items-center justify-start">
                   <sl-icon-button 
                     id="auto-read-toggle"
@@ -61,7 +61,7 @@
                 <span class="pl-2">Chat info</span>
               </div>
             </sl-menu-item>
-            <sl-menu-item onclick="document.getElementById('feedback-dialog').show()">
+            <sl-menu-item data-show-dialog="feedback-dialog">
               <div class="flex items-center justify-start">
                 <sl-icon-button name="chat-left-text" label="Provide Feedback" class="text-lg"></sl-icon-button>
                 <span class="pl-2">Feedback</span>

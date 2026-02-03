@@ -15,17 +15,35 @@
                   <sl-icon slot="prefix" name="copy"></sl-icon>
                   Copy
                 </sl-button>
-                <% if !applet.resource_id? && current_user.role_teacher? %>
-                  <%= link_to save_as_resource_applet_path(applet),
-                      class: "flex items-center",
-                      data: { 
-                        turbo_method: :post,
-                        turbo_confirm: "This will save the applet as a Resource that can be linked to lesson plans. Proceed?" } do %>
-                    <sl-button variant="default" size="small" data-copy-code-url="<%= applet_path(applet)%>">
-                      <sl-icon slot="prefix" name="pin"></sl-icon>
-                      Convert to Resource
-                    </sl-button>
+                <% if current_user.role_teacher? %>
+                  <% if !applet.resource_id? %>
+                    <%= link_to save_as_resource_applet_path(applet),
+                        class: "flex items-center",
+                        data: {
+                          turbo_method: :post,
+                          turbo_confirm: "This will save the applet as a Resource that can be linked to lesson plans. Proceed?" } do %>
+                      <sl-button variant="default" size="small" data-copy-code-url="<%= applet_path(applet)%>">
+                        <sl-icon slot="prefix" name="pin"></sl-icon>
+                        Convert to Resource
+                      </sl-button>
+                    <% end %>
+                    <%= link_to applet_path(applet),
+                      class: "flex items-center justify-center text-red-400 dark:text-red-700 hover:text-red-600 dark:hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950",
+                      data: {
+                        turbo_method: :delete,
+                        turbo_confirm: "Are you sure you want to delete this applet?"
+                      } do %>
+                      <sl-icon name="trash" class="text-base"></sl-icon>
+                    <% end %>
+                  <% else %>
+                    <%= link_to admin_resource_path(applet.resource), class: "flex items-center" do %>
+                      <sl-button variant="default" size="small">
+                        <sl-icon slot="prefix" name="folder-symlink"></sl-icon>
+                        View
+                      </sl-button>
+                    <% end %>
                   <% end %>
+                <% elsif current_user.role_student? && applet.user_id == current_user.id && !applet.resource_id? %>
                   <%= link_to applet_path(applet),
                     class: "flex items-center justify-center text-red-400 dark:text-red-700 hover:text-red-600 dark:hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950",
                     data: {
@@ -33,13 +51,6 @@
                       turbo_confirm: "Are you sure you want to delete this applet?"
                     } do %>
                     <sl-icon name="trash" class="text-base"></sl-icon>
-                  <% end %>
-                <% elsif applet.resource_id? && current_user.role_teacher? %>
-                  <%= link_to admin_resource_path(applet.resource), class: "flex items-center" do %>
-                    <sl-button variant="default" size="small">
-                      <sl-icon slot="prefix" name="folder-symlink"></sl-icon>
-                      View
-                    </sl-button>
                   <% end %>
                 <% end %>
               </div>

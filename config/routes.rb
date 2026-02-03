@@ -46,6 +46,7 @@ Rails.application.routes.draw do
   resources :applets do
     member do
       post :save_as_resource
+      get :run
     end
   end
 

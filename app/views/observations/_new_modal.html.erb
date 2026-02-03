@@ -22,7 +22,7 @@
     </div>
 
     <div slot="footer" class="flex justify-end gap-4 mt-4">
-      <button type="button" class="cursor-pointer" onclick="document.getElementById('new-observation-dialog').hide()">Cancel</button>
+      <button type="button" class="cursor-pointer" data-hide-dialog>Cancel</button>
       <%= f.submit "Save Observation", class: "btn-primary" %>
     </div>
   <% end %>

@@ -11,11 +11,11 @@
     <meta
       name="theme-color"
       content="#dbe5cc"
-      media="(prefers-color-scheme: light)" />
+      media="(prefers-color-scheme: light)">
     <meta
       name="theme-color"
       content="#485340"
-      media="(prefers-color-scheme: dark)" />
+      media="(prefers-color-scheme: dark)">
     <meta name="turbo-refresh-method" content="morph">
     <meta name="turbo-refresh-scroll" content="preserve">
     <%= csrf_meta_tags %>
@@ -33,8 +33,8 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= combobox_style_tag %>
-		<%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
-    <%= action_cable_meta_tag  %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= action_cable_meta_tag %>
     <%= javascript_importmap_tags %>
   </head>
 
@@ -48,7 +48,7 @@
             <%= image_tag "logo_icon_negative.svg", size: "30", class: "hidden dark:block bg-stone-800" %>
             <span class="text-xl font-bold font-serif hidden md:inline"><%= ENV["APP_NAME"] || "Gray Oak Academy" %></span>
           <% end %>
-          <%= yield :header_buttons  %>
+          <%= yield :header_buttons %>
         </div>
 
         <div class="flex items-center [&_a:hover]:underline" id="nav-right-items">
@@ -62,10 +62,10 @@
             <sl-dropdown class="sm:hidden" placement="bottom-end" skidding="50">
               <sl-icon-button name="three-dots-vertical" label="Main Menu" slot="trigger" class="text-2xl"></sl-icon-button>
               <sl-menu>
-                <sl-menu-item onclick="this.children[0].click"><a href="<%= root_path %>">Dashboard</a></sl-menu-item>
-                <sl-menu-item onclick="this.children[0].click"><a href="<%= notifications_path %>">Notifications <%= render "notifications/counter", count: current_user.notifications.unread.count, id: "notifications_counter_menu" %></a></sl-menu-item>
-                <sl-menu-item onclick="this.children[0].click"><a href="<%= edit_user_registration_path %>">Settings</a></sl-menu-item>
-                <sl-menu-item onclick="this.children[0].click"><%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete } %></sl-menu-item>
+                <sl-menu-item data-click-child><a href="<%= root_path %>">Dashboard</a></sl-menu-item>
+                <sl-menu-item data-click-child><a href="<%= notifications_path %>">Notifications <%= render "notifications/counter", count: current_user.notifications.unread.count, id: "notifications_counter_menu" %></a></sl-menu-item>
+                <sl-menu-item data-click-child><a href="<%= edit_user_registration_path %>">Settings</a></sl-menu-item>
+                <sl-menu-item data-click-child><%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete } %></sl-menu-item>
               </sl-menu>
             </sl-dropdown>
             <div class="space-x-4 hidden sm:block pr-4">
@@ -84,7 +84,7 @@
                data-controller="railsblocks--tooltip"
                data-tooltip-content="Toggle Light Mode"
                data-railsblocks--tooltip-placement-value="bottom">
-            <sl-icon-button name="sun" class="dark-mode-toggle" onclick="toggleDarkMode();"></sl-icon-button>
+            <sl-icon-button name="sun" class="dark-mode-toggle"></sl-icon-button>
           </div>
         </div>
       </nav>

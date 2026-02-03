@@ -158,12 +158,16 @@ export default class extends Controller {
 
     // Escape any </script> tags in the code to prevent terminating the script early
     const codeLiteral = JSON.stringify(code).replace(/<\/script>/g, '<\\/script>');
+    
+    // Get the CSP nonce from the document head
+    const meta = document.querySelector("meta[name='csp-nonce']");
+    const nonce = meta ? meta.content : "";
 
     return `
       <!DOCTYPE html>
       <html>
       <head>
-        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" async></script>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
           body { margin: 0; padding: 10px; font-family: "Inter", "Segoe UI", Optima, Futura, "Gill Sans MT", "Gill Sans", sans-serif; color: #333; }
@@ -217,7 +221,7 @@ export default class extends Controller {
         <style type="text/tailwindcss">      
           @theme { --font-sans: "InterVariable", sans-serif; --font-serif: "Merriweather", serif; }    
         </style>
-        <script type="importmap">
+        <script type="importmap" nonce="${nonce}">
           {
             "imports": {
               "react": "https://esm.sh/react",
@@ -228,7 +232,29 @@ export default class extends Controller {
             }
           }
         </script>
-        <script>
+        <script nonce="${nonce}">
+          (function() {
+            const createMemoryStorage = () => {
+              let store = {};
+              return {
+                getItem(key) { return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null; },
+                setItem(key, value) { store[key] = String(value); },
+                removeItem(key) { delete store[key]; },
+                clear() { store = {}; },
+                key(index) { return Object.keys(store)[index] || null; },
+                get length() { return Object.keys(store).length; }
+              };
+            };
+            try {
+              const testKey = "__storage_test__";
+              window.localStorage.setItem(testKey, "1");
+              window.localStorage.removeItem(testKey);
+            } catch (e) {
+              Object.defineProperty(window, "localStorage", { value: createMemoryStorage(), configurable: true });
+            }
+          })();
+        </script>
+        <script nonce="${nonce}">
           // Override console
           window.console = {
             _format: function(args, className) {
@@ -295,7 +321,7 @@ export default class extends Controller {
       </head>
       <body>
         <div id="sandbox"></div>
-        <script type="module">
+        <script type="module" nonce="${nonce}">
           const codeToExecute = ${codeLiteral};
           const blob = new Blob([codeToExecute], { type: 'text/javascript' });
           const moduleUrl = URL.createObjectURL(blob);

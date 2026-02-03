@@ -112,23 +112,39 @@ class AudioAndTtsTest < ApplicationSystemTestCase
         find("#recordButton").click
         # Simulate recording for a short period
         # Rely on the help text rather than the icon name to avoid unidentifiable issue in CI
-        assert_text "Recording", wait: 10
+        assert_text "Recording", wait: 5
 
         # Click stop to send the message
         find("#recordButton").click
         assert_selector '#recordButton[name="mic"]'
         assert_no_text "Recording"
-        sleep 0.2
-        perform_enqueued_jobs # GetLlmCompletionJob runs...
-        sleep 0.5
-        perform_enqueued_jobs # then TranscribeAudioJob
+        assert_text "Transcribing...", wait: 5
+
+        wait_for_enqueued_job(GetLlmCompletionJob)
+        perform_enqueued_jobs(only: GetLlmCompletionJob)
+
+        wait_for_enqueued_job(TranscribeAudioJob)
+        perform_enqueued_jobs(only: TranscribeAudioJob)
 
         # Wait for the "Transcribing..." message to disappear, indicating the update has been broadcast
-        assert_no_text "Transcribing...", wait: 10
+        assert_no_text "Transcribing...", wait: 5
 
         # Wait for the transcribed message to appear
         assert_selector ".message-content", text: "This is a test transcription from conversation LLM.", wait: 5
       end
+    end
+  end
+
+  private
+
+  def wait_for_enqueued_job(job_class, timeout: 5)
+    start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    loop do
+      return if enqueued_jobs.any? { |job| job[:job] == job_class }
+      if (Process.clock_gettime(Process::CLOCK_MONOTONIC) - start) > timeout
+        flunk "Timed out waiting for #{job_class} to be enqueued"
+      end
+      sleep 0.05
     end
   end
 

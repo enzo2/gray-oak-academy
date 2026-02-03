@@ -28,15 +28,14 @@
   </div>
   <div class="mb-4">
     <%= f.label :password_confirmation, "Confirm Password", class: "form-label" %>
-    <%= f.password_field :password_confirmation, class: "input-primary w-full" %>
+    <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "input-primary w-full" %>
   </div>
   <div class="mb-4">
     <%= f.check_box :adopt_student, class: "checkbox-primary" %>
     <%= f.label :adopt_student, "Adopt student now?", class: "form-label inline" %>
   </div>
   <div class="flex justify-end gap-2">
-    <sl-button type="button" onclick="this.closest('sl-dialog').hide()">Cancel</sl-button>
+    <sl-button type="button" data-hide-dialog>Cancel</sl-button>
     <sl-button type="submit"  variant="success">Add Student</sl-button>
   </div>
 <% end %>
-

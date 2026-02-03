@@ -70,7 +70,7 @@
       <div class="flex flex-row items-center"><!-- Left buttons -->
         <!-- Mobile only sidebar trigger using window event -->
         <sl-icon-button name="layout-text-sidebar-reverse" class="block md:hidden mr-1" aria-label="Open chats" 
-                        onclick="window.dispatchEvent(new CustomEvent('sidebar:open-mobile'))"></sl-icon-button>
+                        data-dispatch-event="sidebar:open-mobile"></sl-icon-button>
         
         <%= link_to conversations_path,
             data: { turbo_method: :post },
@@ -110,7 +110,7 @@
           name="<%= @conversation.auto_read_default ? "volume-up" : "volume-mute" %>" 
           label="Auto-read" 
           class="text-xl [&::part(base)]:pt-2"
-          onclick="window.dispatchEvent(new Event('toggleAutoRead'))"
+          data-dispatch-event="toggleAutoRead"
           data-action="click->tts-stream#toggleAutoRead"></sl-icon-button>
         <% end %>
         <sl-dropdown class="" placement="bottom-end">
@@ -123,8 +123,8 @@
                 <span class="pl-2">Rename</span>
               </div>
             </sl-menu-item>
-            <sl-menu-item onclick="this.querySelector('button').click();">
-              <%= button_to clear_conversation_path(@conversation), method: :delete, 
+            <sl-menu-item data-click-child>
+              <%= button_to clear_conversation_path(@conversation), method: :delete,
                   data: { turbo_method: :delete, turbo_confirm: 'This will delete all messages in the conversation.' } do %>
                 <div class="flex items-center">
                   <sl-icon name="eraser" label="Clear conversation" class="hover:text-red-700"></sl-icon>
@@ -132,8 +132,8 @@
                 </div>
               <% end %>
             </sl-menu-item>
-            <sl-menu-item onclick="this.querySelector('button').click();">
-              <%= button_to conversation_path(@conversation), method: :delete, 
+            <sl-menu-item data-click-child>
+              <%= button_to conversation_path(@conversation), method: :delete,
                     data: { turbo_method: :delete, turbo_confirm: "Are you sure?" } do %>
                 <div class="flex items-center">
                   <sl-icon name="trash" label="Delete conversation" class="hover:text-red-700"></sl-icon>

@@ -381,6 +381,11 @@ class OpenaiApiService
       allowed_tools = allowed_tools.where(access: :student)
     end
 
+    if @conversation&.lesson_progress.blank? && @user.role_teacher?
+      # In non-lesson chats, avoid sending both Manage_Applets and View_Applets to teachers.
+      allowed_tools = allowed_tools.reject { |tool| tool.name == "View_Applets" }
+    end
+
     # Format tools for LLM
     allowed_tools.map(&:for_llm)
                  # Reject image generation tool if not using OpenRouter

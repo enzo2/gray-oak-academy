@@ -2,6 +2,11 @@
 //This script toggles the dark mode class and stores the preference in localStorage
 //For new visitors, the preference is set based on the user's system preference
 
+function setDarkModeIcon(iconButton, isDarkMode) {
+  if (!iconButton) return;
+  iconButton.name = isDarkMode ? 'sun' : 'moon-stars';
+}
+
 window.toggleDarkMode = function() {
   const isDarkMode = document.documentElement.classList.contains('dark');
   const iconButton = document.querySelector('.dark-mode-toggle');
@@ -10,28 +15,35 @@ window.toggleDarkMode = function() {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.remove('sl-theme-dark','wa-dark');  
     localStorage.theme = 'light';
-    iconButton.name = 'moon-stars';
   } else {
     document.documentElement.classList.add('dark');
     document.documentElement.classList.add('sl-theme-dark', 'wa-dark'); 
     localStorage.theme = 'dark';
-    iconButton.name = 'sun';
   }
+
+  setDarkModeIcon(iconButton, !isDarkMode);
 }
 
 function initializeDarkMode() {
   const iconButton = document.querySelector('.dark-mode-toggle');
   
   // Check if the user has set a preference for dark mode
-  if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  const shouldUseDark = localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (shouldUseDark) {
     document.documentElement.classList.add('dark');
     document.documentElement.classList.add('sl-theme-dark', 'wa-dark');
-    iconButton.name = 'sun';
   } else {
     document.documentElement.classList.remove('dark');
     document.documentElement.classList.remove('sl-theme-dark', 'wa-dark');
-    iconButton.name = 'moon-stars';
+  }
+
+  setDarkModeIcon(iconButton, shouldUseDark);
+
+  if (iconButton && !iconButton.dataset.darkModeBound) {
+    iconButton.addEventListener('click', window.toggleDarkMode);
+    iconButton.dataset.darkModeBound = 'true';
   }
 }
 
+document.addEventListener('turbo:load', initializeDarkMode);
 document.addEventListener('DOMContentLoaded', initializeDarkMode);
