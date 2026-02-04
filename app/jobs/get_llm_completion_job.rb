@@ -1,6 +1,7 @@
 # Job submits a conversation to the LLM API wrapper service, handles the streamed response, and broadcasts the response to the user.
 class GetLlmCompletionJob < ApplicationJob
   include ActionView::RecordIdentifier
+  include ApplicationHelper
   queue_as :default
   limits_concurrency to: 1, key: ->(conversation:) { conversation }, duration: 1.minutes
 
@@ -9,6 +10,7 @@ class GetLlmCompletionJob < ApplicationJob
 
   def perform(conversation:)
     user = conversation.user
+    include_images = conversation.image_input_supported?
 
     client = OpenaiApiService.new( # Uses ruby-openai gem (not just for OpenAI, supports any OpenAI-compatible API):
       current_user: user,
@@ -19,9 +21,17 @@ class GetLlmCompletionJob < ApplicationJob
     )
 
     # Get the array of message hashes with roles and content
-    messages = Message.for_completion_with_media(messages: conversation.messages, audio: conversation.audio_input_permitted?)
+    messages = Message.for_completion(
+      messages: conversation.messages,
+      audio: conversation.audio_input_permitted?,
+      images: include_images
+    )
 
     client.complete(messages)     # Should return an empty string once completed, since we used streaming.
+
+    if include_images == false && conversation.messages.role_user.count == 1
+      broadcast_warning("This model does not support image input. It's highly recommended to use a multimodal model.", conversation)
+    end
 
     # After done, see if we need to transcribe any audio messages.
     conversation.messages.role_user.joins(:audios).distinct.each do |msg|
@@ -127,7 +137,7 @@ class GetLlmCompletionJob < ApplicationJob
           end
         end
 
-        if chunk.dig("delta", "content")&.length&. > 0
+        if chunk.dig("delta", "content").to_s.length > 0
           # For standard content, append the new chunk to the buffer
           Rails.logger.debug "Content chunk: #{chunk.inspect}"
           content_buffer += chunk.dig("delta", "content")
@@ -156,15 +166,15 @@ class GetLlmCompletionJob < ApplicationJob
             message ||= conversation.messages.build(role: "assistant") # Create message if not already created (i.e. if there was no content)
             final_tool_calls = tool_calls_buffer.sort_by { |idx, _tc| idx }.map { |_idx, tc| tc } # Order by the index
             message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
-            check_for_blank_response(message)
-            broadcast_completion_finished(conversation, message.id) # Broadcast completion now, since tool may take a while
+            message_id = check_for_blank_response(message, conversation)
+            broadcast_completion_finished(conversation, message_id) # Broadcast completion now, since tool may take a while
             Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
             tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
             tool_handler.execute_tool_calls(final_tool_calls)
             tool_calls_buffer.clear # Clear buffer for subsequent tool calls
           else
-            check_for_blank_response(message)
-            broadcast_completion_finished(conversation, message.id)
+            message_id = check_for_blank_response(message, conversation)
+            broadcast_completion_finished(conversation, message_id)
           end
         end
       rescue StandardError => e
@@ -210,7 +220,18 @@ class GetLlmCompletionJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
   end
 
+  def broadcast_warning(message, conversation)
+    Turbo::StreamsChannel.broadcast_update_to(
+      "#{dom_id(conversation)}",
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { warning: message } }
+    )
+  end
+
   def broadcast_completion_finished(conversation, message_id)
+    return if message_id.blank?
+
     # Send a final message update as workaround for Turbo::Streams::ActionBroadcastJob being processed out-of-order
     # Message.find_by(id: message_id)&.broadcast_updated
     # Rails.logger.debug "Sent final message update for # #{message_id}"
@@ -228,13 +249,36 @@ class GetLlmCompletionJob < ApplicationJob
     )
   end
 
-  def check_for_blank_response(message)
-    content_blank = message&.content.to_s.strip.blank?
+  def check_for_blank_response(message, conversation)
+    content_blank = effectively_blank_text?(message&.content) # includes ZWSP
     tools_blank = message&.tool_calls.nil? || message.tool_calls.empty?
-    if message.nil? || (content_blank && tools_blank)
-      Rails.logger.warn "Rejecting blank response from LLM"
-      message&.destroy if message&.persisted?
-      raise OpenAiError, "Empty response from LLM (no content or tools provided)."
+    if message.nil? || (content_blank && tools_blank) # No support for audio-only responses currently
+      previous_message = if message&.persisted?
+        conversation.messages.where.not(id: message.id).reorder(created_at: :desc).first
+      else
+        conversation.messages.reorder(created_at: :desc).first
+      end
+      Rails.logger.debug "Previous message: #{previous_message.id} #{previous_message&.role} #{previous_message&.content}"
+
+      # Only log/broadcast unexpected blanks (e.g., not following tool use).
+      if unexpected_blank_response?(previous_message)
+        Rails.logger.warn("Unexpected blank response from LLM")
+        broadcast_warning("LLM returned an empty response.", conversation)
+      else
+        Rails.logger.debug("Blank response from LLM (acceptable)")
+      end
+
+      unless message&.persisted?
+        Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
+      end
     end
+    message&.id
+  end
+
+  def unexpected_blank_response?(previous_message)
+    # Normal to have a blank response if after a tool response.
+    return false if previous_message&.role_tool?
+    return false if previous_message&.role_assistant? && previous_message.tool_calls.present?
+    true
   end
 end

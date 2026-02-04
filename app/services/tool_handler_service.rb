@@ -979,6 +979,7 @@ class ToolHandlerService
     applet_id = @args["applet_id"].to_i
     applet = applet_scope_for_user.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
+    enforce_lesson_applet_scope!(applet)
     payload = { id: applet.id, title: applet.title, code: applet.code, warning: "If copying this code into an executable markdown block, there is no need to add escaping. Do not add extra backslashes." }
     create_tool_message(payload) # Avoid using JSON to avoid LLM syntax issues due to escaping
   end
@@ -1087,6 +1088,7 @@ class ToolHandlerService
     applet_id = @args["applet_id"].to_i
     applet = applet_scope_for_user.find_by(id: applet_id)
     raise ToolExecutionError, "Applet not found" unless applet
+    enforce_lesson_applet_scope!(applet)
 
     # Broadcast to chalkboard
     Turbo::StreamsChannel.broadcast_update_to(
@@ -1098,6 +1100,14 @@ class ToolHandlerService
 
     Rails.logger.debug("Chalkboard updated with stored applet: #{applet.title}")
     create_tool_message("Chalkboard updated with stored applet: #{applet.title}")
+  end
+
+  def enforce_lesson_applet_scope!(applet)
+    return unless @conversation&.lesson_progress.present?
+    # Ensures that applet is linked to the current lesson
+    return if applet.resource_id.present? && @conversation.lesson_progress.resources.exists?(id: applet.resource_id)
+
+    raise ToolExecutionError, "Applet not available for this lesson"
   end
 
   def execute_delegate_to_frontier_llm

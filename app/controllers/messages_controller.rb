@@ -4,7 +4,10 @@ class MessagesController < ApplicationController
 
   # For text/image messages
   def create
-    @message = Message.new(message_params.except(:images_data).merge(conversation_id: params[:conversation_id], role: "user"))
+    conversation = Conversation.find_by(id: params[:conversation_id])
+    return head :not_found unless conversation
+
+    @message = conversation.messages.new(message_params.except(:images_data).merge(role: "user"))
 
     # Handle images
     process_images_param(@message, params[:message][:images_data]) if params[:message][:images_data].present?
@@ -19,13 +22,12 @@ class MessagesController < ApplicationController
     respond_to do |format|
       format.turbo_stream
     end
+  rescue ActionController::ParameterMissing => e
+    Rails.logger.error "Failed to create message: #{e.message}"
+    render_message_form_error(conversation, e.message)
   rescue StandardError => e
     Rails.logger.error "Failed to create message: #{e.message}"
-    render turbo_stream: turbo_stream.replace(
-      "#{dom_id(@message.conversation)}_message_form",
-      partial: "messages/form",
-      locals: { conversation: @message.conversation, error: e.message }
-    ), status: :unprocessable_content
+    render_message_form_error(conversation, e.message)
   end
 
 
@@ -219,6 +221,18 @@ class MessagesController < ApplicationController
 
   def message_params
     params.require(:message).except(:images).permit(:content, :images_data)
+  end
+
+  def render_message_form_error(conversation, error_msg)
+    if conversation
+      render turbo_stream: turbo_stream.replace(
+        "#{dom_id(conversation)}_message_form",
+        partial: "messages/form",
+        locals: { conversation: conversation, error: error_msg }
+      ), status: :unprocessable_content
+    else
+      render plain: error_msg, status: :unprocessable_content
+    end
   end
 
   def broadcast_flash(conversation, error_msg)  # Update the flash bar

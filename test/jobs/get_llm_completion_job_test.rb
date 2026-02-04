@@ -109,6 +109,62 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_equal "{\"x\":1}", assistant_msg.tool_calls.first.dig("function", "arguments")
   end
 
+  test "blank response broadcasts warning and does not create assistant message" do
+    @conversation.messages.create!(role: :user, content: "Hello?")
+    assistant_count_before = @conversation.messages.role_assistant.count
+    warning_message = nil
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          handler.call({ "finish_reason" => "stop" })
+          handler.call({ "usage" => { "prompt_tokens" => 1, "completion_tokens" => 0, "total_tokens" => 1 } })
+          ""
+        end
+      end
+    }) do
+      Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*_args, **kwargs) {
+        warning_message = kwargs.dig(:locals, :flash, :warning)
+      }) do
+        GetLlmCompletionJob.perform_now(conversation: @conversation)
+      end
+    end
+
+    assistant_msgs = @conversation.reload.messages.role_assistant
+    assert_equal assistant_count_before, assistant_msgs.count
+    assert_equal "LLM returned an empty response.", warning_message
+  end
+
+  test "blank response does not warn after tool message" do
+    @conversation.messages.create!(role: :user, content: "Run tool")
+    tool_message = @conversation.messages.create!(role: :tool, content: "Tool executed")
+    tool_message.update_columns(created_at: Time.current + 1.second, updated_at: Time.current + 1.second)
+    assistant_count_before = @conversation.messages.role_assistant.count
+    warning_message = nil
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          handler.call({ "finish_reason" => "stop" })
+          handler.call({ "usage" => { "prompt_tokens" => 1, "completion_tokens" => 0, "total_tokens" => 1 } })
+          ""
+        end
+      end
+    }) do
+      Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*_args, **kwargs) {
+        warning_message = kwargs.dig(:locals, :flash, :warning)
+      }) do
+        GetLlmCompletionJob.perform_now(conversation: @conversation)
+      end
+    end
+
+    assistant_msgs = @conversation.reload.messages.role_assistant
+    assert_equal assistant_count_before, assistant_msgs.count
+    assert_nil warning_message
+  end
+
   test "preserves reasoning_details from thinking models" do
     @conversation.messages.create!(role: :user, content: "Think about this")
 
@@ -143,7 +199,7 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
 
     # Test serialization excludes reasoning_details when no tool_calls present
     # (reasoning is only needed for tool call continuity)
-    serialized = Message.for_completion_with_media(messages: [ assistant_msg ])
+    serialized = Message.for_completion(messages: [ assistant_msg ])
     assert_nil serialized.first[:reasoning_details], "reasoning_details should NOT be serialized without tool_calls"
   end
 
@@ -189,7 +245,7 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_not_nil assistant_msg.tool_calls, "tool_calls should be present"
 
     # Test serialization INCLUDES reasoning_details when tool_calls present, preserving non-OpenAI IDs
-    serialized = Message.for_completion_with_media(messages: [ assistant_msg ])
+    serialized = Message.for_completion(messages: [ assistant_msg ])
     assert_equal reasoning_data, serialized.first[:reasoning_details], "reasoning_details should be serialized with non-rs_ IDs preserved"
   end
 
@@ -233,7 +289,7 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_not_nil assistant_msg.reasoning_details, "reasoning_details should be saved"
 
     # Test serialization strips rs_ IDs but keeps other fields
-    serialized = Message.for_completion_with_media(messages: [ assistant_msg ])
+    serialized = Message.for_completion(messages: [ assistant_msg ])
     expected = reasoning_data.map { |d| d.except("id") }
     assert_equal expected, serialized.first[:reasoning_details], "OpenAI reasoning session IDs (rs_*) should be stripped"
   end

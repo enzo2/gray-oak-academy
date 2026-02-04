@@ -246,11 +246,11 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     temp_image.unlink
   end
 
-  test "consolidated Applet tool routes list and get actions" do
+  test "manage applets tool routes list and get actions" do
     Tool.create!(
       access: :admin,
       specifications: {
-        "name" => "Applet",
+        "name" => "Manage_Applets",
         "description" => "Applet tool",
         "strict_mode" => true,
         "parameters" => {
@@ -260,11 +260,7 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
             "applet_id" => { "type" => "integer", "description" => "Applet ID" }
           },
           "required" => [ "action" ],
-          "additionalProperties" => false,
-          "anyOf" => [
-            { "properties" => { "action" => { "type" => "string", "enum" => [ "list" ] } }, "required" => [ "action" ] },
-            { "properties" => { "action" => { "type" => "string", "enum" => [ "get" ] } }, "required" => [ "action", "applet_id" ] }
-          ]
+          "additionalProperties" => false
         }
       }
     )
@@ -277,17 +273,73 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     service = ToolHandlerService.new(conversation: conversations(:teacher_generic_conversation), message: nil)
 
     assert_difference "Message.count", 1 do
-      service.execute_tool_calls([ { id: "tc-applet-1", function: { name: "Applet", arguments: { action: "list" }.to_json } } ])
+      service.execute_tool_calls([ { id: "tc-applet-1", function: { name: "Manage_Applets", arguments: { action: "list" }.to_json } } ])
     end
     list_msg = Message.last
     assert_match(/Test Applet/, list_msg.content)
 
     assert_difference "Message.count", 1 do
-      service.execute_tool_calls([ { id: "tc-applet-2", function: { name: "Applet", arguments: { action: "get", applet_id: applet.id }.to_json } } ])
+      service.execute_tool_calls([ { id: "tc-applet-2", function: { name: "Manage_Applets", arguments: { action: "get", applet_id: applet.id }.to_json } } ])
     end
     get_msg = Message.last
     assert_match(/Test Applet/, get_msg.content.to_s)
     assert_match(/console\.log/, get_msg.content.to_s)
+  end
+
+  test "view applets in lessons are scoped to lesson resources" do
+    Tool.create!(
+      access: :student,
+      specifications: {
+        "name" => "View_Applets",
+        "description" => "View applets tool",
+        "strict_mode" => true,
+        "parameters" => {
+          "type" => "object",
+          "properties" => {
+            "action" => { "type" => "string", "description" => "Action", "enum" => [ "list", "get", "run_on_chalkboard" ] },
+            "applet_id" => { "type" => "integer", "description" => "Applet ID" }
+          },
+          "required" => [ "action" ],
+          "additionalProperties" => false
+        }
+      }
+    )
+
+    lesson_plan = lesson_plans(:one)
+    conv = conversations(:student_lesson_conversation)
+    teacher = users(:admin)
+
+    NodeJsSyntaxChecker.stub(:check, { valid: true, errors: [] }) do
+      allowed_resource = Resource.create!(teacher: teacher, category: "Applet", description: "Allowed resource")
+      allowed_applet = Applet.create!(user: teacher, title: "Allowed Applet", code: "console.log('ok')", resource: allowed_resource)
+      lesson_plan.resources << allowed_resource
+
+      blocked_resource = Resource.create!(teacher: teacher, category: "Applet", description: "Blocked resource")
+      blocked_applet = Applet.create!(user: teacher, title: "Blocked Applet", code: "console.log('no')", resource: blocked_resource)
+
+      service = ToolHandlerService.new(conversation: conv, message: nil)
+
+      assert_difference "Message.count", 1 do
+        service.execute_tool_calls([ { id: "tc-view-1", function: { name: "View_Applets", arguments: { action: "list" }.to_json } } ])
+      end
+      list_msg = Message.last
+      parsed = JSON.parse(list_msg.content)
+      titles = parsed.map { |item| item["title"] }
+      assert_includes titles, "Allowed Applet"
+      refute_includes titles, "Blocked Applet"
+
+      assert_difference "Message.count", 1 do
+        service.execute_tool_calls([ { id: "tc-view-2", function: { name: "View_Applets", arguments: { action: "get", applet_id: allowed_applet.id }.to_json } } ])
+      end
+      get_msg = Message.last
+      assert_match(/Allowed Applet/, get_msg.content.to_s)
+
+      assert_difference "Message.count", 1 do
+        service.execute_tool_calls([ { id: "tc-view-3", function: { name: "View_Applets", arguments: { action: "get", applet_id: blocked_applet.id }.to_json } } ])
+      end
+      blocked_msg = Message.last
+      assert_match(/Applet not available for this lesson/, blocked_msg.content)
+    end
   end
 
   test "get_student_profile returns markdown and excludes pending observations content" do

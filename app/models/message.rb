@@ -73,50 +73,34 @@ class Message < ApplicationRecord
     broadcast_remove_to("#{dom_id(conversation)}", target: "#{dom_id(self)}_buttons")
   end
 
-  # Return content in JSON format with base64 images for LLM APIs.
-  def content_with_images
-    if images.empty?
-      # OpenAI API accepts a string or array. Stick with the string for now.
-      # return [{ "type": "text", "text": content }] if role_tool?
-      # For other roles, just return the raw text string.
-      return content
-    end
+  # Return content in JSON format with optional base64 images and audio for LLM APIs.
+  def content_with_media(images: true, audio: false)
+    include_images = images && self.images.any?
+    include_audio = audio && audios.any?
+    # Can just send the text string if there are no images or audio
+    return content unless include_images || include_audio
 
-    # If there are images, always return an array.
-    content_json = [ { "type": "text", "text": content } ]
-    images.each do |image|
-      content_json << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
+    parts = []
+    parts << { "type": "text", "text": content } if content.present?
+    if include_images
+      self.images.each do |image|
+        parts << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
+      end
     end
-    content_json
-  end
-
-  # Return content in JSON format with base64 images and audio for LLM APIs.
-  def content_with_media
-    base_content = content_with_images
-    return base_content if audios.empty?
-
-    if base_content.empty?
-      # If base_content is empty, start with an empty array.
-      content_json = []
-    elsif base_content.is_a?(String)
-      # If base_content is just a string (text only or empty), convert to array format since we'll be adding audio.
-      content_json = [ { "type": "text", "text": base_content } ]
-    else
-      # Otherwise, it's already in the correct format.
-      content_json = base_content
+    if include_audio
+      audios.each do |audio|
+        audio_data = audio.base64_for_LLM
+        parts << { "type": "input_audio", "input_audio": audio_data } if audio_data
+      end
     end
-
-    audios.each do |audio|
-      audio_data = audio.base64_for_LLM
-      content_json << { "type": "input_audio", "input_audio": audio_data } if audio_data
-    end
-    content_json
+    parts
   end
 
   # Format messages for the LLM api
-  def self.for_completion_with_media(messages:, audio: false)
+  def self.for_completion(messages:, audio: false, images: true)
     messages.map do |message|
-      msg_hash = { role: message.role, content: audio ? message.content_with_media : message.content_with_images }
+      content = message.content_with_media(images: images, audio: audio)
+      msg_hash = { role: message.role, content: content }
       msg_hash[:tool_call_id] = message.tool_call_id if message.role_tool? && message.respond_to?(:tool_call_id) && message.tool_call_id.present?
       msg_hash[:tool_calls] = message.tool_calls if message.role_assistant? && message.respond_to?(:tool_calls) && message.tool_calls.present?
       # Include reasoning_details only for assistant messages with tool_calls (for thinking model continuity)
@@ -143,7 +127,7 @@ class Message < ApplicationRecord
   def ensure_text_present
     if content.blank? && audios.empty? && images.any?
       Rails.logger.info "Images with empty message content. Adding some text."
-      self.content = "See image(s)."
+      self.content = "See #{'image'.pluralize(images.count)} attached."
     end
   end
 

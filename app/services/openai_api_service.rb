@@ -164,6 +164,9 @@ class OpenaiApiService
     rescue Faraday::TimeoutError => e
       Rails.logger.error "Faraday::TimeoutError #{e.message}"
       raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
+    rescue Faraday::ConnectionFailed => e
+      Rails.logger.error "Faraday::ConnectionFailed #{e.message}"
+      raise OpenAiError, "The connection to the LLM provider failed. Please try again."
     rescue Faraday::ServerError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ServerError #{e.message}: #{error_message}"

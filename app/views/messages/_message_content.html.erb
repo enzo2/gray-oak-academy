@@ -66,7 +66,7 @@
               [&>:not(:first-child)]:mt-3
               [&>:not(:last-child)]:mb-3
               prose-pre:leading-tight
-              prose-pre:bg-[var(--rouge-bg)]
+              prose-pre:bg-(--rouge-bg)
               prose-pre:overflow-x-auto
               [&_div.highlighted-code-block_pre]:overflow-y-auto
               [&_div.highlighted-code-block_pre]:max-h-[350px]
@@ -74,8 +74,12 @@
               "
         id="<%= dom_id(message) %>_content"
         data-conversation-target="assistantMessageContent">
-    <% if message.content.blank? && message.images.empty? && message.tool_calls.nil? %>
-      <sl-spinner></sl-spinner>
+    <% if effectively_blank_text?(message.content) && message.images.empty? && message.tool_calls.nil? %>
+      <% if message.persisted? %>
+        <i class="text-dim text-sm">LLM had nothing to say.</i>
+      <% else %>
+        <sl-spinner></sl-spinner>
+      <% end %>
     <% else %>
 
       <% message.images.each_with_index do |image, idx| %>
@@ -116,8 +120,8 @@
         </div>
       <% end %>
 
-<!-- reasoning details
       <% if Rails.env.development? && message.reasoning_details.present? %>
+        <!--
         <details class="mt-4 p-3 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-600 text-sm">
           <summary class="cursor-pointer font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
             🧠 Reasoning Details
@@ -130,10 +134,10 @@
               </div>
             <% end %>
           </div>
-        </details>
+        </details> -->
       <% end %>
--->
-      <%= markdown(message.content) if message.content.present? && !message.role_tool? %>
+
+      <%= markdown(message.content) if effectively_present_text?(message.content) && !message.role_tool? %>
 
       <% if message.tool_calls.present? %> 
         <span class="mt-2 font-sans text-stone-500 dark:text-stone-400">

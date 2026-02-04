@@ -43,6 +43,13 @@ class Conversation < ApplicationRecord
     llm_in_use&.supports_audio_input?
   end
 
+  def image_input_supported?
+    # Default to true if no LLM is set or metadata is nil
+    llm = llm_in_use
+    return true unless llm
+    llm.supports_image_input != false
+  end
+
   # The teacher sets whether raw audio message input is disabled, enabled, or "only" (audio forced, whether raw or STT).
   # This does not affect transcription, which is always available if the user has configured speech-to-text.
   # In the event the LLM does not support audio input, the audio recorder will fall back to transcription.

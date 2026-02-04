@@ -79,7 +79,7 @@ jobs:
           - 5432:5432
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
       terrarium:
-        image: ghcr.io/khoj-ai/terrarium:latest
+        image: ghcr.io/enzo2/terrarium:latest
         ports:
           - 8080:8080
         options: --health-cmd="curl -f http://localhost:8080/health" --health-interval=10s --health-timeout=5s --health-retries=3

@@ -12,7 +12,7 @@
 
   <div data-controller="llm-settings" 
        data-llm-settings-models-path-value="<%= user_settings_llm_models_path %>" 
-       data-llm-settings-supported-uris-value='<%= SupportedApi.selectable_uris.to_json %>' 
+       data-llm-settings-supported-uris-value="<%= SupportedApi.selectable_uris.to_json %>" 
        data-llm-settings-has-user-token-value="<%= settings.llm_api_access_token.present? %>" 
        data-llm-settings-env-base-uri-value="<%= ensure_trailing_slash(ENV['OPENAI_API_BASE_URL']) %>"
        data-llm-settings-env-key-present-value="<%= ENV['OPENAI_API_KEY'].present? %>"
@@ -68,9 +68,14 @@
           This provider has no shared token. Enter your access token to use it.
         </span>
       </p>
-      <button type="button" class="btn-primary text-sm py-1 px-2 mt-2" data-llm-settings-target="tokenOverrideBtn" data-action="llm-settings#showTokenInput">
-        Override token
-      </button>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <button type="button" class="btn-secondary text-sm py-1 px-2" data-llm-settings-target="tokenOverrideBtn" data-action="llm-settings#showTokenInput">
+          Override token
+        </button>
+        <button type="button" class="btn-secondary text-sm py-1 px-2 hidden" data-llm-settings-target="useSharedTokenBtn" data-action="llm-settings#useSharedToken">
+          Use shared token
+        </button>
+      </div>
     </div>
 
     <div data-llm-settings-target="tokenInputWrapper" class="hidden">
@@ -96,7 +101,7 @@
                         llm_settings_target: "modelCombobox"
                       } %>
       <p class="text-sm text-dim mt-1">
-        The main LLM used for chat/lessons. Avoid expensive or long-thinking models. Must support image input; optionally audio input.
+        The main LLM used for chat/lessons. Avoid expensive or long-thinking models. Image support required.
       </p>
     </div>
 

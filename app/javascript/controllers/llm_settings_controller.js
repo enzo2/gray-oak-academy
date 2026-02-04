@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static values = { modelsPath: String, supportedUris: Array, hasUserToken: Boolean, envBaseUri: String, envKeyPresent: Boolean }
-  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint", "tokenStatus", "statusPersonal", "statusShared", "statusEnv", "statusRequired", "tokenOverrideBtn", "tokenInputWrapper", "tokenInput" ]
+  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint", "tokenStatus", "statusPersonal", "statusShared", "statusEnv", "statusRequired", "tokenOverrideBtn", "useSharedTokenBtn", "tokenInputWrapper", "tokenInput" ]
 
   connect() {
     //console.log("LLM Settings controller connected");
@@ -137,6 +137,7 @@ export default class extends Controller {
     if (this.hasStatusSharedTarget) this.setHidden(this.statusSharedTarget, !( !hasPersonal && hasSharedForProvider ));
     if (this.hasStatusEnvTarget) this.setHidden(this.statusEnvTarget, !( !hasPersonal && !hasSharedForProvider && usingEnvProvider ));
     if (this.hasStatusRequiredTarget) this.setHidden(this.statusRequiredTarget, !( !hasPersonal && !hasSharedForProvider && !usingEnvProvider ));
+    if (this.hasUseSharedTokenBtnTarget) this.setHidden(this.useSharedTokenBtnTarget, !(hasPersonal && hasSharedForProvider));
 
     // Reset input hidden/disabled by default
     if (this.hasTokenInputWrapperTarget) {
@@ -179,6 +180,19 @@ export default class extends Controller {
       this.tokenInputTarget.value = "";
       this.tokenOverrideBtnTarget.textContent = "Override token";
     }
+  }
+
+  /**
+   * Prepare form to clear personal token and fall back to shared token on save.
+   */
+  useSharedToken() {
+    if (!this.hasTokenInputWrapperTarget || !this.hasTokenInputTarget || !this.hasTokenOverrideBtnTarget) return;
+
+    this.tokenInputWrapperTarget.classList.remove("hidden");
+    this.tokenInputTarget.disabled = false;
+    this.tokenInputTarget.value = "";
+    this.tokenInputTarget.focus();
+    this.tokenOverrideBtnTarget.textContent = "Cancel override";
   }
 
   setHidden(el, hidden) {

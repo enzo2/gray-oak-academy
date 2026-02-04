@@ -65,7 +65,7 @@ class MessageModelTest < ActiveSupport::TestCase
     @conversation = conversations(:student_generic_conversation)
   end
 
-  test "for_completion_with_media formats text, image, and audio correctly" do
+  test "for_completion formats text, image, and audio correctly" do
     # Create a user message with an attached image (via URI) and an audio with base64 data (stubbed)
     msg = Message.create!(conversation: @conversation, role: :user, content: "Hello world")
 
@@ -81,7 +81,7 @@ class MessageModelTest < ActiveSupport::TestCase
     audio.define_singleton_method(:base64_for_LLM) { { data: "BASE64DATA", format: "wav" } }
 
     # Verify the class-level wrapper includes the audio payload in a serializer-agnostic way
-    payload = Message.for_completion_with_media(messages: [ msg ], audio: true)
+    payload = Message.for_completion(messages: [ msg ], audio: true)
     assert_equal 1, payload.length
     item = payload.first
     assert_equal "user", item[:role].to_s

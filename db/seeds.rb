@@ -445,6 +445,8 @@ tool.specifications = {
 tool.save!
 
 # Applet tools
+Tool.where(name: "Applet").delete_all # cleanup old
+
 tool = Tool.find_or_initialize_by(name: 'Manage_Applets')
 tool.access = :admin
 tool.specifications = {
@@ -1015,8 +1017,9 @@ p.save!
 openai = SupportedApi.find_or_create_by!(api_base_uri: 'https://api.openai.com/v1/')
 openrouter = SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
 SupportedApi.find_or_create_by!(api_base_uri: 'https://generativelanguage.googleapis.com/v1beta/openai/')
+# SupportedApi.find_or_create_by!(api_base_uri: 'https://api.cerebras.ai/v1/') # Fast but no image models yet.
 
-# Create default AppSetting pointing at OpenAI (no token override by default)
+# Create default AppSetting pointing at OpenAI for speech and openrouter for embeddings
 AppSetting.first_or_create!(
   singleton: true,
   provider_supported_api_id: openai.id,
