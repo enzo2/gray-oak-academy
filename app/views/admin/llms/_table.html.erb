@@ -4,7 +4,7 @@
       <thead>
       <tr class="bg-stone-50 dark:bg-stone-900">
         <th class="px-2 py-1 text-left">Model</th>
-        <th class="px-2 py-1 text-left">Provider <span class="font-normal">(✅=Shared)<span></th>
+        <th class="px-2 py-1 text-left">Provider <span class="font-normal">(✅=Shared)</span></th>
         <th class="px-2 py-1 text-right">Audio Input</th>
         <th class="px-2 py-1 text-right">Image Input</th>
         <th class="px-2 py-1 text-right">Image Output</th>
@@ -44,6 +44,7 @@
               <% else %>
                 <%= case llm.supports_audio_input? when true then "Yes" when false then "No" else "" end %>
               <% end %>
+            </td>
             <td class="px-2 py-1 text-right">
               <%= case llm.supports_image_input? when true then "Yes" when false then "No" else "" end %>
             </td>

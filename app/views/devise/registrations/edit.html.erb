@@ -101,7 +101,7 @@
 
               <div class="mb-4">
                 <label class="block text-sm font-medium leading-6 text-stone-900 dark:text-stone-100 mb-2">Type TRANSFER to confirm</label>
-                <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="TRANSFER">
+                <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="TRANSFER" autocomplete="off">
               </div>
 
               <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
@@ -124,7 +124,7 @@
           <div data-modal-target="content" class="hidden">
             <%= form_with url: registration_path(resource_name), method: :delete, class: "p-6", data: { controller: "railsblocks--confirmation", railsblocks__confirmation_confirm_text_value: "DELETE" } do |f| %>
               <div class="mb-4">
-                <h3 class="text-base font-semibold leading-6 text-stone-900 dark:text-stone-100" id="modal-title">Delete Account</h3>
+                <h3 class="text-base font-semibold leading-6 text-stone-900 dark:text-stone-100">Delete Account</h3>
                 <div class="mt-2">
                   <p class="text-sm text-stone-500 dark:text-stone-400">Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone.</p>
                 </div>
@@ -132,7 +132,7 @@
 
               <div class="mb-4">
                 <label class="block text-sm font-medium leading-6 text-stone-900 dark:text-stone-100 mb-2">Type DELETE to confirm</label>
-                <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="DELETE">
+                <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="DELETE" autocomplete="off">
               </div>
 
               <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">

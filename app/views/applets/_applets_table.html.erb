@@ -22,7 +22,7 @@
                         data: {
                           turbo_method: :post,
                           turbo_confirm: "This will save the applet as a Resource that can be linked to lesson plans. Proceed?" } do %>
-                      <sl-button variant="default" size="small" data-copy-code-url="<%= applet_path(applet)%>">
+                      <sl-button variant="default" size="small" data-copy-code-url="<%= applet_path(applet) %>">
                         <sl-icon slot="prefix" name="pin"></sl-icon>
                         Convert to Resource
                       </sl-button>
@@ -63,7 +63,7 @@
     No applets found.
   <% end %>
 
-  <sl-dialog label="Copied" class="" data-copy-code-target="successDialog">
+  <sl-dialog label="Copied" data-copy-code-target="successDialog">
     Code has been copied to clipboard!
   </sl-dialog>
 </div>
