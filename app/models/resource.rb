@@ -26,6 +26,53 @@ class Resource < ApplicationRecord
 
   validate :single_presence_of_payload
 
+  def self.normalize_tags(value)
+    raw_tags = case value
+    when String
+      value.split(",")
+    when Array
+      value.flat_map { |tag| tag.to_s.split(",") }
+    when nil
+      []
+    else
+      Array(value)
+    end
+
+    raw_tags.map { |tag| tag.to_s.strip.downcase }.reject(&:blank?).uniq
+  end
+
+  def self.normalize_category(value)
+    return if value.nil?
+
+    normalized = value.to_s.strip
+    return if normalized.blank?
+
+    normalized[0] = normalized[0].upcase
+    normalized
+  end
+
+  def self.distinct_tags_for(teacher)
+    normalize_tags(where(teacher: teacher).pluck(:tags).flatten.compact).sort
+  end
+
+  def self.most_used_tags_for(teacher, limit: 20)
+    tags = where(teacher: teacher).pluck(:tags).flatten.compact
+    counts = tags.each_with_object(Hash.new(0)) { |tag, memo| memo[tag] += 1 }
+    counts.sort_by { |tag, count| [ -count, tag ] }.first(limit).map(&:first)
+  end
+
+  def self.distinct_categories_for(teacher)
+    where(teacher: teacher).where.not(category: [ nil, "" ]).distinct.order(:category).pluck(:category)
+  end
+
+  def tags=(value)
+    super(self.class.normalize_tags(value))
+  end
+
+  def category=(value)
+    super(self.class.normalize_category(value))
+  end
+
   # For a collection of Resources, format the data as JSON so it can be provided to the LLM
   def self.format_collection(pretty: true)
     resources_data = all.map do |resource|

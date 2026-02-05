@@ -4,5 +4,14 @@
               class: "text-red-600 hover:text-red-800 ml-1 flex items-center" do %>
     <sl-icon name="file-earmark-minus"></sl-icon>
   <% end %>
-  <span><%= resource.category %> - <%= resource.description %></span>
+  <div class="flex flex-col">
+    <span><%= [resource.category, resource.description].compact_blank.join(" - ") %></span>
+    <% if resource.tags.any? %>
+      <div class="mt-1 flex flex-wrap gap-1">
+        <% resource.tags.each do |tag| %>
+          <span class="inline-flex items-center rounded-full bg-stone-300 px-2 py-0.5 text-[0.65rem] font-medium text-stone-700 dark:bg-stone-600 dark:text-stone-100"><%= tag %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 </div>

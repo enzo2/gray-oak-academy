@@ -1,9 +1,3 @@
-
-
-
-
-
-
 ## Project Overview
 
 Gray Oak Academy is a teacher-directed, LLM-conducted learning platform for 1-on-1 AI tutoring. Teachers create courses and lesson plans; students receive personalized tutoring via LLM with multimodal chat, generative applets, and progress tracking. See README for detailed explanation and vision.
@@ -50,7 +44,7 @@ bin/ci
 ## Architecture
 
 ### Tech Stack
-- Rails 8.0, Ruby 3.4, PostgreSQL with pgvector extension
+- Rails 8, Ruby 4, PostgreSQL with pgvector extension
 - Turbo/Stimulus (Hotwire) for frontend interactivity
 - Tailwind CSS 4 + Shoelace web components
 - Importmaps (no npm/node_modules)

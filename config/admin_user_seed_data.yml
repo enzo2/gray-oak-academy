@@ -3,9 +3,15 @@ resources:
     description: "Color inkjet printer"
   - category: "Library"
     description: "Local library is nearby, and students have a library card."
+    tags:
+      - "real-world"
   - category: "Example Video"
     description: "David Attenborough demonstrates the Teddy-bear cholla cactus's unique defense mechanism."
     uri: "https://www.youtube.com/embed/qK4G2KpmqFU"
+    tags:
+      - "biology"
   - category: "Example web tool"
     description: "Ray Optics Simulator:  A free, open-source web app for creating and simulating 2D geometric optical scenes."
     uri: "https://phydemo.app/ray-optics/simulator/"
+    tags:
+      - "physics"

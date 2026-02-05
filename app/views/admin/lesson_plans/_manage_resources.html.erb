@@ -16,11 +16,25 @@
 
   <h3 class="text-lg font-semibold mb-2">Available Resources</h3>        
   <div class="mb-2">
-    <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "input-primary", data: { action: "input->resource-filter#filterResources" } %>
+    <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2", data: { action: "input->resource-filter#filterResources", resource_filter_target: "searchInput" } %>
+  </div>
+  <% tag_filter_options = Resource.most_used_tags_for(current_user, limit: 20) %>
+  <% category_filter_options = Resource.distinct_categories_for(current_user) %>
+  <div class="mb-2">
+    <div class="grid grid-cols-2 gap-2">
+      <%= select_tag :resource_category_filter,
+                     options_for_select([["All categories", ""]] + category_filter_options.map { |category| [category, category] }),
+                     class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2",
+                     data: { action: "change->resource-filter#filterResources", resource_filter_target: "categorySelect" } %>
+      <%= select_tag :resource_tag_filter,
+                     options_for_select([["All tags", ""]] + tag_filter_options.map { |tag| [tag, tag] }),
+                     class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2",
+                     data: { action: "change->resource-filter#filterResources", resource_filter_target: "tagSelect" } %>
+    </div>
   </div>
   <div id="available-resources" class="max-h-60 overflow-y-auto border border-stone-500 rounded-sm p-2 mb-4">
     <% available_resources.each do |resource| %>
-      <div id="available-resource-<%= resource.id %>" data-resource-filter-target="availableResource">
+      <div id="available-resource-<%= resource.id %>" data-resource-filter-target="availableResource" data-resource-filter-searchable="<%= "#{resource.category} #{resource.description} #{resource.tags&.join(' ')}".strip %>" data-resource-filter-tags="<%= resource.tags.join(',') %>" data-resource-filter-category="<%= resource.category.to_s %>">
         <%= render partial: 'admin/resources/available_resource', locals: { resource: resource, lesson_plan: lesson_plan } %>
       </div>
     <% end %>

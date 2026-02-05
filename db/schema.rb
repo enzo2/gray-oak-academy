@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_22_154649) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_04_183000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -290,9 +290,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_22_154649) do
     t.datetime "created_at", null: false
     t.text "description"
     t.boolean "include_by_default"
+    t.string "tags", default: [], null: false, array: true
     t.bigint "teacher_id"
     t.datetime "updated_at", null: false
     t.string "uri"
+    t.index ["category"], name: "index_resources_on_category"
+    t.index ["tags"], name: "index_resources_on_tags", using: :gin
     t.index ["teacher_id"], name: "index_resources_on_teacher_id"
   end
 

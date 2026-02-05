@@ -21,6 +21,7 @@
     Or, you can include <b>only a description</b> to reference external resources available to the student, e.g. book, tool, workshop, demonstration, software, person.
   </p>
 
+  <% tag_owner = resource.teacher || current_user %>
   <%# If this resource already has an associated persisted applet, lock category to "Applet" %>
   <% if resource.applet&.persisted? %>
     <div class="mb-4">
@@ -31,13 +32,28 @@
   <% else %>
     <div class="mb-4">
       <%= form.label :category, "Category (optional)", class: "form-label" %>
-      <%= form.text_field :category, class: "input-primary", required: false %>
+      <% category_options = Resource.distinct_categories_for(tag_owner) %>
+      <%= form.combobox :category,
+                        category_options,
+                        free_text: true,
+                        placeholder: "Select or enter category" %>
     </div>
   <% end %>
 
   <div class="mb-4">
     <%= form.label :description, class: "form-label" %>
     <%= form.text_area :description, rows: 4, class: "input-primary", required: true %>
+  </div>
+
+  <% tag_options = Resource.distinct_tags_for(tag_owner) %>
+  <div class="mb-4">
+    <%= form.label :tags, "Tags (optional)", class: "form-label" %>
+    <%= form.combobox :tags,
+                      tag_options,
+                      free_text: true,
+                      multiselect_chip_src: tag_chips_admin_resources_path,
+                      placeholder: "Add tags..." %>
+    <p class="text-sm text-dim mt-1">Type a tag and press Enter to add it. Tags are saved in lowercase.</p>
   </div>
 
   <hr class="hr-primary mb-2">

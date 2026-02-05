@@ -43,6 +43,20 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @teacher, resource.applet.user
   end
 
+  test "should create resource with tags" do
+    assert_difference("Resource.count") do
+      post admin_resources_path, params: {
+        resource: {
+          description: "Tagged resource",
+          tags: "Math, science, MATH"
+        }
+      }
+    end
+
+    resource = Resource.last
+    assert_equal [ "math", "science" ], resource.tags
+  end
+
   test "should show resource" do
     get admin_resource_path(@resource)
     assert_response :success
@@ -70,5 +84,13 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
   test "cannot edit other teacher's resource" do
     get edit_admin_resource_path(@other_resource)
     assert_response :not_found
+  end
+
+  test "tag chips renders normalized tags" do
+    post tag_chips_admin_resources_path, params: { combobox_values: "Math, science, MATH" }, as: :turbo_stream
+
+    assert_response :success
+    assert_includes @response.body, "math"
+    assert_includes @response.body, "science"
   end
 end

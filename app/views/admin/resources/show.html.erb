@@ -14,6 +14,20 @@
   </div>
 
   <div>
+    <i>Tags</i>
+    <br>
+    <% if @resource.tags.any? %>
+      <div class="mt-1 flex flex-wrap gap-1">
+        <% @resource.tags.each do |tag| %>
+          <span class="inline-flex items-center rounded-full bg-stone-200 px-2 py-0.5 text-[0.7rem] font-medium text-stone-700 dark:bg-stone-700 dark:text-stone-100"><%= tag %></span>
+        <% end %>
+      </div>
+    <% else %>
+      No tags.
+    <% end %>
+  </div>
+
+  <div>
     <i>URI:</i>
     <br>
     <% if @resource.uri.present? %>

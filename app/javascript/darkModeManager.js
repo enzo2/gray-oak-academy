@@ -39,9 +39,10 @@ function initializeDarkMode() {
 
   setDarkModeIcon(iconButton, shouldUseDark);
 
-  if (iconButton && !iconButton.dataset.darkModeBound) {
+  if (iconButton) {
+    // Turbo cache restores DOM without event listeners; ensure we always rebind.
+    iconButton.removeEventListener('click', window.toggleDarkMode);
     iconButton.addEventListener('click', window.toggleDarkMode);
-    iconButton.dataset.darkModeBound = 'true';
   }
 }
 

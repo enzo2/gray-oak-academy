@@ -8,10 +8,30 @@
 </div>
 
 <div class="mb-4" data-controller="resource-filter">
-  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-3">
-    <div class="w-full md:max-w-md">
+  <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 mb-3">
+    <div class="w-full lg:max-w-md">
       <label for="resource_search" class="block text-sm font-semibold text-stone-700 dark:text-stone-200 mb-1">Search</label>
-      <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "input-primary w-full", data: { action: "input->resource-filter#filterResources" } %>
+      <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2", data: { action: "input->resource-filter#filterResources", resource_filter_target: "searchInput" } %>
+    </div>
+    <% tag_filter_options = Resource.most_used_tags_for(current_user, limit: 20) %>
+    <% category_filter_options = Resource.distinct_categories_for(current_user) %>
+    <div class="w-full lg:max-w-md">
+      <div class="grid grid-cols-2 gap-2 md:gap-3">
+        <div class="w-full">
+          <label for="resource_category_filter" class="block text-sm font-semibold text-stone-700 dark:text-stone-200 mb-1">Category</label>
+          <%= select_tag :resource_category_filter,
+                         options_for_select([["All categories", ""]] + category_filter_options.map { |category| [category, category] }),
+                         class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2",
+                         data: { action: "change->resource-filter#filterResources", resource_filter_target: "categorySelect" } %>
+        </div>
+        <div class="w-full">
+          <label for="resource_tag_filter" class="block text-sm font-semibold text-stone-700 dark:text-stone-200 mb-1">Tag</label>
+          <%= select_tag :resource_tag_filter,
+                         options_for_select([["All tags", ""]] + tag_filter_options.map { |tag| [tag, tag] }),
+                         class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2",
+                         data: { action: "change->resource-filter#filterResources", resource_filter_target: "tagSelect" } %>
+        </div>
+      </div>
     </div>
   </div>
 

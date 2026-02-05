@@ -59,4 +59,18 @@ class ResourceTest < ActiveSupport::TestCase
     assert_not resource.valid?
     assert_includes resource.errors[:base], "Only one payload variety (File, URI, or Applet) can be present."
   end
+
+  test "normalizes tags on assignment" do
+    teacher = users(:admin)
+    resource = Resource.new(description: "Tagged resource", teacher: teacher, tags: " Math, science ,MATH,,  ")
+
+    assert_equal [ "math", "science" ], resource.tags
+  end
+
+  test "normalizes category on assignment" do
+    teacher = users(:admin)
+    resource = Resource.new(description: "Categorized resource", teacher: teacher, category: "math")
+
+    assert_equal "Math", resource.category
+  end
 end

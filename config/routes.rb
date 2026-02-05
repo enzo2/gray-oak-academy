@@ -76,6 +76,7 @@ Rails.application.routes.draw do
 
     resources :resources do
       delete "delete_file", on: :member
+      post "tag_chips", on: :collection
     end
 
     resources :tools, only: [ :index, :show, :edit, :update ]

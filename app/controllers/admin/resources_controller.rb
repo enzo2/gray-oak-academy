@@ -7,6 +7,13 @@ module Admin
       @resources = Resource.where(teacher: current_user).order(created_at: :desc)
     end
 
+    def tag_chips
+      @tag_values = Resource.normalize_tags(params[:combobox_values])
+      respond_to do |format|
+        format.turbo_stream
+      end
+    end
+
     def show
     end
 
@@ -70,7 +77,7 @@ module Admin
     end
 
     def resource_params
-      params.expect(resource: [ :category, :description, :uri, :file, :include_by_default, applet_attributes: [ :id, :title, :code ] ])
+      params.expect(resource: [ :category, :description, :uri, :file, :include_by_default, :tags, applet_attributes: [ :id, :title, :code ] ])
       # Could add _destroy for applet_attributes if want to allow deleting applets, but makes sense to delete the whole resource
     end
   end

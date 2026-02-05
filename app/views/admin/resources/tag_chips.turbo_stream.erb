@@ -1,0 +1,3 @@
+<% @tag_values.each do |tag| %>
+  <%= hw_combobox_selection_chip display: tag, value: tag, for_id: params[:for_id] %>
+<% end %>
