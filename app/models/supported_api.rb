@@ -13,9 +13,18 @@ class SupportedApi < ApplicationRecord
   scope :enabled, -> { where(enabled: true) }
   scope :with_token, -> { where.not(api_access_token: nil) }
   scope :selectable_for_teachers, -> { enabled.with_token }
+  scope :openai_platform, -> { where("api_base_uri LIKE ?", "https://api.openai.com/%") }
 
   def self.selectable_uris
     selectable_for_teachers.pluck(:api_base_uri)
+  end
+
+  def self.openai_supported
+    openai_platform.first
+  end
+
+  def self.openai_selectable
+    selectable_for_teachers.openai_platform.first
   end
 
   private

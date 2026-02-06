@@ -3,3 +3,9 @@ example_api:
   api_access_token: "test-token"
   enabled: true
   notes: "Fixture for system tests"
+
+openai:
+  api_base_uri: "https://api.openai.com/v1/"
+  api_access_token: "openai-test-token"
+  enabled: true
+  notes: "Fixture OpenAI shared API"

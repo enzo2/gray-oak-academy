@@ -8,6 +8,7 @@ one:
     tts_instructions: "Speak in a calm and friendly tone."
     stt_method: "speech"
     stt_model: "transcribe-1"
+    openai_agent_model: "gpt-5.2"
   singleton: true
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>

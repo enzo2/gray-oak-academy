@@ -14,6 +14,8 @@ class OpenaiResponsesService
   # - Structured outputs are configured via text.format, not response_format.
   # - Statefulness is optional; when enabled, you can send only new inputs.
   require "json/repair"
+  require "net/http"
+  require "uri"
   include OpenaiResponseHelper
   include OpenaiErrorHelper
 
@@ -26,9 +28,10 @@ class OpenaiResponsesService
   # - stream_handler: optional Proc; will receive each streamed event (hash)
   # - task_system_prompt: optional; appended to base system prompt
   # - enable_tools: enables tools from Tool model (converted to Responses format)
+  # - native_tools: native Responses tools (e.g. [{ type: "web_search" }])
   # - store: when true, Responses API stores state, enabling previous_response_id
   # - previous_response_id: optional; allows chaining stateful Responses calls
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil)
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, native_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
@@ -49,7 +52,10 @@ class OpenaiResponsesService
     # We pass raw streaming events (converted to hashes) to the handler.
     # The handler decides how to render/broadcast output to the UI.
     @stream_handler = wrap_stream_handler(stream_handler)
-    @tools = determine_tools if enable_tools
+    @tools = []
+    @tools.concat(determine_tools) if enable_tools
+    @tools.concat(normalize_native_tools(native_tools))
+    @tools = @tools.uniq { |tool| tool.to_json }.presence
     @log_completion = log_completion
     @store = store.nil? ? true : store
     @active_store = @store
@@ -75,70 +81,151 @@ class OpenaiResponsesService
   # - Call once with store: true (default) and no previous_response_id.
   # - Reuse the same instance and it will set previous_response_id automatically
   #   based on the last response id, allowing you to send only new inputs.
-  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil)
-    check_cost_limits
-    format_type = response_format_type(response_format)
+  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil)
+    with_openai_error_handling do
+      check_cost_limits
+      format_type = response_format_type(response_format)
 
-    input_items = input.presence || build_input_from_messages(messages)
-    raise OpenAiError, "Input is required for Responses API." if input_items.blank?
+      input_items = input.presence || build_input_from_messages(messages)
+      raise OpenAiError, "Input is required for Responses API." if input_items.blank?
 
-    instructions = build_instructions(messages, instructions)
+      instructions = build_instructions(messages, instructions)
 
-    request_params = {
-      model: @model,
-      input: input_items,
-      temperature: temperature,
-      **(instructions.present? ? { instructions: instructions } : {}),
-      **(@tools.present? ? { tools: @tools } : {}),
-      **(include.present? ? { include: include } : {}),
-      **build_text_params(response_format)
-    }
+      request_params = {
+        model: @model,
+        input: input_items,
+        temperature: temperature,
+        **(instructions.present? ? { instructions: instructions } : {}),
+        **(@tools.present? ? { tools: @tools } : {}),
+        **(include.present? ? { include: include } : {}),
+        **(background ? { background: true } : {}),
+        **(metadata.present? ? { metadata: metadata } : {}),
+        **(max_output_tokens.present? ? { max_output_tokens: max_output_tokens } : {}),
+        **(max_tool_calls.present? ? { max_tool_calls: max_tool_calls } : {}),
+        **(parallel_tool_calls.present? ? { parallel_tool_calls: parallel_tool_calls } : {}),
+        **(tool_choice.present? ? { tool_choice: tool_choice } : {}),
+        **build_text_params(response_format)
+      }
 
-    state_params = build_state_params(store: store, previous_response_id: previous_response_id)
-    @active_store = state_params.fetch(:store, @store)
-    request_params.merge!(state_params) if state_params.present?
+      state_params = build_state_params(store: store, previous_response_id: previous_response_id)
+      @active_store = state_params.fetch(:store, @store)
+      request_params.merge!(state_params) if state_params.present?
 
-    # Set thinking for OpenRouter
-    if @reasoning_model_flag && @base_uri.include?("openrouter.ai")
-      request_params[:reasoning] = { effort: "high", exclude: false }
-    end
-
-    request_options = build_request_options
-    request_options_param = request_options.present? ? { request_options: request_options } : {}
-
-    if @stream_handler
-      # Streaming: Responses SDK yields a stream of typed events.
-      # We normalize each event to a hash and forward it to the handler.
-      # When the "response.completed" event arrives, we log usage and update
-      # previous_response_id for stateful follow-ups.
-      stream = @client.responses.stream(**request_params, **request_options_param)
-      stream.each do |event|
-        handle_stream_event(event)
-        @stream_handler.call(normalize_response_hash(event))
+      # Set thinking for OpenRouter
+      if @reasoning_model_flag && @base_uri.include?("openrouter.ai")
+        request_params[:reasoning] = { effort: "high", exclude: false }
       end
-      return
+
+      request_options = build_request_options
+      request_options_param = request_options.present? ? { request_options: request_options } : {}
+
+      if @stream_handler
+        # Streaming: Responses SDK yields a stream of typed events.
+        # We normalize each event to a hash and forward it to the handler.
+        # When the "response.completed" event arrives, we log usage and update
+        # previous_response_id for stateful follow-ups.
+        stream = @client.responses.stream(**request_params, **request_options_param)
+        stream.each do |event|
+          handle_stream_event(event)
+          @stream_handler.call(normalize_response_hash(event))
+        end
+        return
+      end
+
+      response = @client.responses.create(**request_params, **request_options_param)
+      response_hash = normalize_response_hash(response)
+
+      Rails.logger.debug "Responses API response: #{response_hash}"
+
+      set_last_response(response_hash, response)
+
+      # Background run submission may return queued/in_progress with no output;
+      # callers should poll/retrieve using response_id.
+      if background
+        return response_hash
+      end
+
+      log_completion(response_hash)
+
+      check_for_refusal(response_hash)
+      content = extract_output_text(response_hash)
+      check_for_blank_content(content, response_hash: response_hash)
+
+      if %w[json_schema json_object].include?(format_type)
+        parsed_content = parse_JSON(content)
+        validate_JSON(parsed_content, schema) if schema.present?
+        Rails.logger.debug "Validated JSON content: #{parsed_content}"
+        parsed_content
+      else
+        content
+      end
     end
+  end
 
-    response = @client.responses.create(**request_params, **request_options_param)
-    response_hash = normalize_response_hash(response)
+  # Fetch a previously-created response by id.
+  def retrieve_response(response_id, include: nil)
+    with_openai_error_handling do
+      raise OpenAiError, "response_id is required." if response_id.blank?
 
-    Rails.logger.debug "Responses API response: #{response_hash}"
+      response =
+        if include.present?
+          retrieve_response_with_include(response_id, include: include)
+        else
+          request_options = build_request_options
+          request_options_param = request_options.present? ? { request_options: request_options } : {}
+          @client.responses.retrieve(response_id, **request_options_param)
+        end
 
-    set_last_response(response_hash, response)
-    log_completion(response_hash)
-
-    check_for_refusal(response_hash)
-    content = extract_output_text(response_hash)
-    check_for_blank_content(content, response_hash: response_hash)
-
-    if %w[json_schema json_object].include?(format_type)
-      parsed_content = parse_JSON(content)
-      validate_JSON(parsed_content, schema) if schema.present?
-      Rails.logger.debug "Validated JSON content: #{parsed_content}"
-      parsed_content
-    else
-      content
+      response_hash = normalize_response_hash(response)
+      set_last_response(response_hash, response)
+      response_hash
     end
+  end
+
+  # Poll a background response until terminal status or timeout.
+  # Returns the final response hash.
+  def wait_for_response(response_id, timeout_seconds: 600, poll_interval_seconds: 2, include: nil)
+    deadline = Time.current + timeout_seconds
+
+    loop do
+      response_hash = retrieve_response(response_id, include: include)
+      status = response_hash["status"].to_s
+
+      if status == "completed"
+        log_completion(response_hash)
+        return response_hash
+      end
+
+      return response_hash if %w[failed cancelled incomplete].include?(status)
+
+      if Time.current >= deadline
+        raise OpenAiError, "Background response timed out after #{timeout_seconds} seconds."
+      end
+
+      sleep(poll_interval_seconds)
+    end
+  end
+
+  def cancel_response(response_id)
+    with_openai_error_handling(unexpected_message: "Failed to cancel response") do
+      raise OpenAiError, "response_id is required." if response_id.blank?
+
+      request_options = build_request_options
+      request_options_param = request_options.present? ? { request_options: request_options } : {}
+      response = @client.responses.cancel(response_id, **request_options_param)
+      normalize_response_hash(response)
+    end
+  end
+
+  def output_text(response_hash = nil)
+    target = response_hash || normalize_response_hash(@last_response)
+    extract_output_text(target)
+  end
+
+  private
+
+  def with_openai_error_handling(unexpected_message: "An unexpected error occurred")
+    yield
   rescue OpenAI::Errors::BadRequestError, OpenAI::Errors::UnprocessableEntityError, OpenAI::Errors::ConflictError => e
     error_message = extract_openai_error_message(e)
     Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
@@ -175,11 +262,10 @@ class OpenaiResponsesService
     raise OpenAiError, "The server encountered an error. Details: #{error_message}"
   rescue StandardError => e
     raise e if e.is_a?(OpenAiError)
-    Rails.logger.error "StandardError #{e.inspect}"
-    raise OpenAiError, "An unexpected error occurred: #{e.message}"
-  end
 
-  private
+    Rails.logger.error "StandardError #{e.inspect}"
+    raise OpenAiError, "#{unexpected_message}: #{e.message}"
+  end
 
   def default_base_uri
     ENV.fetch("OPENAI_API_BASE_URL") { raise "Base URL was neither entered in settings, nor set in ENV variable OPENAI_API_BASE_URL." }
@@ -265,6 +351,34 @@ class OpenaiResponsesService
     return nil if response_format.blank?
     type = response_format[:type] || response_format["type"]
     type&.to_s
+  end
+
+  # NOTE: openai-ruby 0.45.0 sends a scalar query value for include when using
+  # responses.retrieve, which OpenAI may reject as invalid_type.
+  # We work around this by issuing a direct GET with include[] query keys.
+  def retrieve_response_with_include(response_id, include:)
+    uri = URI.join(ensure_trailing_slash(@base_uri), "responses/#{response_id}")
+    include_pairs = Array(include).map { |value| [ "include[]", value.to_s ] }
+    uri.query = URI.encode_www_form(include_pairs) if include_pairs.present?
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+
+    request = Net::HTTP::Get.new(uri.request_uri)
+    request["Authorization"] = "Bearer #{@access_token}"
+    request["Content-Type"] = "application/json"
+    attribution_headers.each { |key, value| request[key] = value }
+
+    response = http.request(request)
+    body = response.body.to_s
+    parsed = body.present? ? JSON.parse(body) : {}
+
+    unless response.is_a?(Net::HTTPSuccess)
+      message = parsed.dig("error", "message").presence || "HTTP #{response.code}"
+      raise OpenAiError, "The server rejected the request. #{message}"
+    end
+
+    parsed
   end
 
   # Statefulness:
@@ -507,6 +621,20 @@ class OpenaiResponsesService
                  .reject { |tool| tool["name"] == "Generate_Image" && !@base_uri.include?("openrouter.ai") }
   end
 
+  def normalize_native_tools(native_tools)
+    Array(native_tools).filter_map do |tool|
+      case tool
+      when String, Symbol
+        { "type" => tool.to_s }
+      when Hash
+        normalized = tool.deep_stringify_keys
+        normalized["type"].present? ? normalized : nil
+      else
+        nil
+      end
+    end
+  end
+
   def format_response_tool(tool)
     spec = tool.respond_to?(:specifications) ? tool.specifications : tool
     name = spec["name"] || spec[:name]
@@ -582,6 +710,7 @@ class OpenaiResponsesService
 
     Completion.create(
       conversation: @conversation,
+      user: @user,
       model: response_hash["model"] || @model,
       api_provider: @base_uri,
       prompt_tokens: prompt_tokens&.to_i,

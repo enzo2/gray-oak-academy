@@ -1,13 +1,10 @@
 class DelegateToFrontierLlmJob < ApplicationJob
   queue_as :default
+  include Rails.application.routes.url_helpers
 
-  def perform(teacher, prompt)
+  def perform(teacher, prompt, source: "tool_call")
     unless teacher.role_teacher?
       raise "Permission denied: this tool is only available to teachers."
-    end
-    # Validate that the teacher has a reasoning LLM configured
-    unless teacher.setting.reasoning_model_name.present?
-      raise "No reasoning LLM configured. Please configure a reasoning model in settings before using this tool."
     end
 
     task_system_prompt = Prompt.get_prompt(category: "generative_guidelines", user: teacher) +
@@ -17,19 +14,166 @@ class DelegateToFrontierLlmJob < ApplicationJob
     # Prepare messages for the LLM
     messages = [ { role: "user", content: prompt } ]
 
+    app_setting = AppSetting.settings
+    return run_legacy_delegate(teacher, task_system_prompt, messages) unless app_setting&.openai_agent_enabled?
+
+    run_id = SecureRandom.uuid
+    started_at = Time.current
+    model = app_setting.openai_agent_model
+    openai_api = app_setting.openai_agent_supported_api
+    raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
+
+    run_log = AgentRunLogService.new(app_setting: app_setting)
+    response_id = nil
+    failure_notified = false
+
     begin
-      # Make the LLM request using reasoning model (non-streaming)
-      client = OpenaiApiService.new(
+      client = OpenaiResponsesService.new(
         current_user: teacher,
-        reasoning_model: true,
-        task_system_prompt: task_system_prompt
+        access_token: app_setting.openai_agent_access_token,
+        base_uri: openai_api.api_base_uri,
+        model: model,
+        task_system_prompt: task_system_prompt,
+        enable_tools: false,
+        native_tools: [ { type: "web_search" } ],
+        store: true,
+        log_completion: true
       )
 
-      client.complete(messages)
+      submitted = client.complete(
+        messages,
+        background: true,
+        metadata: {
+          run_id: run_id,
+          run_type: "delegate_to_frontier_llm",
+          teacher_id: teacher.id.to_s,
+          source: source.to_s
+        }
+      )
+
+      response_id = submitted["id"]
+      run_log.record_submitted(
+        run_id: run_id,
+        response_id: response_id,
+        teacher: teacher,
+        model: model,
+        source: source,
+        prompt: prompt
+      )
+
+      final_response = client.wait_for_response(
+        response_id,
+        timeout_seconds: 900,
+        poll_interval_seconds: 2
+      )
+
+      status = final_response["status"].to_s
+      if status == "completed"
+        result = client.output_text(final_response)
+        raise OpenAiError, "Agent run completed with empty output." if result.blank?
+        run_log.record_completed(
+          run_id: run_id,
+          response_id: response_id,
+          response_hash: final_response,
+          started_at: started_at
+        )
+        return result
+      end
+
+      run_log.record_failed(
+        run_id: run_id,
+        response_id: response_id,
+        response_hash: final_response,
+        started_at: started_at,
+        error_message: "Run status: #{status}. #{extract_response_error(final_response)}"
+      )
+
+      error_message = extract_response_error(final_response)
+      notify_failed(
+        run_id: run_id,
+        response_id: response_id,
+        teacher: teacher,
+        model: model,
+        source: source,
+        prompt: prompt,
+        started_at: started_at,
+        error_message: "Run status: #{status}. #{error_message}"
+      )
+      failure_notified = true
+      raise OpenAiError, "Agent run failed with status '#{status}': #{error_message}"
 
     rescue StandardError => e
       Rails.logger.error "Error in DelegateToFrontierLlmJob: #{e.message}"
+      unless failure_notified
+        run_log.record_failed(
+          run_id: run_id,
+          response_id: response_id,
+          started_at: started_at,
+          error_message: e.message
+        )
+        notify_failed(
+          run_id: run_id,
+          response_id: response_id,
+          teacher: teacher,
+          model: model,
+          source: source,
+          prompt: prompt,
+          started_at: started_at,
+          error_message: e.message
+        )
+      end
       raise e # Re-raise to be handled by the tool handler
     end
+  end
+
+  private
+
+  def run_legacy_delegate(teacher, task_system_prompt, messages)
+    # Validate that the teacher has a reasoning LLM configured
+    unless teacher.setting.reasoning_model_name.present?
+      raise "No reasoning LLM configured. Please configure a reasoning model in settings before using this tool."
+    end
+
+    client = OpenaiApiService.new(
+      current_user: teacher,
+      reasoning_model: true,
+      task_system_prompt: task_system_prompt
+    )
+    client.complete(messages)
+  end
+
+  def notify_failed(run_id:, response_id:, teacher:, model:, source:, prompt:, started_at:, error_message:)
+    return if run_id.blank?
+
+    superuser_ids = User.role_superuser.pluck(:id)
+    return if superuser_ids.empty?
+
+    Rails.event.notify(Events::AgentRunFailed.new(
+      recipient_ids: superuser_ids,
+      link: admin_agent_runs_path,
+      run_id: run_id,
+      response_id: response_id.to_s,
+      teacher_name: teacher.name,
+      teacher_id: teacher.id,
+      model: model.to_s,
+      source: source.to_s,
+      task_preview: truncate_prompt(prompt),
+      duration_seconds: (Time.current - started_at).round(1),
+      error_message: error_message.to_s.truncate(500)
+    ))
+  rescue StandardError => e
+    Rails.logger.error "Failed to notify failed agent run #{run_id}: #{e.message}"
+  end
+
+  def extract_response_error(response_hash)
+    error = response_hash["error"]
+    return "Unknown error" if error.blank?
+    return error.to_s unless error.is_a?(Hash)
+
+    error["message"].presence || error["code"].presence || "Unknown error"
+  end
+
+  def truncate_prompt(prompt)
+    prompt.to_s.squish.truncate(220)
   end
 end

@@ -17,6 +17,7 @@
              { key: "important", label: "Important", desc: "System alerts" },
              { key: "student_progress", label: "Student Progress", desc: "Lesson completions and milestones" }
            ]
+           categories << { key: "agent_ops", label: "Agent Runs", desc: "Background agent run activity" } if current_user.role_superuser?
         %>
         
         <% categories.each do |cat| %>

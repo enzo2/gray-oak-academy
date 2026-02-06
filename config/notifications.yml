@@ -69,3 +69,18 @@ events:
       - lesson_title
       - quantity_str
       - student_id
+
+  agent_run.failed:
+    category: agent_ops
+    subject: "Agent Run Failed"
+    message: "Agent run %{run_id} failed: %{error_message}"
+    required_params:
+      - run_id
+      - teacher_name
+      - teacher_id
+      - model
+      - response_id
+      - source
+      - duration_seconds
+      - task_preview
+      - error_message

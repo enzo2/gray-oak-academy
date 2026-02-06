@@ -1116,7 +1116,7 @@ class ToolHandlerService
 
     begin
       # Run the delegation job synchronously; caller is expected to wait for completion
-      result = DelegateToFrontierLlmJob.perform_now(current_teacher, prompt)
+      result = DelegateToFrontierLlmJob.perform_now(current_teacher, prompt, source: "tool_call")
       create_tool_message(<<~CONTENT
         Frontier LLM response complete.
         This response has not yet been shown to the user, executed, or otherwise acted upon; this remains your decision.

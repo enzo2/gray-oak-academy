@@ -41,7 +41,8 @@ module Admin
         :embedding_model,
         :image_generation_two_pass,
         :user_daily_budget,
-        :max_chat_cost
+        :max_chat_cost,
+        :openai_agent_model
       )
     end
   end

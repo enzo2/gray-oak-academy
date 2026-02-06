@@ -44,6 +44,7 @@ class Setting < ApplicationRecord
       "important" => { "email" => true, "in_app" => true },
       "student_progress" => { "email" => false, "in_app" => true }
     }
+    defaults["agent_ops"] = { "email" => false, "in_app" => true } if user&.role_superuser?
     # Deep merge defaults with stored value to ensure new keys appear
     defaults.deep_merge(super || {})
   end

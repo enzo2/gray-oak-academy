@@ -43,13 +43,16 @@ class UserSettingsController < ApplicationController
   end
 
   def user_settings_params
+    notification_keys = {
+      important: [ :email, :in_app ],
+      student_progress: [ :email, :in_app ]
+    }
+    notification_keys[:agent_ops] = [ :email, :in_app ] if current_user.role_superuser?
+
     params.require(:setting).permit(
       :llm_model_name, :llm_api_access_token, :llm_api_base_uri,
       :reasoning_model_name,
-      notification_preferences: {
-        important: [ :email, :in_app ],
-        student_progress: [ :email, :in_app ]
-      }
+      notification_preferences: notification_keys
     )
   end
 end

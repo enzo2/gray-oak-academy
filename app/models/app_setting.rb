@@ -16,7 +16,8 @@ class AppSetting < ApplicationRecord
                  :embedding_model,
                  :image_generation_two_pass,
                  :user_daily_budget,
-                 :max_chat_cost
+                 :max_chat_cost,
+                 :openai_agent_model
 
   # Custom accessor to handle boolean casting and default value
   def image_generation_two_pass
@@ -117,6 +118,32 @@ class AppSetting < ApplicationRecord
 
     open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
     open_router&.api_access_token.present?
+  end
+
+  # OpenAI-only agent runner configuration.
+  # Agent runs use this shared key/model path regardless of user API settings.
+  def openai_supported_api
+    SupportedApi.openai_supported
+  end
+
+  def openai_agent_supported_api
+    SupportedApi.openai_selectable
+  end
+
+  def openai_agent_access_token
+    openai_agent_supported_api&.api_access_token
+  end
+
+  def openai_agent_base_uri
+    openai_agent_supported_api&.api_base_uri
+  end
+
+  def openai_agent_enabled?
+    openai_agent_model.present? && openai_agent_access_token.present?
+  end
+
+  def self.openai_agent_enabled?
+    settings&.openai_agent_enabled? || false
   end
 
   # Fetch and cache OpenRouter embedding models

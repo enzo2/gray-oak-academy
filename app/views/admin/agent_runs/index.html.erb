@@ -1,0 +1,111 @@
+<h2 class="text-2xl font-bold mb-2">Agent Runs</h2>
+<p class="mb-4 text-sm text-dim">
+  OpenAI Responses background runs.
+</p>
+
+<% if @runs.any? %>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-stone-200 dark:divide-stone-700">
+      <thead class="bg-stone-50 dark:bg-stone-800">
+        <tr class="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:text-xs [&>th]:uppercase [&>th]:tracking-wider text-stone-500 dark:text-stone-400">
+          <th>Status</th>
+          <th>Run ID</th>
+          <th>Teacher</th>
+          <th>Model</th>
+          <th>Source</th>
+          <th>Response ID</th>
+          <th>Submitted</th>
+          <th>Finished</th>
+          <th>Duration (s)</th>
+          <th>Turns</th>
+          <th>Tool Calls</th>
+          <th>Reasoning Items</th>
+          <th>Task</th>
+          <th>Error</th>
+          <th>Reasoning</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-stone-200 dark:divide-stone-700">
+        <% @runs.each_with_index do |run, idx| %>
+          <tr class="[&>td]:px-4 [&>td]:py-2 align-top text-sm <%= idx.even? ? '' : 'bg-stone-100/60 dark:bg-stone-800/60' %>">
+            <td>
+              <% case run[:status].to_s %>
+              <% when "completed" %>
+                <span class="text-green-700 dark:text-green-400">completed</span>
+              <% when "failed" %>
+                <span class="text-red-700 dark:text-red-400">failed</span>
+              <% else %>
+                <span class="text-amber-700 dark:text-amber-300"><%= run[:status].presence || "submitted" %></span>
+              <% end %>
+            </td>
+            <td class="font-mono text-xs"><%= run[:run_id] %></td>
+            <td>
+              <% if run[:teacher_id].present? %>
+                <%= link_to(run[:teacher_name], admin_student_path(run[:teacher_id]), class: "underline underline-offset-2") %>
+              <% else %>
+                <%= run[:teacher_name] %>
+              <% end %>
+            </td>
+            <td class="font-mono text-xs"><%= run[:model] %></td>
+            <td><%= run[:source] %></td>
+            <td class="font-mono text-xs"><%= run[:response_id] %></td>
+            <td><%= run[:submitted_at].present? ? Time.zone.parse(run[:submitted_at]).strftime("%Y-%m-%d %H:%M:%S") : "" %></td>
+            <td><%= run[:finished_at].present? ? Time.zone.parse(run[:finished_at]).strftime("%Y-%m-%d %H:%M:%S") : "" %></td>
+            <td><%= run[:duration_seconds] %></td>
+            <td><%= run[:assistant_turns] %></td>
+            <td><%= run[:tool_call_count] %></td>
+            <td><%= run[:reasoning_item_count] %></td>
+            <td class="max-w-xs"><%= run[:task_preview] %></td>
+            <td class="max-w-xs text-red-700 dark:text-red-400"><%= run[:error_message] %></td>
+            <td>
+              <% if run[:response_id].present? %>
+                <%= link_to "View", admin_agent_runs_path(trace_response_id: run[:response_id]), class: "underline underline-offset-2" %>
+              <% else %>
+                <span class="text-dim">n/a</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if @trace_run.present? && @trace_data.present? %>
+    <div class="mt-6">
+      <h3 class="text-lg font-semibold mb-2">Reasoning Trace: <span class="font-mono text-sm"><%= @trace_run[:response_id] %></span></h3>
+      <% if @trace_data[:error].present? %>
+        <p class="text-sm text-red-700 dark:text-red-400"><%= @trace_data[:error] %></p>
+      <% else %>
+        <% if @trace_data[:summary_text].present? %>
+          <h4 class="text-sm font-medium mb-1">Summary</h4>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded"><%= @trace_data[:summary_text] %></pre>
+        <% end %>
+
+        <h4 class="text-sm font-medium mt-4 mb-1">Reasoning Items (Raw)</h4>
+        <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto"><%= @trace_data[:reasoning_json].presence || "(No reasoning items returned.)" %></pre>
+
+        <h4 class="text-sm font-medium mt-4 mb-1">Output Item Types</h4>
+        <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto"><%= @trace_data[:output_type_counts].present? ? JSON.pretty_generate(@trace_data[:output_type_counts]) : "(No output items returned.)" %></pre>
+
+        <% if @trace_data[:output_text].present? %>
+          <details class="mt-4">
+            <summary class="text-sm font-medium cursor-pointer">Assistant Output Text</summary>
+            <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:output_text] %></pre>
+          </details>
+        <% end %>
+
+        <details class="mt-4">
+          <summary class="text-sm font-medium cursor-pointer">Output Items (Raw JSON)</summary>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:output_items_json].presence || "(No output items returned.)" %></pre>
+        </details>
+
+        <details class="mt-4">
+          <summary class="text-sm font-medium cursor-pointer">Full Response (Raw JSON)</summary>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:response_json].presence || "(No response returned.)" %></pre>
+        </details>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <p class="text-dim">No agent runs recorded yet.</p>
+<% end %>

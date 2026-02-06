@@ -137,12 +137,100 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "complete with background true returns raw response payload" do
+    fake_client = build_responses_client do |_params|
+      {
+        "id" => "resp_bg",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.complete(
+        [ { role: "user", content: "Run long task" } ],
+        background: true,
+        metadata: { run_id: "run_1" }
+      )
+
+      assert_equal "resp_bg", result["id"]
+      assert_equal "queued", result["status"]
+    end
+  end
+
+  test "complete includes native responses tools without enabling app function tools" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        enable_tools: false,
+        native_tools: [ { type: "web_search" } ],
+        log_completion: false
+      )
+
+      result = service.complete([ { role: "user", content: "Find recent refraction demos" } ])
+      assert_equal "Done", result
+    end
+
+    assert_equal [ { "type" => "web_search" } ], captured[:tools]
+  end
+
+  test "wait_for_response polls until completion" do
+    call_count = 0
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |_response_id, _params|
+        call_count += 1
+        if call_count == 1
+          { "id" => "resp_bg", "status" => "in_progress", "output" => [] }
+        else
+          response_payload("Done", id: "resp_bg").merge("status" => "completed")
+        end
+      }
+    ) { |_params| response_payload("unused") }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.wait_for_response("resp_bg", timeout_seconds: 5, poll_interval_seconds: 0)
+      assert_equal "completed", result["status"]
+      assert_equal 2, call_count
+    end
+  end
+
   private
 
-  def build_responses_client(&create_proc)
+  def build_responses_client(retrieve_proc: nil, &create_proc)
     responses = Object.new
     responses.define_singleton_method(:create) do |**params|
       create_proc.call(params)
+    end
+    if retrieve_proc
+      responses.define_singleton_method(:retrieve) do |response_id, **params|
+        retrieve_proc.call(response_id, params)
+      end
     end
 
     client = Object.new

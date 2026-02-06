@@ -169,6 +169,29 @@
     </div>
   </div>
 
+  <h2 class="text-xl font-semibold mt-4 mb-2">
+    OpenAI Agent Runs
+    <% if AppSetting.openai_agent_enabled? %>
+      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+    <% end %>
+  </h2>
+  <p class="text-dim text-sm mb-2">
+    Uses OpenAI Responses background runs for backend agent tasks (independent of user LLM settings).
+  </p>
+  <div>
+    <%= f.label :openai_agent_model, "OpenAI agent model", class: "form-label" %>
+    <%= f.text_field :openai_agent_model, class: "input-primary", placeholder: "gpt-5.2" %>
+    <p class="text-xs text-dim mt-1">
+      Runs are only enabled when this field is set and a shared key exists for
+      <code><%= @setting.openai_supported_api&.api_base_uri || "an OpenAI Supported API entry" %></code>.
+      <% if @setting.openai_agent_access_token.present? %>
+        <span class="text-green-600 dark:text-green-400">Shared OpenAI key is configured.</span>
+      <% else %>
+        <span class="text-red-600 dark:text-red-400">Add a shared OpenAI key in LLM APIs to enable this pipeline.</span>
+      <% end %>
+    </p>
+  </div>
+
   <div class="mt-6">
     <%= f.submit "Save App Settings", class: "btn-primary" %>
   </div>
