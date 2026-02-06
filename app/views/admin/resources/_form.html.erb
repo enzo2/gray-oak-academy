@@ -1,4 +1,17 @@
-<%= form_with(model: [:admin, resource], id: "resource-form", data: { controller: "embed-checker" }) do |form| %>
+<%
+  payload_type =
+    if resource.applet&.persisted? || (resource.applet.present? && (resource.applet.title.present? || resource.applet.code.present?))
+      "applet"
+    elsif resource.file.attached?
+      "file"
+    elsif resource.uri.present?
+      "url"
+    else
+      "other"
+    end
+  payload_locked = resource.applet&.persisted? || (resource.persisted? && resource.file.attached?)
+%>
+<%= form_with(model: [:admin, resource], id: "resource-form", data: { controller: "embed-checker resource-form", resource_form_initial_type_value: payload_type, resource_form_payload_locked_value: payload_locked }) do |form| %>
   <% if resource.errors.any? %>
     <div class="mb-4 text-red-950 dark:text-red-300" role="alert">
       <h2 class="font-bold mb-2"><%= pluralize(resource.errors.count, "error") %> prohibited this resource from being saved:</h2>
@@ -36,7 +49,11 @@
       <%= form.combobox :category,
                         category_options,
                         free_text: true,
-                        placeholder: "Select or enter category" %>
+                        placeholder: "Select or enter category",
+                        data: {
+                          resource_form_target: "categoryInput",
+                          action: "input->resource-form#categoryChanged change->resource-form#categoryChanged hw-combobox:selection->resource-form#categoryChanged hw-combobox:clear->resource-form#categoryChanged"
+                        } %>
     </div>
   <% end %>
 
@@ -56,26 +73,38 @@
     <p class="text-sm text-dim mt-1">Type a tag and press Enter to add it. Tags are saved in lowercase.</p>
   </div>
 
+  <div class="mb-4">
+    <%= label_tag :resource_form_type, "Resource Type", class: "form-label" %>
+    <%= select_tag :resource_form_type,
+                   options_for_select([ [ "File", "file" ], [ "URL", "url" ], [ "Applet", "applet" ], [ "Other", "other" ] ], payload_type),
+                   class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2",
+                   disabled: payload_locked,
+                   data: { resource_form_target: "typeSelect", action: "change->resource-form#changeType" } %>
+    <% if resource.file.attached? %>
+      <p class="text-sm text-dim mt-1">This resource already has a file attached. Delete the file first to switch types.</p>
+    <% end %>
+  </div>
+
   <hr class="hr-primary mb-2">
 
   <% unless resource.applet&.persisted? %>
-    <div class="mb-2">
-      <%= form.label :uri, "URL (optional)", class: "form-label" %>
-      <%= form.url_field :uri, class: "input-primary" %>
+    <div class="mb-4 <%= payload_type == 'url' ? '' : 'hidden' %>" data-resource-form-target="urlSection">
+      <div class="mb-2">
+        <%= form.label :uri, "URL", class: "form-label" %>
+        <%= form.url_field :uri, class: "input-primary" %>
+      </div>
+      <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
+        Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
+      </p>
+      <sl-dialog style="--width: min(90vw, 800px);" data-embed-checker-target="dialog" label="Embed checker">
+          <p>Make sure the site loads correctly. Many sites do not allow embedding.</p>
+          <iframe width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
+      </sl-dialog>
     </div>
-    <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
-      Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
-    </p>
-    <sl-dialog style="--width: min(90vw, 800px);" data-embed-checker-target="dialog" label="Embed checker">
-        <p>Make sure the site loads correctly. Many sites do not allow embedding.</p>
-        <iframe width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
-    </sl-dialog>
-
-    <hr class="hr-primary mb-2">
   <% end %>
 
   <% unless resource.applet&.persisted? %>
-    <div class="mb-4">
+    <div class="mb-4 <%= payload_type == 'file' ? '' : 'hidden' %>" data-resource-form-target="fileSection">
       <% if resource.file.attached? && resource.file.persisted? %>
         <%= form.label :file, "Current File", class: "form-label" %>
         <%= link_to resource.file.filename, rails_blob_path(resource.file, disposition: "attachment") %>
@@ -88,14 +117,13 @@
           <sl-icon name="trash"></sl-icon>
         <% end %>
       <% else %>
-        <%= form.label :file, "File (optional)", class: "form-label" %>
+        <%= form.label :file, "File", class: "form-label" %>
         <%= form.file_field :file, class: "input-primary" %>
       <% end %>
     </div>
-    <hr class="hr-primary mb-2">
   <% end %>
 
-  <div class="mb-4">
+  <div class="mb-4 <%= payload_type == 'applet' ? '' : 'hidden' %>" data-resource-form-target="appletSection">
     <% applet = resource.applet || resource.build_applet(user: current_user) %>
     <%= form.fields_for :applet, applet do |applet_form| %>
       <%= applet_form.label :title, "Applet Title (for JavaScript applets)", class: "form-label" %>
@@ -106,9 +134,16 @@
       <p class="text-sm text-dim mt-1 ">
         <i>To generate compatible applets, have the LLM in this app write them, save the applet, and then convert them to a resource from the Applets dashboard.</i>
       </p>
-      <hr class="hr-primary my-2">
     <% end %>
   </div>
+
+  <div class="mb-4 <%= payload_type == 'other' ? '' : 'hidden' %>" data-resource-form-target="otherSection">
+    <p class="text-sm text-dim">
+      Use this for references that do not need a URL, uploaded file, or embedded applet.
+    </p>
+  </div>
+
+  <hr class="hr-primary my-2">
 
   <div class="mb-4 flex items-center justify-start">
     <%= form.check_box :include_by_default, class: "mr-2 checkbox-primary" %>
