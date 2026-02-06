@@ -54,9 +54,10 @@ events:
   student.profile_generated:
     category: student_progress
     subject: "Student Profile Updated"
-    message: "Student profile for %{student_name} has been updated with the latest learning data."
+    message: "Student profile for %{student_name} has been updated. Current snapshot: %{current_snapshot}"
     required_params:
       - student_name
+      - current_snapshot
       - report_id
 
   observation.generated:

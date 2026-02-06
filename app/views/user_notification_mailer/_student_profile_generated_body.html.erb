@@ -1,0 +1,10 @@
+<p>
+  Student profile for <%= notification_params[:student_name] %> has been updated. Here's the snapshot:
+</p>
+
+<% if notification_params[:current_snapshot].present? %>
+  <p>
+    <strong>Current snapshot:</strong>
+    <%= notification_params[:current_snapshot] %>
+  </p>
+<% end %>

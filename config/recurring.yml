@@ -15,3 +15,7 @@ update_openrouter_context_lengths:
 backfill_memory_embeddings:
   class: BackfillMemoryEmbeddingsJob
   schedule: every day at 3am
+
+generate_weekly_student_profiles:
+  class: GenerateWeeklyStudentProfilesJob
+  schedule: every monday at 5am

@@ -64,7 +64,9 @@ class NotificationSubscriber
         recipient: recipient,
         subject: definition.subject,
         message: message_text,
-        link: link
+        link: link,
+        definition_name: definition.name,
+        notification_params: params
       ).deliver_later
     end
   end

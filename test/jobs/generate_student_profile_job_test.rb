@@ -27,7 +27,9 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
 
     OpenaiApiService.stub :new, ->(*, **) { mock_service } do
       assert_difference("StudentReport.count", 1) do
-        GenerateStudentProfileJob.perform_now(@student)
+        assert_difference("Notification.count", 1) do
+          GenerateStudentProfileJob.perform_now(@student)
+        end
       end
     end
 
@@ -48,6 +50,10 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
     assert_operator md.index("**Areas for focus**"), :<, md.index("**Effective approaches**")
     assert_operator md.index("**Effective approaches**"), :<, md.index("**Approaches to avoid**")
     assert_operator md.index("**Approaches to avoid**"), :<, md.index("**Recommendations**")
+
+    notification = Notification.order(created_at: :desc).first
+    assert_equal "student.profile_generated", notification.event_type
+    assert_equal response["current_snapshot"], notification.params["current_snapshot"]
   end
 
   test "does not generate profile for orphaned students" do

@@ -69,11 +69,13 @@ class GenerateStudentProfileJob < ApplicationJob
         active_tab: "journal",
         anchor: "student_report_#{report.id}"
       )
+      current_snapshot = parsed_content.is_a?(Hash) ? parsed_content["current_snapshot"].to_s.squish.truncate(2000) : ""
 
       Rails.event.notify(Events::StudentProfileGenerated.new(
         recipient_ids: teacher.id,
         link: link,
         student_name: student.name,
+        current_snapshot: current_snapshot,
         report_id: report.id
       ))
 

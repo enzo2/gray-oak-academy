@@ -10,14 +10,17 @@ The system uses a **Publish-Subscribe** pattern with these components:
 2. **`Notification::Type`** - Reads and validates event schemas from notifications.yml
 3. **`Events::*`** - Typed event classes (auto-generated from YAML)
 4. **`NotificationSubscriber`** - Generic subscriber that handles all notification delivery
-5. **Models** - Fire events with `Rails.event.notify()` including recipient resolution
+5. **`UserNotificationMailer` + default template** - Generic email rendering for all events
+6. **Optional mailer override partials** - Event-specific email body content
+7. **Models** - Fire events with `Rails.event.notify()` including recipient resolution
 
 ### Key Principles
 
 - **Single source of truth**: `notifications.yml` defines all event types, required params, categories, and message templates
 - **Fat models**: Models determine who should be notified and fire events with pre-resolved `recipient_ids`
 - **Generic subscriber**: `NotificationSubscriber` needs no per-event handler methods
-- **No-code additions**: Adding a new notification type requires only YAML
+- **No-code additions (default path)**: Adding a new notification type requires only YAML
+- **Optional email customization**: Add a mailer partial whose filename matches the event name
 
 ---
 
@@ -63,6 +66,35 @@ end
 ```
 
 **That's it!** The `Events::CourseCompleted` class is auto-generated from YAML. The subscriber handles delivery automatically.
+
+### Optional Step 3: Add Event-Specific Email Body Partial
+
+Use this only when the default `message` string is not enough for email.
+
+**Naming rule**
+- Convert event name dots to underscores
+- Append `_body`
+- Place under `app/views/user_notification_mailer/`
+
+Example:
+- `student.profile_generated` -> `app/views/user_notification_mailer/_student_profile_generated_body.html.erb`
+
+The mailer auto-detects and renders the partial when present.
+If no matching partial exists, it falls back to the generic message body.
+
+Partial locals:
+- `notification_params` - symbolized event params hash
+- `message_text` - the interpolated default message from `notifications.yml`
+
+Example partial:
+
+```erb
+<p>Student profile for <%= notification_params[:student_name] %> has been updated.</p>
+
+<% if notification_params[:current_snapshot].present? %>
+  <p><strong>Current snapshot:</strong> <%= notification_params[:current_snapshot] %></p>
+<% end %>
+```
 
 ---
 
@@ -112,11 +144,21 @@ def emit(event)
     end
     
     if recipient.notifies_on?(category, "email")
+      # Passes event metadata; mailer decides whether an override partial exists
       UserNotificationMailer.new_notification(...).deliver_later
     end
   end
 end
 ```
+
+`NotificationSubscriber` remains generic and contains no event-specific conditionals.
+
+### Mailer Rendering Behavior
+
+`UserNotificationMailer` provides:
+- Absolute link normalization for email links (relative app paths become full URLs)
+- Dynamic override partial lookup by event name
+- Generic fallback when no override partial exists
 
 ### User Preferences
 
@@ -235,3 +277,5 @@ The same events can be consumed by multiple subscribers without model changes.
 | `app/subscribers/notification_subscriber.rb` | Generic notification delivery |
 | `app/subscribers/app_error_subscriber.rb` | System error notifications |
 | `app/mailers/user_notification_mailer.rb` | User email delivery |
+| `app/views/user_notification_mailer/new_notification.html.erb` | Generic email template (with override support) |
+| `app/views/user_notification_mailer/_*_body.html.erb` | Optional event-specific email body partials |

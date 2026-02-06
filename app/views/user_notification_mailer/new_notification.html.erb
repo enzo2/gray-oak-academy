@@ -1,11 +1,17 @@
-<h2><%= @linked_subject || message.subject if defined?(message) && message.respond_to?(:subject) %></h2>
+<% email_subject = defined?(message) && message.respond_to?(:subject) ? message.subject : nil %>
 
-<div style="margin-bottom: 20px; font-size: 16px; color: #333;">
-  <%= simple_format(@message) %>
+<h2 class="email-title"><%= email_subject %></h2>
+
+<div class="email-body">
+  <% if @override_body_partial.present? %>
+    <%= render partial: @override_body_partial, locals: { notification_params: @notification_params, message_text: @message } %>
+  <% else %>
+    <%= simple_format(@message) %>
+  <% end %>
 </div>
 
 <% if @link %>
-  <div style="margin-top: 20px;">
-    <%= link_to "View Details", @link, style: "display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;" %>
-  </div>
+  <p class="email-actions">
+    <%= link_to "View Details", @link, class: "email-button" %>
+  </p>
 <% end %>

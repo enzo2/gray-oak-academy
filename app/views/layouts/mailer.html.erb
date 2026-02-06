@@ -2,12 +2,237 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap">
     <style>
-      /* Email styles need to be inline */
+      :root {
+        color-scheme: light dark;
+        supported-color-schemes: light dark;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f6f4ee;
+        color: #2f312b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      }
+
+      .email-shell {
+        width: 100%;
+        padding: 24px 12px;
+        box-sizing: border-box;
+      }
+
+      .email-card {
+        max-width: 680px;
+        margin: 0 auto;
+        background: #ffffff;
+        border: 1px solid #e2dccf;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .email-header {
+        padding: 12px 24px;
+        background: #ffffff;
+        border-bottom: 1px solid #e2dccf;
+      }
+
+      .email-brand-table {
+        border-collapse: collapse;
+        width: auto;
+      }
+
+      .email-brand-logo-cell {
+        vertical-align: middle;
+      }
+
+      .email-brand-logo {
+        display: block;
+        width: 42px;
+        height: 42px;
+        border: 0;
+      }
+
+      .email-brand-name-cell {
+        padding-left: 10px;
+        vertical-align: middle;
+      }
+
+      .email-brand-name {
+        color: #13213a;
+        font-family: "Merriweather", Georgia, "Times New Roman", serif;
+        font-size: 24px;
+        line-height: 1;
+        font-weight: 700;
+      }
+
+      .email-content {
+        padding: 24px;
+      }
+
+      .email-title {
+        margin: 0 0 14px 0;
+        font-size: 20px;
+        line-height: 1.25;
+        color: #1f2619;
+      }
+
+      .email-body {
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        line-height: 1.55;
+        color: #2f312b;
+      }
+
+      .email-body p {
+        margin: 0 0 12px 0;
+      }
+
+      .email-body p:last-child {
+        margin-bottom: 0;
+      }
+
+      .email-body h1,
+      .email-body h2,
+      .email-body h3,
+      .email-body h4 {
+        margin: 18px 0 10px 0;
+        color: #1f2619;
+      }
+
+      .email-body pre {
+        margin: 10px 0;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #e2dccf;
+        background: #faf8f2;
+        color: #31342f;
+        font-size: 13px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+
+      .email-actions {
+        margin-top: 22px;
+      }
+
+      .email-button {
+        display: inline-block;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: #5b6a4f;
+        color: #ffffff !important;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .email-footer {
+        border-top: 1px solid #ece7dd;
+        background: #fcfbf7;
+        color: #676d5f;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 14px 24px 18px 24px;
+      }
+
+      .email-footer a {
+        color: #4f5f43;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #1d201c !important;
+          color: #e8ebdf !important;
+        }
+
+        .email-card {
+          background: #272b24 !important;
+          border-color: #485340 !important;
+        }
+
+        .email-header {
+          background: #1f2619 !important;
+          border-bottom-color: #485340 !important;
+        }
+
+        .email-brand-name {
+          color: #f1f5ea !important;
+        }
+
+        .email-title {
+          color: #f1f5ea !important;
+        }
+
+        .email-body {
+          color: #dbe2d1 !important;
+        }
+
+        .email-body h1,
+        .email-body h2,
+        .email-body h3,
+        .email-body h4 {
+          color: #f1f5ea !important;
+        }
+
+        .email-body pre {
+          border-color: #485340 !important;
+          background: #1f2619 !important;
+          color: #dbe2d1 !important;
+        }
+
+        .email-button {
+          background: #7f9270 !important;
+          color: #10150c !important;
+        }
+
+        .email-footer {
+          border-top-color: #485340 !important;
+          background: #1f2619 !important;
+          color: #b7c2ab !important;
+        }
+
+        .email-footer a {
+          color: #d0dbc4 !important;
+        }
+      }
     </style>
   </head>
 
   <body>
-    <%= yield %>
+    <% app_name = ENV.fetch("APP_NAME", "Gray Oak Academy") %>
+    <% has_logo = attachments["logo_mailer_icon.png"].present? %>
+    <div class="email-shell">
+      <div class="email-card">
+        <div class="email-header">
+          <table role="presentation" class="email-brand-table">
+            <tr>
+              <% if has_logo %>
+                <td class="email-brand-logo-cell">
+                  <%= image_tag attachments["logo_mailer_icon.png"].url, alt: "#{app_name} logo", class: "email-brand-logo", width: "42", height: "42" %>
+                </td>
+              <% end %>
+              <td class="<%= "email-brand-name-cell" if has_logo %>">
+                <span class="email-brand-name"><%= app_name %></span>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="email-content">
+          <%= yield %>
+        </div>
+        <div class="email-footer">
+          This message was sent by <%= app_name %>.
+        </div>
+      </div>
+    </div>
   </body>
 </html>

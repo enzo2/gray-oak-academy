@@ -137,4 +137,33 @@ class NotificationSubscriberTest < ActiveSupport::TestCase
       ))
     end
   end
+
+  test "student profile email includes snapshot and absolute link" do
+    teacher = users(:admin)
+    prefs = teacher.settings.notification_preferences.deep_dup
+    prefs["student_progress"] ||= {}
+    prefs["student_progress"]["email"] = true
+    teacher.settings.notification_preferences = prefs
+    teacher.settings.save!
+
+    assert_difference -> { Notification.count }, 1 do
+      assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+        Rails.event.notify(Events::StudentProfileGenerated.new(
+          recipient_ids: teacher.id,
+          link: "/admin/students/1?active_tab=journal#student_report_108",
+          student_name: "Lucas Policastro",
+          current_snapshot: "Strong momentum in reading fluency.",
+          report_id: 108
+        ))
+      end
+    end
+
+    perform_enqueued_jobs only: ActionMailer::MailDeliveryJob
+    mail = ActionMailer::Base.deliveries.last
+    body = mail.html_part&.body&.decoded || mail.body.decoded
+
+    assert_match(/Current snapshot:/, body)
+    assert_includes body, "Strong momentum in reading fluency."
+    assert_includes body, "http://example.com/admin/students/1?active_tab=journal#student_report_108"
+  end
 end
