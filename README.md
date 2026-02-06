@@ -127,13 +127,13 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 
 ## Contributor guidelines:
 Maintain the core app principles:
-- Do not vibe-code without fully reviewing and iterating on your code. To prompt with the full codebase, repomix.config.json is included.
+- Do not vibe-code without fully reviewing
 - The goal is to meet or exceed the level of a private tutor 
 - Self-hostable, and ideally improve in this respect
 - Suitable for all student ages
 - Follow generally accepted Rails architecture, keep models heavy, controllers light, code easy to follow and commented.
 - All LLM prompts and tools should be user-editable; use the existing models for Prompt and Tool.
-- Test with different LLMs.
+- Test with different LLM APIs and models
 
 ## License
 See LICENSE.md.

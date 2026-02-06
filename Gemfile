@@ -49,9 +49,10 @@ gem "faraday-retry"
 gem "commonmarker"
 
 # LLM API access/wrappers
-gem "open_router"# , git: "https://github.com/enzo2/open_router.git" # Original gem had broken streaming
-gem "ruby-openai", "< 9"
-# gem "ruby_llm"   # could add this but it's not fully developed yet, eg. lacks xAI, TTS
+gem "openai"
+gem "open_router" # not used for LLM requests, just metadata
+
+# gem "ruby_llm"   # could add this but maybe not necessary, we already have openai_api_service. also, lacks TTS
 # https://github.com/rira100000000/ruby-gemini-api  a good ruby-openai style gem for gemini
 
 

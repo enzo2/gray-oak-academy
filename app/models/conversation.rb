@@ -17,6 +17,14 @@ class Conversation < ApplicationRecord
     title.to_s.match?(DEFAULT_TITLE_REGEX)
   end
 
+  # Responses API state helpers
+  def responses_state_matches?(provider:, model:)
+    responses_provider.present? &&
+      responses_model.present? &&
+      responses_provider == provider &&
+      responses_model == model
+  end
+
   def auto_name_candidate?
     return false unless default_title?
     return false unless lesson_progress_id.nil?

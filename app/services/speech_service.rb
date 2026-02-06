@@ -5,6 +5,8 @@ class SpeechService
   require "tempfile"
   require "base64"
   include ActionView::Helpers::SanitizeHelper
+  include OpenaiResponseHelper
+  include OpenaiErrorHelper
   class SpeechServiceError < StandardError; end
 
   class << self
@@ -52,7 +54,7 @@ class SpeechService
     end
   end
 
-  # There is no point using ruby-openai client for TTS, as the response time is so slow without chunked transfer encoding.
+  # There is no point using an OpenAI API library for TTS, as the response time is so slow without chunked transfer encoding.
   # To stream the response to the user in realtime, we can:
   # 1) Use Faraday directly for streaming from the Speech API. Start processing chunks immediately.
   # 2) Send the chunks to ffmpeg to transmux to WebM/opus that the browser can stream with MSE (https://github.com/w3c/media-source/issues/245)
@@ -259,13 +261,12 @@ class SpeechService
   private
 
   def create_speech_client
-    OpenAI::Client.new(access_token: @speech_access_token, uri_base: @speech_base_uri) do |faraday|
-      retry_options = { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
-      faraday.request :retry, retry_options
-      faraday.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
-        logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')
-      end
-    end
+    OpenAI::Client.new(
+      api_key: @speech_access_token,
+      base_url: ensure_trailing_slash(@speech_base_uri),
+      max_retries: 2,
+      timeout: 60
+    )
   end
 
   # Utility helpers for STT
@@ -298,41 +299,64 @@ class SpeechService
   # STT via the Speech API (legacy / OpenAI Speech API-compatible route)
   def transcribe_via_speech_api(audio_file)
     begin
-      response = @client.audio.transcribe(
-        parameters: {
-          model: @stt_model,
-          file: audio_file,  # No need to transcode first, API should handle webm or mp4.
-          response_format: "text"
-        }
+      response = @client.audio.transcriptions.create(
+        model: @stt_model,
+        file: audio_file,  # No need to transcode first, API should handle webm or mp4.
+        response_format: "text"
       )
-      response
-    rescue Faraday::BadRequestError => e
-      error_message = extract_faraday_error_message(e)
+      text = extract_transcription_text(response)
+      if text.blank?
+        raise SpeechServiceError, "Empty transcription result from Speech API."
+      end
+      text
+    rescue OpenAI::Errors::BadRequestError, OpenAI::Errors::UnprocessableEntityError, OpenAI::Errors::ConflictError => e
+      error_message = extract_openai_error_message(e)
       Rails.logger.error "BadRequestError in STT transcription (Speech API): #{e.message}: #{error_message}"
       raise SpeechServiceError, "Bad Request: #{e.message}: #{error_message}"
-    rescue Faraday::TimeoutError => e
-      Rails.logger.error "Faraday::TimeoutError in STT transcription (Speech API): #{e.message}"
-      raise SpeechServiceError, "Speech API did not respond in time for STT."
-    rescue Faraday::ServerError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ServerError in STT transcription (Speech API): #{e.message}: #{error_message}"
-      raise SpeechServiceError, "Server Error: #{e.message}: #{error_message}"
-    rescue Faraday::ClientError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ClientError in STT transcription (Speech API): #{e.message}"
-      raise SpeechServiceError, "#{e.message}: #{error_message}"
-    rescue Faraday::UnauthorizedError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::UnauthorizedError in STT transcription (Speech API): #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::AuthenticationError, OpenAI::Errors::PermissionDeniedError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "Auth error in STT transcription (Speech API): #{e.message}: #{error_message}"
       raise SpeechServiceError, "Access key was unauthorized for STT transcription: #{error_message}"
-    rescue Faraday::ResourceNotFound => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ResourceNotFound error in STT transcription (Speech API): #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::NotFoundError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "NotFoundError in STT transcription (Speech API): #{e.message}: #{error_message}"
       raise SpeechServiceError, "Resource not found: #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::RateLimitError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "RateLimitError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Too many requests for STT transcription: #{error_message}"
+    rescue OpenAI::Errors::APITimeoutError => e
+      Rails.logger.error "APITimeoutError in STT transcription (Speech API): #{e.message}"
+      raise SpeechServiceError, "Speech API did not respond in time for STT."
+    rescue OpenAI::Errors::APIConnectionError => e
+      Rails.logger.error "APIConnectionError in STT transcription (Speech API): #{e.message}"
+      raise SpeechServiceError, "The connection to the Speech API failed. Please try again."
+    rescue OpenAI::Errors::ConversionError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "ConversionError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "The client encountered an error. Details: #{error_message}"
+    rescue OpenAI::Errors::InternalServerError, OpenAI::Errors::APIStatusError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "APIStatusError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Server Error: #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::APIError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "APIError in STT transcription (Speech API): #{e.message}: #{error_message}"
+      raise SpeechServiceError, "Server Error: #{e.message}: #{error_message}"
     rescue StandardError => e
       Rails.logger.error "StandardError in STT transcription (Speech API): #{e.message}"
       raise e
     end
+  end
+
+  def extract_transcription_text(response)
+    return response if response.is_a?(String)
+    return response.text if response.respond_to?(:text)
+
+    response_hash = normalize_response_hash(response)
+    return response_hash["text"] if response_hash.is_a?(Hash)
+
+    nil
   end
 
   # Shared helper to transcribe audio using an LLM/chat completion provider.
@@ -363,9 +387,6 @@ class SpeechService
         raise SpeechServiceError, "Empty transcription result from #{context || 'LLM'}."
       end
       text
-    rescue Faraday::BadRequestError => e
-      Rails.logger.error "BadRequestError in #{context || 'LLM'} transcription: #{e.message}"
-      raise SpeechServiceError, "Bad Request: #{e.message}"
     rescue OpenAiError => e
       Rails.logger.error "OpenAiError in #{context || 'LLM'} transcription: #{e.message}"
       raise SpeechServiceError, e.message

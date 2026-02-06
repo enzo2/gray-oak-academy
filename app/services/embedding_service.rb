@@ -1,4 +1,6 @@
 class EmbeddingService
+  include OpenaiResponseHelper
+
   def self.get(text)
     return nil unless AppSetting.embeddings_configured?
     return nil if text.blank?
@@ -13,14 +15,13 @@ class EmbeddingService
   end
 
   def fetch
-    response = @client.embeddings(
-      parameters: {
-        model: @model,
-        input: @text
-      }
+    response = @client.embeddings.create(
+      model: @model,
+      input: @text
     )
 
-    response.dig("data", 0, "embedding")
+    payload = normalize_response_hash(response)
+    payload.dig("data", 0, "embedding")
   rescue StandardError => e
     Rails.logger.error("Error generating embedding: #{e.message}")
     nil
@@ -33,9 +34,10 @@ class EmbeddingService
     token = open_router&.api_access_token
 
     OpenAI::Client.new(
-      access_token: token,
-      uri_base: "https://openrouter.ai/api/v1",
-      log_errors: true
+      api_key: token,
+      base_url: "https://openrouter.ai/api/v1/",
+      max_retries: 2,
+      timeout: 60
     )
   end
 end

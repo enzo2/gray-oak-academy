@@ -12,7 +12,7 @@ class GetLlmCompletionJob < ApplicationJob
     user = conversation.user
     include_images = conversation.image_input_supported?
 
-    client = OpenaiApiService.new( # Uses ruby-openai gem (not just for OpenAI, supports any OpenAI-compatible API):
+    client = OpenaiApiService.new( # Uses official OpenAI Ruby SDK (supports OpenAI-compatible APIs):
       current_user: user,
       stream_handler: stream_handler(conversation: conversation),
       task_system_prompt: conversation.task_system_prompt,

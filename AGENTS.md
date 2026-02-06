@@ -39,7 +39,7 @@ bin/ci
 
 - The dev server uses https. When using any browser tool to view the site locally, use https://localhost:3000.
 
-- All tests require Postgres DB access, so if you have a "sandbox_permissions: require_escalated" option, this is needed for running tests.
+- All tests require Postgres DB access (located in devcontainer stack). If the DB is not reachable, your terminal may have a network permissions restriction.
 
 ## Architecture
 

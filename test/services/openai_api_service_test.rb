@@ -12,52 +12,128 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
   end
 
   test "complete injects system prompt when missing and returns content" do
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
+    fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "content" => "LLM reply" } } ], "usage" => { "prompt_tokens" => 1, "completion_tokens" => 1, "total_tokens" => 2 } }
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       result = service.complete(@messages, temperature: 0.5)
       assert_equal "LLM reply", result
     end
   end
 
-  test "complete raises OpenAiError on Faraday::TimeoutError" do
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
-      raise Faraday::TimeoutError.new("timeout")
+  test "complete accepts string keyed messages and does not mutate caller array" do
+    captured = nil
+    input_messages = [ { "role" => "user", "content" => "Hello" } ]
+    original = Marshal.load(Marshal.dump(input_messages))
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
+      result = service.complete(input_messages)
+      assert_equal "ok", result
+    end
+
+    assert_equal original, input_messages
+    assert_equal "system", captured[:messages].first[:role]
+  end
+
+  test "complete preserves existing system prompt" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      messages = [ { role: "system", content: "custom system" }, { role: "user", content: "Hello" } ]
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
+      service.complete(messages)
+      assert_equal "custom system", captured[:messages].first[:content]
+      assert_equal 1, captured[:messages].count { |m| m[:role] == "system" }
+    end
+  end
+
+  test "complete appends prefill for non-openai base and restores response" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "world" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: "https://openrouter.ai/api/v1/", model: @model)
+      result = service.complete(@messages, prefill: "Hello ")
+      assert_equal "Hello world", result
+      assert_equal "assistant", captured[:messages].last[:role]
+      assert_equal "Hello ", captured[:messages].last[:content]
+    end
+  end
+
+  test "complete does not append prefill for OpenAI base" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "world" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: "https://api.openai.com/v1/", model: @model)
+      result = service.complete(@messages, prefill: "Hello ")
+      assert_equal "world", result
+      assert_equal "user", captured[:messages].last[:role]
+    end
+  end
+
+  test "complete raises OpenAiError on OpenAI::Errors::APITimeoutError" do
+    fake_client = build_chat_client do |_params|
+      raise OpenAI::Errors::APITimeoutError.new("timeout")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       assert_raises(OpenAiError) { service.complete(@messages) }
     end
   end
 
-  test "complete raises OpenAiError on Faraday::BadRequestError with error message" do
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
-      response_env = { status: 400, body: { error: { message: "Bad request error" } }.to_json }
-      raise Faraday::BadRequestError.new("bad request", response_env)
+  test "complete raises OpenAiError on OpenAI::Errors::BadRequestError with error message" do
+    fake_client = build_chat_client do |_params|
+      raise OpenAI::Errors::BadRequestError.new(
+        url: "https://api.test/chat",
+        status: 400,
+        headers: {},
+        body: { error: { message: "Bad request error" } }.to_json,
+        request: nil,
+        response: nil,
+        message: "bad request"
+      )
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       exception = assert_raises(OpenAiError) { service.complete(@messages) }
       assert_includes exception.message, "Bad request error"
     end
   end
 
-  test "complete raises OpenAiError on Faraday::UnauthorizedError" do
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
-      response_env = { status: 401, body: { error: { message: "Unauthorized" } }.to_json }
-      raise Faraday::UnauthorizedError.new("unauthorized", response_env)
+  test "complete raises OpenAiError on OpenAI::Errors::AuthenticationError" do
+    fake_client = build_chat_client do |_params|
+      raise OpenAI::Errors::AuthenticationError.new(
+        url: "https://api.test/chat",
+        status: 401,
+        headers: {},
+        body: { error: { message: "Unauthorized" } }.to_json,
+        request: nil,
+        response: nil,
+        message: "unauthorized"
+      )
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       exception = assert_raises(OpenAiError) { service.complete(@messages) }
       assert_includes exception.message.downcase, "access key was unauthorized"
@@ -65,12 +141,11 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
   end
 
   test "complete raises OpenAiError on empty response" do
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
+    fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "content" => "" } } ] }
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       exception = assert_raises(OpenAiError) { service.complete(@messages) }
       assert_equal "Empty response from LLM.", exception.message
@@ -78,16 +153,70 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
   end
 
   test "complete raises OpenAiError on refusal" do
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
+    fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "refusal" => "I cannot fulfill this request." } } ] }
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       exception = assert_raises(OpenAiError) { service.complete(@messages) }
       assert_equal "Response refused with message: I cannot fulfill this request.", exception.message
     end
+  end
+
+  test "complete returns image message when image generation is enabled" do
+    fake_client = build_chat_client do |_params|
+      {
+        "choices" => [
+          { "message" => { "content" => "", "images" => [ { "b64_json" => "img" } ] } }
+        ]
+      }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        image_generation: true
+      )
+      result = service.complete(@messages)
+      assert_equal [ { "b64_json" => "img" } ], result["images"]
+    end
+  end
+
+  test "complete streams and logs usage when stream handler is provided" do
+    chunks = [
+      { "choices" => [ { "delta" => { "content" => "Hi" } } ] },
+      { "choices" => [ { "finish_reason" => "stop" } ], "model" => "m-stream" },
+      { "usage" => { "prompt_tokens" => 1, "completion_tokens" => 2, "total_tokens" => 3 } }
+    ]
+
+    fake_client = build_streaming_chat_client(chunks: chunks)
+    received = []
+    handler = ->(choice) { received << choice }
+    created = nil
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      Completion.stub(:create, ->(attrs) { created = attrs }) do
+        service = OpenaiApiService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: @base_uri,
+          model: @model,
+          stream_handler: handler
+        )
+        service.complete(@messages)
+      end
+    end
+
+    assert_equal 2, received.length
+    assert_equal "Hi", received.first.dig("delta", "content")
+    assert_equal "m-stream", created[:model]
+    assert_equal 1, created[:prompt_tokens]
+    assert_equal 2, created[:completion_tokens]
+    assert_equal 3, created[:total_tokens]
   end
 
   test "complete parses and validates JSON response" do
@@ -98,12 +227,11 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       },
       "required" => [ "name" ]
     }
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
+    fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "content" => '{"name": "Test"}' } } ] }
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       result = service.complete(@messages, response_format: { type: "json_object" }, schema: schema)
       assert_equal({ "name" => "Test" }, result)
@@ -118,12 +246,11 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       },
       "required" => [ "name" ]
     }
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
+    fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "content" => '{"invalid": "json"}' } } ] }
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       exception = assert_raises(OpenAiError) { service.complete(@messages, response_format: { type: "json_object" }, schema: schema) }
       assert_includes exception.message, "Invalid JSON structure"
@@ -138,12 +265,11 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       },
       "required" => [ "name" ]
     }
-    fake_client = Object.new
-    def fake_client.chat(parameters:)
+    fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "content" => '{"name": "Test",}' } } ] } # Malformed JSON
     end
 
-    OpenAI::Client.stub(:new, ->(**kwargs) { fake_client }) do
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       result = service.complete(@messages, response_format: { type: "json_object" }, schema: schema)
       assert_equal({ "name" => "Test" }, result)
@@ -273,7 +399,74 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "initialize raises when api overrides are incomplete" do
+    assert_raises(OpenAiError) do
+      OpenaiApiService.new(current_user: @user, base_uri: @base_uri)
+    end
+  end
+
+  test "initialize raises for orphaned student accounts" do
+    orphaned_student = users(:student2)
+    assert_raises(OpenAiError) do
+      OpenaiApiService.new(current_user: orphaned_student, access_token: @access_token, base_uri: @base_uri, model: @model)
+    end
+  end
+
+  test "list_models returns model ids" do
+    fake_page = OpenStruct.new(
+      data: [
+        OpenStruct.new(id: "m1"),
+        OpenStruct.new(id: "m2")
+      ]
+    )
+    fake_models = Object.new
+    def fake_models.list
+      @page
+    end
+    fake_models.instance_variable_set(:@page, fake_page)
+    fake_client = Object.new
+    def fake_client.models
+      @models
+    end
+    fake_client.instance_variable_set(:@models, fake_models)
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
+      assert_equal [ "m1", "m2" ], service.list_models
+    end
+  end
+
   private
+
+  def build_chat_client(&create_proc)
+    completions = Object.new
+    completions.define_singleton_method(:create) do |**params|
+      create_proc.call(params)
+    end
+
+    chat = Object.new
+    chat.define_singleton_method(:completions) { completions }
+
+    client = Object.new
+    client.define_singleton_method(:chat) { chat }
+
+    client
+  end
+
+  def build_streaming_chat_client(chunks:)
+    completions = Object.new
+    completions.define_singleton_method(:stream_raw) do |**_params|
+      chunks.each
+    end
+
+    chat = Object.new
+    chat.define_singleton_method(:completions) { completions }
+
+    client = Object.new
+    client.define_singleton_method(:chat) { chat }
+
+    client
+  end
 
   def stub_completion_sums(daily_sum:, chat_sum: BigDecimal("0"), &block)
     daily_relation = Class.new do

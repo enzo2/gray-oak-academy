@@ -1,7 +1,8 @@
 class OpenaiApiService
-  # Wrapper around ruby-openai gem for LLM completions.
+  # Wrapper around official OpenAI Ruby SDK for LLM completions.
   require "json/repair"
-  require "faraday/retry"
+  include OpenaiResponseHelper
+  include OpenaiErrorHelper
 
   # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives, including tool calls and content.
   # Each chunk's choices[0] will be passed to the Proc as a JSON object.
@@ -44,9 +45,10 @@ class OpenaiApiService
 
   def complete(messages, response_format: nil, schema: nil, prefill: nil, temperature: 1)
     check_cost_limits
+    messages = Array(messages).dup
 
     # Inject system prompt to messages if it's not already included
-    unless messages.any? { |message| message[:role] == "system" }
+    unless messages.any? { |message| [ message[:role], message["role"] ].compact.first == "system" }
       messages.unshift({ role: "system", content: @system_prompt })
     end
 
@@ -56,81 +58,62 @@ class OpenaiApiService
     end
 
     begin
-      response = @client.chat(
-        parameters: {
-          messages: messages,
-          model: @model,
-          temperature: temperature,
-          **(@tools.present? ? { tools: @tools } : {}),
-          **(response_format.present? ? { response_format: response_format } : {}),
-          stream: @stream_handler,
+      request_params = {
+        messages: messages,
+        model: @model,
+        temperature: temperature,
+        **(@tools.present? ? { tools: @tools } : {}),
+        **(response_format.present? ? { response_format: response_format } : {}),
 
-          # Request usage stats from OpenRouter
-          **(@base_uri.include?("openrouter.ai") ? { usage: { include: true } } : {}),
-          # Request usage stats when streaming
-          **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {}),
+        # Request usage stats from OpenRouter
+        **(@base_uri.include?("openrouter.ai") ? { usage: { include: true } } : {}),
+        # Request usage stats when streaming
+        **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {}),
 
-          # By default, OpenAI sets thinking budget to medium, and doesn't include the summary
+        # By default, OpenAI sets thinking budget to medium, and doesn't include the summary
 
-          # Set thinking for OpenRouter
-          **(@reasoning_model_flag && @base_uri.include?("openrouter.ai") ? {
-            reasoning: {
-              effort: "high",
-              exclude: false
-            }
-          } : {}),
+        # Set thinking for OpenRouter
+        **(@reasoning_model_flag && @base_uri.include?("openrouter.ai") ? {
+          reasoning: {
+            effort: "high",
+            exclude: false
+          }
+        } : {}),
 
-          # Set image generation for OpenRouter
-          **(@image_generation_flag && @base_uri.include?("openrouter.ai") ? { modalities: [ "image", "text" ] } : {}),
+        # Set image generation for OpenRouter
+        **(@image_generation_flag && @base_uri.include?("openrouter.ai") ? { modalities: [ "image", "text" ] } : {})
+      }
 
-          # Set thinking for Google OpenAI-compatibility API
-          **(@reasoning_model_flag && @base_uri.include?("generativelanguage.googleapis.com") ? {
-            extra_body: {
-              "google": {
-                "thinking_config": {
-                  "thinking_budget": "3000",
-                  "include_thoughts": "False"
-                }
-              }
-            }
-          } : {})
-        }
-      )
-      # Response will be empty if a stream handler was provided, as the response is handled while streaming.
-      # If an error occurs, it will be handled by the rescue block and the following code will not be executed.
+      request_options = build_request_options
+      request_options_param = request_options.present? ? { request_options: request_options } : {}
 
-      Rails.logger.debug "API response: #{response}"
+      if @stream_handler
+        stream = @client.chat.completions.stream_raw(**request_params, **request_options_param)
+        stream.each do |chunk|
+          @stream_handler.call(normalize_response_hash(chunk), nil)
+        end
+        @usage = @usage_chunk
+        log_completion(@finish_chunk&.dig("model") || @model)
+        return
+      end
+
+      response = @client.chat.completions.create(**request_params, **request_options_param)
+      response_hash = normalize_response_hash(response)
+
+      Rails.logger.debug "API response: #{response_hash}"
 
       # Store the Completion record. Handle streaming and non-streaming cases.
-      @usage = @stream_handler ? @usage_chunk : response&.dig("usage")
-      Completion.create(
-        conversation: @conversation,
-        model: @stream_handler ? (@finish_chunk&.dig("model") || @model) : (response&.dig("model") || @model),
-        api_provider: @base_uri,
-        # model_provider: @usage.dig["provider_name"],
-        prompt_tokens: @usage&.dig("prompt_tokens")&.to_i,
-        prompt_audio_tokens: @usage&.dig("prompt_tokens_details", "audio_tokens")&.to_i,
-        cached_tokens: @usage&.dig("prompt_tokens_details", "cached_tokens")&.to_i,
-        completion_tokens: @usage&.dig("completion_tokens")&.to_i,
-        completion_audio_tokens: @usage&.dig("completion_tokens_details", "audio_tokens")&.to_i,
-        reasoning_tokens: @usage&.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
-        total_tokens: @usage&.dig("total_tokens")&.to_i,
-        total_cost: @usage&.dig("cost")&.to_f,
-        cache_discount: @usage&.dig("cache_discount")&.to_f
-      ) if @log_completion
-
-      # If a stream handler was provided, stop here since the response was already handled
-      # and will be blank. All processing should be done in the stream handler.
-      return if @stream_handler
+      @usage = response_hash&.dig("usage")
+      log_completion(response_hash&.dig("model") || @model)
 
       # If no stream handler was provided, process the response.
-      check_for_refusal(response)
-      images = response.dig("choices", 0, "message", "images")
-      content = (response).dig("choices", 0, "message", "content").to_s
+      check_for_refusal(response_hash)
+      images = response_hash.dig("choices", 0, "message", "images")
+      content = response_hash.dig("choices", 0, "message", "content").to_s
 
       # If image generation was requested and images are present, return the message (with images)
       if @image_generation_flag && images.present?
-        return response.dig("choices", 0, "message")
+        return response_hash.dig("choices", 0, "message")
       end
 
       check_for_blank_content(content)
@@ -157,36 +140,40 @@ class OpenaiApiService
       else
         content
       end
-    rescue Faraday::BadRequestError => e
-      error_message = extract_faraday_error_message(e)
+    rescue OpenAI::Errors::BadRequestError, OpenAI::Errors::UnprocessableEntityError, OpenAI::Errors::ConflictError => e
+      error_message = extract_openai_error_message(e)
       Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
       raise OpenAiError, "The server rejected the request. #{error_message}"
-    rescue Faraday::TimeoutError => e
-      Rails.logger.error "Faraday::TimeoutError #{e.message}"
-      raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
-    rescue Faraday::ConnectionFailed => e
-      Rails.logger.error "Faraday::ConnectionFailed #{e.message}"
-      raise OpenAiError, "The connection to the LLM provider failed. Please try again."
-    rescue Faraday::ServerError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ServerError #{e.message}: #{error_message}"
-      raise OpenAiError, "The server encountered an error. Details: #{error_message}"
-    rescue Faraday::UnauthorizedError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::UnauthorizedError #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::AuthenticationError, OpenAI::Errors::PermissionDeniedError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "Auth error: #{e.message}: #{error_message}"
       raise OpenAiError, "The access key was unauthorized. Ask teacher to check it."
-    rescue Faraday::ClientError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ClientError #{e.message}"
-      raise OpenAiError, "The client encountered an error. Details: #{error_message}"
-    rescue Faraday::ResourceNotFound => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ResourceNotFound error #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::NotFoundError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "NotFoundError #{e.message}: #{error_message}"
       raise OpenAiError, "The requested service was not found. Details: #{error_message}"
-    rescue Faraday::TooManyRequestsError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::TooManyRequestsError #{e.message}: #{error_message}"
+    rescue OpenAI::Errors::RateLimitError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "RateLimitError #{e.message}: #{error_message}"
       raise OpenAiError, "Too many requests. Details: #{error_message}"
+    rescue OpenAI::Errors::APITimeoutError => e
+      Rails.logger.error "APITimeoutError #{e.message}"
+      raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
+    rescue OpenAI::Errors::APIConnectionError => e
+      Rails.logger.error "APIConnectionError #{e.message}"
+      raise OpenAiError, "The connection to the LLM provider failed. Please try again."
+    rescue OpenAI::Errors::ConversionError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "ConversionError #{e.message}: #{error_message}"
+      raise OpenAiError, "The client encountered an error. Details: #{error_message}"
+    rescue OpenAI::Errors::InternalServerError, OpenAI::Errors::APIStatusError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "APIStatusError #{e.message}: #{error_message}"
+      raise OpenAiError, "The server encountered an error. Details: #{error_message}"
+    rescue OpenAI::Errors::APIError => e
+      error_message = extract_openai_error_message(e)
+      Rails.logger.error "APIError #{e.message}: #{error_message}"
+      raise OpenAiError, "The server encountered an error. Details: #{error_message}"
     rescue StandardError => e
       # Re-raise OpenAiError if it's already an OpenAiError, to avoid wrapping it in a generic message
       raise e if e.is_a?(OpenAiError)
@@ -198,7 +185,22 @@ class OpenaiApiService
 
   def list_models
     response = @client.models.list
-    response["data"].map { |model| model["id"] }
+    models =
+      if response.respond_to?(:data)
+        response.data
+      else
+        response_hash = normalize_response_hash(response)
+        response_hash["data"] || response_hash[:data]
+      end
+
+    Array(models).filter_map do |model|
+      if model.respond_to?(:id)
+        model.id
+      else
+        model_hash = normalize_response_hash(model)
+        model_hash["id"] || model_hash[:id]
+      end
+    end
   rescue StandardError => e
     [ "Unable to list models: #{e.message}" ]
   end
@@ -238,13 +240,13 @@ class OpenaiApiService
   end
 
   def create_client
-    retry_options = { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
-    OpenAI::Client.new(access_token: @access_token, uri_base: @base_uri, extra_headers: attribution_headers) do |faraday|
-      faraday.request :retry, retry_options
-      faraday.response :logger, ::Logger.new($stdout), { headers: true, bodies: true, errors: true } do |logger|
-        logger.filter(/(Bearer) (\S+)/, '\1[REDACTED]')
-      end
-    end
+    # Future optimization: Reuse by adding client cache keyed by base_url + api_key, as each client has a connection pool of 99
+    OpenAI::Client.new(
+      api_key: @access_token,
+      base_url: ensure_trailing_slash(@base_uri),
+      max_retries: 2,
+      timeout: 60
+    )
   end
 
   def attribution_headers
@@ -253,6 +255,31 @@ class OpenaiApiService
       "X-Title" => "Gray Oak Academy",
       "HTTP-Referer" => Rails.env.production? ? "https://#{ENV.fetch('APP_HOST')}" : nil
     }.compact
+  end
+
+  def build_request_options
+    options = {}
+    headers = attribution_headers
+    options[:extra_headers] = headers if headers.present?
+
+    # Set thinking for Google OpenAI-compatibility API
+    if @reasoning_model_flag && @base_uri.include?("generativelanguage.googleapis.com")
+      options[:extra_body] = {
+        "google": {
+          "thinking_config": {
+            "thinking_budget": "3000",
+            "include_thoughts": "False"
+          }
+        }
+      }
+    end
+
+    options.presence
+  end
+
+  def ensure_trailing_slash(url)
+    return url if url.blank? || url.end_with?("/")
+    "#{url}/"
   end
 
   def check_for_refusal(response)
@@ -325,7 +352,7 @@ class OpenaiApiService
   # The inner Proc provided should handle application-specic concerns like tool calls and extracting the completion content.
   def wrap_stream_handler(handler)
     # Return if no stream handler is provided, so streaming will be disabled
-    return false unless handler
+    return nil unless handler
 
     unless handler.is_a?(Proc)
       raise ArgumentError, "stream_handler must be a Proc"
@@ -334,7 +361,7 @@ class OpenaiApiService
     stream_finished = false
     @usage_chunk = {}
 
-    # Return an outer Proc to pass to ruby-openai client
+    # Return an outer Proc to consume streamed chat completion chunks
     Proc.new do |chunk, _event|
       begin
         Rails.logger.debug "Stream chunk: #{chunk.inspect}"
@@ -450,36 +477,23 @@ class OpenaiApiService
     Rails.logger.error "Failed to notify admins of limit: #{e.message}"
   end
 
-  def extract_faraday_error_message(exception)
-    # Rails.logger.debug "#{exception.inspect}, #{exception.message}, #{exception.response[:body]}"
-    response_body = exception.respond_to?(:response) ? exception.response[:body] : nil
-    return "Unknown error" unless response_body
-    Rails.logger.error "Error response body: #{response_body}"
+  def log_completion(model_name)
+    return unless @log_completion
 
-    parsed = if response_body.is_a?(String)
-      begin
-        JSON.parse(response_body)
-      rescue JSON::ParserError
-        return "Failed to parse error response: #{response_body}"
-      end
-    else
-      response_body # Already parsed
-    end
-
-    if parsed.is_a?(Array)
-      parsed = parsed.first
-    end
-
-    Rails.logger.debug "Parsed error response: #{parsed.inspect}"
-
-    if parsed.is_a?(Hash) && parsed["error"].is_a?(Hash)
-      message = parsed["error"]["message"] || parsed["error"]["status"] || "Unknown error"
-      raw = parsed.dig("error", "metadata", "raw")
-      raw ? "#{message}: (#{raw})" : message
-    else
-      "Unknown error format: #{parsed.inspect}"
-    end
+    Completion.create(
+      conversation: @conversation,
+      model: model_name,
+      api_provider: @base_uri,
+      # model_provider: @usage.dig["provider_name"],
+      prompt_tokens: @usage&.dig("prompt_tokens")&.to_i,
+      prompt_audio_tokens: @usage&.dig("prompt_tokens_details", "audio_tokens")&.to_i,
+      cached_tokens: @usage&.dig("prompt_tokens_details", "cached_tokens")&.to_i,
+      completion_tokens: @usage&.dig("completion_tokens")&.to_i,
+      completion_audio_tokens: @usage&.dig("completion_tokens_details", "audio_tokens")&.to_i,
+      reasoning_tokens: @usage&.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
+      total_tokens: @usage&.dig("total_tokens")&.to_i,
+      total_cost: @usage&.dig("cost")&.to_f,
+      cache_discount: @usage&.dig("cache_discount")&.to_f
+    )
   end
 end
-
-class OpenAiError < StandardError; end
