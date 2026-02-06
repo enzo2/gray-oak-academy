@@ -3,29 +3,11 @@ class GenerateCourseOutlineJob < ApplicationJob
   include Rails.application.routes.url_helpers
 
   OUTLINE_SCHEMA = {
-    "strict": true,
-    "name": "Course_Outline",
-    "description": "A thorough proposal of course content organized into topics, each with a brief description.",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "outline": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "topic": { "type": "string" },
-              "description": { "type": "string" }
-            },
-            "required": [ "topic", "description" ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [ "outline" ],
-      "additionalProperties": false
-    }
-  }
+    strict: true,
+    name: "Course_Outline",
+    description: "A thorough proposal of course content organized into topics, each with a brief description.",
+    schema: LlmSchemas::CourseOutlineSchema.to_json_schema.deep_stringify_keys
+  }.freeze
 
   def perform(course, current_user)
     customized_prompt = Prompt.get_prompt(category: "generate_course_outline", user: current_user)

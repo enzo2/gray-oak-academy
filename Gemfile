@@ -83,9 +83,8 @@ end
 group :test do
   gem "dotenv-rails"
 
-  gem "minitest", "< 6"
-  # Can go to minitest 6 when on Rails 8.2
-  # After going to minitest 6 , add  gem "minitest-mock"
+  gem "minitest", "> 5"
+  gem "minitest-mock"
 
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
