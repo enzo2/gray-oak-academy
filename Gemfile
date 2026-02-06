@@ -83,7 +83,7 @@ end
 group :test do
   gem "dotenv-rails"
 
-  gem "minitest", "< 6"
+  gem "minitest", "< 7"
   # Can go to minitest 6 when on Rails 8.2
   # After going to minitest 6 , add  gem "minitest-mock"
 
