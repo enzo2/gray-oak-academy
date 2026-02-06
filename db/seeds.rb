@@ -396,7 +396,7 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Course_Outline')
 tool.access = :admin
 tool.specifications = {
   name: "Generate_Course_Outline",
-  description: "Ask the LLM to generate a course outline for the given course. The outline is important in planning the overall course and what topics will be covered.",
+  description: "Ask the generator LLM to generate a course outline for the given course. The outline is important in planning the overall course and what topics will be covered.",
   # strict_mode: true,
   parameters: {
     type: "object",
@@ -431,7 +431,7 @@ tool = Tool.find_or_initialize_by(name: 'Generate_Lesson_Plan')
 tool.access = :admin
 tool.specifications = {
   name: "Generate_Lesson_Plan",
-  description: "Ask the LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). Do not call if the lesson already has content, unless you intend to overwrite it.",
+  description: "Ask the generator LLM to generate lesson plan content for a lesson (replaces lesson_plan.content). Do not call if the lesson already has content, unless you intend to overwrite it.",
   # strict_mode: true,
   parameters: {
     type: "object",

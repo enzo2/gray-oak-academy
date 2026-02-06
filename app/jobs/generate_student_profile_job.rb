@@ -2,53 +2,13 @@ class GenerateStudentProfileJob < ApplicationJob
   queue_as :default
 
   PROFILE_SCHEMA = {
-    "strict": true,
-    "name": "Student_Profile",
-    "description": "A synthesized profile of the student's current learning state and patterns.",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "current_snapshot": {
-          "type": "string",
-          "description": "A concise summary of where the student currently stands academically and developmentally."
-        },
-        "learning_patterns": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Observed patterns in how this student learns best (or struggles)."
-        },
-        "current_strengths": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Areas where the student currently demonstrates proficiency or positive momentum."
-        },
-        "areas_for_focus": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Areas that currently need attention, review, or different approaches."
-        },
-        "effective_approaches": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Teaching methods, formats, or approaches that have proven effective."
-        },
-        "approaches_to_avoid": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Methods or approaches that have been ineffective or counterproductive."
-        },
-        "recommendations": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Specific, actionable recommendations for upcoming lessons or curriculum planning."
-        }
-      },
-      "required": [ "current_snapshot", "learning_patterns", "current_strengths", "areas_for_focus", "effective_approaches", "approaches_to_avoid", "recommendations" ],
-      "additionalProperties": false
-    }
+    strict: true,
+    name: "Student_Profile",
+    description: "A synthesized profile of the student's current learning state and patterns.",
+    schema: LlmSchemas::StudentProfileSchema.to_json_schema.deep_stringify_keys
   }
 
-  PROFILE_KEY_ORDER = PROFILE_SCHEMA.dig(:schema, :required).map(&:to_s).freeze
+  PROFILE_KEY_ORDER = Array(PROFILE_SCHEMA.dig(:schema, "required")).map(&:to_s).freeze
 
   def perform(student)
     teacher = student.teacher

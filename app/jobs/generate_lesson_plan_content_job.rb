@@ -2,41 +2,10 @@ class GenerateLessonPlanContentJob < ApplicationJob
   queue_as :default
 
   CONTENT_SCHEMA = {
-    "strict": true,
-    "name": "Lesson_Plan",
-    "description": "A detailed lesson plan content and strategy outline.",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "lesson_plan": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "type": { "type": "string" },
-              "details": { "type": "string" }
-            },
-            "required": [ "type", "details" ],
-            "additionalProperties": false
-          }
-        },
-        "suggested_resources": {
-          "type": "array",
-          "description": "A list of suggested resources for the lesson which may need to be located, obtained or validated before use.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "type": { "type": "string" },
-              "description": { "type": "string" }
-            },
-            "required": [ "type", "description" ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [ "lesson_plan", "suggested_resources" ],
-      "additionalProperties": false
-    }
+    strict: true,
+    name: "Lesson_Plan",
+    description: "A detailed lesson plan content and strategy outline.",
+    schema: LlmSchemas::LessonPlanSchema.to_json_schema.deep_stringify_keys
   }
 
   def perform(lesson_plan, current_user)

@@ -1,9 +1,9 @@
-<h2 class="text-xl mb-4">Manage Resources</h2>
-<p class="block text-sm mb-2"><i>Resources will be available for the tutor to use.<br>
-                                 To ensure that a resource is used, link it and then mention it in Content above.</i></p>
+<h2 class="text-xl mb-4">Linked Resources</h2>
+<p class="block text-sm mb-2"><i>Linked Resources will be available for the tutor to use.<br>
+                                 If you want to make sure the tutor uses it, link it and then mention it in Content above.</i></p>
 
 <div class="mb-4" data-controller="resource-filter">
-  <h3 class="text-lg font-semibold mb-2">Linked Resources</h3>
+  <h3 class="text-lg font-semibold mb-2">Currently Linked</h3>
   <div id="linked-resources" class="mb-4">
     <% if lesson_plan.resources.any? %>
       <% lesson_plan.resources.each do |resource| %>
@@ -14,7 +14,7 @@
     <% end %>
   </div>
 
-  <h3 class="text-lg font-semibold mb-2">Available Resources</h3>        
+  <h3 class="text-lg font-semibold mb-2">Find/Add Resources</h3>        
   <div class="mb-2">
     <%= text_field_tag :resource_search, "", placeholder: "Search resources...", class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2", data: { action: "input->resource-filter#filterResources", resource_filter_target: "searchInput" } %>
   </div>

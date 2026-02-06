@@ -9,14 +9,7 @@ class AutoNameConversationJob < ApplicationJob
     strict: true,
     name: "Conversation_Title",
     description: "A concise, specific title for a conversation. May be blank string if not enough information is available.",
-    schema: {
-      type: "object",
-      properties: {
-        title: { type: "string" }
-      },
-      required: [ "title" ],
-      additionalProperties: false
-    }
+    schema: LlmSchemas::ConversationTitleSchema.to_json_schema.deep_stringify_keys
   }.freeze
 
   def perform(conversation:)

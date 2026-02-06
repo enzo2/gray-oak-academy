@@ -2,21 +2,10 @@ class GenerateObservationsJob < ApplicationJob
   queue_as :default
 
   OBSERVATIONS_SCHEMA = {
-    "name": "Key_Observations",
-    "description": "A list of key observations derived from the lesson.",
-    "strict": true,
-    "schema": {
-      "type": "object",
-      "properties": {
-        "observations": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "1-3 distinct, concise, high-value observations about the student's learning."
-        }
-      },
-      "required": [ "observations" ],
-      "additionalProperties": false
-    }
+    name: "Key_Observations",
+    description: "A list of key observations derived from the lesson.",
+    strict: true,
+    schema: LlmSchemas::KeyObservationsSchema.to_json_schema.deep_stringify_keys
   }
 
   def perform(student_report)

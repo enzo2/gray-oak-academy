@@ -2,40 +2,10 @@ class GenerateCourseReportJob < ApplicationJob
   queue_as :default
 
   REPORT_SCHEMA = {
-    "strict": true,
-    "name": "Course_Report",
-    "description": "A summary of the student's performance in the course.",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "summary": {
-          "type": "string",
-          "description": "A detailed overview of the student's performance and understanding during the course."
-        },
-        "strengths": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List areas where the student demonstrated adequate-to-strong understanding, which will require minimal to no review in subsequent courses. May include knowledge, skills, abilities, or other learning targets."
-        },
-        "areas_for_review": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List aspects (if any) of the course material/plan where the student should receive additional clarification, review or practice in subsequent courses or remedial sessions. May include knowledge, skills, abilities, or other learning targets."
-        },
-        "teaching_methods": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Note any aspects of teaching methodology that were particularly effective or ineffective for the student."
-        },
-        "other_observations": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Optional: Note any other observations or notable examples concerning the student's progress and development, such as engagement, attitude, cognition, or other relevant factors."
-        }
-      },
-      "required": [ "summary", "strengths", "areas_for_review", "teaching_methods", "other_observations" ],
-      "additionalProperties": false
-    }
+    strict: true,
+    name: "Course_Report",
+    description: "A summary of the student's performance in the course.",
+    schema: LlmSchemas::CourseReportSchema.to_json_schema.deep_stringify_keys
   }
 
   def perform(enrollment)

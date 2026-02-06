@@ -2,29 +2,10 @@ class GenerateCourseLessonsJob < ApplicationJob
   queue_as :default
 
   LESSONS_SCHEMA = {
-    "strict": true,
-    "name": "Course_Lessons",
-    "description": "An array of lesson objects for the course",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "lessons": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "goals": { "type": "string" },
-              "duration": { "type": "integer" }
-            },
-            "required": [ "title", "goals", "duration" ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [ "lessons" ],
-      "additionalProperties": false
-    }
+    strict: true,
+    name: "Course_Lessons",
+    description: "An array of lesson objects for the course",
+    schema: LlmSchemas::CourseLessonsSchema.to_json_schema.deep_stringify_keys
   }
 
   def perform(course, current_user, replace_existing_lessons: false)

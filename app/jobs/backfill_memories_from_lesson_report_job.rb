@@ -2,24 +2,10 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
   queue_as :default
 
   MERGED_MEMORIES_SCHEMA = {
-    "strict": true,
-    "name": "Merged_Memories",
-    "description": "An object containing consolidated new memories and IDs of existing memories to replace",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "new_memories": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "replacement_ids": {
-          "type": "array",
-          "items": { "type": "integer" }
-        }
-      },
-      "required": [ "new_memories", "replacement_ids" ],
-      "additionalProperties": false
-    }
+    strict: true,
+    name: "Merged_Memories",
+    description: "An object containing consolidated new memories and IDs of existing memories to replace",
+    schema: LlmSchemas::MergedMemoriesSchema.to_json_schema.deep_stringify_keys
   }
 
   def perform(student_report)
