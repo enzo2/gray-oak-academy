@@ -9,6 +9,7 @@ one:
     stt_method: "speech"
     stt_model: "transcribe-1"
     openai_agent_model: "gpt-5.2"
+    exa_research_model: "exa-research"
   singleton: true
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>

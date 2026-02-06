@@ -17,7 +17,9 @@ class AppSetting < ApplicationRecord
                  :image_generation_two_pass,
                  :user_daily_budget,
                  :max_chat_cost,
-                 :openai_agent_model
+                 :openai_agent_model,
+                 :exa_api_key,
+                 :exa_research_model
 
   # Custom accessor to handle boolean casting and default value
   def image_generation_two_pass
@@ -36,6 +38,10 @@ class AppSetting < ApplicationRecord
     val = super
     return nil unless val.present?
     val.to_d
+  end
+
+  def exa_research_model
+    super.presence || ExaApiService::DEFAULT_RESEARCH_MODEL
   end
 
   validates :singleton, inclusion: { in: [ true, false ] }
@@ -118,6 +124,14 @@ class AppSetting < ApplicationRecord
 
     open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
     open_router&.api_access_token.present?
+  end
+
+  def exa_enabled?
+    exa_api_key.present? || ENV["EXA_API_KEY"].present?
+  end
+
+  def self.exa_enabled?
+    settings&.exa_enabled? || ENV["EXA_API_KEY"].present? || false
   end
 
   # OpenAI-only agent runner configuration.

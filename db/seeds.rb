@@ -1032,7 +1032,8 @@ AppSetting.first_or_create!(
   image_generation_two_pass: "0",
   user_daily_budget: "10.00",
   max_chat_cost: "5.00",
-  openai_agent_model: "gpt-5.2"
+  openai_agent_model: "gpt-5.2",
+  exa_research_model: "exa-research"
 )
 
 # ---- Seed OpenRouter image-capable LLM ----

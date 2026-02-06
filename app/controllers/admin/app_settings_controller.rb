@@ -28,7 +28,7 @@ module Admin
     end
 
     def app_setting_params
-      params.require(:app_setting).permit(
+      attrs = params.require(:app_setting).permit(
         :provider_supported_api_id,
         :stt_method,
         :stt_model,
@@ -42,8 +42,13 @@ module Admin
         :image_generation_two_pass,
         :user_daily_budget,
         :max_chat_cost,
-        :openai_agent_model
+        :openai_agent_model,
+        :exa_api_key,
+        :exa_research_model
       )
+
+      attrs.delete(:exa_api_key) if attrs[:exa_api_key].blank?
+      attrs
     end
   end
 end

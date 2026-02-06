@@ -62,4 +62,16 @@ class AppSettingTest < ActiveSupport::TestCase
 
     assert_not @app.openai_agent_enabled?
   end
+
+  test "exa defaults are applied and key controls enabled state" do
+    @app.update!(exa_research_model: nil, exa_api_key: nil)
+    @app.reload
+
+    assert_equal "exa-research", @app.exa_research_model
+    assert_not @app.exa_enabled?
+
+    @app.update!(exa_api_key: "exa-test-key")
+    assert @app.exa_enabled?
+    assert AppSetting.exa_enabled?
+  end
 end
