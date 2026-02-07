@@ -51,10 +51,9 @@ class ToolExecutionService
       Rails.logger.error("ToolExecutionError: #{e.message}")
       # Notify the LLM of the error, not the user, since the LLM called the tool.
       create_tool_message("Tool execution resulted in error: #{e.message}")
-    rescue => e
-      Rails.logger.error("Unexpected error: #{e.message}")
-      # Other errors are shown to the user.
-      broadcast_error("Unexpected error: #{e.message}")
+    rescue StandardError => e
+      Rails.logger.error("Unexpected tool execution error: #{e.message}")
+      create_tool_message("Tool execution resulted in error: #{e.message}")
     end
   end
 

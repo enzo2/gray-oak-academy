@@ -28,7 +28,7 @@ module Admin
     end
 
     def app_setting_params
-      attrs = params.require(:app_setting).permit(
+      params.require(:app_setting).permit(
         :provider_supported_api_id,
         :stt_method,
         :stt_model,
@@ -46,9 +46,6 @@ module Admin
         :exa_api_key,
         :exa_research_model
       )
-
-      attrs.delete(:exa_api_key) if attrs[:exa_api_key].blank?
-      attrs
     end
   end
 end

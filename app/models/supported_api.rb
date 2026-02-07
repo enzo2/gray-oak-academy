@@ -20,10 +20,14 @@ class SupportedApi < ApplicationRecord
   end
 
   def self.openai_supported
+    # Assumes one OpenAI Platform base URI entry for now; if multiple are added,
+    # AppSetting should explicitly store which SupportedApi record to use.
     openai_platform.first
   end
 
   def self.openai_selectable
+    # Assumes one OpenAI Platform base URI entry for now; if multiple are added,
+    # AppSetting should explicitly store which SupportedApi record to use.
     selectable_for_teachers.openai_platform.first
   end
 

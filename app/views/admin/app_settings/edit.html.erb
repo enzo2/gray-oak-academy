@@ -211,8 +211,9 @@
 
   <div>
     <%= f.label :exa_api_key, "Exa API key", class: "form-label" %>
-    <%= f.password_field :exa_api_key, class: "input-primary", autocomplete: "off", placeholder: (@setting.exa_api_key.present? ? "Leave blank to keep current key" : "Paste EXA key") %>
+    <%= f.password_field :exa_api_key, class: "input-primary", autocomplete: "off", placeholder: "Paste EXA key (optional)" %>
     <p class="text-xs text-dim mt-1">
+      Stored encrypted. When present, this key is used for Exa calls.
       <% if @setting.exa_api_key.present? %>
         <span class="text-green-600 dark:text-green-400">Exa API key is configured in App Settings.</span>
       <% elsif ENV["EXA_API_KEY"].present? %>
