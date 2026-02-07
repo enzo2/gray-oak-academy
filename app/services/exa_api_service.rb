@@ -28,6 +28,15 @@ class ExaApiService
     response
   end
 
+  # POST /answer
+  def answer(query:, **options)
+    raise OpenAiError, "query is required for Exa answer." if query.to_s.strip.blank?
+
+    response = post_json("/answer", { query: query }.merge(options.compact))
+    log_completion_if_possible(response, model: "exa-answer")
+    response
+  end
+
   # POST /contents
   def get_contents(urls:, **options)
     normalized_urls = Array(urls).map(&:to_s).reject(&:blank?).uniq

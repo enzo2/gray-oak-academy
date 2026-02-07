@@ -402,24 +402,11 @@ class OpenaiApiService
   end
 
   def determine_tools
-    # Start with tools enabled for the current user
-    allowed_tools = Tool.enabled_for_user(@user)
-
-    # If this is a lesson conversation, only provide student-level tools
-    # This ensures teachers previewing lessons as students don't get curriculum tools
-    if @conversation&.lesson_progress.present?
-      allowed_tools = allowed_tools.where(access: :student)
-    end
-
-    if @conversation&.lesson_progress.blank? && @user.role_teacher?
-      # In non-lesson chats, avoid sending both Manage_Applets and View_Applets to teachers.
-      allowed_tools = allowed_tools.reject { |tool| tool.name == "View_Applets" }
-    end
-
-    # Format tools for LLM
-    allowed_tools.map(&:for_llm)
-                 # Reject image generation tool if not using OpenRouter
-                 .reject { |tool| tool.dig("function", "name") == "Generate_Image" && !@base_uri.include?("openrouter.ai") }
+    ToolCatalogService.new(
+      user: @user,
+      conversation: @conversation,
+      base_uri: @base_uri
+    ).for_chat_completions
   end
 
   def check_cost_limits

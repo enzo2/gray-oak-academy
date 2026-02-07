@@ -1,6 +1,7 @@
 class DelegateToFrontierLlmJob < ApplicationJob
   queue_as :default
   include Rails.application.routes.url_helpers
+  MAX_TOOL_TURNS = 8
 
   def perform(teacher, prompt, source: "tool_call")
     unless teacher.role_teacher?
@@ -21,6 +22,7 @@ class DelegateToFrontierLlmJob < ApplicationJob
     started_at = Time.current
     model = app_setting.openai_agent_model
     openai_api = app_setting.openai_agent_supported_api
+    use_exa_search = app_setting.exa_enabled?
     raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
 
     run_log = AgentRunLogService.new(app_setting: app_setting)
@@ -28,6 +30,12 @@ class DelegateToFrontierLlmJob < ApplicationJob
     failure_notified = false
 
     begin
+      function_call_adapter = ResponsesFunctionCallAdapter.new(
+        current_user: teacher,
+        exa_enabled: use_exa_search,
+        allow_app_tools: false
+      )
+
       client = OpenaiResponsesService.new(
         current_user: teacher,
         access_token: app_setting.openai_agent_access_token,
@@ -35,7 +43,7 @@ class DelegateToFrontierLlmJob < ApplicationJob
         model: model,
         task_system_prompt: task_system_prompt,
         enable_tools: false,
-        native_tools: [ { type: "web_search" } ],
+        native_tools: function_call_adapter.delegate_native_tools,
         store: true,
         log_completion: true
       )
@@ -67,6 +75,41 @@ class DelegateToFrontierLlmJob < ApplicationJob
         poll_interval_seconds: 2
       )
 
+      turns = 0
+      loop do
+        status = final_response["status"].to_s
+        break unless status == "completed"
+
+        function_calls = function_call_adapter.function_calls(final_response)
+        break if function_calls.blank?
+
+        turns += 1
+        if turns > MAX_TOOL_TURNS
+          raise OpenAiError, "Agent run exceeded tool-call limit (#{MAX_TOOL_TURNS})."
+        end
+
+        tool_outputs = function_call_adapter.function_call_outputs(function_calls)
+
+        continued = client.complete(
+          input: tool_outputs,
+          previous_response_id: final_response["id"],
+          background: true,
+          metadata: {
+            run_id: run_id,
+            run_type: "delegate_to_frontier_llm",
+            teacher_id: teacher.id.to_s,
+            source: source.to_s
+          }
+        )
+        response_id = continued["id"]
+        final_response = client.wait_for_response(
+          response_id,
+          timeout_seconds: 900,
+          poll_interval_seconds: 2
+        )
+      end
+
+      response_id = final_response["id"]
       status = final_response["status"].to_s
       if status == "completed"
         result = client.output_text(final_response)

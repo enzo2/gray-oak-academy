@@ -19,7 +19,7 @@ class OpenaiResponsesService
   include OpenaiResponseHelper
   include OpenaiErrorHelper
 
-  attr_reader :last_response_id, :last_response, :previous_response_id
+  attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id
 
   # Initialize a new Responses client.
   #
@@ -520,6 +520,7 @@ class OpenaiResponsesService
   # When store is enabled, we treat the last response id as previous_response_id.
   def set_last_response(response_hash, response_obj)
     @last_response = response_obj
+    @last_response_hash = response_hash
     @last_response_id = response_hash["id"]
     update_conversation_state if @active_store && @last_response_id.present?
   end
@@ -607,18 +608,11 @@ class OpenaiResponsesService
   end
 
   def determine_tools
-    allowed_tools = Tool.enabled_for_user(@user)
-
-    if @conversation&.lesson_progress.present?
-      allowed_tools = allowed_tools.where(access: :student)
-    end
-
-    if @conversation&.lesson_progress.blank? && @user.role_teacher?
-      allowed_tools = allowed_tools.reject { |tool| tool.name == "View_Applets" }
-    end
-
-    allowed_tools.map { |tool| format_response_tool(tool) }
-                 .reject { |tool| tool["name"] == "Generate_Image" && !@base_uri.include?("openrouter.ai") }
+    ToolCatalogService.new(
+      user: @user,
+      conversation: @conversation,
+      base_uri: @base_uri
+    ).for_responses
   end
 
   def normalize_native_tools(native_tools)
@@ -633,18 +627,6 @@ class OpenaiResponsesService
         nil
       end
     end
-  end
-
-  def format_response_tool(tool)
-    spec = tool.respond_to?(:specifications) ? tool.specifications : tool
-    name = spec["name"] || spec[:name]
-    {
-      "type" => "function",
-      "name" => name,
-      "description" => spec["description"] || spec[:description],
-      "parameters" => spec["parameters"] || spec[:parameters],
-      "strict" => spec["strict_mode"] || spec[:strict_mode]
-    }.compact
   end
 
   def check_cost_limits

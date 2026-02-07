@@ -24,6 +24,21 @@ class ExaApiServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "answer posts query and options to Exa answer endpoint" do
+    captured = {}
+    with_stubbed_http(captured: captured, response_code: "200", response_body: { answer: "Light bends when entering a different medium." }.to_json) do
+      service = ExaApiService.new
+      result = service.answer(query: "Why does light refract?", text: false)
+
+      assert_equal "Light bends when entering a different medium.", result["answer"]
+      assert_equal "/answer", captured[:request_path]
+
+      body = JSON.parse(captured[:request_body])
+      assert_equal "Why does light refract?", body["query"]
+      assert_equal false, body["text"]
+    end
+  end
+
   test "get_contents posts urls to contents endpoint" do
     captured = {}
     with_stubbed_http(captured: captured, response_code: "200", response_body: { results: [] }.to_json) do
