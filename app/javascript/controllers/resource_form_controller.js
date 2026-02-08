@@ -1,17 +1,29 @@
 import { Controller } from "@hotwired/stimulus"
 
-const TYPES = [ "file", "url", "applet", "other" ]
+const TYPES = [ "file", "url", "video", "image", "applet", "text" ]
 
 export default class extends Controller {
-  static targets = [ "typeSelect", "categoryInput", "urlSection", "fileSection", "appletSection", "otherSection" ]
+  static targets = [
+    "typeSelect",
+    "categoryInput",
+    "urlSection",
+    "fileSection",
+    "appletSection",
+    "textSection",
+    "urlLabel",
+    "urlEmbedHelp",
+    "urlImageHelp",
+    "embedDialogWrapper"
+  ]
   static values = {
     initialType: String,
     payloadLocked: Boolean
   }
 
   connect() {
-    this.applyType(this.initialTypeValue || "other")
-    if (!this.payloadLockedValue && (this.initialTypeValue || "other") === "other") this.applyCategorySuggestion()
+    const initialType = this.normalizedType(this.initialTypeValue)
+    this.applyType(initialType)
+    if (!this.payloadLockedValue && initialType === "text") this.applyCategorySuggestion()
   }
 
   changeType(event) {
@@ -33,6 +45,9 @@ export default class extends Controller {
     if (!categoryValue) return null
     if (categoryValue.includes("applet")) return "applet"
     if (categoryValue.includes("file") || categoryValue.includes("pdf")) return "file"
+    if (categoryValue.includes("video") || categoryValue.includes("youtube") || categoryValue.includes("vimeo")) return "video"
+    if (categoryValue.includes("image") || categoryValue.includes("photo") || categoryValue.includes("diagram")) return "image"
+    if (categoryValue.includes("quote") || categoryValue.includes("excerpt") || categoryValue.includes("text")) return "text"
     if (categoryValue.includes("web") || categoryValue.includes("site")) return "url"
     return null
   }
@@ -56,16 +71,27 @@ export default class extends Controller {
     return ""
   }
 
+  normalizedType(type) {
+    return TYPES.includes(type) ? type : "text"
+  }
+
+  urlType(type) {
+    return [ "url", "video", "image" ].includes(type)
+  }
+
   applyType(type) {
-    const normalizedType = TYPES.includes(type) ? type : "other"
+    const normalizedType = this.normalizedType(type)
     if (this.hasTypeSelectTarget) this.typeSelectTarget.value = normalizedType
 
-    if (this.hasUrlSectionTarget) this.toggleSection(this.urlSectionTarget, normalizedType === "url", false)
+    if (this.hasUrlSectionTarget) this.toggleSection(this.urlSectionTarget, this.urlType(normalizedType), false)
     if (this.hasFileSectionTarget) this.toggleSection(this.fileSectionTarget, normalizedType === "file", true)
     if (this.hasAppletSectionTarget) this.toggleSection(this.appletSectionTarget, normalizedType === "applet", true)
-    if (this.hasOtherSectionTarget) this.toggleSection(this.otherSectionTarget, normalizedType === "other", false)
+    if (this.hasTextSectionTarget) this.toggleSection(this.textSectionTarget, normalizedType === "text", false)
 
-    if (normalizedType !== "url") this.clearUrlValue()
+    this.updateUrlUi(normalizedType)
+
+    if (!this.urlType(normalizedType)) this.clearUrlValue()
+    if (normalizedType !== "text") this.clearTextValue()
   }
 
   toggleSection(section, active, disableInputs) {
@@ -80,5 +106,28 @@ export default class extends Controller {
     if (!this.hasUrlSectionTarget) return
     const urlInput = this.urlSectionTarget.querySelector("input[type='url'], input[name='resource[uri]']")
     if (urlInput) urlInput.value = ""
+  }
+
+  clearTextValue() {
+    if (!this.hasTextSectionTarget) return
+    const textInput = this.textSectionTarget.querySelector("textarea[name='resource[content]'], textarea#resource_content")
+    if (textInput) textInput.value = ""
+  }
+
+  updateUrlUi(normalizedType) {
+    if (this.hasUrlLabelTarget) {
+      if (normalizedType === "video") {
+        this.urlLabelTarget.textContent = "Video URL"
+      } else if (normalizedType === "image") {
+        this.urlLabelTarget.textContent = "Image URL"
+      } else {
+        this.urlLabelTarget.textContent = "URL"
+      }
+    }
+
+    const useEmbedChecker = [ "url", "video" ].includes(normalizedType)
+    if (this.hasUrlEmbedHelpTarget) this.urlEmbedHelpTarget.classList.toggle("hidden", !useEmbedChecker)
+    if (this.hasUrlImageHelpTarget) this.urlImageHelpTarget.classList.toggle("hidden", normalizedType !== "image")
+    if (this.hasEmbedDialogWrapperTarget) this.embedDialogWrapperTarget.classList.toggle("hidden", !useEmbedChecker)
   }
 }

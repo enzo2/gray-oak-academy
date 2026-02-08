@@ -15,6 +15,8 @@ class Resource < ApplicationRecord
         self.description = "File: #{file.filename}"
       elsif uri.present?
         self.description = "Link: #{uri}"
+      elsif content.present?
+        self.description = "Text resource"
       elsif applet.present? && !applet.marked_for_destruction?
         self.description = "Applet: #{applet.title}"
       end
@@ -23,8 +25,13 @@ class Resource < ApplicationRecord
 
   # Ensure nested applet created/updated through Resource gets a user assigned.
   before_validation :assign_applet_user, if: -> { applet.present? && !applet.marked_for_destruction? }
+  before_validation :normalize_youtube_uri
 
   validate :single_presence_of_payload
+  validate :youtube_uri_must_be_embed
+
+  scope :available_for_tutor, -> { where(approved: [ nil, true ]) }
+  scope :pending_approval, -> { where(approved: false) }
 
   def self.normalize_tags(value)
     raw_tags = case value
@@ -75,12 +82,22 @@ class Resource < ApplicationRecord
 
   # For a collection of Resources, format the data as JSON so it can be provided to the LLM
   def self.format_collection(pretty: true)
-    resources_data = all.map do |resource|
+    resources = includes(:applet, file_attachment: :blob).to_a
+    resources_data = resources.map do |resource|
       resource_info = {
         "Description" => resource.description
       }
       resource_info["Category"] = resource.category if resource.category.present?
+      resource_info["Approval"] = case resource.approved
+      when true
+        "LLM-created and approved"
+      when false
+        "LLM-created and pending approval"
+      else
+        "Human-created"
+      end
       resource_info["URI"] = resource.uri if resource.uri.present?
+      resource_info["Content"] = resource.content if resource.content.present?
       if resource.file.attached?
         resource_info["file_attached"] = "Yes"
         resource_info["resource_id"] = resource.id.to_s
@@ -103,6 +120,26 @@ class Resource < ApplicationRecord
     end
   end
 
+  # For human-clicked links in the admin UI, convert YouTube embed URLs back to
+  # watch URLs so they open reliably outside iframes.
+  def uri_for_direct_visit
+    return uri if uri.blank?
+    return uri unless youtube_embed_uri?(uri)
+
+    parsed = parse_uri(uri)
+    return uri unless parsed
+
+    host = parsed.host.to_s.downcase.sub(/\Awww\./, "")
+    video_id = extract_youtube_video_id(parsed, host)
+    return uri unless valid_youtube_video_id?(video_id)
+
+    watch_url = "https://www.youtube.com/watch?v=#{video_id}"
+    start_seconds = extract_youtube_start_seconds(parsed)
+    return watch_url unless start_seconds&.positive?
+
+    "#{watch_url}&t=#{start_seconds}s"
+  end
+
   private
 
   def assign_applet_user
@@ -115,10 +152,116 @@ class Resource < ApplicationRecord
     payloads = [
       file.attached?,
       uri.present?,
+      content.present?,
       applet.present? && !applet.marked_for_destruction?
     ].count(true)
     if payloads > 1
-      errors.add(:base, "Only one payload variety (File, URI, or Applet) can be present.")
+      errors.add(:base, "Only one payload variety (File, URI, Text, or Applet) can be present.")
     end
+  end
+
+  def normalize_youtube_uri
+    return if uri.blank?
+
+    self.uri = uri.to_s.strip
+    embed_uri = normalized_youtube_embed_uri(uri)
+    self.uri = embed_uri if embed_uri.present?
+  end
+
+  def youtube_uri_must_be_embed
+    return if uri.blank?
+    return unless youtube_url?(uri)
+    return if youtube_embed_uri?(uri)
+
+    errors.add(:uri, "YouTube URLs must use a valid embed-compatible video link.")
+  end
+
+  def normalized_youtube_embed_uri(raw_uri)
+    parsed = parse_uri(raw_uri)
+    return nil unless parsed
+
+    host = parsed.host.to_s.downcase.sub(/\Awww\./, "")
+    video_id = extract_youtube_video_id(parsed, host)
+    return nil unless valid_youtube_video_id?(video_id)
+
+    embed_uri = "https://www.youtube.com/embed/#{video_id}"
+    start_seconds = extract_youtube_start_seconds(parsed)
+    return embed_uri unless start_seconds&.positive?
+
+    "#{embed_uri}?start=#{start_seconds}"
+  end
+
+  def youtube_url?(raw_uri)
+    parsed = parse_uri(raw_uri)
+    return false unless parsed&.host.present?
+
+    host = parsed.host.to_s.downcase.sub(/\Awww\./, "")
+    host == "youtu.be" || youtube_domain_host?(host)
+  end
+
+  def youtube_embed_uri?(raw_uri)
+    parsed = parse_uri(raw_uri)
+    return false unless parsed&.host.present?
+
+    host = parsed.host.to_s.downcase.sub(/\Awww\./, "")
+    return false unless youtube_domain_host?(host)
+
+    parsed.path.to_s.match?(%r{\A/embed/[\w-]{11}\z})
+  end
+
+  def extract_youtube_video_id(parsed_uri, host)
+    params = URI.decode_www_form(parsed_uri.query.to_s).to_h
+    path_segments = parsed_uri.path.to_s.split("/").reject(&:blank?)
+
+    return path_segments.first if host == "youtu.be"
+    return nil unless youtube_domain_host?(host)
+
+    case path_segments.first
+    when "watch"
+      params["v"]
+    when "embed", "shorts", "live"
+      path_segments.second
+    else
+      nil
+    end
+  end
+
+  def extract_youtube_start_seconds(parsed_uri)
+    params = URI.decode_www_form(parsed_uri.query.to_s).to_h
+    raw = params["start"].presence || params["t"].presence || params["time_continue"].presence
+    return nil if raw.blank?
+
+    parse_time_to_seconds(raw)
+  end
+
+  def parse_time_to_seconds(value)
+    str = value.to_s.strip.downcase
+    return str.to_i if str.match?(/\A\d+\z/)
+
+    match = str.match(/\A(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?\z/)
+    return nil unless match
+
+    hours = match[1].to_i
+    minutes = match[2].to_i
+    seconds = match[3].to_i
+    total = (hours * 3600) + (minutes * 60) + seconds
+    total.positive? ? total : nil
+  end
+
+  def valid_youtube_video_id?(value)
+    value.to_s.match?(/\A[\w-]{11}\z/)
+  end
+
+  def youtube_domain_host?(host)
+    host == "youtube.com" ||
+      host.end_with?(".youtube.com") ||
+      host == "youtube-nocookie.com" ||
+      host.end_with?(".youtube-nocookie.com")
+  end
+
+  def parse_uri(value)
+    URI.parse(value.to_s)
+  rescue URI::InvalidURIError
+    nil
   end
 end

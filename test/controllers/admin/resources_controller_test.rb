@@ -73,6 +73,27 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated description", @resource.reload.description
   end
 
+  test "should switch text resource to url when content is cleared" do
+    resource = Resource.create!(
+      teacher: @teacher,
+      description: "Text-only resource",
+      content: "Quoted text"
+    )
+
+    patch admin_resource_path(resource), params: {
+      resource: {
+        description: "Now a URL resource",
+        uri: "https://example.com/updated",
+        content: ""
+      }
+    }
+
+    assert_redirected_to admin_resources_path
+    resource.reload
+    assert_equal "https://example.com/updated", resource.uri
+    assert resource.content.blank?
+  end
+
   test "should destroy resource" do
     assert_difference("Resource.count", -1) do
       delete admin_resource_path(@resource)
@@ -92,5 +113,45 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes @response.body, "math"
     assert_includes @response.body, "science"
+  end
+
+  test "approve marks resource as approved" do
+    @resource.update!(approved: false)
+
+    patch approve_admin_resource_path(@resource)
+
+    assert_redirected_to admin_resources_path
+    assert_equal true, @resource.reload.approved
+  end
+
+  test "index shows pending resources first with highlight and approve action" do
+    approved_resource = Resource.create!(
+      teacher: @teacher,
+      category: "article",
+      description: "Approved resource",
+      uri: "https://example.com/approved",
+      approved: true
+    )
+    pending_resource = Resource.create!(
+      teacher: @teacher,
+      category: "article",
+      description: "Pending resource",
+      uri: "https://example.com/pending",
+      approved: false
+    )
+
+    get admin_resources_path
+    assert_response :success
+
+    pending_index = @response.body.index("id=\"resource_#{pending_resource.id}\"")
+    approved_index = @response.body.index("id=\"resource_#{approved_resource.id}\"")
+    assert_not_nil pending_index
+    assert_not_nil approved_index
+    assert_operator pending_index, :<, approved_index
+
+    pending_row_open_tag = @response.body.match(/<div id="resource_#{pending_resource.id}"[^>]*>/)&.to_s
+    assert_includes pending_row_open_tag, "bg-amber-50/80"
+    assert_includes @response.body, "action=\"#{approve_admin_resource_path(pending_resource)}\""
+    assert_includes @response.body, "Approve"
   end
 end

@@ -18,12 +18,36 @@ class LessonPlan < ApplicationRecord
   enum :audio, { enabled: "enabled", only: "audio-only" }, prefix: true
   # "disabled" status also available in the enum column, but confusing since STT is always enabled
 
+  GENERATION_STAGES = %w[idle generating_content proposing_resources completed failed].freeze
+
+  validates :generation_stage, inclusion: { in: GENERATION_STAGES }
+
+  validate :no_pending_resources_when_published, if: :status_published?
+
   # Allow blank content if still new draft
   validate :validate_content_format, unless: -> { status == "draft" && content.blank? }
 
   after_initialize :link_default_resources, if: :new_record?
 
+  def generation_in_progress?
+    %w[generating_content proposing_resources].include?(generation_stage)
+  end
+
+  def initial_generation_completed?
+    generation_stage != "idle"
+  end
+
+  def resource_proposal_available?
+    %w[completed failed].include?(generation_stage)
+  end
+
   private
+
+  def no_pending_resources_when_published
+    if resources.pending_approval.exists?
+      errors.add(:status, "cannot be published while linked resources are pending approval.")
+    end
+  end
 
   def link_default_resources
     default_resources = Resource.where(include_by_default: true)

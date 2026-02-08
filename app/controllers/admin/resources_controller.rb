@@ -1,10 +1,12 @@
 module Admin
   class ResourcesController < Admin::BaseController
-    before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file ]
+    before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file, :approve ]
 
     def index
       # Only show the current teacher's resources
-      @resources = Resource.where(teacher: current_user).order(created_at: :desc)
+      @resources = Resource.where(teacher: current_user)
+                           .order(Arel.sql("CASE WHEN approved = FALSE THEN 0 ELSE 1 END ASC"))
+                           .order(created_at: :desc)
     end
 
     def tag_chips
@@ -66,6 +68,11 @@ module Admin
       redirect_to admin_resource_path(@resource)
     end
 
+    def approve
+      @resource.update!(approved: true)
+      redirect_back fallback_location: admin_resources_path, notice: "Resource approved."
+    end
+
     private
 
     def set_resource
@@ -77,7 +84,7 @@ module Admin
     end
 
     def resource_params
-      params.expect(resource: [ :category, :description, :uri, :file, :include_by_default, :tags, applet_attributes: [ :id, :title, :code ] ])
+      params.expect(resource: [ :category, :description, :uri, :content, :file, :include_by_default, :tags, applet_attributes: [ :id, :title, :code ] ])
       # Could add _destroy for applet_attributes if want to allow deleting applets, but makes sense to delete the whole resource
     end
   end

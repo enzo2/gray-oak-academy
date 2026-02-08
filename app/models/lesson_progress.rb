@@ -33,7 +33,7 @@ class LessonProgress < ApplicationRecord
   end
 
   def resources # For convenience
-    lesson_plan.resources
+    lesson_plan.resources.available_for_tutor
   end
 
   def build_task_system_prompt

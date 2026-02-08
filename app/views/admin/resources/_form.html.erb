@@ -4,10 +4,19 @@
       "applet"
     elsif resource.file.attached?
       "file"
+    elsif resource.content.present?
+      "text"
     elsif resource.uri.present?
-      "url"
+      category_value = resource.category.to_s.downcase
+      if category_value.include?("video")
+        "video"
+      elsif category_value.include?("image")
+        "image"
+      else
+        "url"
+      end
     else
-      "other"
+      "text"
     end
   payload_locked = resource.applet&.persisted? || (resource.persisted? && resource.file.attached?)
 %>
@@ -29,9 +38,9 @@
   <% end %>
 
   <p class="text-sm text-dim mb-4">
-    Resources allow you to add your own content to lessons.<br>
-    They can include content displayable on the chalkboard by the LLM: <b>videos, websites, PDFs, images, applets</b>. (Other file types can be uploaded, and a download link will be shown.) <br>
-    Or, you can include <b>only a description</b> to reference external resources available to the student, e.g. book, tool, workshop, demonstration, software, person.
+    <b>Resources</b> provide verified content for lessons, like multimedia, applets, documents, web links, or real-world items.<br>
+    You can add videos URLs and other websites, images, PDFs, or plain text. To reference external resources (eg. software, book, person), just describe it.<br>
+    For interactive applets, <%= link_to "ask the LLM", conversations_path, class: "underline" %>. 
   </p>
 
   <% tag_owner = resource.teacher || current_user %>
@@ -76,7 +85,7 @@
   <div class="mb-4">
     <%= label_tag :resource_form_type, "Resource Type", class: "form-label" %>
     <%= select_tag :resource_form_type,
-                   options_for_select([ [ "File", "file" ], [ "URL", "url" ], [ "Applet", "applet" ], [ "Other", "other" ] ], payload_type),
+                   options_for_select([ [ "File", "file" ], [ "Website", "url" ], [ "Video", "video" ], [ "Image", "image" ], [ "Applet", "applet" ], [ "Text", "text" ] ], payload_type),
                    class: "input-primary w-full px-2 py-1.5 md:px-3 md:py-2",
                    disabled: payload_locked,
                    data: { resource_form_target: "typeSelect", action: "change->resource-form#changeType" } %>
@@ -88,23 +97,32 @@
   <hr class="hr-primary mb-2">
 
   <% unless resource.applet&.persisted? %>
-    <div class="mb-4 <%= payload_type == 'url' ? '' : 'hidden' %>" data-resource-form-target="urlSection">
+    <div class="mb-4 <%= [ 'url', 'video', 'image' ].include?(payload_type) ? '' : 'hidden' %>" data-resource-form-target="urlSection">
       <div class="mb-2">
-        <%= form.label :uri, "URL", class: "form-label" %>
+        <%= form.label :uri, "URL", class: "form-label", data: { resource_form_target: "urlLabel" } %>
         <%= form.url_field :uri, class: "input-primary" %>
       </div>
-      <p class="text-sm text-dim mb-4">Make sure the site or video supports embedding. For YouTube, use the embed link, e.g. https://www.youtube.com/embed/abc123....<br>
-        Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.
+
+      <p class="text-sm text-dim mb-4 <%= (payload_type == 'url' || payload_type == 'video') ? '' : 'hidden' %>" data-resource-form-target="urlEmbedHelp">
+        Sites must allow embedding to be shown on the chalkboard. Otherwise, the student will need to visit in a new tab.<br>
+        Use this <sl-button outline size="small" data-action="click->embed-checker#openDialog">embed checker</sl-button> to verify.<br>
+        For YouTube, you can paste a standard URL; it will be auto-converted to the embed URL.
       </p>
-      <sl-dialog style="--width: min(90vw, 800px);" data-embed-checker-target="dialog" label="Embed checker">
+      <p class="text-sm text-dim mb-4 <%= payload_type == 'image' ? '' : 'hidden' %>" data-resource-form-target="urlImageHelp">
+        Use a direct image URL (for example ending in .png, .jpg, or .webp). Embed checking is not required for images.
+      </p>
+      <sl-dialog style="--width: min(90vw, 800px);" class="<%= (payload_type == 'url' || payload_type == 'video') ? '' : 'hidden' %>" data-resource-form-target="embedDialogWrapper" data-embed-checker-target="dialog" label="Embed checker">
           <p>Make sure the site loads correctly. Many sites do not allow embedding.</p>
-          <iframe width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
+          <iframe title="Embed Checker" width="100%" height="600px" style="border: 1px solid #ccc;" data-embed-checker-target="embedCheckerIframe"></iframe>
       </sl-dialog>
     </div>
   <% end %>
 
   <% unless resource.applet&.persisted? %>
     <div class="mb-4 <%= payload_type == 'file' ? '' : 'hidden' %>" data-resource-form-target="fileSection">
+      <p class="text-sm text-dim mb-2">
+        PDFs can be viewed directly on the chalkboard. Other file types will appear as downloadable links.
+      </p>
       <% if resource.file.attached? && resource.file.persisted? %>
         <%= form.label :file, "Current File", class: "form-label" %>
         <%= link_to resource.file.filename, rails_blob_path(resource.file, disposition: "attachment") %>
@@ -125,22 +143,26 @@
 
   <div class="mb-4 <%= payload_type == 'applet' ? '' : 'hidden' %>" data-resource-form-target="appletSection">
     <% applet = resource.applet || resource.build_applet(user: current_user) %>
+    <p class="text-sm text-dim mb-1">
+      <i>To generate compatible applets, <%= link_to "chat with the LLM", conversations_path, class: "underline" %> in this app, and ask to save it as a resource.</i>
+    </p>
     <%= form.fields_for :applet, applet do |applet_form| %>
       <%= applet_form.label :title, "Applet Title (for JavaScript applets)", class: "form-label" %>
       <%= applet_form.text_field :title, class: "input-primary mb-2" %>
 
       <%= applet_form.label :code, "Applet Code", class: "form-label" %>
-      <%= applet_form.text_area :code, rows: 6, class: "input-primary font-mono text-xs", placeholder: "Due to special requirements, only use applets generated by LLM in this app." %>
-      <p class="text-sm text-dim mt-1 ">
-        <i>To generate compatible applets, have the LLM in this app write them, save the applet, and then convert them to a resource from the Applets dashboard.</i>
-      </p>
+      <%= applet_form.text_area :code, rows: 5, class: "input-primary font-mono text-xs", placeholder: "Due to special requirements, only use applets generated by LLM in this app." %>
     <% end %>
   </div>
 
-  <div class="mb-4 <%= payload_type == 'other' ? '' : 'hidden' %>" data-resource-form-target="otherSection">
+  <div class="mb-4 <%= payload_type == 'text' ? '' : 'hidden' %>" data-resource-form-target="textSection">
     <p class="text-sm text-dim">
-      Use this for references that do not need a URL, uploaded file, or embedded applet.
+      Use this for quotations, excerpts, short instructions, and notes that do not need a URL, file, or applet.
     </p>
+    <div class="mt-2">
+      <%= form.label :content, "Text Content (optional)", class: "form-label" %>
+      <%= form.text_area :content, rows: 5, class: "input-primary", placeholder: "Useful for quotations, excerpts, instructions, or short notes." %>
+    </div>
   </div>
 
   <hr class="hr-primary my-2">

@@ -1,0 +1,24 @@
+<div id="resource-proposal-controls" class="mb-3">
+  <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+  <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
+
+  <% if lesson_plan.resource_proposal_available? && resource_proposal_enabled %>
+    <%= form_with(
+      url: propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+      method: :post,
+      data: {
+        turbo_confirm: "This may take a while. Proceed with proposing and linking resources?",
+        controller: "button-loading"
+      }
+    ) do %>
+      <button type="submit" class="btn-success gap-2" <%= "disabled" if lesson_plan.generation_in_progress? %>>
+        <% if lesson_plan.generation_stage == "proposing_resources" %>
+          <sl-spinner></sl-spinner>
+        <% else %>
+          <sl-icon name="search"></sl-icon>
+        <% end %>
+        Propose Resources
+      </button>
+    <% end %>
+  <% end %>
+</div>

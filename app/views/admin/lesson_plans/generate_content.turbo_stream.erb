@@ -1,3 +1,19 @@
-<%= turbo_stream.replace("generate-lesson-plan-button",
-  partial: "admin/lesson_plans/generating_content_button"
+<%= turbo_stream.replace(
+  "lesson-plan-generation-controls",
+  partial: "admin/lesson_plans/generate_lesson_plan_button",
+  locals: { lesson: @lesson, lesson_plan: @lesson_plan }
 ) %>
+
+<%= turbo_stream.replace(
+  "resource-proposal-controls",
+  partial: "admin/lesson_plans/propose_resources_button",
+  locals: { lesson: @lesson, lesson_plan: @lesson_plan }
+) %>
+
+<% if flash.any? %>
+  <%= turbo_stream.update(
+    "flash_bar",
+    partial: "shared/flash",
+    locals: { flash: flash }
+  ) %>
+<% end %>

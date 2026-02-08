@@ -70,4 +70,60 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
     assert_includes names, "Student_Only_Tool"
     refute_includes names, "Admin_Only_Tool"
   end
+
+  test "responses tools default to strict false when strict_mode is unset" do
+    teacher = users(:admin)
+    conversation = conversations(:teacher_generic_conversation)
+
+    tool = Tool.find_or_initialize_by(name: "Strict_Default_False")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Strict_Default_False",
+      "description" => "Tool with no strict_mode specified",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {},
+        "required" => []
+      }
+    }
+    tool.save!
+
+    response_tool = ToolCatalogService.new(
+      user: teacher,
+      conversation: conversation,
+      base_uri: "https://api.openai.com/v1/"
+    ).for_responses.find { |entry| entry["name"] == "Strict_Default_False" }
+
+    assert_not_nil response_tool
+    assert_equal false, response_tool["strict"]
+  end
+
+  test "responses tools preserve strict true when strict_mode is set" do
+    teacher = users(:admin)
+    conversation = conversations(:teacher_generic_conversation)
+
+    tool = Tool.find_or_initialize_by(name: "Strict_Enabled_Tool")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Strict_Enabled_Tool",
+      "description" => "Tool with strict mode enabled",
+      "strict_mode" => true,
+      "parameters" => {
+        "type" => "object",
+        "properties" => {},
+        "required" => [],
+        "additionalProperties" => false
+      }
+    }
+    tool.save!
+
+    response_tool = ToolCatalogService.new(
+      user: teacher,
+      conversation: conversation,
+      base_uri: "https://api.openai.com/v1/"
+    ).for_responses.find { |entry| entry["name"] == "Strict_Enabled_Tool" }
+
+    assert_not_nil response_tool
+    assert_equal true, response_tool["strict"]
+  end
 end

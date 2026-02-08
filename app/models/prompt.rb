@@ -8,7 +8,7 @@ class Prompt < ApplicationRecord
     generate_course_outline: "generate_course_outline", # self-explanatory
     generate_lessons: "generate_lessons", # self-explanatory
     generate_lesson_plan: "generate_lesson_plan", # self-explanatory
-    suggest_resources: "suggest_resources", # unused, need to implement
+    suggest_resources: "suggest_resources", # propose/validate lesson resources
     lesson_tutor_session: "lesson_tutor_session", # for conducting the lesson plan with student
     open_ended_student_chat: "open_ended_student_chat", # for student 1:1 chat outside of lessons
     auto_name_conversation: "auto_name_conversation", # auto-generate short chat titles
@@ -69,7 +69,11 @@ class Prompt < ApplicationRecord
       prompt = Prompt.find_by(category: category, teacher_id: teacher.id) if teacher
     end
     prompt ||= Prompt.find_by(category: category, teacher_id: nil)
-    prompt.prompt
+    if prompt&.prompt.present?
+      prompt.prompt
+    else
+      raise "Prompt '#{category}' is missing. Run `bin/rails db:seed` or create it in Admin > Prompts."
+    end
   end
 
   # Helper method to get user-friendly category name

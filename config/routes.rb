@@ -65,8 +65,10 @@ Rails.application.routes.draw do
         resource :lesson_plan, only: [ :edit, :update, :destroy ] do
           post "link_resource/:resource_id", to: "lesson_plans#link_resource", as: :link_resource
           delete "unlink_resource/:resource_id", to: "lesson_plans#unlink_resource", as: :unlink_resource
+          delete "delete_resource/:resource_id", to: "lesson_plans#delete_resource", as: :delete_resource
           get "new_resource", to: "lesson_plans#new_resource", as: :new_resource
           post "generate_content", to: "lesson_plans#generate_content", as: :generate_content
+          post "propose_resources", to: "lesson_plans#propose_resources", as: :propose_resources
           delete "remove_suggested_resource/:resource_index", to: "lesson_plans#remove_suggested_resource", as: :remove_suggested_resource
         end
       end
@@ -76,6 +78,7 @@ Rails.application.routes.draw do
 
     resources :resources do
       delete "delete_file", on: :member
+      patch "approve", on: :member
       post "tag_chips", on: :collection
     end
 

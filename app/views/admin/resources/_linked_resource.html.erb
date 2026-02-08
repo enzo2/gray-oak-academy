@@ -1,11 +1,44 @@
 <div id="<%= dom_id(resource) %>" class="flex space-x-2 items-center p-1 my-1 bg-stone-200 dark:bg-stone-700">
-  <%= link_to unlink_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
-              data: { turbo_method: :delete },
-              class: "text-red-600 hover:text-red-800 ml-1 flex items-center" do %>
-    <sl-icon name="file-earmark-minus"></sl-icon>
+  <% if resource.approved == false %>
+    <%= link_to delete_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
+                data: { turbo_method: :delete, turbo_confirm: "Delete this resource from the library and all lesson plans?" },
+                class: "text-red-700 hover:text-red-900 ml-1 flex items-center",
+                title: "Delete resource" do %>
+      <sl-icon name="trash"></sl-icon>
+    <% end %>
+  <% else %>
+    <%= link_to unlink_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
+                data: { turbo_method: :delete },
+                class: "text-red-600 hover:text-red-800 ml-1 flex items-center",
+                title: "Unlink resource" do %>
+      <sl-icon name="file-earmark-minus"></sl-icon>
+    <% end %>
   <% end %>
   <div class="flex flex-col">
-    <span><%= [resource.category, resource.description].compact_blank.join(" - ") %></span>
+    <% resource_label = [resource.category, resource.description].compact_blank.join(" - ") %>
+    <% resource_href =
+         if resource.file.attached?
+           rails_blob_path(resource.file, disposition: "inline")
+         elsif resource.uri.present?
+           resource.uri_for_direct_visit
+         else
+           admin_resource_path(resource)
+         end %>
+    <% opens_direct_payload = resource.file.attached? || resource.uri.present? %>
+    <%= link_to resource_label,
+                resource_href,
+                class: "hover:underline text-stone-900 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-200",
+                target: (opens_direct_payload ? "_blank" : nil),
+                rel: (opens_direct_payload ? "noopener noreferrer" : nil) %>
+    <% if resource.approved == false %>
+      <span class="text-xs text-amber-700 dark:text-amber-300">
+        Pending approval
+        <%= link_to "Approve",
+          approve_admin_resource_path(resource),
+          data: { turbo_method: :patch },
+          class: "ml-2 text-green-700 dark:text-green-300 underline" %>
+      </span>
+    <% end %>
     <% if resource.tags.any? %>
       <div class="mt-1 flex flex-wrap gap-1">
         <% resource.tags.each do |tag| %>

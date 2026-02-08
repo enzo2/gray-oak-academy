@@ -1,0 +1,7 @@
+<%= turbo_stream.remove(dom_id(@resource)) %>
+<%= turbo_stream.remove("no-linked-resources-msg") %>
+<% unless @linked_resources_remaining %>
+  <%= turbo_stream.append("linked-resources") do %>
+    <p id="no-linked-resources-msg"><i>No resources linked to this lesson plan.</i></p>
+  <% end %>
+<% end %>

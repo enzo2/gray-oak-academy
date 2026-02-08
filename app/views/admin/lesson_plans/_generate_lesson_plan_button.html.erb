@@ -1,10 +1,30 @@
-<%= form_with url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :post, 
-  data: { 
-    turbo_confirm: "This will call the LLM to generate lesson plan content and suggested resources. You may want to set a thinking LLM. Proceed?",
-    controller: "button-loading" }, 
-  class: "inline-flex mb-4" do |form| %>
-  <button type="submit" id="generate-lesson-plan-button" class="btn-success gap-2">
-    <sl-icon name="lightbulb"></sl-icon>
-    Generate Lesson Plan
-  </button>
-<% end %>
+<div id="lesson-plan-generation-controls" class="mb-4">
+  <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+  <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
+
+  <%= form_with(
+    url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+    method: :post,
+    data: {
+      turbo_confirm: "This will call the LLM to generate lesson plan content. Proceed?",
+      controller: "button-loading"
+    }
+  ) do |form| %>
+    <div class="flex flex-col gap-2">
+      <% if resource_proposal_enabled %>
+        <label class="inline-flex items-center gap-2 text-sm">
+          <%= check_box_tag :propose_resources, "1", false, class: "checkbox-primary" %>
+          Also propose and link resources (may take longer)
+        </label>
+      <% end %>
+      <button type="submit" id="generate-lesson-plan-button" class="btn-success gap-2 w-fit" <%= "disabled" if lesson_plan.generation_in_progress? %>>
+        <% if lesson_plan.generation_in_progress? %>
+          <sl-spinner></sl-spinner>
+        <% else %>
+          <sl-icon name="lightbulb"></sl-icon>
+        <% end %>
+        Generate Lesson Plan
+      </button>
+    </div>
+  <% end %>
+</div>

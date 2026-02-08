@@ -14,6 +14,22 @@
   </div>
 
   <div>
+    <i>Text Content</i>
+    <br>
+    <%= @resource.content.presence || "No text content." %>
+  </div>
+
+  <div>
+    <i>Approval</i>
+    <br>
+    <%= @resource.approved == false ? "Pending" : (@resource.approved == true ? "Approved (LLM-created)" : "Human-created") %>
+    <% if @resource.approved == false %>
+      <br>
+      <%= button_to "Approve", approve_admin_resource_path(@resource), method: :patch, class: "btn-success mt-2" %>
+    <% end %>
+  </div>
+
+  <div>
     <i>Tags</i>
     <br>
     <% if @resource.tags.any? %>
@@ -32,13 +48,12 @@
     <br>
     <% if @resource.uri.present? %>
       <!-- Brakeman: URI is validated in the model and link text is escaped -->
-      <%= link_to sanitize(@resource.uri), sanitize(@resource.uri, tags: []), target: "_blank", rel: "noopener noreferrer" %>
+      <%= link_to sanitize(@resource.uri_for_direct_visit), sanitize(@resource.uri_for_direct_visit, tags: []), target: "_blank", rel: "noopener noreferrer" %>
     <% else %>
       No URI provided.
     <% end %>
-    
   </div>
-  
+
   <div>
     <i>Attached File:</i>
     <br>
@@ -85,9 +100,15 @@
     <% else %>
       Not linked to any lesson plans.
     <% end %>
+  </div>
 </div>
 
-<div class="mt-6">
+<div class="mt-6 flex items-center gap-2">
   <%= link_to 'Edit', edit_admin_resource_path(@resource), class: 'btn-primary' %>
+  <%= button_to "Delete",
+                admin_resource_path(@resource),
+                method: :delete,
+                data: { turbo_confirm: "Delete this resource?" },
+                class: "btn-danger" %>
   <%= link_to 'Back', admin_resources_path, class: 'btn-secondary' %>
 </div>

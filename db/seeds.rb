@@ -204,7 +204,7 @@ tool.access = :admin
 tool.specifications = {
   name: "Get_Student_Profile",
   description: "Get a complete, recent picture of a student for teacher discussion, with optional focus-based semantic retrieval. Always includes recent context (reports, memories, approved observations, feedback). Excludes unreviewed/pending observations.",
-  strict_mode: true,
+  strict_mode: false,
   parameters: {
     type: "object",
     properties: {
@@ -452,7 +452,7 @@ tool.access = :admin
 tool.specifications = {
   name: "Manage_Applets",
   description: "Manage saved JavaScript applets (list/get/create-or-update/save-as-resource/run-on-chalkboard).",
-  strict_mode: true,
+  strict_mode: false,
   parameters: {
     type: "object",
     properties: {
@@ -478,7 +478,7 @@ tool.access = :student
 tool.specifications = {
   name: "View_Applets",
   description: "View or run saved JavaScript applets (list/get/run-on-chalkboard).",
-  strict_mode: true,
+  strict_mode: false,
   parameters: {
     type: "object",
     properties: {
@@ -662,6 +662,68 @@ p.prompt = <<~PROMPT
   {other_lessons}
   #{'  '}
   Do not use formatting such as markdown or bullet points. Respond in valid JSON only.
+PROMPT
+p.save!
+
+p = Prompt.find_or_initialize_by(category: 'suggest_resources', teacher_id: nil)
+p.title = "Default Resource Proposal Prompt"
+p.prompt = <<~PROMPT
+  You are proposing and validating lesson resources after lesson-plan content has already been generated.
+  Your tasks:
+  1) Review the lesson plan and existing suggested resources.
+  2) Find and verify web-available resources where possible.
+  3) Add and link validated resources using tools.
+  4) Return a final refined suggested_resources JSON array for anything still unresolved or teacher-dependent.
+
+  Lesson context:
+  - Lesson: {title}
+  - Course: {course_title}
+  - Grade level: {grade_level}
+  - Goals: {goals}
+  - Approximate duration: {approx_duration_min} minutes
+  - Lesson content: {lesson_plan_content}
+  - Existing suggested resources: {suggested_resources}
+  - Already linked resources: {linked_resources}
+
+  Available presentation capabilities:
+  - Chalkboard can display: embed-capable websites (including YouTube embed URLs), PDFs, and applets.
+  - Image URLs can be displayed directly in chat via markdown.
+  - Quoted text can be shown in markdown with source attribution.
+  - If adding applets, follow this applet code contract for this backend job (this is NOT a live chat response):
+    - Provide complete raw JavaScript only (no markdown fences or preface).
+    - Applet runtime is a sandboxed iframe with a root div id="sandbox".
+    - React is available, but JSX is NOT supported (use React.createElement).
+    - If using React, import exactly: `import React from 'react'; import ReactDOM from 'react-dom/client';`
+    - Mount to sandbox with ReactDOM.createRoot(sandbox).render(...), or use plain JS DOM APIs.
+    - Three.js and p5.js are available via imports (`three`, `p5`).
+    - Do not rely on external libraries unless you explicitly verify the URL. Only https://esm.sh allowed.
+    - Do not use microphone or camera APIs.
+
+  Resource rules:
+  - Consider searching existing resources first to avoid duplicates.
+  - Prefer high-quality, age-appropriate, primary or broadly trusted sources.
+  - Do not invent URLs.
+  - For images: verify URL only; do not ingest files.#{' '}
+  - For PDFs: call fetch_pdf first, then add_and_link_resource using the returned token.
+  - Add resources as pending approval; teacher will approve before publishing.
+  - Tags must be sparse and reusable across many lessons:
+    - Prefer 2-4 broad tags max (domain, period, source type, method).
+    - Avoid hyper-specific lesson labels (bad: "japan shock", "walter cronkite").
+    - Good tags look like: "primary source", "1980s", "physics".
+    - If useful broad tags are not obvious, omit tags instead of inventing narrow ones.
+
+  Copyright / educational fair use guidance (United States focused):
+  - Favor public-domain, permissive, or official educational sources where possible.
+  - If copyrighted material is used, quote only limited excerpts needed for instruction.
+  - Do not reproduce entire copyrighted works.
+  - Include enough citation detail (source title, publisher/site, URL) for teacher review.
+
+  Respond in valid JSON only:
+  {
+    "suggested_resources": [
+      { "type": "Type", "description": "Description with enough detail for teacher follow-up" }
+    ]
+  }
 PROMPT
 p.save!
 
@@ -1033,6 +1095,7 @@ AppSetting.first_or_create!(
   user_daily_budget: "10.00",
   max_chat_cost: "5.00",
   openai_agent_model: "gpt-5.2",
+  openai_agent_max_tool_turns: "20",
   exa_research_model: "exa-research"
 )
 

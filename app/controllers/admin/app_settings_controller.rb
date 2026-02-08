@@ -28,7 +28,7 @@ module Admin
     end
 
     def app_setting_params
-      params.require(:app_setting).permit(
+      permitted = params.require(:app_setting).permit(
         :provider_supported_api_id,
         :stt_method,
         :stt_model,
@@ -43,9 +43,20 @@ module Admin
         :user_daily_budget,
         :max_chat_cost,
         :openai_agent_model,
+        :openai_agent_max_tool_turns,
         :exa_api_key,
         :exa_research_model
       )
+      scrub_masked_secret_params!(permitted)
+      permitted
+    end
+
+    def scrub_masked_secret_params!(permitted)
+      [ :token_override, :exa_api_key ].each do |field|
+        next unless permitted[field] == AppSetting::MASKED_SECRET_VALUE
+
+        permitted.delete(field)
+      end
     end
   end
 end

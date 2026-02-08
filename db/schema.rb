@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_06_193000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_07_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -166,10 +166,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_193000) do
     t.boolean "chalkboard_enabled", default: true, null: false
     t.jsonb "content"
     t.datetime "created_at", null: false
+    t.text "generation_error"
+    t.string "generation_stage", default: "idle", null: false
     t.bigint "lesson_id", null: false
     t.enum "status", default: "draft", null: false, enum_type: "lesson_plan_status"
     t.jsonb "suggested_resources", default: []
     t.datetime "updated_at", null: false
+    t.index ["generation_stage"], name: "index_lesson_plans_on_generation_stage"
     t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id", unique: true
   end
 
@@ -290,7 +293,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_193000) do
   end
 
   create_table "resources", force: :cascade do |t|
+    t.boolean "approved"
     t.string "category"
+    t.text "content"
     t.datetime "created_at", null: false
     t.text "description"
     t.boolean "include_by_default"
@@ -298,6 +303,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_193000) do
     t.bigint "teacher_id"
     t.datetime "updated_at", null: false
     t.string "uri"
+    t.index ["approved"], name: "index_resources_on_approved"
     t.index ["category"], name: "index_resources_on_category"
     t.index ["tags"], name: "index_resources_on_tags", using: :gin
     t.index ["teacher_id"], name: "index_resources_on_teacher_id"

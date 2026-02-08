@@ -15,6 +15,8 @@ class OpenaiResponsesService
   # - Statefulness is optional; when enabled, you can send only new inputs.
   require "json/repair"
   require "net/http"
+  require "securerandom"
+  require "set"
   require "uri"
   include OpenaiResponseHelper
   include OpenaiErrorHelper
@@ -55,11 +57,14 @@ class OpenaiResponsesService
     @tools = []
     @tools.concat(determine_tools) if enable_tools
     @tools.concat(normalize_native_tools(native_tools))
-    @tools = @tools.uniq { |tool| tool.to_json }.presence
+    @tools = @tools.uniq { |tool| tool_dedup_key(tool) }.presence
     @log_completion = log_completion
     @store = store.nil? ? true : store
     @active_store = @store
     @previous_response_id = resolve_previous_response_id(previous_response_id)
+    @agent_run_context = nil
+    @agent_run_terminal_logged = false
+    @response_overview_log_state = {}
 
     # Start with the full system prompt (base system prompt + teaching principles)
     @system_prompt = "Today's date: #{Time.current.strftime("%B %d, %Y")}\n\n" + Prompt.full_system_prompt(user: current_user)
@@ -82,6 +87,13 @@ class OpenaiResponsesService
   # - Reuse the same instance and it will set previous_response_id automatically
   #   based on the last response id, allowing you to send only new inputs.
   def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil)
+    agent_run_context = prepare_agent_run_context(
+      background: background,
+      metadata: metadata,
+      messages: messages,
+      input: input
+    )
+
     with_openai_error_handling do
       check_cost_limits
       format_type = response_format_type(response_format)
@@ -135,9 +147,9 @@ class OpenaiResponsesService
       response = @client.responses.create(**request_params, **request_options_param)
       response_hash = normalize_response_hash(response)
 
-      Rails.logger.debug "Responses API response: #{response_hash}"
-
       set_last_response(response_hash, response)
+      log_response_overview(response_hash, phase: "submit")
+      record_agent_run_submitted(response_hash: response_hash, context: agent_run_context)
 
       # Background run submission may return queued/in_progress with no output;
       # callers should poll/retrieve using response_id.
@@ -160,6 +172,9 @@ class OpenaiResponsesService
         content
       end
     end
+  rescue OpenAiError => e
+    record_agent_run_failed(error_message: e.message)
+    raise
   end
 
   # Fetch a previously-created response by id.
@@ -178,8 +193,13 @@ class OpenaiResponsesService
 
       response_hash = normalize_response_hash(response)
       set_last_response(response_hash, response)
+      log_response_overview(response_hash, phase: "poll")
+      maybe_record_agent_run_terminal(response_hash)
       response_hash
     end
+  rescue OpenAiError => e
+    record_agent_run_failed(error_message: e.message)
+    raise
   end
 
   # Poll a background response until terminal status or timeout.
@@ -193,10 +213,14 @@ class OpenaiResponsesService
 
       if status == "completed"
         log_completion(response_hash)
+        maybe_record_agent_run_terminal(response_hash)
         return response_hash
       end
 
-      return response_hash if %w[failed cancelled incomplete].include?(status)
+      if %w[failed cancelled canceled incomplete].include?(status)
+        maybe_record_agent_run_terminal(response_hash)
+        return response_hash
+      end
 
       if Time.current >= deadline
         raise OpenAiError, "Background response timed out after #{timeout_seconds} seconds."
@@ -204,6 +228,9 @@ class OpenaiResponsesService
 
       sleep(poll_interval_seconds)
     end
+  rescue OpenAiError => e
+    record_agent_run_failed(error_message: e.message)
+    raise
   end
 
   def cancel_response(response_id)
@@ -213,8 +240,14 @@ class OpenaiResponsesService
       request_options = build_request_options
       request_options_param = request_options.present? ? { request_options: request_options } : {}
       response = @client.responses.cancel(response_id, **request_options_param)
-      normalize_response_hash(response)
+      response_hash = normalize_response_hash(response)
+      log_response_overview(response_hash, phase: "cancel")
+      maybe_record_agent_run_terminal(response_hash)
+      response_hash
     end
+  rescue OpenAiError => e
+    record_agent_run_failed(error_message: e.message)
+    raise
   end
 
   def output_text(response_hash = nil)
@@ -756,10 +789,233 @@ class OpenaiResponsesService
     normalized.to_s
   end
 
+  def tool_dedup_key(tool)
+    hash = if tool.respond_to?(:deep_stringify_keys)
+      tool.deep_stringify_keys
+    else
+      tool
+    end
+    return hash.to_s unless hash.is_a?(Hash)
+
+    type = hash["type"].to_s
+    name = hash["name"].presence || hash.dig("function", "name").presence
+    return "#{type}|#{name}" if name.present?
+
+    "#{type}|#{hash.to_json}"
+  end
+
   def conversation_previous_response_id
     return nil unless @conversation
     return nil unless @conversation.responses_state_matches?(provider: @base_uri, model: @model)
 
     @conversation.responses_previous_id
+  end
+
+  def prepare_agent_run_context(background:, metadata:, messages:, input:)
+    return nil unless agent_run_logging_enabled?(background: background)
+
+    meta = metadata.is_a?(Hash) ? metadata.deep_stringify_keys : {}
+    existing = @agent_run_context || {}
+    run_id = meta["run_id"].presence || existing[:run_id] || SecureRandom.uuid
+    prompt = meta["task_preview"].presence || existing[:prompt] || derive_prompt_preview(messages: messages, input: input)
+
+    @agent_run_terminal_logged = false if existing[:run_id] != run_id
+
+    @agent_run_context = {
+      run_id: run_id,
+      source: meta["source"].presence || meta["run_type"].presence || existing[:source] || "background",
+      prompt: prompt,
+      started_at: existing[:started_at] || Time.current
+    }
+  end
+
+  def agent_run_logging_enabled?(background:)
+    background && @stream_handler.nil? && @conversation.nil?
+  end
+
+  def agent_run_log_service
+    @agent_run_log_service ||= AgentRunLogService.new(app_setting: AppSetting.settings)
+  end
+
+  def record_agent_run_submitted(response_hash:, context:)
+    return unless context.present?
+
+    response_id = response_hash["id"].to_s
+    return if response_id.blank?
+
+    context[:response_id] = response_id
+    agent_run_log_service.record_submitted(
+      run_id: context[:run_id],
+      response_id: response_id,
+      teacher: @user,
+      model: response_hash["model"] || @model,
+      source: context[:source],
+      prompt: context[:prompt]
+    )
+  rescue StandardError => e
+    Rails.logger.error "Failed to record submitted agent run #{context[:run_id]}: #{e.message}"
+  end
+
+  def maybe_record_agent_run_terminal(response_hash)
+    context = @agent_run_context
+    return unless context.present?
+    return if @agent_run_terminal_logged
+
+    status = response_hash["status"].to_s
+    case status
+    when "completed"
+      return if response_contains_tool_calls?(response_hash)
+
+      agent_run_log_service.record_completed(
+        run_id: context[:run_id],
+        response_id: response_hash["id"].to_s.presence || context[:response_id],
+        response_hash: response_hash,
+        started_at: context[:started_at]
+      )
+      log_tool_call_sequence(context)
+      @agent_run_terminal_logged = true
+    when "failed", "cancelled", "canceled", "incomplete"
+      record_agent_run_failed(
+        error_message: "Run status: #{status}. #{extract_agent_run_error(response_hash)}",
+        response_hash: response_hash
+      )
+    end
+  rescue StandardError => e
+    Rails.logger.error "Failed to record terminal agent run status: #{e.message}"
+  end
+
+  def record_agent_run_failed(error_message:, response_hash: nil)
+    context = @agent_run_context
+    return unless context.present?
+    return if @agent_run_terminal_logged
+
+    agent_run_log_service.record_failed(
+      run_id: context[:run_id],
+      response_id: context[:response_id],
+      response_hash: response_hash || {},
+      started_at: context[:started_at] || Time.current,
+      error_message: error_message
+    )
+    log_tool_call_sequence(context)
+    @agent_run_terminal_logged = true
+  rescue StandardError => e
+    Rails.logger.error "Failed to record failed agent run #{context[:run_id]}: #{e.message}"
+  end
+
+  def log_response_overview(response_hash, phase:)
+    context = @agent_run_context
+    return unless context.present?
+
+    response_id = response_hash["id"].to_s
+    status = response_hash["status"].to_s
+    output_items = Array(response_hash["output"])
+    tool_calls = extract_response_tool_calls(output_items)
+    track_tool_calls(context, tool_calls)
+
+    output_counts = output_items.each_with_object(Hash.new(0)) { |item, memo| memo[item["type"].to_s] += 1 }
+    tool_signature = tool_calls.map { |tool_call| "#{tool_call[:name]}(#{tool_call[:call_id]})" }.join("|")
+    state_key = [ status, output_counts.to_a.sort_by(&:first), tool_signature ]
+    cache_key = response_id.presence || "unknown_response"
+    return if @response_overview_log_state[cache_key] == state_key
+
+    @response_overview_log_state[cache_key] = state_key
+
+    output_summary = output_counts.map { |type, count| "#{type}=#{count}" }.join(", ")
+    tool_call_summary = if tool_calls.present?
+      preview = tool_calls.first(8).map { |tool_call| "#{tool_call[:name]}(#{tool_call[:call_id]})" }.join(", ")
+      tool_calls.size > 8 ? "#{preview}, ...(+#{tool_calls.size - 8} more)" : preview
+    else
+      "none"
+    end
+
+    Rails.logger.info(
+      "Responses run overview phase=#{phase} run_id=#{context[:run_id]} source=#{context[:source]} " \
+      "response_id=#{cache_key} status=#{status.presence || 'unknown'} " \
+      "output_items=#{output_items.size} output_types=#{output_summary.presence || 'none'} " \
+      "tool_calls=#{tool_call_summary}"
+    )
+  end
+
+  def extract_response_tool_calls(output_items)
+    Array(output_items).filter_map do |item|
+      next unless item["type"].to_s == "function_call"
+
+      {
+        call_id: (item["call_id"] || item["id"]).to_s,
+        name: item["name"].to_s
+      }
+    end
+  end
+
+  def track_tool_calls(context, tool_calls)
+    return if tool_calls.blank?
+
+    context[:tool_calls] ||= []
+    seen = context[:tool_calls].map { |tool_call| [ tool_call[:call_id], tool_call[:name] ] }.to_set
+    tool_calls.each do |tool_call|
+      key = [ tool_call[:call_id], tool_call[:name] ]
+      next if seen.include?(key)
+
+      context[:tool_calls] << tool_call
+      seen << key
+    end
+  end
+
+  def log_tool_call_sequence(context)
+    tool_calls = Array(context[:tool_calls])
+    return if tool_calls.empty?
+
+    sequence = tool_calls.map { |tool_call| "#{tool_call[:name]}(#{tool_call[:call_id]})" }.join(" -> ")
+    Rails.logger.info(
+      "Responses run tool call sequence run_id=#{context[:run_id]} source=#{context[:source]} " \
+      "count=#{tool_calls.size} sequence=#{sequence.truncate(2000)}"
+    )
+  end
+
+  def extract_agent_run_error(response_hash)
+    error = response_hash["error"]
+    return "Unknown error" if error.blank?
+    return error.to_s unless error.is_a?(Hash)
+
+    error["message"].presence || error["code"].presence || "Unknown error"
+  end
+
+  def derive_prompt_preview(messages:, input:)
+    messages_preview = extract_text_from_items(Array(messages))
+    return messages_preview if messages_preview.present?
+
+    input_preview = extract_text_from_items(Array(input))
+    return input_preview if input_preview.present?
+
+    "Background Responses run"
+  end
+
+  def extract_text_from_items(items)
+    text = items.filter_map do |item|
+      if item.is_a?(Hash)
+        role = hash_value(item, :role).to_s
+        next nil if role.present? && role != "user" && role != "developer" && role != "system"
+
+        content = hash_value(item, :content)
+        extract_text_from_content(content)
+      else
+        item.to_s
+      end
+    end.join("\n").squish
+
+    text.presence
+  end
+
+  def extract_text_from_content(content)
+    case content
+    when String
+      content
+    when Array
+      content.filter_map { |part| extract_text_from_content(part) }.join(" ")
+    when Hash
+      hash_value(content, :text) || hash_value(content, :input_text) || hash_value(content, :output_text)
+    else
+      content.to_s
+    end
   end
 end

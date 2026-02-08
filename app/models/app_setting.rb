@@ -1,4 +1,6 @@
 class AppSetting < ApplicationRecord
+  MASKED_SECRET_VALUE = "__STORED_SECRET__".freeze
+
   # Singleton app-wide settings stored in a JSONB `settings` column
   encrypts :settings
 
@@ -18,6 +20,7 @@ class AppSetting < ApplicationRecord
                  :user_daily_budget,
                  :max_chat_cost,
                  :openai_agent_model,
+                 :openai_agent_max_tool_turns,
                  :exa_api_key,
                  :exa_research_model
 
@@ -160,6 +163,14 @@ class AppSetting < ApplicationRecord
     settings&.openai_agent_enabled? || false
   end
 
+  def openai_agent_max_tool_turns
+    coerce_tool_turn_limit(super)
+  end
+
+  def self.openai_agent_max_tool_turns
+    settings&.openai_agent_max_tool_turns
+  end
+
   # Fetch and cache OpenRouter embedding models
   def self.fetch_openrouter_embedding_models
     Rails.cache.fetch("openrouter_embedding_models", expires_in: 1.hour) do
@@ -175,6 +186,11 @@ class AppSetting < ApplicationRecord
   end
 
   private
+
+  def coerce_tool_turn_limit(value)
+    parsed = Integer(value, exception: false)
+    parsed if parsed&.positive?
+  end
 
   def llms_not_archived
     if image_llm_id.present?

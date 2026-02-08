@@ -1,7 +1,7 @@
-<div id="<%= dom_id(resource) %>" data-resource-filter-target="availableResource" data-resource-filter-searchable="<%= "#{resource.category} #{resource.description} #{resource.tags&.join(' ')}".strip %>" data-resource-filter-tags="<%= resource.tags.join(',') %>" data-resource-filter-category="<%= resource.category.to_s %>" class="relative grid grid-cols-1 pr-14 md:pr-0
-            md:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_minmax(0,0.7fr)_minmax(0,0.7fr)]
-            lg:grid-cols-[minmax(12rem,1.2fr)_minmax(20rem,2.8fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)]
-            gap-2 md:gap-3 border-t md:first:border-t-0 border-stone-600 dark:border-stone-400 py-2 md:py-2">
+<div id="<%= dom_id(resource) %>" data-resource-filter-target="availableResource" data-resource-filter-searchable="<%= "#{resource.category} #{resource.description} #{resource.tags&.join(' ')}".strip %>" data-resource-filter-tags="<%= resource.tags.join(',') %>" data-resource-filter-category="<%= resource.category.to_s %>" class="relative grid grid-cols-1 pr-28 md:pr-0
+            md:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]
+            lg:grid-cols-[minmax(12rem,1.2fr)_minmax(20rem,2.8fr)_minmax(10rem,0.8fr)_minmax(12rem,1fr)]
+            gap-2 md:gap-3 border-t md:first:border-t-0 py-2 md:py-2 <%= resource.approved == false ? 'bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-700' : 'border-stone-600 dark:border-stone-400' %>">
   <div class="col-span-1 flex flex-col justify-center order-1 md:order-none">
     <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Category</span>
     <span class="text-[1.05rem] md:text-base tracking-tight text-stone-900 dark:text-stone-100"><%= resource.category %></span>
@@ -26,6 +26,12 @@
 
   <div class="col-span-1 order-4 md:order-none absolute right-2 top-2 md:static md:flex md:flex-col md:justify-center">
     <div class="flex flex-col md:flex-row items-end md:items-center md:justify-end gap-2 [&_sl-icon]:text-base">
+      <% if resource.approved == false %>
+        <%= button_to approve_admin_resource_path(resource), method: :patch, class: 'btn-success px-2 py-1 text-xs md:text-sm font-semibold', aria: { label: 'Approve resource' }, title: 'Approve' do %>
+          <sl-icon name="check-circle"></sl-icon>
+          Approve
+        <% end %>
+      <% end %>
       <%= link_to admin_resource_path(resource), class: 'btn-table-action', aria: { label: 'View resource' }, title: 'View' do %>
         <sl-icon name="eye"></sl-icon>
       <% end %>

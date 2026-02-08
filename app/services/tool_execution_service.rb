@@ -18,7 +18,7 @@ class ToolExecutionService
 
     begin
       # Find the tool by name (case-insensitive to handle LLM capitalization errors)
-      tool = Tool.where("name ILIKE ?", tool_call[:name]).first
+      tool = Tool.where("LOWER(name) = LOWER(?)", tool_call[:name].to_s).first
       raise ToolExecutionError, "Tool '#{tool_call[:name]}' not found" unless tool
 
       # Normalize name for internal comparisons and dispatch
@@ -89,7 +89,7 @@ class ToolExecutionService
           repaired_arguments = JSON.repair(arguments)
           parsed_arguments = JSON.parse(repaired_arguments)
           Rails.logger.debug "Repaired JSON successfully."
-        rescue JSON::ParserError
+        rescue JSON::ParserError, JSON::JSONRepairError
           raise ToolExecutionError, "Invalid JSON in tool arguments, unable to repair."
         end
       end
@@ -1061,6 +1061,7 @@ class ToolExecutionService
         teacher: current_teacher,
         category: "Applet",
         description: "#{applet.title}",
+        approved: false,
         applet: applet
       )
     end

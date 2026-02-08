@@ -74,4 +74,20 @@ class AppSettingTest < ActiveSupport::TestCase
     assert @app.exa_enabled?
     assert AppSetting.exa_enabled?
   end
+
+  test "openai_agent_max_tool_turns uses seeded setting value" do
+    assert_equal 20, @app.openai_agent_max_tool_turns
+    assert_equal 20, AppSetting.openai_agent_max_tool_turns
+  end
+
+  test "openai_agent_max_tool_turns accepts positive values and returns nil when invalid" do
+    @app.update!(openai_agent_max_tool_turns: "25")
+    assert_equal 25, AppSetting.openai_agent_max_tool_turns
+
+    @app.update!(openai_agent_max_tool_turns: "0")
+    assert_nil AppSetting.openai_agent_max_tool_turns
+
+    @app.update!(openai_agent_max_tool_turns: "not-a-number")
+    assert_nil AppSetting.openai_agent_max_tool_turns
+  end
 end

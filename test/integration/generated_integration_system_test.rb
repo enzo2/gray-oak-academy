@@ -119,7 +119,7 @@ class AdminControllersIntegrationTest < ActionDispatch::IntegrationTest
     assert_enqueued_jobs 1, only: GenerateCourseOutlineJob
   end
 
-  test "lesson_plan generate_content enqueues GenerateLessonPlanContentJob and link_resource links a resource" do
+  test "lesson_plan generate_content enqueues pipeline job and link_resource links a resource" do
     teacher = users(:admin)
     sign_in(teacher)
 
@@ -131,7 +131,8 @@ class AdminControllersIntegrationTest < ActionDispatch::IntegrationTest
     assert_enqueued_jobs 0
     post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), params: {}, as: :turbo_stream
     assert_response :success
-    assert_enqueued_jobs 1, only: GenerateLessonPlanContentJob
+    assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob
+    assert_equal "generating_content", lesson_plan.reload.generation_stage
 
     # Link resource
     resource = resources(:one)
@@ -139,6 +140,29 @@ class AdminControllersIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
     lesson_plan.reload
     assert_includes lesson_plan.resources.map(&:id), resource.id
+  end
+
+  test "lesson_plan propose_resources enqueues ProposeResourcesJob after initial generation" do
+    teacher = users(:admin)
+    sign_in(teacher)
+
+    lesson = lessons(:one)
+    lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+    lesson_plan.update!(generation_stage: "completed")
+
+    AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:exa_enabled?, true) do
+        assert_enqueued_jobs 0
+        post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+        assert_response :success
+        assert_enqueued_jobs 1, only: ProposeResourcesJob
+        assert_equal "proposing_resources", lesson_plan.reload.generation_stage
+
+        assert_enqueued_jobs 0, only: ProposeResourcesJob do
+          post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+        end
+      end
+    end
   end
 end
 

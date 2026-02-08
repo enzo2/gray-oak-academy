@@ -1,5 +1,5 @@
 <% if lesson_plan.content.blank? %>
-  <p class="mb-2"><i>You can use the LLM to generate lesson plan content. You should review and enhance it with your own resources.</i></p>
+  <p class="mb-2"><i>You can use the LLM to generate lesson plan content and locate web-based resources. You should review and enhance it with your own resources.</i></p>
   <%= render "admin/lesson_plans/generate_lesson_plan_button", lesson: lesson, lesson_plan: lesson_plan %>
 <% end %>
 
@@ -124,10 +124,15 @@
   
   <div class="mb-4">
     <%= f.label :status, class: "form-label" %>
-    <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Don't forget to add resources below.</i></p>
-    <div class="[&_label]:mr-4 [&_input]:mr-2">
-      <%= f.collection_radio_buttons :status, LessonPlan.statuses.keys, :to_s, :titleize do |b| %>
-        <%= b.label(:"data-value" => b.value) { b.radio_button(class: "radio-primary") + b.text } %>
+    <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Pending linked resources must be approved first.</i></p>
+    <% status_radio_classes = "radio-primary" %>
+    <% status_radio_classes = "#{status_radio_classes} border-red-400 dark:border-red-800" if lesson_plan.errors[:status].any? %>
+    <div class="flex flex-wrap gap-x-6 gap-y-2">
+      <% LessonPlan.statuses.keys.each do |status_value| %>
+        <label for="lesson_plan_status_<%= status_value %>" data-value="<%= status_value %>" class="inline-flex items-center gap-2">
+          <%= radio_button_tag "lesson_plan[status]", status_value, lesson_plan.status == status_value, id: "lesson_plan_status_#{status_value}", class: status_radio_classes %>
+          <span><%= status_value.titleize %></span>
+        </label>
       <% end %>
     </div>
   </div>

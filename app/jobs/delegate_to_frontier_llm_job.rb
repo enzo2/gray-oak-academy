@@ -1,7 +1,6 @@
 class DelegateToFrontierLlmJob < ApplicationJob
   queue_as :default
   include Rails.application.routes.url_helpers
-  MAX_TOOL_TURNS = 8
 
   def perform(teacher, prompt, source: "tool_call")
     unless teacher.role_teacher?
@@ -25,7 +24,6 @@ class DelegateToFrontierLlmJob < ApplicationJob
     use_exa_search = app_setting.exa_enabled?
     raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
 
-    run_log = AgentRunLogService.new(app_setting: app_setting)
     response_id = nil
     failure_notified = false
 
@@ -60,14 +58,6 @@ class DelegateToFrontierLlmJob < ApplicationJob
       )
 
       response_id = submitted["id"]
-      run_log.record_submitted(
-        run_id: run_id,
-        response_id: response_id,
-        teacher: teacher,
-        model: model,
-        source: source,
-        prompt: prompt
-      )
 
       final_response = client.wait_for_response(
         response_id,
@@ -75,6 +65,8 @@ class DelegateToFrontierLlmJob < ApplicationJob
         poll_interval_seconds: 2
       )
 
+      max_tool_turns = AppSetting.openai_agent_max_tool_turns
+      raise OpenAiError, "OpenAI agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
       turns = 0
       loop do
         status = final_response["status"].to_s
@@ -84,8 +76,8 @@ class DelegateToFrontierLlmJob < ApplicationJob
         break if function_calls.blank?
 
         turns += 1
-        if turns > MAX_TOOL_TURNS
-          raise OpenAiError, "Agent run exceeded tool-call limit (#{MAX_TOOL_TURNS})."
+        if turns > max_tool_turns
+          raise OpenAiError, "Agent run exceeded tool-call limit (#{max_tool_turns})."
         end
 
         tool_outputs = function_call_adapter.function_call_outputs(function_calls)
@@ -114,22 +106,8 @@ class DelegateToFrontierLlmJob < ApplicationJob
       if status == "completed"
         result = client.output_text(final_response)
         raise OpenAiError, "Agent run completed with empty output." if result.blank?
-        run_log.record_completed(
-          run_id: run_id,
-          response_id: response_id,
-          response_hash: final_response,
-          started_at: started_at
-        )
         return result
       end
-
-      run_log.record_failed(
-        run_id: run_id,
-        response_id: response_id,
-        response_hash: final_response,
-        started_at: started_at,
-        error_message: "Run status: #{status}. #{extract_response_error(final_response)}"
-      )
 
       error_message = extract_response_error(final_response)
       notify_failed(
@@ -148,12 +126,6 @@ class DelegateToFrontierLlmJob < ApplicationJob
     rescue StandardError => e
       Rails.logger.error "Error in DelegateToFrontierLlmJob: #{e.message}"
       unless failure_notified
-        run_log.record_failed(
-          run_id: run_id,
-          response_id: response_id,
-          started_at: started_at,
-          error_message: e.message
-        )
         notify_failed(
           run_id: run_id,
           response_id: response_id,

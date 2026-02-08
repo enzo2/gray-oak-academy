@@ -1,6 +1,15 @@
 <h2 class="text-xl mb-4">Linked Resources</h2>
 <p class="block text-sm mb-2"><i>Linked Resources will be available for the tutor to use.<br>
+                                 Pending resources must be approved before publishing.<br>
                                  If you want to make sure the tutor uses it, link it and then mention it in Content above.</i></p>
+
+<%= render partial: "admin/lesson_plans/propose_resources_button", locals: { lesson: lesson, lesson_plan: lesson_plan } %>
+
+<% if lesson_plan.resources.pending_approval.exists? %>
+  <p class="text-sm text-amber-700 dark:text-amber-300 mb-3">
+    Some linked resources are pending approval. You must approve them before publishing this lesson plan.
+  </p>
+<% end %>
 
 <div class="mb-4" data-controller="resource-filter">
   <h3 class="text-lg font-semibold mb-2">Currently Linked</h3>

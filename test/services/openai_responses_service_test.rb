@@ -220,6 +220,197 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "background runs without conversation are logged as agent runs" do
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |_response_id, _params|
+        response_payload("Done", id: "resp_bg").merge("status" => "completed")
+      }
+    ) do |_params|
+      {
+        "id" => "resp_bg",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    submitted_calls = []
+    completed_calls = []
+    failed_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**kwargs| submitted_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_completed) { |**kwargs| completed_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_failed) { |**kwargs| failed_calls << kwargs }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: @base_uri,
+          model: @model,
+          log_completion: false
+        )
+
+        service.complete(
+          [ { role: "user", content: "Run long task" } ],
+          background: true,
+          metadata: { run_id: "run_1", run_type: "propose_resources", source: "propose_resources", task_preview: "Preview task" }
+        )
+        service.wait_for_response("resp_bg", timeout_seconds: 5, poll_interval_seconds: 0)
+      end
+    end
+
+    assert_equal 1, submitted_calls.size
+    assert_equal "run_1", submitted_calls.first[:run_id]
+    assert_equal "resp_bg", submitted_calls.first[:response_id]
+    assert_equal "propose_resources", submitted_calls.first[:source]
+    assert_equal "Preview task", submitted_calls.first[:prompt]
+
+    assert_equal 1, completed_calls.size
+    assert_equal "run_1", completed_calls.first[:run_id]
+    assert_equal "resp_bg", completed_calls.first[:response_id]
+    assert_equal 0, failed_calls.size
+  end
+
+  test "wait_for_response does not mark run completed when response only contains tool calls" do
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |_response_id, _params|
+        {
+          "id" => "resp_bg",
+          "status" => "completed",
+          "output" => [
+            { "type" => "function_call", "call_id" => "call_1", "name" => "lookup", "arguments" => "{}" }
+          ]
+        }
+      }
+    ) do |_params|
+      {
+        "id" => "resp_bg",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    submitted_calls = []
+    completed_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**kwargs| submitted_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_completed) { |**kwargs| completed_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| nil }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: @base_uri,
+          model: @model,
+          log_completion: false
+        )
+
+        service.complete(
+          [ { role: "user", content: "Run long task" } ],
+          background: true,
+          metadata: { run_id: "run_2", run_type: "delegate_to_frontier_llm" }
+        )
+        result = service.wait_for_response("resp_bg", timeout_seconds: 5, poll_interval_seconds: 0)
+        assert_equal "completed", result["status"]
+      end
+    end
+
+    assert_equal 1, submitted_calls.size
+    assert_equal 0, completed_calls.size
+  end
+
+  test "background calls with a conversation do not log agent runs" do
+    fake_client = build_responses_client do |_params|
+      { "id" => "resp_bg", "status" => "queued", "model" => @model, "output" => [] }
+    end
+
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**_kwargs| flunk("record_submitted should not be called") }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| flunk("record_completed should not be called") }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| flunk("record_failed should not be called") }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          conversation: @conversation,
+          access_token: @access_token,
+          base_uri: @base_uri,
+          model: @model,
+          log_completion: false
+        )
+
+        result = service.complete(
+          [ { role: "user", content: "Run long task" } ],
+          background: true,
+          metadata: { run_id: "run_3", run_type: "chat_background" }
+        )
+        assert_equal "resp_bg", result["id"]
+      end
+    end
+  end
+
+  test "background run logs overview and tool call sequence without payload dump" do
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |_response_id, _params|
+        response_payload("Done", id: "resp_bg").merge("status" => "completed")
+      }
+    ) do |_params|
+      {
+        "id" => "resp_bg",
+        "status" => "queued",
+        "model" => @model,
+        "output" => [
+          { "type" => "function_call", "call_id" => "call_1", "name" => "exa_search", "arguments" => "{\"query\":\"refraction\"}" }
+        ]
+      }
+    end
+
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**_kwargs| true }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| true }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| true }
+
+    info_logs = []
+    debug_logs = []
+    error_logs = []
+    fake_logger = Object.new
+    fake_logger.define_singleton_method(:info) { |message| info_logs << message }
+    fake_logger.define_singleton_method(:debug) { |message| debug_logs << message }
+    fake_logger.define_singleton_method(:error) { |message| error_logs << message }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        Rails.stub(:logger, fake_logger) do
+          service = OpenaiResponsesService.new(
+            current_user: @user,
+            access_token: @access_token,
+            base_uri: @base_uri,
+            model: @model,
+            log_completion: false
+          )
+
+          service.complete(
+            [ { role: "user", content: "Run long task" } ],
+            background: true,
+            metadata: { run_id: "run_log_1", run_type: "propose_resources", source: "propose_resources" }
+          )
+          service.wait_for_response("resp_bg", timeout_seconds: 5, poll_interval_seconds: 0)
+        end
+      end
+    end
+
+    assert info_logs.any? { |msg| msg.include?("Responses run overview phase=submit") && msg.include?("tool_calls=exa_search(call_1)") }
+    assert info_logs.any? { |msg| msg.include?("Responses run tool call sequence run_id=run_log_1") }
+    assert debug_logs.none? { |msg| msg.include?("Responses API response:") }
+    assert error_logs.none?
+  end
+
   private
 
   def build_responses_client(retrieve_proc: nil, &create_proc)

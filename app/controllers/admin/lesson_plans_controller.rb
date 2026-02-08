@@ -1,7 +1,8 @@
 module Admin
   class LessonPlansController < Admin::BaseController
     before_action :set_lesson
-    before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :new_resource, :generate_content, :remove_suggested_resource ]
+    before_action :authorize_generation_access!, only: [ :generate_content, :propose_resources ]
+    before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :delete_resource, :new_resource, :generate_content, :propose_resources, :remove_suggested_resource ]
 
     def edit
       # Render the edit form for the lesson plan
@@ -9,7 +10,7 @@ module Admin
 
     def update
       if @lesson_plan.update(lesson_plan_params)
-        flash[:success] = "Updated succcessfully."
+        flash[:success] = "Updated successfully."
         redirect_to edit_admin_course_lesson_lesson_plan_path(@lesson.course, @lesson), status: :see_other
       else
         flash[:error] = "Failed to update lesson plan."
@@ -23,9 +24,16 @@ module Admin
     end
 
     def link_resource
-      @resource = Resource.find(params[:resource_id])
-      @lesson_plan.resources << @resource unless @lesson_plan.resources.include?(@resource)
-      @lesson_plan.save!
+      @lesson_plan.save! if @lesson_plan.new_record?
+      @resource = find_linkable_resource!
+      @resource_linked = false
+
+      if @lesson_plan.status_published? && @resource.approved == false
+        flash.now[:warning] = "Pending resources cannot be linked while the lesson plan is published."
+      elsif !@lesson_plan.resources.exists?(id: @resource.id)
+        @lesson_plan.resources << @resource
+        @resource_linked = true
+      end
 
       respond_to do |format|
         format.turbo_stream
@@ -33,8 +41,30 @@ module Admin
     end
 
     def unlink_resource
-      @resource = Resource.find(params[:resource_id])
-      @lesson_plan.resources.delete(@resource)
+      @resource = find_linked_resource!
+      if @resource.approved == false
+        raise ActiveRecord::RecordNotFound unless can_destroy_resource?(@resource)
+
+        @resource.destroy!
+        @resource_deleted = true
+      else
+        @lesson_plan.resources.delete(@resource)
+        @resource_deleted = false
+      end
+      @linked_resources_remaining = @lesson_plan.resources.exists?
+
+      respond_to do |format|
+        format.turbo_stream
+      end
+    end
+
+    def delete_resource
+      @resource = find_linked_resource!
+      raise ActiveRecord::RecordNotFound unless can_destroy_resource?(@resource)
+
+      @resource.destroy!
+      @resource_deleted = true
+      @linked_resources_remaining = @lesson_plan.resources.exists?
 
       respond_to do |format|
         format.turbo_stream
@@ -53,7 +83,52 @@ module Admin
     def generate_content
       # Persist the lesson plan before generating content, since it may be new
       @lesson_plan.save!
-      GenerateLessonPlanContentJob.perform_later(@lesson_plan, current_user)
+      should_enqueue = false
+      propose_resources = false
+
+      @lesson_plan.with_lock do
+        if @lesson_plan.generation_in_progress?
+          flash.now[:warning] = "Generation is already in progress for this lesson plan."
+        else
+          propose_resources = resource_proposal_enabled? && ActiveModel::Type::Boolean.new.cast(params[:propose_resources])
+          @lesson_plan.update!(generation_stage: "generating_content", generation_error: nil)
+          should_enqueue = true
+        end
+      end
+
+      if should_enqueue
+        GenerateLessonPlanPipelineJob.perform_later(
+          lesson_plan_id: @lesson_plan.id,
+          user_id: current_user.id,
+          propose_resources: propose_resources
+        )
+      end
+      respond_to do |format|
+        format.turbo_stream
+      end
+    end
+
+    def propose_resources
+      @lesson_plan.save! if @lesson_plan.new_record?
+      should_enqueue = false
+
+      @lesson_plan.with_lock do
+        if !resource_proposal_enabled?
+          flash.now[:warning] = "Configure OpenAI Agent Runs and Exa API before proposing resources."
+        elsif @lesson_plan.generation_in_progress?
+          flash.now[:warning] = "Generation is already in progress for this lesson plan."
+        elsif !@lesson_plan.initial_generation_completed?
+          flash.now[:warning] = "Generate the lesson plan once before proposing resources."
+        else
+          @lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
+          should_enqueue = true
+        end
+      end
+
+      if should_enqueue
+        ProposeResourcesJob.perform_later(@lesson_plan, current_user)
+      end
+
       respond_to do |format|
         format.turbo_stream
       end
@@ -95,6 +170,34 @@ module Admin
       params.require(:lesson_plan).permit(:status, :chalkboard_enabled, :audio).tap do |whitelisted|
         whitelisted[:content] = content
       end
+    end
+
+    def find_linkable_resource!
+      resource_scope_for_current_user.find(params[:resource_id])
+    end
+
+    def find_linked_resource!
+      @lesson_plan.resources.merge(resource_scope_for_current_user).find(params[:resource_id])
+    end
+
+    def resource_scope_for_current_user
+      return Resource.all if current_user.role_superuser?
+
+      Resource.where(teacher_id: [ current_user.id, nil ])
+    end
+
+    def can_destroy_resource?(resource)
+      current_user.role_superuser? || resource.teacher_id == current_user.id
+    end
+
+    def resource_proposal_enabled?
+      AppSetting.openai_agent_enabled? && AppSetting.exa_enabled?
+    end
+
+    def authorize_generation_access!
+      raise ActiveRecord::RecordNotFound if params[:course_id].to_i != @lesson.course_id
+      return if current_user.role_superuser?
+      raise ActiveRecord::RecordNotFound unless @lesson.course.teacher_id == current_user.id
     end
   end
 end

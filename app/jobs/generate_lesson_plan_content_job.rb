@@ -8,9 +8,11 @@ class GenerateLessonPlanContentJob < ApplicationJob
     schema: LlmSchemas::LessonPlanSchema.to_json_schema.deep_stringify_keys
   }
 
-  def perform(lesson_plan, current_user)
+  def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false)
     lesson = lesson_plan.lesson
     course = lesson.course
+    set_generation_state(lesson_plan, "generating_content", nil) if track_stage
+
     customized_prompt = Prompt.get_prompt(category: "generate_lesson_plan", user: current_user)
       .gsub("{title}", "#{lesson.position}. #{lesson.title}")
       .gsub("{goals}", lesson.goals)
@@ -55,17 +57,26 @@ class GenerateLessonPlanContentJob < ApplicationJob
         content: extracted_lesson_plan,
         suggested_resources: extracted_suggested_resources
       )
+      set_generation_state(lesson_plan, "completed", nil) if track_stage
 
       # Broadcast the updated lesson plan content
       broadcast_success(current_user, lesson_plan, lesson)
+      true
 
     rescue StandardError => e
       Rails.logger.error "Error: #{e.message}"
+      set_generation_state(lesson_plan, "failed", "Failed to generate lesson plan content: #{e.message}") if track_stage
       broadcast_error(current_user, lesson_plan, "Failed to generate lesson plan content: #{e.message}")
+      raise if raise_on_error
+      false
     end
   end
 
   private
+
+  def set_generation_state(lesson_plan, stage, error)
+    lesson_plan.update!(generation_stage: stage, generation_error: error)
+  end
 
   def broadcast_success(current_user, lesson_plan, lesson)
     Rails.logger.info "Broadcasting success for lesson plan: #{lesson_plan.id}"
@@ -91,8 +102,8 @@ class GenerateLessonPlanContentJob < ApplicationJob
     # Restore the button by replacing it with the original partial
     Turbo::StreamsChannel.broadcast_replace_to(
       channel,
-      target: "generate-lesson-plan-button",
-      partial: "admin/lesson_plans/generate_lesson_plan_button", # We need to extract this or inline it
+      target: "lesson-plan-generation-controls",
+      partial: "admin/lesson_plans/generate_lesson_plan_button",
       locals: { lesson: lesson_plan.lesson, lesson_plan: lesson_plan }
     )
   end

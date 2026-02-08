@@ -43,7 +43,15 @@ class ToolCatalogService
       "name" => spec["name"] || spec[:name],
       "description" => spec["description"] || spec[:description],
       "parameters" => spec["parameters"] || spec[:parameters],
-      "strict" => spec["strict_mode"] || spec[:strict_mode]
-    }.compact
+      "strict" => strict_mode(spec)
+    }
+  end
+
+  def strict_mode(spec)
+    raw = spec["strict_mode"]
+    raw = spec[:strict_mode] if raw.nil?
+    return false if raw.nil?
+
+    ActiveModel::Type::Boolean.new.cast(raw)
   end
 end

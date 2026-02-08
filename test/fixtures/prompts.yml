@@ -115,6 +115,34 @@ generate_lesson_plan:
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 
+suggest_resources:
+  title: Default Suggest Resources Prompt
+  category: suggest_resources
+  prompt: |
+    Given this lesson, refine and propose resources.
+    Lesson title: {title}
+    Course title: {course_title}
+    Grade level: {grade_level}
+    Goals: {goals}
+    Duration: {approx_duration_min}
+    Lesson content: {lesson_plan_content}
+    Existing suggested resources: {suggested_resources}
+    Linked resources: {linked_resources}
+    Tag rules (when creating/linking resources):
+    - Use sparse, reusable tags only (2-4 broad tags max).
+    - Avoid lesson-specific tags like "japan shock".
+    - Prefer broad tags such as "productivity", "policy response", "primary source", "1980s".
+    - If broad tags are not clear, omit tags.
+    If adding applets in this backend job:
+    - Provide complete raw JavaScript only (no markdown fences).
+    - Runtime root element is id="sandbox".
+    - JSX is not supported; use React.createElement.
+    Return JSON:
+    {"suggested_resources":[{"type":"...","description":"..."}]}
+  teacher:
+  created_at: <%= Time.now %>
+  updated_at: <%= Time.now %>
+
 auto_name_conversation:
   title: Auto-Name Conversation
   category: auto_name_conversation
