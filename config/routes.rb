@@ -85,7 +85,17 @@ Rails.application.routes.draw do
     resources :tools, only: [ :index, :show, :edit, :update ]
 
     resources :completions, only: [ :index ]
-    resources :agent_runs, only: [ :index ]
+    resources :agent_runs, only: [ :index ] do
+      collection do
+        delete :clear
+      end
+    end
+
+    resources :analytics_events, only: [ :index ] do
+      collection do
+        delete :clear
+      end
+    end
 
     resources :students, only: [ :index, :show, :destroy ] do
       member do

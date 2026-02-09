@@ -14,6 +14,7 @@ class OpenaiResponsesService
   # - Structured outputs are configured via text.format, not response_format.
   # - Statefulness is optional; when enabled, you can send only new inputs.
   require "json/repair"
+  require "digest"
   require "net/http"
   require "securerandom"
   require "set"
@@ -825,7 +826,9 @@ class OpenaiResponsesService
       run_id: run_id,
       source: meta["source"].presence || meta["run_type"].presence || existing[:source] || "background",
       prompt: prompt,
-      started_at: existing[:started_at] || Time.current
+      started_at: existing[:started_at] || Time.current,
+      tool_calls: existing[:run_id] == run_id ? Array(existing[:tool_calls]).dup : [],
+      response_metrics: existing[:run_id] == run_id ? (existing[:response_metrics] || {}).deep_dup : {}
     }
   end
 
@@ -870,7 +873,9 @@ class OpenaiResponsesService
         run_id: context[:run_id],
         response_id: response_hash["id"].to_s.presence || context[:response_id],
         response_hash: response_hash,
-        started_at: context[:started_at]
+        started_at: context[:started_at],
+        metrics: aggregate_agent_run_metrics(context, response_hash: response_hash),
+        tool_calls: context[:tool_calls]
       )
       log_tool_call_sequence(context)
       @agent_run_terminal_logged = true
@@ -894,7 +899,9 @@ class OpenaiResponsesService
       response_id: context[:response_id],
       response_hash: response_hash || {},
       started_at: context[:started_at] || Time.current,
-      error_message: error_message
+      error_message: error_message,
+      metrics: aggregate_agent_run_metrics(context, response_hash: response_hash),
+      tool_calls: context[:tool_calls]
     )
     log_tool_call_sequence(context)
     @agent_run_terminal_logged = true
@@ -909,16 +916,17 @@ class OpenaiResponsesService
     response_id = response_hash["id"].to_s
     status = response_hash["status"].to_s
     output_items = Array(response_hash["output"])
-    tool_calls = extract_response_tool_calls(output_items)
+    cache_key = response_id.presence || "unknown_response"
+    tool_calls = extract_response_tool_calls(output_items, response_id: cache_key)
     track_tool_calls(context, tool_calls)
 
     output_counts = output_items.each_with_object(Hash.new(0)) { |item, memo| memo[item["type"].to_s] += 1 }
     tool_signature = tool_calls.map { |tool_call| "#{tool_call[:name]}(#{tool_call[:call_id]})" }.join("|")
     state_key = [ status, output_counts.to_a.sort_by(&:first), tool_signature ]
-    cache_key = response_id.presence || "unknown_response"
     return if @response_overview_log_state[cache_key] == state_key
 
     @response_overview_log_state[cache_key] = state_key
+    track_response_metrics(context, cache_key, output_items)
 
     output_summary = output_counts.map { |type, count| "#{type}=#{count}" }.join(", ")
     tool_call_summary = if tool_calls.present?
@@ -936,13 +944,17 @@ class OpenaiResponsesService
     )
   end
 
-  def extract_response_tool_calls(output_items)
+  def extract_response_tool_calls(output_items, response_id:)
     Array(output_items).filter_map do |item|
       next unless item["type"].to_s == "function_call"
+      argument_metadata = tool_call_argument_metadata(item["arguments"])
 
       {
+        response_id: response_id.to_s,
         call_id: (item["call_id"] || item["id"]).to_s,
-        name: item["name"].to_s
+        name: item["name"].to_s,
+        arguments_preview: argument_metadata[:arguments_preview],
+        argument_fingerprint: argument_metadata[:argument_fingerprint]
       }
     end
   end
@@ -959,6 +971,101 @@ class OpenaiResponsesService
       context[:tool_calls] << tool_call
       seen << key
     end
+  end
+
+  def track_response_metrics(context, response_key, output_items)
+    context[:response_metrics] ||= {}
+    context[:response_metrics][response_key] = response_output_metrics(output_items)
+  end
+
+  def aggregate_agent_run_metrics(context, response_hash: nil)
+    tracked_metrics = Array((context[:response_metrics] || {}).values)
+    fallback_metrics = response_output_metrics(Array((response_hash || {})["output"]))
+
+    metrics = {
+      assistant_turns: tracked_metrics.sum { |m| m[:assistant_turns].to_i },
+      tool_call_count: tracked_metrics.sum { |m| m[:tool_call_count].to_i },
+      tool_turn_count: tracked_metrics.sum { |m| m[:tool_turn_count].to_i },
+      reasoning_item_count: tracked_metrics.sum { |m| m[:reasoning_item_count].to_i },
+      output_item_count: tracked_metrics.sum { |m| m[:output_item_count].to_i }
+    }
+
+    return fallback_metrics if tracked_metrics.empty?
+
+    metrics
+  end
+
+  def response_output_metrics(output_items)
+    items = Array(output_items)
+
+    {
+      assistant_turns: items.count { |item| item["type"].to_s == "message" },
+      tool_call_count: items.count { |item| tool_call_item?(item["type"]) },
+      tool_turn_count: items.any? { |item| tool_call_item?(item["type"]) } ? 1 : 0,
+      reasoning_item_count: items.count { |item| item["type"].to_s == "reasoning" },
+      output_item_count: items.size
+    }
+  end
+
+  def tool_call_item?(type)
+    type = type.to_s
+    type == "function_call" || type.end_with?("_call")
+  end
+
+  def tool_call_argument_metadata(raw_arguments)
+    raw = raw_arguments.is_a?(String) ? raw_arguments : raw_arguments.to_json
+    raw = raw.to_s
+    return { arguments_preview: nil, argument_fingerprint: nil } if raw.blank?
+
+    parsed = parse_tool_call_arguments(raw)
+    normalized = parsed.present? ? normalize_tool_call_argument_value(parsed).to_json : raw.squish
+
+    {
+      arguments_preview: tool_call_argument_preview(parsed, raw),
+      argument_fingerprint: Digest::SHA256.hexdigest(normalized)
+    }
+  end
+
+  def parse_tool_call_arguments(raw_arguments)
+    JSON.parse(raw_arguments)
+  rescue JSON::ParserError
+    begin
+      JSON.parse(JSON.repair(raw_arguments))
+    rescue JSON::ParserError, JSON::JSONRepairError
+      nil
+    end
+  end
+
+  def normalize_tool_call_argument_value(value)
+    case value
+    when Hash
+      value.keys.sort.each_with_object({}) do |key, sorted|
+        sorted[key.to_s] = normalize_tool_call_argument_value(value[key])
+      end
+    when Array
+      value.map { |item| normalize_tool_call_argument_value(item) }
+    else
+      value
+    end
+  end
+
+  def tool_call_argument_preview(parsed_arguments, raw_arguments)
+    return raw_arguments.to_s.squish.truncate(220) unless parsed_arguments.is_a?(Hash)
+
+    if parsed_arguments["query"].present?
+      return "query=#{parsed_arguments['query'].to_s.squish.truncate(180)}"
+    end
+
+    if parsed_arguments["urls"].is_a?(Array)
+      first_url = parsed_arguments["urls"].first.to_s
+      return "urls=#{parsed_arguments['urls'].size} first=#{first_url.squish.truncate(140)}"
+    end
+
+    if parsed_arguments["uri"].present?
+      return "uri=#{parsed_arguments['uri'].to_s.squish.truncate(180)}"
+    end
+
+    parsed_arguments.to_json.squish.truncate(220)
   end
 
   def log_tool_call_sequence(context)

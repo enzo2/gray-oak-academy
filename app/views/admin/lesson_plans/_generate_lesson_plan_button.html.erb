@@ -1,6 +1,5 @@
 <div id="lesson-plan-generation-controls" class="mb-4">
   <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
-  <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
 
   <%= form_with(
     url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
@@ -27,4 +26,6 @@
       </button>
     </div>
   <% end %>
+
+  <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
 </div>

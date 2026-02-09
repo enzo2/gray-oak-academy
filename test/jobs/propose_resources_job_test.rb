@@ -109,6 +109,92 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
 
     assert_equal "draft", lesson_plan.reload.status
   end
+
+  test "propose resources notifies superusers when high tool-call threshold is reached" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    superuser = users(:super_user)
+    superuser.create_setting! if superuser.setting.nil?
+    app_setting = AppSetting.settings
+    openai_api = supported_apis(:openai)
+    app_setting.update!(openai_agent_model: "gpt-5.2")
+    openai_api.update!(enabled: true, api_access_token: "openai-test-token")
+
+    tool_calls = Array.new(ProposeResourcesJob::HIGH_TOOL_CALL_WARNING_THRESHOLD + 3) do |idx|
+      {
+        "type" => "function_call",
+        "name" => "exa_search",
+        "call_id" => "call_#{idx + 1}",
+        "arguments" => { query: "query #{idx + 1}" }.to_json
+      }
+    end
+
+    complete_calls = []
+    wait_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      complete_calls << { messages: messages, kwargs: kwargs }
+      response_id = complete_calls.size == 1 ? "resp_1" : "resp_2"
+      { "id" => response_id, "status" => "queued", "output" => [] }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **kwargs|
+      wait_calls << { response_id: response_id, kwargs: kwargs }
+      case response_id
+      when "resp_1"
+        { "id" => "resp_1", "status" => "completed", "output" => tool_calls }
+      else
+        {
+          "id" => "resp_2",
+          "status" => "completed",
+          "output" => [
+            {
+              "type" => "message",
+              "content" => [
+                { "type" => "output_text", "text" => "{\"suggested_resources\":[]}" }
+              ]
+            }
+          ]
+        }
+      end
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "{\"suggested_resources\":[]}" }
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:execute) do |function_call|
+      { type: "function_call_output", call_id: function_call["call_id"], output: "{\"ok\":true}" }
+    end
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    app_setting.update!(log: (app_setting.log || {}).merge("analytics_events" => []))
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          ProposeResourcesJob.perform_now(lesson_plan, teacher)
+        end
+      end
+    end
+
+    assert_equal "resp_1", wait_calls.first[:response_id]
+    assert_equal "resp_2", wait_calls.second[:response_id]
+
+    warning_notifications = Notification.where(event_type: "agent_run.high_tool_call_warning", recipient_id: superuser.id)
+    assert_equal 1, warning_notifications.count
+    warning_notification = warning_notifications.first
+    assert_equal "resp_1", warning_notification.params["run_id"]
+    assert_equal "resp_1", warning_notification.params["response_id"]
+    assert_equal teacher.name, warning_notification.params["teacher_name"]
+    assert_equal teacher.id, warning_notification.params["teacher_id"]
+    assert_equal "propose_resources", warning_notification.params["source"]
+    assert_equal lesson_plan.id, warning_notification.params["lesson_plan_id"]
+    assert_equal 1, warning_notification.params["turns"]
+    assert_equal ProposeResourcesJob::HIGH_TOOL_CALL_WARNING_THRESHOLD + 3, warning_notification.params["total_tool_calls"]
+    assert_equal ProposeResourcesJob::HIGH_TOOL_CALL_WARNING_THRESHOLD, warning_notification.params["warning_threshold"]
+
+    analytics_events = Array(app_setting.reload.log["analytics_events"])
+    analytics_warning_events = analytics_events.select { |entry| entry["event_type"] == "agent_run.high_tool_call_warning" }
+    assert_equal 1, analytics_warning_events.size
+  end
 end
 
 class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase

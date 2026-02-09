@@ -600,19 +600,18 @@ p.save!
 p = Prompt.find_or_initialize_by(category: 'generate_lesson_plan', teacher_id: nil)
 p.title = "Default Lesson Plan Content Generator"
 p.prompt = <<~PROMPT
-  I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
+  You are creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
   The lesson goals are: "{goals}".
   The lesson is to be roughly {approx_duration_min} min long.
-  Now, content for the lesson plan is needed.
-  The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.
+  Now, content for the lesson plan is needed. The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.
   Please generate a detailed lesson plan content outline in JSON format as a "lesson_plan" object containing an array of objects, each with a type key and a details key.
   - Type should describe the type of content (e.g., "Introduction", "Activity", "Discussion", "Practice", "Gamification", etc.).
   - Details should elaborate on the content.
-  Optionally, also include a "suggested_resources" array, following a similar format but with "type" and "description" keys.
+  Also include a "suggested_resources" array, following a similar format but with "type" and "description" keys.
   Format example:#{' '}
   { "lesson_plan":#{' '}
     [
-      { "type": "Knowledge", "details": "Ensure student is aware of X,Y,Z." },
+      { "type": "Knowledge", "details": "Ensure student learns X,Y,Z." },
       { "type": "Method", "details": "Didactic discussion format" },
       { "type": "Generative Applet", "details": "Generate an applet demonstrating exponential bacterial growth at different rates." },
       { "type": "Conversational Assessment", "details": "Probe the student for understanding of A,B,C if needed." },
@@ -635,8 +634,8 @@ p.prompt = <<~PROMPT
   Do not suggest web-based applets if an equivalent could be generated during the lesson. (An example of a complex applet outside of this app's generative capabilities would be a solar system simulator.)
   A digital whiteboard is available for use during the lesson, but the LLM cannot draw on it, only the student.
   Physical and digital resources should be included as suggested_resources rather than lesson_plan content, as the supervising teacher will need to obtain or verify them.
-  You may suggest external resources known to be readily available, e.g. Encyclopædia Britannica article, well-known lecture, famous photo, standard diagram or infographic, household/school materials, open-source software.
-  (Do not include or invent your own URLs, as they may no longer be accessible or compatible. Just refer to internet resources by name, if you expect it to be readily available via search.)
+  You may suggest external resources known to be readily available, e.g. Encyclopædia Britannica article, well-known lecture, famous image, standard diagram or infographic, household/school materials, open-source software.
+  Do not include URLs. Just refer to internet resources by name, if you expect it to be readily available via search, and the actual resource will be located later.
   You may also suggest generally available teaching materials, e.g. microscope/slide set, demonstrations, safety equipment.
   Once you have generated the content and optional suggested resources, the teacher will be able to:
     - Locate and validate suggested resources
@@ -668,12 +667,13 @@ p.save!
 p = Prompt.find_or_initialize_by(category: 'suggest_resources', teacher_id: nil)
 p.title = "Default Resource Proposal Prompt"
 p.prompt = <<~PROMPT
-  You are proposing and validating lesson resources after lesson-plan content has already been generated.
+  You are proposing and validating lesson resources after lesson-plan content directives have already been generated.
   Your tasks:
   1) Review the lesson plan and existing suggested resources.
   2) Find and verify web-available resources where possible.
   3) Add and link validated resources using tools.
-  4) Return a final refined suggested_resources JSON array for anything still unresolved or teacher-dependent.
+  4) Design, code and link JavaScript applet(s) specified in the lesson plan or otherwise warranted.
+  5) Return a final refined suggested_resources JSON array excluding any resources now linked, and including anything still unresolved or teacher-dependent.
 
   Lesson context:
   - Lesson: {title}
@@ -701,19 +701,24 @@ p.prompt = <<~PROMPT
 
   Resource rules:
   - Consider searching existing resources first to avoid duplicates.
+  - If a resource can be located and linked now, do that instead of leaving it in suggested_resources.
   - Prefer high-quality, age-appropriate, primary or broadly trusted sources.
   - Do not invent URLs.
-  - For images: verify URL only; do not ingest files.#{' '}
+  - For images: verify URL only; do not ingest files.
   - For PDFs: call fetch_pdf first, then add_and_link_resource using the returned token.
   - Add resources as pending approval; teacher will approve before publishing.
   - Tags must be sparse and reusable across many lessons:
     - Prefer 2-4 broad tags max (domain, period, source type, method).
-    - Avoid hyper-specific lesson labels (bad: "japan shock", "walter cronkite").
+    - Avoid hyper-specific tags (bad: "japan shock", "walter cronkite").
     - Good tags look like: "primary source", "1980s", "physics".
     - If useful broad tags are not obvious, omit tags instead of inventing narrow ones.
+  - Before finishing, explicitly evaluate whether an interactive applet would materially improve this lesson.
+  - If an applet would help and no similar applet is already linked, create and link one with add_and_link_resource(resource_type: "applet").
+  - Applets are useful for dynamic/interactive concepts (manipulatives, simulations, gamification, visual experiments, etc.).
+  - Never return already-linked resources in final suggested_resources.
 
-  Copyright / educational fair use guidance (United States focused):
-  - Favor public-domain, permissive, or official educational sources where possible.
+  Copyright / educational fair use guidance (United States–focused):
+  - Favor public-domain or permissively licensed educational sources where possible.
   - If copyrighted material is used, quote only limited excerpts needed for instruction.
   - Do not reproduce entire copyrighted works.
   - Include enough citation detail (source title, publisher/site, URL) for teacher review.

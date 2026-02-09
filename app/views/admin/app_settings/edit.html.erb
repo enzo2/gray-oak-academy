@@ -69,7 +69,7 @@
       <p class="text-xs text-dim mt-1">Choose whether transcriptions use the Speech API, or any audio LLM.</p>
     </div>
 
-    <div data-stt-settings-target="speechWrapper" class="">
+    <div data-stt-settings-target="speechWrapper">
       <%= f.label :stt_model, "STT model (Speech API)", class: "form-label" %>
       <%= f.text_field :stt_model,
             value: (@setting&.stt_method == "speech" ? @setting.stt_model : nil),

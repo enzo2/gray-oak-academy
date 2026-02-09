@@ -2,6 +2,8 @@ require "json/repair"
 
 class ProposeResourcesJob < ApplicationJob
   queue_as :default
+  include Rails.application.routes.url_helpers
+  HIGH_TOOL_CALL_WARNING_THRESHOLD = 80
   RESOURCES_SCHEMA = {
     type: "object",
     properties: {
@@ -23,6 +25,10 @@ class ProposeResourcesJob < ApplicationJob
   }.freeze
 
   def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false)
+    turns = 0
+    total_tool_calls = 0
+    high_tool_call_warning_notified = false
+    response_hash = nil
     lesson_plan.update!(status: "draft") if lesson_plan.status_published?
 
     set_generation_state(lesson_plan, "proposing_resources", nil) if track_stage
@@ -31,6 +37,9 @@ class ProposeResourcesJob < ApplicationJob
     openai_config = openai_agent_config!
     prompt = build_prompt(lesson_plan, current_user)
     messages = [ { role: "user", content: prompt } ]
+    Rails.logger.info(
+      "ProposeResourcesJob start lesson_plan=#{lesson_plan.id} teacher_id=#{current_user.id} prompt_chars=#{prompt.to_s.length}"
+    )
 
     executor = ProposeResourcesToolExecutor.new(lesson_plan: lesson_plan, current_user: current_user)
     client = OpenaiResponsesService.new(
@@ -57,16 +66,31 @@ class ProposeResourcesJob < ApplicationJob
     )
     max_tool_turns = AppSetting.openai_agent_max_tool_turns
     raise OpenAiError, "OpenAI agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
-    turns = 0
 
     loop do
       function_calls = Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
       break if function_calls.blank?
 
       turns += 1
-      raise OpenAiError, "Resource proposal exceeded tool-call limit (#{max_tool_turns})." if turns > max_tool_turns
+      if turns > max_tool_turns
+        raise OpenAiError, "Resource proposal exceeded tool-call limit (#{max_tool_turns}). " \
+          "observed_turns=#{turns} total_tool_calls=#{total_tool_calls}"
+      end
+
+      total_tool_calls += function_calls.size
 
       outputs = function_calls.map { |fc| executor.execute(fc) }
+      high_tool_call_warning_notified = log_turn_diagnostics(
+        lesson_plan: lesson_plan,
+        teacher: current_user,
+        model: openai_config[:model],
+        response_id: response_hash["id"],
+        turn: turns,
+        function_calls: function_calls,
+        outputs: outputs,
+        total_tool_calls: total_tool_calls,
+        warning_notified: high_tool_call_warning_notified
+      )
       response_hash = complete_and_capture(
         client,
         input: outputs,
@@ -88,11 +112,18 @@ class ProposeResourcesJob < ApplicationJob
     lesson_plan.update!(
       suggested_resources: suggested_resources
     )
+    Rails.logger.info(
+      "ProposeResourcesJob completed lesson_plan=#{lesson_plan.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
+      "suggested_resources=#{suggested_resources.size}"
+    )
     set_generation_state(lesson_plan, "completed", nil) if track_stage
     broadcast_refresh(current_user)
     true
   rescue StandardError => e
-    Rails.logger.error("ProposeResourcesJob failed for lesson_plan #{lesson_plan&.id}: #{e.message}")
+    Rails.logger.error(
+      "ProposeResourcesJob failed lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
+      "last_response_id=#{response_hash&.dig('id')} error=#{e.message}"
+    )
     set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{e.message}") if track_stage && lesson_plan.present?
     broadcast_refresh(current_user) if current_user.present?
     raise if raise_on_error
@@ -198,5 +229,60 @@ class ProposeResourcesJob < ApplicationJob
   def broadcast_refresh(current_user)
     channel = "teacher_#{current_user.id}-dashboard"
     Turbo::StreamsChannel.broadcast_refresh_to(channel)
+  end
+
+  def log_turn_diagnostics(lesson_plan:, teacher:, model:, response_id:, turn:, function_calls:, outputs:, total_tool_calls:, warning_notified:)
+    names_by_count = function_calls.map { |call| call["name"].to_s }.tally
+    sample_arguments = function_calls.first(3).map do |function_call|
+      "#{function_call['name']}(#{function_call['arguments'].to_s.squish.truncate(110)})"
+    end.join(" | ")
+
+    Rails.logger.info(
+      "ProposeResourcesJob turn lesson_plan=#{lesson_plan.id} turn=#{turn} calls_this_turn=#{function_calls.size} " \
+      "tool_counts=#{names_by_count} total_tool_calls=#{total_tool_calls} " \
+      "sample_calls=#{sample_arguments.presence || 'none'}"
+    )
+
+    return warning_notified if total_tool_calls < HIGH_TOOL_CALL_WARNING_THRESHOLD
+
+    Rails.logger.warn(
+      "ProposeResourcesJob high-volume warning lesson_plan=#{lesson_plan.id} turn=#{turn} " \
+      "total_tool_calls=#{total_tool_calls}"
+    )
+    return true if warning_notified
+
+    notify_high_tool_call_warning!(
+      lesson_plan: lesson_plan,
+      teacher: teacher,
+      model: model,
+      response_id: response_id,
+      turn: turn,
+      total_tool_calls: total_tool_calls
+    )
+    true
+  end
+
+  def notify_high_tool_call_warning!(lesson_plan:, teacher:, model:, response_id:, turn:, total_tool_calls:)
+    superuser_ids = User.role_superuser.pluck(:id)
+    return if superuser_ids.empty?
+
+    run_id = response_id.to_s.presence || "unknown_run"
+    trace_link = response_id.to_s.present? ? admin_agent_runs_path(trace_response_id: response_id.to_s) : admin_agent_runs_path
+    Rails.event.notify(Events::AgentRunHighToolCallWarning.new(
+      recipient_ids: superuser_ids,
+      link: trace_link,
+      run_id: run_id,
+      response_id: response_id.to_s,
+      teacher_name: teacher.name,
+      teacher_id: teacher.id,
+      model: model.to_s,
+      source: "propose_resources",
+      lesson_plan_id: lesson_plan.id,
+      turns: turn,
+      total_tool_calls: total_tool_calls,
+      warning_threshold: HIGH_TOOL_CALL_WARNING_THRESHOLD
+    ))
+  rescue StandardError => e
+    Rails.logger.error "Failed to notify high tool-call warning for lesson_plan=#{lesson_plan.id}: #{e.message}"
   end
 end

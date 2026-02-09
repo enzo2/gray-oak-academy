@@ -1,7 +1,12 @@
-<h2 class="text-2xl font-bold mb-2">Agent Runs</h2>
-<p class="mb-4 text-sm text-dim">
-  OpenAI Responses background runs.
-</p>
+<div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+  <h2 class="text-2xl font-bold">Agent Runs</h2>
+  <%= button_to "Clear Logs",
+      clear_admin_agent_runs_path,
+      method: :delete,
+      data: { turbo_confirm: "Clear all agent run logs? This cannot be undone." },
+      class: "btn-secondary text-red-700 dark:text-red-300" %>
+</div>
+<p class="mb-4 text-sm text-dim">OpenAI Responses background runs.</p>
 
 <% if @runs.any? %>
   <div class="overflow-x-auto">
@@ -13,16 +18,14 @@
           <th>Teacher</th>
           <th>Model</th>
           <th>Source</th>
-          <th>Response ID</th>
           <th>Submitted</th>
           <th>Finished</th>
           <th>Duration (s)</th>
           <th>Turns</th>
           <th>Tool Calls</th>
-          <th>Reasoning Items</th>
           <th>Task</th>
           <th>Error</th>
-          <th>Reasoning</th>
+          <th>Trace</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-stone-200 dark:divide-stone-700">
@@ -48,13 +51,11 @@
             </td>
             <td class="font-mono text-xs"><%= run[:model] %></td>
             <td><%= run[:source] %></td>
-            <td class="font-mono text-xs"><%= run[:response_id] %></td>
             <td><%= run[:submitted_at].present? ? Time.zone.parse(run[:submitted_at]).strftime("%Y-%m-%d %H:%M:%S") : "" %></td>
             <td><%= run[:finished_at].present? ? Time.zone.parse(run[:finished_at]).strftime("%Y-%m-%d %H:%M:%S") : "" %></td>
             <td><%= run[:duration_seconds] %></td>
-            <td><%= run[:assistant_turns] %></td>
+            <td><%= run[:tool_turn_count].to_i %></td>
             <td><%= run[:tool_call_count] %></td>
-            <td><%= run[:reasoning_item_count] %></td>
             <td class="max-w-xs"><%= run[:task_preview] %></td>
             <td class="max-w-xs text-red-700 dark:text-red-400"><%= run[:error_message] %></td>
             <td>
@@ -72,36 +73,86 @@
 
   <% if @trace_run.present? && @trace_data.present? %>
     <div class="mt-6">
-      <h3 class="text-lg font-semibold mb-2">Reasoning Trace: <span class="font-mono text-sm"><%= @trace_run[:response_id] %></span></h3>
+      <h3 class="text-lg font-semibold mb-2">Run Trace: <span class="font-mono text-sm"><%= @trace_run[:response_id] %></span></h3>
       <% if @trace_data[:error].present? %>
         <p class="text-sm text-red-700 dark:text-red-400"><%= @trace_data[:error] %></p>
-      <% else %>
-        <% if @trace_data[:summary_text].present? %>
-          <h4 class="text-sm font-medium mb-1">Summary</h4>
-          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded"><%= @trace_data[:summary_text] %></pre>
-        <% end %>
+      <% end %>
 
-        <h4 class="text-sm font-medium mt-4 mb-1">Reasoning Items (Raw)</h4>
-        <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto"><%= @trace_data[:reasoning_json].presence || "(No reasoning items returned.)" %></pre>
+      <h4 class="text-sm font-medium mt-4 mb-1">Tool Calls</h4>
+      <% tool_call_summary = @trace_data[:tool_call_summary] || {} %>
+      <div class="text-sm text-dim">
+        Total: <b><%= tool_call_summary[:total_calls].to_i %></b> |
+        Unique tools: <b><%= tool_call_summary[:unique_tools].to_i %></b>
+      </div>
 
-        <h4 class="text-sm font-medium mt-4 mb-1">Output Item Types</h4>
-        <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto"><%= @trace_data[:output_type_counts].present? ? JSON.pretty_generate(@trace_data[:output_type_counts]) : "(No output items returned.)" %></pre>
+      <% if tool_call_summary[:counts_by_name].present? %>
+        <ul class="mt-2 flex flex-wrap gap-2">
+          <% tool_call_summary[:counts_by_name].each do |name, count| %>
+            <li class="text-xs bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded">
+              <span class="font-mono"><%= name %></span>: <b><%= count %></b>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
 
-        <% if @trace_data[:output_text].present? %>
-          <details class="mt-4">
-            <summary class="text-sm font-medium cursor-pointer">Assistant Output Text</summary>
-            <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:output_text] %></pre>
-          </details>
-        <% end %>
-
-        <details class="mt-4">
-          <summary class="text-sm font-medium cursor-pointer">Output Items (Raw JSON)</summary>
-          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:output_items_json].presence || "(No output items returned.)" %></pre>
+      <% if tool_call_summary[:repeated_argument_patterns].present? %>
+        <details class="mt-3">
+          <summary class="text-sm font-medium cursor-pointer">Repeated Argument Patterns</summary>
+          <ul class="space-y-2 mt-2">
+            <% tool_call_summary[:repeated_argument_patterns].each do |pattern| %>
+              <li class="text-xs bg-stone-100 dark:bg-stone-800 p-3 rounded">
+                <span class="font-mono font-semibold"><%= pattern[:name] %></span>
+                repeated <b><%= pattern[:count] %></b> times
+                <div class="mt-1 text-dim"><%= pattern[:arguments_preview] %></div>
+                <div class="mt-1 text-dim font-mono">fingerprint: <%= pattern[:argument_fingerprint].to_s.first(12) %></div>
+              </li>
+            <% end %>
+          </ul>
         </details>
+      <% end %>
 
+      <% if @trace_data[:tool_calls].present? %>
+        <details class="mt-3">
+          <summary class="text-sm font-medium cursor-pointer">Detailed Calls</summary>
+          <% calls_by_turn = @trace_data[:tool_calls].group_by { |tool_call| tool_call[:response_id].presence || "unknown_response" } %>
+          <div class="space-y-3 mt-2">
+            <% calls_by_turn.each_with_index do |(response_id, calls), turn_index| %>
+              <div class="border border-stone-200 dark:border-stone-700 rounded p-2">
+                <div class="text-xs font-semibold mb-2">
+                  Turn <%= turn_index + 1 %>
+                  <span class="text-dim font-normal">(<span class="font-mono"><%= response_id %></span>)</span>
+                </div>
+                <ul class="space-y-2">
+                  <% calls.each do |tool_call| %>
+                    <li class="text-xs bg-stone-100 dark:bg-stone-800 p-3 rounded">
+                      <span class="font-mono font-semibold"><%= tool_call[:name] %></span>
+                      <span class="text-dim">call_id:</span>
+                      <span class="font-mono"><%= tool_call[:call_id] %></span>
+                      <% if tool_call[:arguments_preview].present? %>
+                        <div class="mt-1 text-dim"><%= tool_call[:arguments_preview] %></div>
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+          </div>
+        </details>
+      <% else %>
+        <p class="text-sm text-dim mt-2">No tool calls were captured for this run.</p>
+      <% end %>
+
+      <% if @trace_data[:output_text].present? %>
+        <details class="mt-4">
+          <summary class="text-sm font-medium cursor-pointer">Assistant Output Text</summary>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:output_text] %></pre>
+        </details>
+      <% end %>
+
+      <% if @trace_data[:response_json].present? %>
         <details class="mt-4">
           <summary class="text-sm font-medium cursor-pointer">Full Response (Raw JSON)</summary>
-          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:response_json].presence || "(No response returned.)" %></pre>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:response_json] %></pre>
         </details>
       <% end %>
     </div>

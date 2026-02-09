@@ -1,8 +1,8 @@
 <div id="resource-proposal-controls" class="mb-3">
   <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
-  <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
+  <% show_propose_resources_button = lesson_plan.resource_proposal_available? || lesson_plan.generation_stage == "proposing_resources" %>
 
-  <% if lesson_plan.resource_proposal_available? && resource_proposal_enabled %>
+  <% if show_propose_resources_button && resource_proposal_enabled %>
     <%= form_with(
       url: propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
       method: :post,
@@ -21,4 +21,6 @@
       </button>
     <% end %>
   <% end %>
+
+  <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan, show_completed: false %>
 </div>

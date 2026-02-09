@@ -128,6 +128,11 @@ suggest_resources:
     Lesson content: {lesson_plan_content}
     Existing suggested resources: {suggested_resources}
     Linked resources: {linked_resources}
+    Resource rules:
+    - Never return already-linked resources in final suggested_resources.
+    - If a resource can be added and linked now, do that instead of leaving it in suggested_resources.
+    - Explicitly evaluate whether an interactive applet would materially improve this lesson.
+    - If so, and no similar applet is already linked, create and link one with add_and_link_resource(resource_type: "applet").
     Tag rules (when creating/linking resources):
     - Use sparse, reusable tags only (2-4 broad tags max).
     - Avoid lesson-specific tags like "japan shock".

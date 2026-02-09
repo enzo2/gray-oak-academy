@@ -1,5 +1,5 @@
 <% if lesson_plan.content.blank? %>
-  <p class="mb-2"><i>You can use the LLM to generate lesson plan content and locate web-based resources. You should review and enhance it with your own resources.</i></p>
+  <p class="mb-2"><i>You can use the LLM to generate lesson plan content and locate web-based resources. You should review and enhance with your own resources.</i></p>
   <%= render "admin/lesson_plans/generate_lesson_plan_button", lesson: lesson, lesson_plan: lesson_plan %>
 <% end %>
 
@@ -75,7 +75,7 @@
                   class: 'mt-0.5 shrink-0 flex items-center' do %>
               <sl-icon name="trash" class="text-gray-500 hover:text-red-500"></sl-icon>
             <% end %>
-            <div class="min-w-0 whitespace-normal break-words">
+            <div class="min-w-0 whitespace-normal wrap-break-word">
               <span class="font-semibold"><%= resource.keys.first %></span><span class="mx-1">:</span><%= resource.values.first %>
             </div>
           </li>

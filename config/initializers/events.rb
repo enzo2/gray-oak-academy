@@ -31,4 +31,10 @@ Rails.application.config.after_initialize do
   Rails.event.subscribe(NotificationSubscriber.new) do |event|
     event[:payload].is_a?(Events::Base)
   end
+
+  # Analytics subscriber consumes the same business events and records a
+  # bounded analytics stream for superuser-facing operational insight.
+  Rails.event.subscribe(AnalyticsSubscriber.new) do |event|
+    event[:payload].is_a?(Events::Base)
+  end
 end

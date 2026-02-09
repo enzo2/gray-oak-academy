@@ -273,6 +273,90 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal 0, failed_calls.size
   end
 
+  test "background run completion logs aggregate metrics across tool-call turns" do
+    create_count = 0
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |response_id, _params|
+        case response_id
+        when "resp_turn_1"
+          {
+            "id" => "resp_turn_1",
+            "status" => "completed",
+            "output" => [
+              { "type" => "function_call", "call_id" => "call_1", "name" => "exa_search", "arguments" => "{}" }
+            ]
+          }
+        when "resp_turn_2"
+          response_payload("Done", id: "resp_turn_2").merge("status" => "completed")
+        else
+          flunk("Unexpected response_id #{response_id}")
+        end
+      }
+    ) do |_params|
+      create_count += 1
+      case create_count
+      when 1
+        { "id" => "resp_turn_1", "status" => "queued", "model" => @model, "output" => [] }
+      when 2
+        { "id" => "resp_turn_2", "status" => "queued", "model" => @model, "output" => [] }
+      else
+        flunk("Unexpected create call ##{create_count}")
+      end
+    end
+
+    completed_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**_kwargs| true }
+    fake_run_log.define_singleton_method(:record_completed) { |**kwargs| completed_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| nil }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: @base_uri,
+          model: @model,
+          log_completion: false
+        )
+
+        first_submission = service.complete(
+          [ { role: "user", content: "Run long task" } ],
+          background: true,
+          metadata: { run_id: "run_aggregate", run_type: "propose_resources" }
+        )
+        assert_equal "resp_turn_1", first_submission["id"]
+        service.wait_for_response("resp_turn_1", timeout_seconds: 5, poll_interval_seconds: 0)
+        assert_equal 0, completed_calls.size
+
+        second_submission = service.complete(
+          nil,
+          input: [ { "type" => "function_call_output", "call_id" => "call_1", "output" => "{}" } ],
+          background: true,
+          previous_response_id: "resp_turn_1",
+          metadata: { run_type: "propose_resources" }
+        )
+        assert_equal "resp_turn_2", second_submission["id"]
+        service.wait_for_response("resp_turn_2", timeout_seconds: 5, poll_interval_seconds: 0)
+      end
+    end
+
+    assert_equal 1, completed_calls.size
+    assert_equal "run_aggregate", completed_calls.first[:run_id]
+    assert_equal "resp_turn_2", completed_calls.first[:response_id]
+    assert_equal(
+      { assistant_turns: 1, tool_call_count: 1, tool_turn_count: 1, reasoning_item_count: 0, output_item_count: 2 },
+      completed_calls.first[:metrics]
+    )
+    assert_equal 1, completed_calls.first[:tool_calls].size
+    logged_call = completed_calls.first[:tool_calls].first
+    assert_equal "resp_turn_1", logged_call[:response_id]
+    assert_equal "call_1", logged_call[:call_id]
+    assert_equal "exa_search", logged_call[:name]
+    assert logged_call[:arguments_preview].present?
+    assert_equal 64, logged_call[:argument_fingerprint].to_s.length
+  end
+
   test "wait_for_response does not mark run completed when response only contains tool calls" do
     fake_client = build_responses_client(
       retrieve_proc: lambda { |_response_id, _params|

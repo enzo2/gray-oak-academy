@@ -9,6 +9,18 @@ class AgentRunLogService
     read_logs.first(limit)
   end
 
+  def clear!
+    return unless @app_setting
+
+    @app_setting.with_lock do
+      log = (@app_setting.log || {}).deep_dup
+      log["agent_run_logs"] = []
+      settings = @app_setting.settings.deep_dup
+      settings.delete("agent_run_logs")
+      @app_setting.update!(log: log, settings: settings)
+    end
+  end
+
   def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:)
     upsert_run!(
       run_id: run_id,
@@ -23,8 +35,8 @@ class AgentRunLogService
     )
   end
 
-  def record_completed(run_id:, response_id:, response_hash:, started_at:)
-    metrics = output_metrics(response_hash)
+  def record_completed(run_id:, response_id:, response_hash:, started_at:, metrics: nil, tool_calls: nil)
+    metrics = normalize_metrics(metrics) || output_metrics(response_hash)
     upsert_run!(
       run_id: run_id,
       response_id: response_id,
@@ -33,13 +45,15 @@ class AgentRunLogService
       duration_seconds: (Time.current - started_at).round(1),
       assistant_turns: metrics[:assistant_turns],
       tool_call_count: metrics[:tool_call_count],
+      tool_turn_count: metrics[:tool_turn_count],
       reasoning_item_count: metrics[:reasoning_item_count],
-      output_item_count: metrics[:output_item_count]
+      output_item_count: metrics[:output_item_count],
+      tool_calls: normalize_tool_calls(tool_calls)
     )
   end
 
-  def record_failed(run_id:, response_id:, response_hash: nil, started_at:, error_message:)
-    metrics = output_metrics(response_hash || {})
+  def record_failed(run_id:, response_id:, response_hash: nil, started_at:, error_message:, metrics: nil, tool_calls: nil)
+    metrics = normalize_metrics(metrics) || output_metrics(response_hash || {})
     upsert_run!(
       run_id: run_id,
       response_id: response_id,
@@ -48,8 +62,10 @@ class AgentRunLogService
       duration_seconds: (Time.current - started_at).round(1),
       assistant_turns: metrics[:assistant_turns],
       tool_call_count: metrics[:tool_call_count],
+      tool_turn_count: metrics[:tool_turn_count],
       reasoning_item_count: metrics[:reasoning_item_count],
       output_item_count: metrics[:output_item_count],
+      tool_calls: normalize_tool_calls(tool_calls),
       error_message: error_message.to_s.truncate(500)
     )
   end
@@ -93,6 +109,7 @@ class AgentRunLogService
     {
       assistant_turns: items.count { |item| item["type"].to_s == "message" },
       tool_call_count: items.count { |item| tool_call_item?(item["type"]) },
+      tool_turn_count: items.any? { |item| tool_call_item?(item["type"]) } ? 1 : 0,
       reasoning_item_count: items.count { |item| item["type"].to_s == "reasoning" },
       output_item_count: items.size
     }
@@ -101,5 +118,37 @@ class AgentRunLogService
   def tool_call_item?(type)
     type = type.to_s
     type == "function_call" || type.end_with?("_call")
+  end
+
+  def normalize_metrics(metrics)
+    return nil unless metrics.is_a?(Hash)
+
+    {
+      assistant_turns: metrics[:assistant_turns].to_i,
+      tool_call_count: metrics[:tool_call_count].to_i,
+      tool_turn_count: metrics[:tool_turn_count].to_i,
+      reasoning_item_count: metrics[:reasoning_item_count].to_i,
+      output_item_count: metrics[:output_item_count].to_i
+    }
+  end
+
+  def normalize_tool_calls(tool_calls)
+    Array(tool_calls).filter_map do |tool_call|
+      call = tool_call.is_a?(Hash) ? tool_call.deep_symbolize_keys : {}
+      response_id = call[:response_id].to_s.presence
+      call_id = call[:call_id].to_s
+      name = call[:name].to_s
+      next if call_id.blank? && name.blank?
+      arguments_preview = call[:arguments_preview].to_s.presence
+      argument_fingerprint = call[:argument_fingerprint].to_s.presence
+
+      {
+        response_id: response_id,
+        call_id: call_id,
+        name: name,
+        arguments_preview: arguments_preview&.truncate(220),
+        argument_fingerprint: argument_fingerprint
+      }.compact
+    end
   end
 end

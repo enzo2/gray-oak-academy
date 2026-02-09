@@ -7,6 +7,8 @@ require "securerandom"
 require "tempfile"
 
 class ProposeResourcesToolExecutor
+  ToolExecutionError = ToolExecutionService::ToolExecutionError
+
   MAX_FILE_SIZE = 10.megabytes
   MAX_SEARCH_RESULTS = 20
   MAX_EXA_CONTENT_CHARS = 6000
@@ -69,6 +71,12 @@ class ProposeResourcesToolExecutor
       call_id: call_id,
       output: output.is_a?(String) ? output : JSON.pretty_generate(output)
     }
+  rescue ToolExecutionError => e
+    {
+      type: "function_call_output",
+      call_id: call_id.presence || "unknown_call",
+      output: "Tool execution error: #{e.message}"
+    }
   rescue StandardError => e
     {
       type: "function_call_output",
@@ -108,7 +116,7 @@ class ProposeResourcesToolExecutor
     when "add_and_link_resource"
       execute_add_and_link_resource(args)
     else
-      raise OpenAiError, "Unsupported tool: #{name}"
+      raise ToolExecutionError, "Unsupported tool: #{name}"
     end
   end
 
@@ -119,12 +127,12 @@ class ProposeResourcesToolExecutor
     repaired = JSON.repair(raw)
     JSON.parse(repaired)
   rescue JSON::ParserError, JSON::JSONRepairError
-    raise OpenAiError, "Function call arguments must be valid JSON."
+    raise ToolExecutionError, "Function call arguments must be valid JSON."
   end
 
   def execute_exa_search(args)
     query = args["query"].to_s.strip
-    raise OpenAiError, "query is required." if query.blank?
+    raise ToolExecutionError, "query is required." if query.blank?
 
     @exa_service.search(
       query: query,
@@ -137,14 +145,14 @@ class ProposeResourcesToolExecutor
 
   def execute_exa_answer(args)
     query = args["query"].to_s.strip
-    raise OpenAiError, "query is required." if query.blank?
+    raise ToolExecutionError, "query is required." if query.blank?
 
     @exa_service.answer(query: query)
   end
 
   def execute_exa_content(args)
     urls = Array(args["urls"]).map(&:to_s).reject(&:blank?).uniq
-    raise OpenAiError, "At least one URL is required." if urls.empty?
+    raise ToolExecutionError, "At least one URL is required." if urls.empty?
 
     max_characters = args["max_characters"].to_i
     max_characters = MAX_EXA_CONTENT_CHARS if max_characters <= 0
@@ -214,8 +222,8 @@ class ProposeResourcesToolExecutor
     content_type = metadata[:content_type].to_s.downcase
     size = metadata[:content_length]
 
-    raise OpenAiError, "URL did not resolve to an image." unless content_type.start_with?("image/")
-    raise OpenAiError, "Image exceeds #{MAX_FILE_SIZE / 1.megabyte}MB limit." if size && size > MAX_FILE_SIZE
+    raise ToolExecutionError, "URL did not resolve to an image." unless content_type.start_with?("image/")
+    raise ToolExecutionError, "Image exceeds #{MAX_FILE_SIZE / 1.megabyte}MB limit." if size && size > MAX_FILE_SIZE
 
     token = "img_#{SecureRandom.hex(8)}"
     @image_artifacts[token] = { url: url, content_type: content_type, size: size }
@@ -254,7 +262,7 @@ class ProposeResourcesToolExecutor
   def execute_add_and_link_resource(args)
     resource_type = args["resource_type"].to_s.strip.downcase
     description = args["description"].to_s.strip
-    raise OpenAiError, "description is required." if description.blank?
+    raise ToolExecutionError, "description is required." if description.blank?
 
     category = args["category"].to_s.strip.presence
     tags = Resource.normalize_tags(args["tags"])
@@ -266,8 +274,8 @@ class ProposeResourcesToolExecutor
       if resource_type == "image"
         image_token = args["image_token"].to_s.strip
         image_artifact = @image_artifacts[image_token]
-        raise OpenAiError, "image_token is missing or invalid." unless image_artifact
-        raise OpenAiError, "image_token does not match URL." unless image_artifact[:url] == url
+        raise ToolExecutionError, "image_token is missing or invalid." unless image_artifact
+        raise ToolExecutionError, "image_token does not match URL." unless image_artifact[:url] == url
       end
 
       Resource.create!(
@@ -280,7 +288,7 @@ class ProposeResourcesToolExecutor
       )
     when "text"
       content = args["content"].to_s.strip
-      raise OpenAiError, "content is required for text resources." if content.blank?
+      raise ToolExecutionError, "content is required for text resources." if content.blank?
 
       Resource.create!(
         teacher: @teacher,
@@ -293,7 +301,7 @@ class ProposeResourcesToolExecutor
     when "pdf"
       pdf_token = args["pdf_token"].to_s.strip
       artifact = @pdf_artifacts[pdf_token]
-      raise OpenAiError, "pdf_token is missing or invalid." unless artifact
+      raise ToolExecutionError, "pdf_token is missing or invalid." unless artifact
 
       resource = Resource.create!(
         teacher: @teacher,
@@ -315,15 +323,15 @@ class ProposeResourcesToolExecutor
     when "applet"
       applet_title = args["applet_title"].to_s.strip
       applet_code = args["applet_code"].to_s
-      raise OpenAiError, "applet_title is required for applet resources." if applet_title.blank?
-      raise OpenAiError, "applet_code is required for applet resources." if applet_code.strip.blank?
+      raise ToolExecutionError, "applet_title is required for applet resources." if applet_title.blank?
+      raise ToolExecutionError, "applet_code is required for applet resources." if applet_code.strip.blank?
       if applet_code.strip.match?(/\A```(?:javascript|js)\b/i)
-        raise OpenAiError, "applet_code must be raw JavaScript only. Do not include markdown fences."
+        raise ToolExecutionError, "applet_code must be raw JavaScript only. Do not include markdown fences."
       end
 
       syntax_check = NodeJsSyntaxChecker.check(applet_code)
       unless syntax_check[:valid]
-        raise OpenAiError, "JavaScript syntax errors: #{syntax_check[:errors].join('; ')}"
+        raise ToolExecutionError, "JavaScript syntax errors: #{syntax_check[:errors].join('; ')}"
       end
 
       applet = Applet.create!(user: @teacher, title: applet_title, code: applet_code)
@@ -336,7 +344,7 @@ class ProposeResourcesToolExecutor
         applet: applet
       )
     else
-      raise OpenAiError, "resource_type must be one of: url, image, pdf, text, applet."
+      raise ToolExecutionError, "resource_type must be one of: url, image, pdf, text, applet."
     end
 
     @lesson_plan.resources << resource unless @lesson_plan.resources.exists?(id: resource.id)
@@ -537,18 +545,18 @@ class ProposeResourcesToolExecutor
     with_http_client(uri, resolved_ip: resolved_ip, read_timeout: 20) do |http|
       http.request(request) do |response|
         unless response.code.to_i.between?(200, 299)
-          raise OpenAiError, "Failed to fetch PDF (HTTP #{response.code})."
+          raise ToolExecutionError, "Failed to fetch PDF (HTTP #{response.code})."
         end
 
         content_type = response["Content-Type"].to_s.split(";").first.to_s.downcase
         if response["Content-Length"].to_i > MAX_FILE_SIZE
-          raise OpenAiError, "PDF exceeds #{MAX_FILE_SIZE / 1.megabyte}MB limit."
+          raise ToolExecutionError, "PDF exceeds #{MAX_FILE_SIZE / 1.megabyte}MB limit."
         end
 
         response.read_body do |chunk|
           bytesize += chunk.bytesize
           if bytesize > MAX_FILE_SIZE
-            raise OpenAiError, "PDF exceeds #{MAX_FILE_SIZE / 1.megabyte}MB limit."
+            raise ToolExecutionError, "PDF exceeds #{MAX_FILE_SIZE / 1.megabyte}MB limit."
           end
           tempfile.write(chunk)
         end
@@ -559,7 +567,7 @@ class ProposeResourcesToolExecutor
     signature = tempfile.read(PDF_SIGNATURE.bytesize).to_s.b
     tempfile.rewind
     unless signature.start_with?(PDF_SIGNATURE)
-      raise OpenAiError, "Downloaded file is not a valid PDF."
+      raise ToolExecutionError, "Downloaded file is not a valid PDF."
     end
 
     if content_type.present? && !content_type.include?("pdf")
@@ -588,39 +596,39 @@ class ProposeResourcesToolExecutor
   end
 
   def validate_public_https_url!(url)
-    raise OpenAiError, "URL is required." if url.blank?
+    raise ToolExecutionError, "URL is required." if url.blank?
 
     uri = URI.parse(url)
-    raise OpenAiError, "URL must use HTTPS." unless uri.scheme.to_s.downcase == "https"
-    raise OpenAiError, "URL host is missing." if uri.host.blank?
+    raise ToolExecutionError, "URL must use HTTPS." unless uri.scheme.to_s.downcase == "https"
+    raise ToolExecutionError, "URL host is missing." if uri.host.blank?
 
     host = uri.host
     ip_literal = parse_ip_literal(host)
     if ip_literal
       normalized = normalize_ipaddr(ip_literal)
-      raise OpenAiError, "URL host resolves to a private or reserved IP." if private_or_reserved_ip?(normalized)
+      raise ToolExecutionError, "URL host resolves to a private or reserved IP." if private_or_reserved_ip?(normalized)
       return normalized.to_s
     end
 
     resolve_public_ip!(host)
   rescue URI::InvalidURIError
-    raise OpenAiError, "Invalid URL format."
+    raise ToolExecutionError, "Invalid URL format."
   rescue SocketError
-    raise OpenAiError, "URL host did not resolve."
+    raise ToolExecutionError, "URL host did not resolve."
   end
 
   def resolve_public_ip!(host)
     addresses = Socket.getaddrinfo(host, nil, Socket::AF_UNSPEC, Socket::SOCK_STREAM).map { |entry| entry[3] }.uniq
-    raise OpenAiError, "URL host did not resolve." if addresses.empty?
+    raise ToolExecutionError, "URL host did not resolve." if addresses.empty?
 
     parsed_ips = addresses.filter_map do |address|
       ip = parse_ip_literal(address)
       ip ? normalize_ipaddr(ip) : nil
     end.uniq(&:to_s)
-    raise OpenAiError, "URL host did not resolve." if parsed_ips.empty?
+    raise ToolExecutionError, "URL host did not resolve." if parsed_ips.empty?
 
     parsed_ips.each do |ip|
-      raise OpenAiError, "URL host resolves to a private or reserved IP." if private_or_reserved_ip?(ip)
+      raise ToolExecutionError, "URL host resolves to a private or reserved IP." if private_or_reserved_ip?(ip)
     end
 
     (parsed_ips.find(&:ipv4?) || parsed_ips.first).to_s

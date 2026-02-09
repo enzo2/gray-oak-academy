@@ -84,3 +84,19 @@ events:
       - duration_seconds
       - task_preview
       - error_message
+
+  agent_run.high_tool_call_warning:
+    category: agent_ops
+    subject: "Agent Run High Tool Call Warning"
+    message: "Agent run %{run_id} reached %{total_tool_calls} tool calls after %{turns} turns (threshold: %{warning_threshold})."
+    required_params:
+      - run_id
+      - response_id
+      - teacher_name
+      - teacher_id
+      - model
+      - source
+      - lesson_plan_id
+      - turns
+      - total_tool_calls
+      - warning_threshold

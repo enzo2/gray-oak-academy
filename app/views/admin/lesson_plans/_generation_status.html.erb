@@ -1,19 +1,20 @@
+<% show_completed = local_assigns.fetch(:show_completed, true) %>
+
 <% if lesson_plan.generation_in_progress? %>
-  <div class="flex items-center gap-2 mb-2 text-sm text-blue-700 dark:text-blue-300">
-    <sl-spinner style="font-size: 1rem;"></sl-spinner>
+  <p class="mt-2 text-sm text-blue-700 dark:text-blue-300">
     <% if lesson_plan.generation_stage == "proposing_resources" %>
       Proposing and validating resources...
     <% else %>
       Generating lesson plan content...
     <% end %>
-  </div>
+  </p>
 <% elsif lesson_plan.generation_stage == "failed" %>
-  <p class="mb-2 text-sm text-red-700 dark:text-red-300">
+  <p class="mt-2 text-sm text-red-700 dark:text-red-300">
     <b>Generation failed.</b>
     <%= lesson_plan.generation_error %>
   </p>
-<% elsif lesson_plan.generation_stage == "completed" %>
-  <p class="mb-2 text-sm text-green-700 dark:text-green-300">
+<% elsif show_completed && lesson_plan.generation_stage == "completed" %>
+  <p class="mt-2 text-sm text-green-700 dark:text-green-300">
     Last generation completed.
   </p>
 <% end %>
