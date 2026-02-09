@@ -17,19 +17,28 @@
   <div class="flex flex-col">
     <% resource_label = [resource.category, resource.description].compact_blank.join(" - ") %>
     <% resource_href =
-         if resource.file.attached?
+         if resource.applet.present?
+           run_applet_path(resource.applet)
+         elsif resource.file.attached?
            rails_blob_path(resource.file, disposition: "inline")
          elsif resource.uri.present?
            resource.uri_for_direct_visit
          else
            admin_resource_path(resource)
          end %>
-    <% opens_direct_payload = resource.file.attached? || resource.uri.present? %>
+    <% opens_direct_payload = resource.applet.present? || resource.file.attached? || resource.uri.present? %>
     <%= link_to resource_label,
                 resource_href,
                 class: "hover:underline text-stone-900 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-200",
                 target: (opens_direct_payload ? "_blank" : nil),
                 rel: (opens_direct_payload ? "noopener noreferrer" : nil) %>
+    <% if resource.applet.present? %>
+      <span class="text-xs text-stone-500 dark:text-stone-400">
+        <%= link_to "View details",
+                    admin_resource_path(resource),
+                    class: "underline hover:text-stone-700 dark:hover:text-stone-200" %>
+      </span>
+    <% end %>
     <% if resource.approved == false %>
       <span class="text-xs text-amber-700 dark:text-amber-300">
         Pending approval

@@ -32,6 +32,16 @@
           Approve
         <% end %>
       <% end %>
+      <% if resource.applet.present? %>
+        <%= link_to run_applet_path(resource.applet),
+                    class: 'btn-table-action',
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    aria: { label: 'Run applet preview' },
+                    title: 'Run applet preview' do %>
+          <sl-icon name="play-circle"></sl-icon>
+        <% end %>
+      <% end %>
       <%= link_to admin_resource_path(resource), class: 'btn-table-action', aria: { label: 'View resource' }, title: 'View' do %>
         <sl-icon name="eye"></sl-icon>
       <% end %>
