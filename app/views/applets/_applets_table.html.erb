@@ -16,6 +16,18 @@
                   Copy
                 </sl-button>
                 <% if current_user.role_teacher? %>
+                  <%= link_to conversations_path(
+                        starter_template: "applet_revision",
+                        applet_id: applet.id,
+                        resource_id: applet.resource_id
+                      ),
+                      class: "flex items-center",
+                      data: { turbo_method: :post } do %>
+                    <sl-button variant="default" size="small">
+                      <sl-icon slot="prefix" name="chat-dots"></sl-icon>
+                      Revise in Chat
+                    </sl-button>
+                  <% end %>
                   <% if !applet.resource_id? %>
                     <%= link_to save_as_resource_applet_path(applet),
                         class: "flex items-center",

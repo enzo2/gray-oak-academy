@@ -143,9 +143,30 @@
 
   <div class="mb-4 <%= payload_type == 'applet' ? '' : 'hidden' %>" data-resource-form-target="appletSection">
     <% applet = resource.applet || resource.build_applet(user: current_user) %>
+    <% lesson_context_id = local_assigns[:lesson_plan]&.lesson_id %>
     <p class="text-sm text-dim mb-1">
-      <i>To generate compatible applets, <%= link_to "chat with the LLM", conversations_path, class: "underline" %> in this app, and ask to save it as a resource.</i>
+      <i>Use chat to generate or revise compatible applets, then save them as resources.</i>
     </p>
+    <% if applet.persisted? %>
+      <p class="text-sm text-dim mb-2">
+        <%= link_to "Revise this applet in chat",
+            conversations_path(
+              starter_template: "applet_revision",
+              applet_id: applet.id,
+              resource_id: resource.id,
+              lesson_id: lesson_context_id
+            ),
+            data: { turbo_method: :post },
+            class: "underline" %>
+      </p>
+    <% else %>
+      <p class="text-sm text-dim mb-2">
+        <%= link_to "Start a chat for applet creation",
+            conversations_path,
+            data: { turbo_method: :post },
+            class: "underline" %>
+      </p>
+    <% end %>
     <%= form.fields_for :applet, applet do |applet_form| %>
       <%= applet_form.label :title, "Applet Title (for JavaScript applets)", class: "form-label" %>
       <%= applet_form.text_field :title, class: "input-primary mb-2" %>

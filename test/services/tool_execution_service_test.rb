@@ -1,6 +1,8 @@
 require "test_helper"
 
 class ToolExecutionServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test "unexpected tool errors are returned as tool messages" do
     conversation = conversations(:teacher_generic_conversation)
     tool = Tool.find_or_initialize_by(name: "list_courses")
@@ -196,5 +198,158 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_equal [ "chalkboard_url.embed_unknown" ], counters
     assert_includes Message.order(:created_at).last.content, "Embeddability check was inconclusive"
     assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/unknown)"
+  end
+
+  test "generate_lesson_plan runs synchronous content generation when action is generate_content" do
+    Rails.cache.clear
+    create_generate_lesson_plan_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    lesson = lessons(:one)
+    lesson.lesson_plan.update!(generation_stage: "idle")
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    perform_called = false
+    GenerateLessonPlanContentJob.stub(:perform_now, ->(*_args) { perform_called = true }) do
+      assert_no_enqueued_jobs do
+        assert_difference "Message.count", 1 do
+          service.execute_tool_call(
+            id: "tc-generate-default",
+            name: "Generate_Lesson_Plan",
+            arguments: { lesson_id: lesson.id, action: "generate_content" }.to_json
+          )
+        end
+      end
+    end
+
+    assert_equal true, perform_called
+    refute_includes Message.order(:created_at).last.content.to_s, "Tool execution resulted in error"
+  end
+
+  test "generate_lesson_plan requires explicit action" do
+    Rails.cache.clear
+    create_generate_lesson_plan_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    lesson = lessons(:one)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_call(
+        id: "tc-generate-missing-action",
+        name: "Generate_Lesson_Plan",
+        arguments: { lesson_id: lesson.id }.to_json
+      )
+    end
+
+    assert_includes Message.order(:created_at).last.content.to_s, "Missing required parameters: action"
+  end
+
+  test "generate_lesson_plan action propose_resources_async enqueues propose resources job" do
+    Rails.cache.clear
+    create_generate_lesson_plan_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    lesson = lessons(:one)
+    lesson.lesson_plan.update!(generation_stage: "completed")
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:exa_enabled?, true) do
+        assert_enqueued_jobs 1, only: ProposeResourcesJob do
+          assert_difference "Message.count", 1 do
+            service.execute_tool_call(
+              id: "tc-generate-propose-async",
+              name: "Generate_Lesson_Plan",
+              arguments: { lesson_id: lesson.id, action: "propose_resources_async" }.to_json
+            )
+          end
+        end
+      end
+    end
+
+    body = Message.order(:created_at).last.content.to_s
+    assert_includes body, "\"status\": \"queued\""
+    assert_includes body, "\"action\": \"propose_resources_async\""
+  end
+
+  test "generate_lesson_plan action generate_content_and_propose_resources_async enqueues pipeline job" do
+    Rails.cache.clear
+    create_generate_lesson_plan_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    lesson = lessons(:one)
+    lesson.lesson_plan.update!(generation_stage: "idle")
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:exa_enabled?, true) do
+        assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
+          assert_difference "Message.count", 1 do
+            service.execute_tool_call(
+              id: "tc-generate-content-and-propose-async",
+              name: "Generate_Lesson_Plan",
+              arguments: { lesson_id: lesson.id, action: "generate_content_and_propose_resources_async" }.to_json
+            )
+          end
+        end
+      end
+    end
+
+    body = Message.order(:created_at).last.content.to_s
+    assert_includes body, "\"status\": \"queued\""
+    assert_includes body, "\"action\": \"generate_content_and_propose_resources_async\""
+  end
+
+  test "generate_lesson_plan async actions return meaningful precondition errors" do
+    Rails.cache.clear
+    create_generate_lesson_plan_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    lesson = lessons(:one)
+    lesson.lesson_plan.update!(generation_stage: "idle")
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    AppSetting.stub(:openai_agent_enabled?, false) do
+      AppSetting.stub(:exa_enabled?, false) do
+        assert_difference "Message.count", 1 do
+          service.execute_tool_call(
+            id: "tc-generate-propose-disabled",
+            name: "Generate_Lesson_Plan",
+            arguments: { lesson_id: lesson.id, action: "propose_resources_async" }.to_json
+          )
+        end
+      end
+    end
+    assert_includes Message.order(:created_at).last.content.to_s, "Configure OpenAI Agent Runs and Exa API before proposing resources."
+
+    AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:exa_enabled?, true) do
+        assert_difference "Message.count", 1 do
+          service.execute_tool_call(
+            id: "tc-generate-propose-prereq",
+            name: "Generate_Lesson_Plan",
+            arguments: { lesson_id: lesson.id, action: "propose_resources_async" }.to_json
+          )
+        end
+      end
+    end
+    assert_includes Message.order(:created_at).last.content.to_s, "Generate the lesson plan once before proposing resources."
+  end
+
+  private
+
+  def create_generate_lesson_plan_tool!
+    tool = Tool.find_or_initialize_by(name: "Generate_Lesson_Plan")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Generate_Lesson_Plan",
+      "description" => "Generate lesson plan content or queue async pipeline actions.",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "lesson_id" => { "type" => "integer", "description" => "ID of the lesson" },
+          "action" => { "type" => "string", "description" => "Action", "enum" => [ "generate_content", "propose_resources_async", "generate_content_and_propose_resources_async" ] }
+        },
+        "required" => [ "lesson_id", "action" ],
+        "additionalProperties" => false
+      }
+    }
+    tool.save!
   end
 end

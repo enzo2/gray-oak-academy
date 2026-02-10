@@ -65,6 +65,8 @@ class Lesson < ApplicationRecord
       lesson_plan: (lp ? {
         id: lp.id,
         status: lp.status,
+        generation_stage: lp.generation_stage,
+        generation_error: lp.generation_error,
         content: lp.content,
         suggested_resources: lp.suggested_resources,
         linked_resources: lp.resources.format_collection(pretty: false),

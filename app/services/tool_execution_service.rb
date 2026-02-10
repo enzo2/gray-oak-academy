@@ -841,13 +841,55 @@ class ToolExecutionService
     lp = lesson.lesson_plan || lesson.build_lesson_plan(status: "draft")
     lp.save! if lp.new_record?
 
-    begin
-      GenerateLessonPlanContentJob.perform_now(lp, current_teacher)
-      lesson.reload
-      create_tool_message(JSON.pretty_generate(lesson.for_llm))
-    rescue StandardError => e
-      Rails.logger.error "GenerateLessonPlanContentJob error: #{e.message}"
-      raise ToolExecutionError, "Failed to generate lesson plan content: #{e.message}"
+    action = @args["action"].to_s.strip
+    raise ToolExecutionError, "Missing required parameter: action" if action.blank?
+
+    case action
+    when "generate_content"
+      begin
+        GenerateLessonPlanContentJob.perform_now(lp, current_teacher)
+        lesson.reload
+        create_tool_message(JSON.pretty_generate(lesson.for_llm))
+      rescue StandardError => e
+        Rails.logger.error "GenerateLessonPlanContentJob error: #{e.message}"
+        raise ToolExecutionError, "Failed to generate lesson plan content: #{e.message}"
+      end
+    when "propose_resources_async"
+      enqueue_result = LessonPlanAsyncGenerationService.new(
+        lesson_plan: lp,
+        current_user: current_teacher,
+        source: "teacher_chat_tool"
+      ).enqueue_propose_resources
+      raise ToolExecutionError, enqueue_result[:message] unless enqueue_result[:ok]
+
+      create_tool_message(JSON.pretty_generate({
+        status: "queued",
+        action: action,
+        message: enqueue_result[:message],
+        lesson_id: lesson.id,
+        lesson_plan_id: lp.id,
+        generation_stage: enqueue_result[:stage],
+        next_step: "Use Get_Lesson_Details to check generation_stage until it reaches completed or failed."
+      }))
+    when "generate_content_and_propose_resources_async"
+      enqueue_result = LessonPlanAsyncGenerationService.new(
+        lesson_plan: lp,
+        current_user: current_teacher,
+        source: "teacher_chat_tool"
+      ).enqueue_generate_content(propose_resources: true)
+      raise ToolExecutionError, enqueue_result[:message] unless enqueue_result[:ok]
+
+      create_tool_message(JSON.pretty_generate({
+        status: "queued",
+        action: action,
+        message: enqueue_result[:message],
+        lesson_id: lesson.id,
+        lesson_plan_id: lp.id,
+        generation_stage: enqueue_result[:stage],
+        next_step: "Use Get_Lesson_Details to check generation_stage until it reaches completed or failed."
+      }))
+    else
+      raise ToolExecutionError, "Unknown Generate_Lesson_Plan action: #{action.inspect}"
     end
   end
 

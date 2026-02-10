@@ -83,26 +83,14 @@ module Admin
     def generate_content
       # Persist the lesson plan before generating content, since it may be new
       @lesson_plan.save!
-      should_enqueue = false
-      propose_resources = false
+      propose_resources = ActiveModel::Type::Boolean.new.cast(params[:propose_resources])
+      result = LessonPlanAsyncGenerationService.new(
+        lesson_plan: @lesson_plan,
+        current_user: current_user,
+        source: "lesson_plan_button"
+      ).enqueue_generate_content(propose_resources: propose_resources)
+      flash.now[:warning] = result[:message] unless result[:ok]
 
-      @lesson_plan.with_lock do
-        if @lesson_plan.generation_in_progress?
-          flash.now[:warning] = "Generation is already in progress for this lesson plan."
-        else
-          propose_resources = resource_proposal_enabled? && ActiveModel::Type::Boolean.new.cast(params[:propose_resources])
-          @lesson_plan.update!(generation_stage: "generating_content", generation_error: nil)
-          should_enqueue = true
-        end
-      end
-
-      if should_enqueue
-        GenerateLessonPlanPipelineJob.perform_later(
-          lesson_plan_id: @lesson_plan.id,
-          user_id: current_user.id,
-          propose_resources: propose_resources
-        )
-      end
       respond_to do |format|
         format.turbo_stream
       end
@@ -110,24 +98,12 @@ module Admin
 
     def propose_resources
       @lesson_plan.save! if @lesson_plan.new_record?
-      should_enqueue = false
-
-      @lesson_plan.with_lock do
-        if !resource_proposal_enabled?
-          flash.now[:warning] = "Configure OpenAI Agent Runs and Exa API before proposing resources."
-        elsif @lesson_plan.generation_in_progress?
-          flash.now[:warning] = "Generation is already in progress for this lesson plan."
-        elsif !@lesson_plan.initial_generation_completed?
-          flash.now[:warning] = "Generate the lesson plan once before proposing resources."
-        else
-          @lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
-          should_enqueue = true
-        end
-      end
-
-      if should_enqueue
-        ProposeResourcesJob.perform_later(@lesson_plan, current_user)
-      end
+      result = LessonPlanAsyncGenerationService.new(
+        lesson_plan: @lesson_plan,
+        current_user: current_user,
+        source: "lesson_plan_button"
+      ).enqueue_propose_resources
+      flash.now[:warning] = result[:message] unless result[:ok]
 
       respond_to do |format|
         format.turbo_stream

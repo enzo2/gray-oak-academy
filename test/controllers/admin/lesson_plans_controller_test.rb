@@ -224,6 +224,50 @@ module Admin
       assert_includes @response.body, "Generation is already in progress for this lesson plan."
     end
 
+    test "generate_content applies cooldown to prevent immediate retrigger" do
+      cache = ActiveSupport::Cache::MemoryStore.new
+      Rails.stub(:cache, cache) do
+        sign_in(users(:admin))
+        lesson = lessons(:one)
+        lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+        lesson_plan.update!(generation_stage: "idle")
+
+        assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
+          post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+        end
+
+        # Simulate the stage moving out of in-progress quickly; cooldown should still block requeue.
+        lesson_plan.reload.update!(generation_stage: "completed")
+
+        assert_enqueued_jobs 0, only: GenerateLessonPlanPipelineJob do
+          post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+        end
+
+        assert_response :success
+        assert_includes @response.body, "A generation request was just queued."
+      end
+    end
+
+    test "generate_content with propose_resources=true warns when resource proposal features are disabled" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "idle")
+
+      AppSetting.stub(:openai_agent_enabled?, false) do
+        AppSetting.stub(:exa_enabled?, false) do
+          assert_enqueued_jobs 0, only: GenerateLessonPlanPipelineJob do
+            post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+                 params: { propose_resources: true },
+                 as: :turbo_stream
+          end
+        end
+      end
+
+      assert_response :success
+      assert_includes @response.body, "Configure OpenAI Agent Runs and Exa API before proposing resources."
+    end
+
     test "cannot propose resources for another teacher lesson" do
       sign_in(users(:admin2))
       lesson = lessons(:one)

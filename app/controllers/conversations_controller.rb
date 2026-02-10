@@ -25,6 +25,7 @@ class ConversationsController < ApplicationController
       title: generate_unique_chat_title,
       task_system_prompt: get_task_system_prompt
     )
+    maybe_seed_applet_revision_chat(@conversation)
     redirect_to conversation_path(@conversation) # Show the new conversation.
   end
 
@@ -92,5 +93,86 @@ class ConversationsController < ApplicationController
 
   def conversation_params
     params.require(:conversation).permit(:title)
+  end
+
+  def maybe_seed_applet_revision_chat(conversation)
+    return unless current_user.role_teacher?
+    return unless params[:starter_template].to_s == "applet_revision"
+
+    applet = applet_scope_for_teacher.find_by(id: params[:applet_id].to_i)
+    unless applet
+      flash[:warning] = "Couldn't load the selected applet for revision. The chat was created without starter context."
+      return
+    end
+
+    context_resource = resolve_context_resource(applet)
+    return if context_resource == :invalid
+
+    context_lesson = resolve_context_lesson
+    return if context_lesson == :invalid
+
+    # Seed an explicit first user turn so the assistant has durable, tool-usable context.
+    conversation.messages.create!(
+      role: "user",
+      content: applet_revision_starter_prompt(applet: applet, resource: context_resource, lesson: context_lesson)
+    )
+    GetLlmCompletionJob.perform_later(conversation: conversation)
+  rescue StandardError => e
+    Rails.logger.error("Failed to seed applet revision starter chat: #{e.message}")
+    flash[:warning] = "The chat was created, but the starter context could not be prepared."
+  end
+
+  def applet_scope_for_teacher
+    Applet.where(user_id: current_user.id)
+          .or(Applet.where(user_id: current_user.students.select(:id)))
+  end
+
+  def resolve_context_resource(applet)
+    explicit_id = params[:resource_id].presence
+    return applet.resource unless explicit_id
+
+    resource = Resource.where(teacher_id: [ current_user.id, nil ]).find_by(id: explicit_id.to_i)
+    unless resource
+      flash[:warning] = "Couldn't load the selected resource for starter context. The chat was created without starter context."
+      return :invalid
+    end
+
+    if applet.resource_id.present? && applet.resource_id != resource.id
+      flash[:warning] = "The selected resource does not match this applet. The chat was created without starter context."
+      return :invalid
+    end
+
+    resource
+  end
+
+  def resolve_context_lesson
+    lesson_id = params[:lesson_id].presence
+    return nil unless lesson_id
+
+    lesson = Lesson.joins(:course).where(courses: { teacher_id: current_user.id }).find_by(id: lesson_id.to_i)
+    return lesson if lesson
+
+    flash[:warning] = "Couldn't load the selected lesson for starter context. The chat was created without starter context."
+    :invalid
+  end
+
+  def applet_revision_starter_prompt(applet:, resource:, lesson:)
+    context = {
+      applet_id: applet.id,
+      applet_title: applet.title,
+      resource_id: resource&.id,
+      resource_description: resource&.description,
+      lesson_id: lesson&.id,
+      lesson_title: lesson&.title
+    }.compact
+
+    <<~PROMPT
+      I want to revise an existing applet for this curriculum.
+
+      Context:
+      #{JSON.pretty_generate(context)}
+
+      Please help me revise this applet. First, retrieve the current code using Manage_Applets with action "get" and this applet_id. Then ask concise clarifying questions if needed, propose improvements, and use Manage_Applets with action "upsert" and this applet_id once I confirm changes. If I ask to attach it to lesson resources, use Manage_Applets action "save_as_resource" with the appropriate lesson_id.
+    PROMPT
   end
 end

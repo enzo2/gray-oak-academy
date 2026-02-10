@@ -47,7 +47,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher)
+          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
         end
       end
     end
@@ -63,6 +63,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal true, complete_calls.first.dig(:kwargs, :background)
     assert_equal teacher.id.to_s, complete_calls.first.dig(:kwargs, :metadata, :teacher_id)
     assert_equal lesson_plan.id.to_s, complete_calls.first.dig(:kwargs, :metadata, :lesson_plan_id)
+    assert_equal "teacher_chat_tool", complete_calls.first.dig(:kwargs, :metadata, :source)
     assert_equal "resp_1", wait_calls.first[:response_id]
   end
 
@@ -102,7 +103,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher)
+          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
         end
       end
     end
@@ -170,7 +171,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher)
+          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
         end
       end
     end
@@ -185,7 +186,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal "resp_1", warning_notification.params["response_id"]
     assert_equal teacher.name, warning_notification.params["teacher_name"]
     assert_equal teacher.id, warning_notification.params["teacher_id"]
-    assert_equal "propose_resources", warning_notification.params["source"]
+    assert_equal "teacher_chat_tool", warning_notification.params["source"]
     assert_equal lesson_plan.id, warning_notification.params["lesson_plan_id"]
     assert_equal 1, warning_notification.params["turns"]
     assert_equal ProposeResourcesJob::HIGH_TOOL_CALL_WARNING_THRESHOLD + 3, warning_notification.params["total_tool_calls"]
@@ -203,13 +204,18 @@ class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase
     teacher = users(:admin)
     order = []
 
+    captured_source = nil
     GenerateLessonPlanContentJob.stub(:perform_now, ->(*_args, **_kwargs) { order << :content }) do
-      ProposeResourcesJob.stub(:perform_now, ->(*_args, **_kwargs) { order << :resources }) do
+      ProposeResourcesJob.stub(:perform_now, ->(*_args, **kwargs) {
+        order << :resources
+        captured_source = kwargs[:source]
+      }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
           GenerateLessonPlanPipelineJob.perform_now(
             lesson_plan_id: lesson_plan.id,
             user_id: teacher.id,
-            propose_resources: true
+            propose_resources: true,
+            source: "teacher_chat_tool"
           )
         end
       end
@@ -217,6 +223,7 @@ class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase
 
     lesson_plan.reload
     assert_equal [ :content, :resources ], order
+    assert_equal "teacher_chat_tool", captured_source
     assert_equal "completed", lesson_plan.generation_stage
   end
 end

@@ -24,7 +24,7 @@ class ProposeResourcesJob < ApplicationJob
     additionalProperties: false
   }.freeze
 
-  def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false)
+  def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false, source: "propose_resources")
     turns = 0
     total_tool_calls = 0
     high_tool_call_warning_notified = false
@@ -38,7 +38,7 @@ class ProposeResourcesJob < ApplicationJob
     prompt = build_prompt(lesson_plan, current_user)
     messages = [ { role: "user", content: prompt } ]
     Rails.logger.info(
-      "ProposeResourcesJob start lesson_plan=#{lesson_plan.id} teacher_id=#{current_user.id} prompt_chars=#{prompt.to_s.length}"
+      "ProposeResourcesJob start source=#{source} lesson_plan=#{lesson_plan.id} teacher_id=#{current_user.id} prompt_chars=#{prompt.to_s.length}"
     )
 
     executor = ProposeResourcesToolExecutor.new(lesson_plan: lesson_plan, current_user: current_user)
@@ -60,7 +60,7 @@ class ProposeResourcesJob < ApplicationJob
         run_type: "propose_resources",
         teacher_id: current_user.id.to_s,
         lesson_plan_id: lesson_plan.id.to_s,
-        source: "propose_resources",
+        source: source,
         task_preview: "Propose resources for lesson plan #{lesson_plan.id}: #{lesson_plan.lesson.title}"
       }
     )
@@ -89,7 +89,8 @@ class ProposeResourcesJob < ApplicationJob
         function_calls: function_calls,
         outputs: outputs,
         total_tool_calls: total_tool_calls,
-        warning_notified: high_tool_call_warning_notified
+        warning_notified: high_tool_call_warning_notified,
+        source: source
       )
       response_hash = complete_and_capture(
         client,
@@ -98,7 +99,8 @@ class ProposeResourcesJob < ApplicationJob
         metadata: {
           run_type: "propose_resources",
           teacher_id: current_user.id.to_s,
-          lesson_plan_id: lesson_plan.id.to_s
+          lesson_plan_id: lesson_plan.id.to_s,
+          source: source
         }
       )
     end
@@ -113,7 +115,7 @@ class ProposeResourcesJob < ApplicationJob
       suggested_resources: suggested_resources
     )
     Rails.logger.info(
-      "ProposeResourcesJob completed lesson_plan=#{lesson_plan.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
+      "ProposeResourcesJob completed source=#{source} lesson_plan=#{lesson_plan.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
       "suggested_resources=#{suggested_resources.size}"
     )
     set_generation_state(lesson_plan, "completed", nil) if track_stage
@@ -121,7 +123,7 @@ class ProposeResourcesJob < ApplicationJob
     true
   rescue StandardError => e
     Rails.logger.error(
-      "ProposeResourcesJob failed lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
+      "ProposeResourcesJob failed source=#{source} lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
       "last_response_id=#{response_hash&.dig('id')} error=#{e.message}"
     )
     set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{e.message}") if track_stage && lesson_plan.present?
@@ -231,14 +233,14 @@ class ProposeResourcesJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_refresh_to(channel)
   end
 
-  def log_turn_diagnostics(lesson_plan:, teacher:, model:, response_id:, turn:, function_calls:, outputs:, total_tool_calls:, warning_notified:)
+  def log_turn_diagnostics(lesson_plan:, teacher:, model:, response_id:, turn:, function_calls:, outputs:, total_tool_calls:, warning_notified:, source:)
     names_by_count = function_calls.map { |call| call["name"].to_s }.tally
     sample_arguments = function_calls.first(3).map do |function_call|
       "#{function_call['name']}(#{function_call['arguments'].to_s.squish.truncate(110)})"
     end.join(" | ")
 
     Rails.logger.info(
-      "ProposeResourcesJob turn lesson_plan=#{lesson_plan.id} turn=#{turn} calls_this_turn=#{function_calls.size} " \
+      "ProposeResourcesJob turn source=#{source} lesson_plan=#{lesson_plan.id} turn=#{turn} calls_this_turn=#{function_calls.size} " \
       "tool_counts=#{names_by_count} total_tool_calls=#{total_tool_calls} " \
       "sample_calls=#{sample_arguments.presence || 'none'}"
     )
@@ -246,7 +248,7 @@ class ProposeResourcesJob < ApplicationJob
     return warning_notified if total_tool_calls < HIGH_TOOL_CALL_WARNING_THRESHOLD
 
     Rails.logger.warn(
-      "ProposeResourcesJob high-volume warning lesson_plan=#{lesson_plan.id} turn=#{turn} " \
+      "ProposeResourcesJob high-volume warning source=#{source} lesson_plan=#{lesson_plan.id} turn=#{turn} " \
       "total_tool_calls=#{total_tool_calls}"
     )
     return true if warning_notified
@@ -257,12 +259,13 @@ class ProposeResourcesJob < ApplicationJob
       model: model,
       response_id: response_id,
       turn: turn,
-      total_tool_calls: total_tool_calls
+      total_tool_calls: total_tool_calls,
+      source: source
     )
     true
   end
 
-  def notify_high_tool_call_warning!(lesson_plan:, teacher:, model:, response_id:, turn:, total_tool_calls:)
+  def notify_high_tool_call_warning!(lesson_plan:, teacher:, model:, response_id:, turn:, total_tool_calls:, source:)
     superuser_ids = User.role_superuser.pluck(:id)
     return if superuser_ids.empty?
 
@@ -276,7 +279,7 @@ class ProposeResourcesJob < ApplicationJob
       teacher_name: teacher.name,
       teacher_id: teacher.id,
       model: model.to_s,
-      source: "propose_resources",
+      source: source.to_s,
       lesson_plan_id: lesson_plan.id,
       turns: turn,
       total_tool_calls: total_tool_calls,

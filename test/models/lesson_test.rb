@@ -178,4 +178,14 @@ class LessonTest < ActiveSupport::TestCase
     assert_equal :ahead_of_progress, future_lesson.student_access_status_for(@student)
     assert_not future_lesson.student_access_allowed?(@student)
   end
+
+  test "for_llm includes lesson plan generation status fields" do
+    lesson = lessons(:one)
+    lesson_plan = lesson.lesson_plan
+    lesson_plan.update!(generation_stage: "failed", generation_error: "Example failure")
+
+    payload = lesson.for_llm
+    assert_equal "failed", payload.dig(:lesson_plan, :generation_stage)
+    assert_equal "Example failure", payload.dig(:lesson_plan, :generation_error)
+  end
 end

@@ -79,8 +79,9 @@ bin/ci
 
 ### Key Services
 
-- `OpenaiApiService` - LLM completions wrapper supporting any OpenAI-compatible API
-- `ToolHandlerService` - Executes LLM tool calls (generate applets, save memories, finish lessons, etc.)
+- `OpenaiApiService` - LLM completions wrapper supporting any OpenAI Chat Completions—compatible API
+- `OpenaiResponsesService` - LLM wrapper for the OpenAI Responses API
+- Tool Services - Execute LLM tool calls
 - `SpeechService` - STT/TTS handling
 - `ImageGenerationService` - AI image generation (primarily gemini-3-pro-image)
 

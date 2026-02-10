@@ -101,10 +101,10 @@
           </sl-menu-item>
         </sl-menu>
       </sl-dropdown>
-      
-      <sl-icon-button 
+
+      <sl-icon-button
         <%# hidden by default; shown if audio recording is supported (llm supports audio & audio permitted, or transcription configured) %>
-        class="hidden <%= 'text-4xl' if audio_setting == "only" %>" 
+        class="hidden text-xl <%= 'text-4xl' if audio_setting == "only" %>"
         name="mic" id="recordButton"
         data-audio-recorder-target="recordButton"
         data-action="click->audio-recorder#toggleRecording
