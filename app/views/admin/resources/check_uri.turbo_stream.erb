@@ -1,0 +1,14 @@
+<%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
+<%= turbo_stream.update "uri-check-result" do %>
+  <% if %w[blocked_xfo blocked_csp unknown].include?(@uri_check_result[:status].to_s) %>
+    <span class="inline-flex items-center text-amber-600 dark:text-amber-400">
+      <sl-icon name="link-45deg" class="mr-1"></sl-icon>
+      Students will see a clickable link
+    </span>
+  <% else %>
+    <span class="inline-flex items-center text-green-600 dark:text-green-400">
+      <sl-icon name="check-circle" class="mr-1"></sl-icon>
+      Embeddable
+    </span>
+  <% end %>
+<% end %>

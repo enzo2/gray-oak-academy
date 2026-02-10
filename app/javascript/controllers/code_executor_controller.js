@@ -49,7 +49,7 @@ export default class extends Controller {
     }
 
     if (this.autoRunValue) {
-      this.executeCode(rawCode, this.renderTargetValue);
+      this.executeCode(rawCode, this.renderTargetValue, { manual: false, autoRun: true });
     }
   }
 
@@ -79,7 +79,7 @@ export default class extends Controller {
     return this._createButton(
       "Run",
       "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-green-200 dark:bg-green-800 border border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 rounded",
-      () => this.executeCode(rawCode, this.renderTargetValue)
+      () => this.executeCode(rawCode, this.renderTargetValue, { manual: true, autoRun: false })
     );
   }
 
@@ -91,8 +91,12 @@ export default class extends Controller {
     );
   }
 
-  executeCode(rawCode, renderTarget) {
-    //console.log(`Executing code (target: ${renderTarget})`);
+  executeCode(rawCode, renderTarget, options = {}) {
+    if (renderTarget === "chalkboard") {
+      this.executeChalkboardCode(rawCode, options);
+      return;
+    }
+
     const output = this.getOutputElement(renderTarget);
     if (!output) return;
 
@@ -106,28 +110,46 @@ export default class extends Controller {
     iframe.srcdoc = iframeContent;
   }
 
+  executeChalkboardCode(rawCode, _options = {}) {
+    const iframeContent = this.prepareIframeContent(rawCode);
+    const appletTitle = this.buildGeneratedAppletTitle();
+    const appletKey = `jit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    this.dispatchChalkboardAppletRegistration({
+      event_type: "register_applet",
+      source: "jit",
+      key: appletKey,
+      applet_id: null,
+      title: appletTitle,
+      launch_url: null,
+      embed_src: null,
+      embed_srcdoc: iframeContent,
+      shareable: false,
+      share_url: null,
+      focus: true,
+      auto_open_in_board: true
+    });
+  }
+
+  buildGeneratedAppletTitle() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return `Generated Applet ${time}`;
+  }
+
+  dispatchChalkboardAppletRegistration(payload) {
+    window.dispatchEvent(new CustomEvent("chalkboard:register-applet", { detail: payload }));
+  }
+
   // Helper method to get the applet output element based on the render target
   getOutputElement(renderTarget) {
-    if (renderTarget === 'chalkboard') {
-      // Find the global chalkboard element by its ID
-      const output = document.getElementById('chalkboard');
-      if (!output) {
-        console.error("Chalkboard element with id='chalkboard' not found");
-        return null;
-      }
-      output.style.display = "block"; 
-      output.innerHTML = ""; // Clear previous content
-      return output;
-    } else {
-      if (!this.hasInlineOutputTarget) {
-        console.error("Inline output element not found within code block wrapper.");
-        return null;
-      }
-      const output = this.inlineOutputTarget;
-      output.style.display = "block";
-      output.innerHTML = ""; // Clear previous content
-      return output;
+    if (!this.hasInlineOutputTarget) {
+      console.error("Inline output element not found within code block wrapper.");
+      return null;
     }
+    const output = this.inlineOutputTarget;
+    output.style.display = "block";
+    output.innerHTML = ""; // Clear previous content
+    return output;
   }
 
   createSandboxedIframe(renderTarget) {

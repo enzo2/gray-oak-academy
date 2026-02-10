@@ -1,7 +1,5 @@
 require "json/repair"
-require "resolv"
-require "ipaddr"
-require "set"
+require "securerandom"
 
 class ToolExecutionService
   class ToolExecutionError < StandardError; end
@@ -237,99 +235,52 @@ class ToolExecutionService
     recent_count >= limit
   end
 
-  def valid_chalkboard_url?(url)
-    return false if url.nil? || url.strip.empty?
-    s = url.strip
-    # Reject unsafe schemes
-    down = s.downcase
-    return false if down.start_with?("javascript:", "data:")
-    begin
-      uri = URI.parse(s)
-    rescue StandardError => e
-      Rails.logger.debug "Invalid URL parse: #{e.message}"
-      return false
-    end
-    scheme = uri.scheme&.downcase
-    return false unless scheme == "https"
-    host = uri.host
-    return false unless host
-
-    # Resolve host to IP addresses and ensure none are private/reserved
-    begin
-      # If the host is an IP literal (e.g. "192.0.2.1" or "2001:db8::1"), validate it directly first.
-      ip_literal = begin
-        IPAddr.new(host)
-      rescue StandardError
-        nil
-      end
-
-      # Expanded set of private/reserved ranges to reject
-      private_ranges = [
-        IPAddr.new("0.0.0.0/8"),
-        IPAddr.new("10.0.0.0/8"),
-        IPAddr.new("100.64.0.0/10"),
-        IPAddr.new("127.0.0.0/8"),
-        IPAddr.new("169.254.0.0/16"),
-        IPAddr.new("172.16.0.0/12"),
-        IPAddr.new("192.0.0.0/24"),
-        IPAddr.new("192.0.2.0/24"),
-        IPAddr.new("192.88.99.0/24"),
-        IPAddr.new("192.168.0.0/16"),
-        IPAddr.new("198.18.0.0/15"),
-        IPAddr.new("198.51.100.0/24"),
-        IPAddr.new("203.0.113.0/24"),
-        IPAddr.new("224.0.0.0/4"),
-        IPAddr.new("240.0.0.0/4"),
-        IPAddr.new("::/128"),      # unspecified
-        IPAddr.new("::1/128"),     # loopback
-        IPAddr.new("fe80::/10"),   # link-local
-        IPAddr.new("fc00::/7")     # unique local addresses
-      ]
-
-      if ip_literal
-        # Reject if the literal is in a private/reserved range
-        return false if private_ranges.any? { |r| r.include?(ip_literal) }
-        # If it's a public IP literal, accept (no DNS lookup needed)
-        return true
-      end
-
-      addrs = Resolv.getaddresses(host)
-      if addrs.empty?
-        Rails.logger.debug "No addresses resolved for host: #{host}"
-        return false
-      end
-
-      addrs.each do |a|
-        ip = IPAddr.new(a) rescue nil
-        next unless ip
-        return false if private_ranges.any? { |r| r.include?(ip) }
-      end
-    rescue => e
-      Rails.logger.debug "Host resolution error for chalkboard URL: #{e.class}: #{e.message}"
-      return false
-    end
-
-    true
-  end
-
   # -- Tool execution methods --
 
   def execute_chalkboard_url
     url = @args["url"].to_s.strip
-    unless valid_chalkboard_url?(url)
+    begin
+      embed_result = UrlEmbeddabilityService.check(url: url)
+    rescue UrlEmbeddabilityService::ValidationError
       raise ToolExecutionError, "Invalid or unsafe URL provided"
     end
 
-    Rails.logger.debug "Broadcasting URL to chalkboard #{url}"
-
-    # Broadcast chalkboard update to the conversation
-    Turbo::StreamsChannel.broadcast_update_to(
-      "conversation_#{@conversation.id}",
-      target: "chalkboard",
-      partial: "shared/chalkboard_iframe",
-      locals: { url: url }
-    )
-    create_tool_message("Chalkboard URL was changed to: #{url}")
+    case embed_result[:status].to_s
+    when "embeddable"
+      increment_chalkboard_url_counter!("chalkboard_url.embed_success")
+      Rails.logger.debug "Broadcasting embeddable URL to chalkboard #{url}"
+      broadcast_chalkboard_push_tab(
+        tab_title: "Web Link",
+        kind: "url",
+        partial: "shared/chalkboard_iframe",
+        locals: { url: url }
+      )
+      create_tool_message("Chalkboard URL opened in new tab: #{url}\nBackup link: [Open link](#{url})")
+    when "blocked_xfo", "blocked_csp"
+      increment_chalkboard_url_counter!("chalkboard_url.fallback_blocked")
+      reason = embed_result[:reason].to_s
+      Rails.logger.debug "Broadcasting fallback URL tab to chalkboard #{url} reason=#{reason}"
+      broadcast_chalkboard_push_tab(
+        tab_title: "Web Link",
+        kind: "url",
+        partial: "shared/chalkboard_link_fallback",
+        locals: { url: url, reason: reason }
+      )
+      create_tool_message("This site blocks iframe embedding. A direct-link chalkboard tab was opened.\nOpen link: [#{url}](#{url})")
+    else
+      increment_chalkboard_url_counter!("chalkboard_url.embed_unknown")
+      Rails.logger.debug "Broadcasting URL with unknown embeddability to chalkboard #{url}"
+      broadcast_chalkboard_push_tab(
+        tab_title: "Web Link",
+        kind: "url",
+        partial: "shared/chalkboard_iframe",
+        locals: { url: url }
+      )
+      create_tool_message(
+        "Chalkboard URL was changed to: #{url}. Embeddability check was inconclusive, so iframe display may fail.\n" \
+        "Backup link: [Open link](#{url})"
+      )
+    end
   end
 
   def execute_complete_lesson
@@ -400,16 +351,15 @@ class ToolExecutionService
     file_type = resource.file.content_type
     filename = resource.file.filename.to_s
 
-    # Broadcast chalkboard update with the file
-    Turbo::StreamsChannel.broadcast_update_to(
-      "conversation_#{@conversation.id}",
-      target: "chalkboard",
+    broadcast_chalkboard_push_tab(
+      tab_title: "File: #{filename}",
+      kind: "file",
       partial: "shared/chalkboard_file",
       locals: { url: url, file_type: file_type, filename: filename }
     )
 
     Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
-    create_tool_message("Chalkboard updated with file: #{filename} (#{file_type})")
+    create_tool_message("Chalkboard updated with file: #{filename} (#{file_type}) (opened in a new chalkboard tab)")
   end
 
   def execute_python_sandbox
@@ -1088,16 +1038,24 @@ class ToolExecutionService
     raise ToolExecutionError, "Applet not found" unless applet
     enforce_lesson_applet_scope!(applet)
 
-    # Broadcast to chalkboard
-    Turbo::StreamsChannel.broadcast_update_to(
-      "conversation_#{@conversation.id}",
-      target: "chalkboard",
-      partial: "shared/chalkboard_applet",
-      locals: { applet: applet }
+    run_url = Rails.application.routes.url_helpers.run_applet_path(applet)
+    broadcast_chalkboard_event(
+      event_type: "register_applet",
+      source: "linked",
+      key: "linked_#{applet.id}",
+      applet_id: applet.id,
+      title: applet.title.to_s,
+      launch_url: run_url,
+      embed_src: run_url,
+      embed_srcdoc: nil,
+      shareable: true,
+      share_url: run_url,
+      focus: true,
+      auto_open_in_board: true
     )
 
-    Rails.logger.debug("Chalkboard updated with stored applet: #{applet.title}")
-    create_tool_message("Chalkboard updated with stored applet: #{applet.title}")
+    Rails.logger.debug("Chalkboard applet registered: #{applet.title}")
+    create_tool_message("Applet is available in the chalkboard Applets tab: #{applet.title}")
   end
 
   def enforce_lesson_applet_scope!(applet)
@@ -1148,20 +1106,40 @@ class ToolExecutionService
   end
 
   def broadcast_chalkboard_lesson(lesson)
-    Turbo::StreamsChannel.broadcast_update_to(
-      "#{dom_id(@conversation)}",
-      target: "chalkboard",
+    broadcast_chalkboard_push_tab(
+      tab_title: "Lesson",
+      kind: "lesson",
       partial: "lessons/chalkboard_markdown",
       locals: { lesson: lesson }
     )
   end
 
   def broadcast_chalkboard_student_profile(profile_markdown)
-    Turbo::StreamsChannel.broadcast_update_to(
-      "#{dom_id(@conversation)}",
-      target: "chalkboard",
+    broadcast_chalkboard_push_tab(
+      tab_title: "Student Profile",
+      kind: "profile",
       partial: "shared/chalkboard_student_profile",
       locals: { profile_markdown: profile_markdown }
+    )
+  end
+
+  def broadcast_chalkboard_push_tab(tab_title:, kind:, partial:, locals:)
+    content_html = ApplicationController.render(partial: partial, locals: locals)
+    broadcast_chalkboard_event(
+      event_type: "open_push_tab",
+      tab_id: "#{kind}_#{SecureRandom.hex(6)}",
+      tab_title: tab_title,
+      kind: kind,
+      content_html: content_html
+    )
+  end
+
+  def broadcast_chalkboard_event(payload)
+    Turbo::StreamsChannel.broadcast_append_to(
+      "conversation_#{@conversation.id}",
+      target: "chalkboard_tab_inbox",
+      partial: "shared/chalkboard_tab_event",
+      locals: { payload: payload }
     )
   end
 
@@ -1171,5 +1149,19 @@ class ToolExecutionService
       target: "#{dom_id(@conversation)}",
       partial: "student/lessons/lesson_completed"
     )
+  end
+
+  def increment_chalkboard_url_counter!(counter_key)
+    app_setting = AppSetting.settings
+    return unless app_setting
+
+    app_setting.with_lock do
+      log = (app_setting.log || {}).deep_dup
+      counters = (log["chalkboard_url_counters"] || {}).deep_dup
+      counters[counter_key] = counters.fetch(counter_key, 0).to_i + 1
+      app_setting.update!(log: log.merge("chalkboard_url_counters" => counters))
+    end
+  rescue StandardError => e
+    Rails.logger.error("Failed to increment chalkboard URL counter #{counter_key}: #{e.message}")
   end
 end

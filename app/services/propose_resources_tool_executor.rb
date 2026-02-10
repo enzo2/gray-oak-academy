@@ -1,8 +1,6 @@
 require "json/repair"
 require "net/http"
 require "uri"
-require "socket"
-require "ipaddr"
 require "securerandom"
 require "tempfile"
 
@@ -13,32 +11,6 @@ class ProposeResourcesToolExecutor
   MAX_SEARCH_RESULTS = 20
   MAX_EXA_CONTENT_CHARS = 6000
   PDF_SIGNATURE = "%PDF-".b.freeze
-  PRIVATE_OR_RESERVED_RANGES = [
-    "0.0.0.0/8",
-    "10.0.0.0/8",
-    "100.64.0.0/10",
-    "127.0.0.0/8",
-    "169.254.0.0/16",
-    "172.16.0.0/12",
-    "192.0.0.0/24",
-    "192.0.2.0/24",
-    "192.88.99.0/24",
-    "192.168.0.0/16",
-    "198.18.0.0/15",
-    "198.51.100.0/24",
-    "203.0.113.0/24",
-    "224.0.0.0/4",
-    "240.0.0.0/4",
-    "::/128",
-    "::1/128",
-    "::ffff:0:0/96",
-    "64:ff9b::/96",
-    "100::/64",
-    "2001:db8::/32",
-    "fc00::/7",
-    "fe80::/10",
-    "ff00::/8"
-  ].map { |cidr| IPAddr.new(cidr) }.freeze
 
   def initialize(lesson_plan:, current_user:)
     @lesson_plan = lesson_plan
@@ -596,55 +568,6 @@ class ProposeResourcesToolExecutor
   end
 
   def validate_public_https_url!(url)
-    raise ToolExecutionError, "URL is required." if url.blank?
-
-    uri = URI.parse(url)
-    raise ToolExecutionError, "URL must use HTTPS." unless uri.scheme.to_s.downcase == "https"
-    raise ToolExecutionError, "URL host is missing." if uri.host.blank?
-
-    host = uri.host
-    ip_literal = parse_ip_literal(host)
-    if ip_literal
-      normalized = normalize_ipaddr(ip_literal)
-      raise ToolExecutionError, "URL host resolves to a private or reserved IP." if private_or_reserved_ip?(normalized)
-      return normalized.to_s
-    end
-
-    resolve_public_ip!(host)
-  rescue URI::InvalidURIError
-    raise ToolExecutionError, "Invalid URL format."
-  rescue SocketError
-    raise ToolExecutionError, "URL host did not resolve."
-  end
-
-  def resolve_public_ip!(host)
-    addresses = Socket.getaddrinfo(host, nil, Socket::AF_UNSPEC, Socket::SOCK_STREAM).map { |entry| entry[3] }.uniq
-    raise ToolExecutionError, "URL host did not resolve." if addresses.empty?
-
-    parsed_ips = addresses.filter_map do |address|
-      ip = parse_ip_literal(address)
-      ip ? normalize_ipaddr(ip) : nil
-    end.uniq(&:to_s)
-    raise ToolExecutionError, "URL host did not resolve." if parsed_ips.empty?
-
-    parsed_ips.each do |ip|
-      raise ToolExecutionError, "URL host resolves to a private or reserved IP." if private_or_reserved_ip?(ip)
-    end
-
-    (parsed_ips.find(&:ipv4?) || parsed_ips.first).to_s
-  end
-
-  def parse_ip_literal(value)
-    IPAddr.new(value)
-  rescue StandardError
-    nil
-  end
-
-  def normalize_ipaddr(ip)
-    ip.ipv4_mapped? ? ip.native : ip
-  end
-
-  def private_or_reserved_ip?(ip)
-    PRIVATE_OR_RESERVED_RANGES.any? { |range| range.include?(ip) }
+    UrlEmbeddabilityService.validate_public_https_url!(url, error_class: ToolExecutionError)
   end
 end

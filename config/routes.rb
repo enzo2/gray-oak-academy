@@ -79,6 +79,7 @@ Rails.application.routes.draw do
     resources :resources do
       delete "delete_file", on: :member
       patch "approve", on: :member
+      post "check_uri", on: :member
       post "tag_chips", on: :collection
     end
 

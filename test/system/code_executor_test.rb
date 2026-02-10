@@ -57,6 +57,46 @@ class CodeExecutorTest < ApplicationSystemTestCase
     end
   end
 
+  test "chalkboard tabs preserve whiteboard and applet iframes and jit applet share stays hidden" do
+    visit conversation_path(@conversation)
+
+    message_content = <<~HTML
+      ```javascript {executable="true" renderTarget="chalkboard" autoRun="false"}
+      document.getElementById('sandbox').innerHTML = '<h2>JIT Chalkboard Applet</h2>';
+      ```
+    HTML
+
+    perform_enqueued_jobs do
+      message = Message.create!(conversation: @conversation, role: :assistant, content: message_content)
+      message.broadcast_created
+    end
+
+    click_on "Run"
+    assert_selector "#panel-applets iframe", visible: true
+
+    find("#chalkboard-tab-applets").click
+    assert_selector "#chalkboard-applet-select option", minimum: 2
+    execute_script <<~JS
+      const select = document.getElementById("chalkboard-applet-select");
+      select.selectedIndex = 1;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    JS
+
+    assert_selector "#panel-applets iframe", visible: true
+    applet_cache_key = evaluate_script("document.querySelector('#panel-applets iframe')?.dataset?.chalkboardCacheKey")
+    assert applet_cache_key.present?
+    assert_equal true, evaluate_script("document.getElementById('chalkboard-share-applet').classList.contains('hidden')")
+
+    find("#chalkboard-tab-whiteboard").click
+    assert_selector "#panel-whiteboard iframe", visible: true
+    whiteboard_cache_key = evaluate_script("document.querySelector('#panel-whiteboard iframe')?.dataset?.chalkboardCacheKey")
+    assert_equal "whiteboard", whiteboard_cache_key
+
+    find("#chalkboard-tab-applets").click
+    assert_selector "#panel-applets iframe", visible: true
+    assert_equal applet_cache_key, evaluate_script("document.querySelector('#panel-applets iframe')?.dataset?.chalkboardCacheKey")
+  end
+
   test "executable javascript code block is hidden and can be shown/hidden" do
     visit conversation_path(@conversation)
 

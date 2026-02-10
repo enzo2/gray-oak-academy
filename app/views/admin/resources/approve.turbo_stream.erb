@@ -1,0 +1,13 @@
+<%# flash is annoying   turbo_stream.update "flash_bar", partial: "shared/flash" %>
+<%# Handle approval via Resource#index page %>
+<%= turbo_stream.replace dom_id(@resource), partial: "admin/resources/resource", locals: { resource: @resource } %>
+<%# Handle approval via Lesson Plan edit page, linked resources section %>
+<% if @lesson_plan %>
+  <%= turbo_stream.replace "linked-#{dom_id(@resource)}", partial: "admin/resources/linked_resource", locals: { resource: @resource, lesson_plan: @lesson_plan } %>
+<% end %>
+<%# Handle approval via Resource#show page %>
+<%= turbo_stream.update "resource-approval" do %>
+  <i>Approval</i>
+  <br>
+  Approved (LLM-created)
+<% end %>

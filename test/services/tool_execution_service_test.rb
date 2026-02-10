@@ -95,4 +95,106 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_equal "tool", tool_message.role
     assert_includes tool_message.content, "Invalid JSON in tool arguments, unable to repair."
   end
+
+  test "execute_chalkboard_url renders iframe tab for embeddable URL" do
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    service.instance_variable_set(:@args, { "url" => "https://example.com/embeddable" })
+    service.instance_variable_set(:@tool_call_id, "tc-embed-1")
+
+    embed_result = {
+      status: "embeddable",
+      reason: "No blocking iframe headers detected.",
+      final_url: "https://example.com/embeddable",
+      x_frame_options: nil,
+      csp_frame_ancestors: nil
+    }
+
+    broadcast_args = nil
+    counters = []
+
+    UrlEmbeddabilityService.stub(:check, embed_result) do
+      service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
+        service.stub(:increment_chalkboard_url_counter!, ->(key) { counters << key }) do
+          assert_difference "Message.count", 1 do
+            service.send(:execute_chalkboard_url)
+          end
+        end
+      end
+    end
+
+    assert_equal "shared/chalkboard_iframe", broadcast_args[:partial]
+    assert_equal({ url: "https://example.com/embeddable" }, broadcast_args[:locals])
+    assert_equal [ "chalkboard_url.embed_success" ], counters
+    assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/embeddable)"
+  end
+
+  test "execute_chalkboard_url renders fallback tab for x-frame blocked URL" do
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    service.instance_variable_set(:@args, { "url" => "https://example.com/blocked" })
+    service.instance_variable_set(:@tool_call_id, "tc-blocked-1")
+
+    embed_result = {
+      status: "blocked_xfo",
+      reason: "Site blocks embedding via X-Frame-Options.",
+      final_url: "https://example.com/blocked",
+      x_frame_options: "SAMEORIGIN",
+      csp_frame_ancestors: nil
+    }
+
+    broadcast_args = nil
+    counters = []
+
+    UrlEmbeddabilityService.stub(:check, embed_result) do
+      service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
+        service.stub(:increment_chalkboard_url_counter!, ->(key) { counters << key }) do
+          assert_difference "Message.count", 1 do
+            service.send(:execute_chalkboard_url)
+          end
+        end
+      end
+    end
+
+    assert_equal "shared/chalkboard_link_fallback", broadcast_args[:partial]
+    assert_equal "Site blocks embedding via X-Frame-Options.", broadcast_args.dig(:locals, :reason)
+    assert_equal [ "chalkboard_url.fallback_blocked" ], counters
+    assert_includes Message.order(:created_at).last.content, "blocks iframe embedding"
+  end
+
+  test "execute_chalkboard_url keeps iframe attempt and adds markdown link when embeddability is unknown" do
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    service.instance_variable_set(:@args, { "url" => "https://example.com/unknown" })
+    service.instance_variable_set(:@tool_call_id, "tc-unknown-1")
+
+    embed_result = {
+      status: "unknown",
+      reason: "Could not verify embeddability.",
+      final_url: "https://example.com/unknown",
+      x_frame_options: nil,
+      csp_frame_ancestors: nil
+    }
+
+    broadcast_args = nil
+    counters = []
+
+    UrlEmbeddabilityService.stub(:check, embed_result) do
+      service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
+        service.stub(:increment_chalkboard_url_counter!, ->(key) { counters << key }) do
+          assert_difference "Message.count", 1 do
+            service.send(:execute_chalkboard_url)
+          end
+        end
+      end
+    end
+
+    assert_equal "shared/chalkboard_iframe", broadcast_args[:partial]
+    assert_equal [ "chalkboard_url.embed_unknown" ], counters
+    assert_includes Message.order(:created_at).last.content, "Embeddability check was inconclusive"
+    assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/unknown)"
+  end
 end

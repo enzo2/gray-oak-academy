@@ -50,6 +50,22 @@ class Enrollment < ApplicationRecord
     incomplete_lessons.published.first
   end
 
+  # Position of the student's next published incomplete lesson for access gating.
+  # Returns nil when no published incomplete lessons remain.
+  def next_incomplete_lesson_position
+    incomplete_lessons.published.pick(:position)
+  end
+
+  # Students may access the next incomplete lesson or any earlier lesson.
+  def allows_lesson_position?(lesson_position)
+    return false if lesson_position.blank?
+
+    next_position = next_incomplete_lesson_position
+    return completed? if next_position.nil?
+
+    lesson_position <= next_position
+  end
+
   # Determine if enrollment is completed by checking if all lessons have been completed
   def completed?
     return false unless course.lessons.any?

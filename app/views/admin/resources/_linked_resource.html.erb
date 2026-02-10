@@ -1,4 +1,4 @@
-<div id="<%= dom_id(resource) %>" class="flex space-x-2 items-center p-1 my-1 bg-stone-200 dark:bg-stone-700">
+<div id="linked-<%= dom_id(resource) %>" class="flex space-x-2 items-center p-1 my-1 bg-stone-200 dark:bg-stone-700">
   <% if resource.approved == false %>
     <%= link_to delete_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
                 data: { turbo_method: :delete, turbo_confirm: "Delete this resource from the library and all lesson plans?" },
@@ -43,8 +43,8 @@
       <span class="text-xs text-amber-700 dark:text-amber-300">
         Pending approval
         <%= link_to "Approve",
-          approve_admin_resource_path(resource),
-          data: { turbo_method: :patch },
+          approve_admin_resource_path(resource, lesson_plan_id: lesson_plan.id),
+          data: { turbo_method: :patch, turbo_stream: true },
           class: "ml-2 text-green-700 dark:text-green-300 underline" %>
       </span>
     <% end %>

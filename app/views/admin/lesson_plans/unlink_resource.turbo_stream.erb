@@ -1,4 +1,4 @@
-<%= turbo_stream.remove(dom_id(@resource)) %>
+<%= turbo_stream.remove("linked-#{dom_id(@resource)}") %>
 <%= turbo_stream.remove("no-linked-resources-msg") %>
 <% unless @linked_resources_remaining %>
   <%= turbo_stream.append("linked-resources") do %>

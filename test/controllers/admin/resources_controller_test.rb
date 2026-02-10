@@ -124,6 +124,41 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, @resource.reload.approved
   end
 
+  test "check_uri reports embeddable status for URI resources" do
+    resource = Resource.create!(
+      teacher: @teacher,
+      category: "article",
+      description: "Embeddable resource",
+      uri: "https://example.com/embeddable"
+    )
+
+    result = {
+      status: "embeddable",
+      reason: "No blocking iframe headers detected.",
+      final_url: "https://example.com/embeddable",
+      x_frame_options: nil,
+      csp_frame_ancestors: nil
+    }
+
+    UrlEmbeddabilityService.stub(:check, result) do
+      post check_uri_admin_resource_path(resource)
+    end
+
+    assert_redirected_to admin_resource_path(resource)
+    assert_equal "URI check: embeddable. No blocking iframe headers detected.", flash[:notice]
+  end
+
+  test "check_uri reports validation failures" do
+    error = UrlEmbeddabilityService::ValidationError.new("URL must use HTTPS.")
+
+    UrlEmbeddabilityService.stub(:check, ->(**_kwargs) { raise error }) do
+      post check_uri_admin_resource_path(@resource)
+    end
+
+    assert_redirected_to admin_resource_path(@resource)
+    assert_equal "URI check failed: URL must use HTTPS.", flash[:alert]
+  end
+
   test "index shows pending resources first with highlight and approve action" do
     approved_resource = Resource.create!(
       teacher: @teacher,
@@ -153,5 +188,10 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_includes pending_row_open_tag, "bg-amber-50/80"
     assert_includes @response.body, "action=\"#{approve_admin_resource_path(pending_resource)}\""
     assert_includes @response.body, "Approve"
+  end
+
+  test "cannot check URI for other teacher resource" do
+    post check_uri_admin_resource_path(@other_resource)
+    assert_response :not_found
   end
 end

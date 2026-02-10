@@ -55,6 +55,19 @@ module ActiveSupport
     fixtures :all
 
     # Add more helper methods to be used by all tests here...
+
+    # Assert that the block logs a message matching the given pattern
+    def assert_logs_matching(pattern)
+      old_logger = Rails.logger
+      log_output = StringIO.new
+      Rails.logger = Logger.new(log_output)
+
+      yield
+
+      assert_match pattern, log_output.string
+    ensure
+      Rails.logger = old_logger
+    end
   end
 end
 

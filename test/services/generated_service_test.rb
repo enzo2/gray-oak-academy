@@ -27,16 +27,26 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     service = ToolHandlerService.new(conversation: @conversation, message: @message)
     tool_calls = [ { id: "call-1", function: { name: "Chalkboard_URL", arguments: { url: "https://example.com" }.to_json } } ]
 
+    embed_result = {
+      status: "embeddable",
+      reason: "No blocking iframe headers detected.",
+      final_url: "https://example.com",
+      x_frame_options: nil,
+      csp_frame_ancestors: nil
+    }
+
     # Stub Turbo broadcasts to avoid real ActionCable traffic
     Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
-      clear_enqueued_jobs
-      service.execute_tool_calls(tool_calls)
+      UrlEmbeddabilityService.stub(:check, embed_result) do
+        clear_enqueued_jobs
+        service.execute_tool_calls(tool_calls)
 
-      # A tool message should be created and GetLlmCompletionJob enqueued
-      tool_messages = Message.where(role: "tool").order(created_at: :asc)
-      assert tool_messages.any?, "Expected at least one tool message to be created"
-      assert_enqueued_jobs 1, only: GetLlmCompletionJob
-      assert_includes tool_messages.last.content, "Chalkboard URL was changed"
+        # A tool message should be created and GetLlmCompletionJob enqueued
+        tool_messages = Message.where(role: "tool").order(created_at: :asc)
+        assert tool_messages.any?, "Expected at least one tool message to be created"
+        assert_enqueued_jobs 1, only: GetLlmCompletionJob
+        assert_includes tool_messages.last.content, "Chalkboard URL opened in new tab"
+      end
     end
   end
 

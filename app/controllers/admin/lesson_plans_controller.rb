@@ -29,7 +29,7 @@ module Admin
       @resource_linked = false
 
       if @lesson_plan.status_published? && @resource.approved == false
-        flash.now[:warning] = "Pending resources cannot be linked while the lesson plan is published."
+        flash.now[:warning] = "The lesson plan is published. If you want to link a pending resource, please change the lesson plan back to draft status."
       elsif !@lesson_plan.resources.exists?(id: @resource.id)
         @lesson_plan.resources << @resource
         @resource_linked = true

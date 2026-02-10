@@ -47,4 +47,28 @@ class ProposeResourcesToolExecutorTest < ActiveSupport::TestCase
 
     assert_equal "1.1.1.1", executor.send(:validate_public_https_url!, "https://1.1.1.1/resource")
   end
+
+  test "add_and_link_resource creates URL resource without embeddability metadata" do
+    executor = build_executor()
+
+    result = nil
+    assert_difference("Resource.count", 1) do
+      executor.stub(:validate_public_https_url!, "93.184.216.34") do
+        result = executor.send(
+          :execute_add_and_link_resource,
+          {
+            "resource_type" => "url",
+            "description" => "Interactive simulation",
+            "category" => "Simulation",
+            "tags" => [ "physics" ],
+            "url" => "https://example.com/interactive"
+          }
+        )
+      end
+    end
+
+    assert_equal "ok", result[:status]
+    assert_nil result[:embed_status]
+    assert_nil result[:presentation_mode]
+  end
 end

@@ -131,6 +131,8 @@ suggest_resources:
     Resource rules:
     - Never return already-linked resources in final suggested_resources.
     - If a resource can be added and linked now, do that instead of leaving it in suggested_resources.
+    - Non-embeddable URLs are still valid resources; do not discard good sources just because iframe embedding is blocked.
+    - Prefer embeddable URLs only when source quality and relevance are otherwise similar.
     - Explicitly evaluate whether an interactive applet would materially improve this lesson.
     - If so, and no similar applet is already linked, create and link one with add_and_link_resource(resource_type: "applet").
     Tag rules (when creating/linking resources):

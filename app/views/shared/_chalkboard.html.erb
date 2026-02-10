@@ -1,26 +1,66 @@
-<div id="chalkboard_container" data-chalkboard-target="container"
-     class="hidden xl:flex xl:flex-col xl:grow min-w-0 h-full bg-slate-100 dark:bg-stone-900">
-  <div id="chalkboard_toolbar" class="h-8 p-2 flex justify-start shrink-0 space-x-2 ml-4">
-    <button 
-      id="printButton" 
-      data-action="click->chalkboard#printChalkboard"
-      class="hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm border-b">
-      <sl-icon name="printer"></sl-icon>
-    </button>
-    <button 
-      id="screenshotButton" 
-      data-action="click->chalkboard#screenshotInstructions"
-      class="hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm border-b">
-      <sl-icon name="camera"></sl-icon>
-    </button>
-    <button 
-      id="whiteboardButton" 
-      data-action="click->chalkboard#openWhiteboard"
-      class="hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm border-b">
-      <sl-icon name="pencil"></sl-icon>
-    </button>
+<% lesson_applet_resources = local_assigns.fetch(:lesson_applet_resources, []) %>
+<% seeded_applets = lesson_applet_resources.filter_map do |resource| %>
+  <% applet = resource.applet %>
+  <% next unless applet.present? %>
+  <% applet_title = applet.title.to_s.presence || "Applet ##{applet.id}" %>
+  <% run_url = run_applet_path(applet) %>
+  <%
+    {
+      event_type: "register_applet",
+      source: "linked",
+      key: "linked_#{applet.id}",
+      applet_id: applet.id,
+      title: applet_title,
+      launch_url: run_url,
+      embed_src: run_url,
+      embed_srcdoc: nil,
+      shareable: true,
+      share_url: run_url
+    }
+  %>
+<% end %>
+
+<div id="chalkboard_container" data-chalkboard-target="container" class="hidden xl:flex xl:flex-col xl:grow min-w-0 h-full overflow-hidden bg-slate-100 dark:bg-stone-900">
+  <div id="chalkboard_toolbar" class="h-10 px-3 py-0 flex items-center gap-2 shrink-0 border-b border-stone-300 dark:border-stone-700 overflow-x-hidden overflow-y-hidden whitespace-nowrap">
+    <div class="min-w-0 flex flex-1 items-center gap-2 overflow-hidden">
+      <div class="flex shrink-0 items-center gap-1" data-chalkboard-target="fixedTabs">
+        <button id="chalkboard-tab-applets" type="button" data-tab-id="applets" data-action="click->chalkboard#activateTab" class="chalkboard-tab-btn text-xs px-2 py-1 rounded border border-stone-400 dark:border-stone-600 hover:bg-stone-200 dark:hover:bg-stone-800">
+          Applets
+        </button>
+        <button id="chalkboard-tab-whiteboard" type="button" data-tab-id="whiteboard" data-action="click->chalkboard#activateTab" class="chalkboard-tab-btn text-xs px-2 py-1 rounded border border-stone-400 dark:border-stone-600 hover:bg-stone-200 dark:hover:bg-stone-800">
+          Whiteboard
+        </button>
+      </div>
+      <div data-chalkboard-target="dynamicTabList" class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden"></div>
+      <div data-chalkboard-target="appletContext" class="hidden min-w-0 shrink-0 items-center gap-2 overflow-hidden">
+        <div class="relative h-8 w-8 md:w-auto md:max-w-[28rem]">
+          <button type="button" data-action="click->chalkboard#openAppletPicker" class="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-stone-400 dark:border-stone-600 bg-transparent hover:bg-stone-300 dark:hover:bg-stone-700 md:hidden" title="Select applet">
+            <sl-icon name="list" class="text-base text-stone-600 dark:text-stone-300"></sl-icon>
+          </button>
+          <select id="chalkboard-applet-select" data-chalkboard-target="appletSelect" data-action="change->chalkboard#selectApplet" style="-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:none;" class="absolute inset-0 h-8 w-8 min-w-0 opacity-0 pointer-events-none md:static md:w-auto md:max-w-[28rem] md:opacity-100 md:pointer-events-auto rounded-sm bg-transparent md:bg-white dark:md:bg-stone-900 py-1 px-2 pr-7 text-xs leading-5 appearance-none align-middle text-stone-900 dark:text-stone-100 border-0 md:border md:border-stone-400 dark:md:border-stone-600 focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:shadow-none focus-visible:shadow-none">
+            <option value="">Select applet...</option>
+          </select>
+          <sl-icon name="chevron-down" class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-stone-600 dark:text-stone-300 hidden md:block"></sl-icon>
+        </div>
+      </div>
+    </div>
+
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <button id="chalkboard-share-applet" type="button" data-chalkboard-target="shareButton" data-action="click->chalkboard#shareCurrentApplet" class="hidden h-8 w-8 items-center justify-center hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm" title="Copy applet link">
+        <sl-icon name="share" class="text-lg leading-none"></sl-icon>
+      </button>
+      <button id="printButton" type="button" data-action="click->chalkboard#printChalkboard" class="inline-flex h-8 w-8 items-center justify-center hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm" title="Print chalkboard">
+        <sl-icon name="printer" class="text-lg leading-none"></sl-icon>
+      </button>
+      <button id="screenshotButton" type="button" data-action="click->chalkboard#screenshotInstructions" class="inline-flex h-8 w-8 items-center justify-center hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm" title="Screenshot instructions">
+        <sl-icon name="camera" class="text-lg leading-none"></sl-icon>
+      </button>
+      <button id="chalkboard-close-mobile" type="button" data-action="click->chalkboard#closeMobile" class="inline-flex h-8 w-8 items-center justify-center hover:bg-stone-300 dark:hover:bg-stone-700 rounded-sm xl:hidden" title="Close chalkboard">
+        <sl-icon name="x" class="text-2xl leading-none"></sl-icon>
+      </button>
+    </div>
   </div>
-  
+
   <sl-dialog label="Chalkboard screenshot instructions" data-chalkboard-target="screenshotDialog">
     <p class="mb-2">The easiest way to take a screenshot and show it to the LLM is to use your computer's built-in screenshot tool.</p>
     <p class="mb-2">You can paste images directly into the chat text box.</p>
@@ -32,5 +72,19 @@
     <p>Your screen is too narrow for the chalkboard. To see it, use a device with a larger screen or higher resolution.</p>
   </sl-dialog>
 
-  <div id="chalkboard" data-chalkboard-target="chalkboard" class="flex-1 pb-4 pl-4 pr-4 overflow-auto"></div>
+  <div id="chalkboard_tab_inbox" data-chalkboard-target="tabInbox" class="hidden"></div>
+  <div data-chalkboard-target="seededApplets" data-applets-json="<%= seeded_applets.to_json %>" class="hidden"></div>
+
+  <div id="chalkboard" data-chalkboard-target="chalkboard" class="flex-1 min-h-0 overflow-hidden p-0">
+    <div id="chalkboard_tab_panels" data-chalkboard-target="tabPanels" class="h-full min-h-0">
+      <div id="panel-applets" data-tab-panel-id="applets" data-chalkboard-target="appletsPanel" class="hidden h-full min-h-0 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950">
+        <div data-chalkboard-target="appletEmptyState" class="h-full flex items-center justify-center text-sm text-dim px-6 text-center">
+          Choose an applet from the Applets tab menu.
+        </div>
+        <div data-chalkboard-target="appletViewport" class="hidden h-full min-h-0"></div>
+      </div>
+      <div id="panel-whiteboard" data-tab-panel-id="whiteboard" data-chalkboard-target="whiteboardPanel" class="hidden h-full min-h-0 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950"></div>
+      <div data-chalkboard-target="dynamicPanels" class="h-full min-h-0"></div>
+    </div>
+  </div>
 </div>

@@ -1,0 +1,12 @@
+<div class="h-full w-full overflow-auto p-4">
+  <div class="mx-auto max-w-3xl rounded-lg border border-stone-300 bg-stone-50 p-4 text-stone-900 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100">
+    <h3 class="mb-2 text-base font-semibold">Open Resource In New Tab</h3>
+    <p class="mb-3 text-sm text-stone-700 dark:text-stone-300">
+      <%= "This site did not allow embedding inside the chalkboard." %>
+    </p>
+    <p class="mb-4 break-all text-sm">
+      <%= link_to url, url, target: "_blank", rel: "noopener noreferrer", class: "underline" %>
+    </p>
+    <%= link_to "Open in new tab", url, target: "_blank", rel: "noopener noreferrer", class: "btn-primary inline-flex" %>
+  </div>
+</div>

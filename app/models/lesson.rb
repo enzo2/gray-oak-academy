@@ -29,6 +29,28 @@ class Lesson < ApplicationRecord
     LessonProgress.find_or_create_by(student: student, lesson: self)
   end
 
+  # Returns an authorization status for student lesson access:
+  # :ok, :not_enrolled, :ahead_of_progress, :wrong_teacher, :missing_lesson_plan, :unpublished_lesson
+  def student_access_status_for(student)
+    enrollment = student.enrollments.find_by(course_id: course_id)
+    return :not_enrolled unless enrollment
+    return :ahead_of_progress unless enrollment.allows_lesson_position?(position)
+    return :wrong_teacher unless belongs_to_student_teacher_or_student?(student)
+    return :missing_lesson_plan unless lesson_plan.present?
+    return :unpublished_lesson unless lesson_plan.status_published?
+
+    :ok
+  end
+
+  def student_access_allowed?(student)
+    student_access_status_for(student) == :ok
+  end
+
+  def belongs_to_student_teacher_or_student?(student)
+    owner_ids = [ student.teacher_id, student.id ].compact
+    owner_ids.include?(course.teacher_id)
+  end
+
   def for_llm
     lp = lesson_plan
     {

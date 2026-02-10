@@ -666,6 +666,7 @@ p.save!
 
 p = Prompt.find_or_initialize_by(category: 'suggest_resources', teacher_id: nil)
 p.title = "Default Resource Proposal Prompt"
+# We don't mention that the chalkboard can only show embed-capable URLs, since we have a fallback path.
 p.prompt = <<~PROMPT
   You are proposing and validating lesson resources after lesson-plan content directives have already been generated.
   Your tasks:
@@ -686,7 +687,7 @@ p.prompt = <<~PROMPT
   - Already linked resources: {linked_resources}
 
   Available presentation capabilities:
-  - Chalkboard can display: embed-capable websites (including YouTube embed URLs), PDFs, and applets.
+  - Chalkboard can display: websites (including YouTube), PDFs, and applets.
   - Image URLs can be displayed directly in chat via markdown.
   - Quoted text can be shown in markdown with source attribution.
   - If adding applets, follow this applet code contract for this backend job (this is NOT a live chat response):

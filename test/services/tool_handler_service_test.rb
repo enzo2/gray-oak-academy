@@ -339,6 +339,16 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
       end
       blocked_msg = Message.last
       assert_match(/Applet not available for this lesson/, blocked_msg.content)
+
+      chalkboard_payloads = []
+      Turbo::StreamsChannel.stub :broadcast_append_to, ->(*_args, **kwargs) { chalkboard_payloads << kwargs.dig(:locals, :payload) } do
+        assert_difference "Message.count", 1 do
+          service.execute_tool_calls([ { id: "tc-view-4", function: { name: "View_Applets", arguments: { action: "run_on_chalkboard", applet_id: allowed_applet.id }.to_json } } ])
+        end
+      end
+      run_msg = Message.last
+      assert_match(/Applets tab/, run_msg.content)
+      assert_includes chalkboard_payloads.map { |payload| payload["event_type"] || payload[:event_type] }, "register_applet"
     end
   end
 
@@ -399,7 +409,11 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     )
 
     called = false
-    Turbo::StreamsChannel.stub :broadcast_update_to, ->(*_args, **_kwargs) { called = true } do
+    chalkboard_payloads = []
+    Turbo::StreamsChannel.stub :broadcast_append_to, ->(*_args, **kwargs) {
+      called = true
+      chalkboard_payloads << kwargs.dig(:locals, :payload)
+    } do
       assert_difference "Message.count", 1 do
         ToolHandlerService.new(conversation: conversations(:teacher_generic_conversation), message: nil).execute_tool_calls(
           [ { id: "tc-prof-1", function: { name: "get_student_profile", arguments: { student_id: student.id }.to_json } } ]
@@ -408,6 +422,7 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     end
 
     assert called, "expected chalkboard broadcast"
+    assert_includes chalkboard_payloads.map { |payload| payload["event_type"] || payload[:event_type] }, "open_push_tab"
     msg = Message.last
     assert_match(/# Student: #{Regexp.escape(student.name)}/, msg.content)
     assert_match(/Latest student profile report/, msg.content)

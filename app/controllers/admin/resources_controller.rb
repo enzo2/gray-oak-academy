@@ -1,10 +1,11 @@
 module Admin
   class ResourcesController < Admin::BaseController
-    before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file, :approve ]
+    before_action :set_resource, only: [ :show, :edit, :update, :destroy, :delete_file, :approve, :check_uri ]
 
     def index
       # Only show the current teacher's resources
       @resources = Resource.where(teacher: current_user)
+                           .includes(:applet)
                            .order(Arel.sql("CASE WHEN approved = FALSE THEN 0 ELSE 1 END ASC"))
                            .order(created_at: :desc)
     end
@@ -70,7 +71,44 @@ module Admin
 
     def approve
       @resource.update!(approved: true)
-      redirect_back fallback_location: admin_resources_path, notice: "Resource approved."
+      @lesson_plan = LessonPlan.find(params[:lesson_plan_id]) if params[:lesson_plan_id].present?
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_back fallback_location: admin_resources_path, notice: "Resource approved." }
+      end
+    end
+
+    def check_uri
+      if @resource.uri.blank?
+        flash.now[:alert] = "No URI to check."
+        respond_to do |format|
+          format.turbo_stream { render turbo_stream: turbo_stream.update("flash_bar", partial: "shared/flash") }
+          format.html { redirect_to admin_resource_path(@resource), alert: "No URI to check." }
+        end
+        return
+      end
+
+      @uri_check_result = UrlEmbeddabilityService.check(url: @resource.uri)
+      status = @uri_check_result[:status].to_s
+      final_url = @uri_check_result[:final_url].to_s
+      reason = @uri_check_result[:reason].to_s
+
+      message = "URI check: #{status}. #{reason}"
+      message += " Final URL: #{final_url}" if final_url.present? && final_url != @resource.uri
+
+      flash_type = %w[blocked_xfo blocked_csp unknown].include?(status) ? :alert : :notice
+      flash.now[flash_type] = message
+
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to admin_resource_path(@resource), flash_type => message }
+      end
+    rescue UrlEmbeddabilityService::ValidationError => e
+      flash.now[:alert] = "URI check failed: #{e.message}"
+      respond_to do |format|
+        format.turbo_stream { render turbo_stream: turbo_stream.update("flash_bar", partial: "shared/flash") }
+        format.html { redirect_to admin_resource_path(@resource), alert: "URI check failed: #{e.message}" }
+      end
     end
 
     private

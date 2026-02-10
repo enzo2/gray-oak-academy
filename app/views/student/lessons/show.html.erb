@@ -35,8 +35,7 @@
             class="xl:hidden"
             label="Open chalkboard"
             aria-label="Open chalkboard"
-            data-action="click->drawer#open"
-            data-drawer-id="chalkboard">
+            data-action="click->chalkboard#openMobile">
         </sl-icon-button>
         <% end %>
         <sl-dropdown class="" placement="bottom-end">
@@ -102,17 +101,16 @@
   <!-- Chalkboard Area - remainder of space - grow as needed -->
   <% if @lesson.lesson_plan&.chalkboard_enabled? %>
     <!-- Chalkboard Column (desktop) -->
-    <%= render partial: "shared/chalkboard" %>
+    <%= render partial: "shared/chalkboard", locals: { lesson_applet_resources: @lesson_applet_resources } %>
 
-    <%# Mobile Chalkboard Drawer - mobile-first overlay for small screens %>
-    <sl-drawer style="--size: 100dvw;--header-spacing:0;--body-spacing:0rem;--footer-spacing:0;" 
-              placement="end" data-drawer-target="drawer" data-drawer-id="chalkboard" >
-
-      <div class="h-full">
-        <%# Single-instance host where the chalkboard DOM will be moved into for mobile %>
-        <div data-chalkboard-target="host" class="flex flex-col h-full bg-slate-100 dark:bg-stone-900"></div>
+    <%# Mobile Chalkboard Overlay %>
+    <div data-chalkboard-target="mobileOverlay" class="fixed inset-0 z-[60] hidden xl:hidden">
+      <div class="absolute inset-0 bg-black/50" data-action="click->chalkboard#closeMobile"></div>
+      <div class="absolute inset-y-0 right-0 w-full bg-slate-100 dark:bg-stone-900 shadow-xl border-l border-stone-300 dark:border-stone-700">
+        <%# Single-instance host where the chalkboard DOM is moved into for mobile %>
+        <div data-chalkboard-target="host" class="flex h-full flex-col"></div>
       </div>
-    </sl-drawer>
+    </div>
   <% end %>
 </div>
 

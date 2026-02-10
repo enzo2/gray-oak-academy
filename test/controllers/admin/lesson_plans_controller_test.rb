@@ -150,7 +150,7 @@ module Admin
 
       assert_response :success
       assert_not lesson_plan.reload.resources.exists?(id: pending_resource.id)
-      assert_includes @response.body, "Pending resources cannot be linked while the lesson plan is published."
+      assert_includes @response.body, "The lesson plan is published. If you want to link a pending resource, please change the lesson plan back to draft status."
     end
 
     test "cannot delete another teacher pending linked resource" do
