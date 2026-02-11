@@ -167,7 +167,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "complete includes native responses tools without enabling app function tools" do
+  test "complete includes provider-native responses tools without enabling app function tools" do
     captured = nil
     fake_client = build_responses_client do |params|
       captured = params
@@ -181,7 +181,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
         base_uri: @base_uri,
         model: @model,
         enable_tools: false,
-        native_tools: [ { type: "web_search" } ],
+        provider_native_tools: [ { type: "web_search" } ],
         log_completion: false
       )
 

@@ -1,11 +1,27 @@
 require "json"
 require "net/http"
+require "timeout"
 require "uri"
 
 class ExaApiService
   DEFAULT_BASE_URI = "https://api.exa.ai/"
   DEFAULT_RESEARCH_MODEL = "exa-research"
   TERMINAL_RESEARCH_STATUSES = %w[completed failed cancelled canceled].freeze
+  DEFAULT_OPEN_TIMEOUT_SECONDS = 8
+  DEFAULT_READ_TIMEOUT_SECONDS = 30
+  DEFAULT_WRITE_TIMEOUT_SECONDS = 30
+  DEFAULT_MAX_RETRIES = 2
+  RETRYABLE_STATUS_CODES = [ 408, 409, 425, 429, 500, 502, 503, 504 ].freeze
+  NETWORK_ERRORS = [
+    Net::OpenTimeout,
+    Net::ReadTimeout,
+    Timeout::Error,
+    EOFError,
+    Errno::ECONNRESET,
+    Errno::ECONNREFUSED,
+    Errno::ETIMEDOUT,
+    SocketError
+  ].freeze
 
   def initialize(api_key: nil, base_uri: nil, research_model: nil, current_user: nil, conversation: nil, log_completion: true)
     app_setting = AppSetting.settings
@@ -23,7 +39,8 @@ class ExaApiService
   def search(query:, **options)
     raise OpenAiError, "query is required for Exa search." if query.to_s.strip.blank?
 
-    response = post_json("/search", { query: query }.merge(options.compact))
+    merged_options = default_search_options.deep_merge(options.compact)
+    response = post_json("/search", { query: query }.merge(merged_options))
     log_completion_if_possible(response, model: "exa-search")
     response
   end
@@ -63,7 +80,7 @@ class ExaApiService
   end
 
   # GET /research/v1/:id
-  def get_research(research_id:, stream: nil, events: nil)
+  def get_research(research_id:, stream: nil, events: nil, log_completion: true)
     raise OpenAiError, "research_id is required." if research_id.to_s.strip.blank?
 
     query = {}
@@ -71,7 +88,7 @@ class ExaApiService
     query[:events] = events if events.present?
 
     response = get_json("/research/v1/#{research_id}", query: query)
-    log_completion_if_possible(response, model: response["model"] || @research_model)
+    log_completion_if_possible(response, model: response["model"] || @research_model) if log_completion
     response
   end
 
@@ -91,10 +108,13 @@ class ExaApiService
     deadline = Time.current + timeout_seconds
 
     loop do
-      response = get_research(research_id: research_id)
+      response = get_research(research_id: research_id, log_completion: false)
       status = response["status"].to_s.downcase
 
-      return response if TERMINAL_RESEARCH_STATUSES.include?(status)
+      if TERMINAL_RESEARCH_STATUSES.include?(status)
+        log_completion_if_possible(response, model: response["model"] || @research_model)
+        return response
+      end
 
       if Time.current >= deadline
         raise OpenAiError, "Exa research timed out after #{timeout_seconds} seconds."
@@ -132,23 +152,67 @@ class ExaApiService
     uri = URI.join(@base_uri, path.delete_prefix("/"))
     uri.query = URI.encode_www_form(query) if query.present?
 
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme == "https"
+    attempts = 0
+    loop do
+      attempts += 1
+      http = build_http_client(uri)
+      request = build_request(method: method, uri: uri, payload: payload)
+      response = http.request(request)
+      parsed = parse_json(response.body)
 
-    request = build_request(method: method, uri: uri, payload: payload)
-    response = http.request(request)
-    parsed = parse_json(response.body)
+      status = response.code.to_i
+      return parsed if status.between?(200, 299)
 
-    status = response.code.to_i
-    return parsed if status.between?(200, 299)
+      if should_retry_request?(method: method, status: status, attempts: attempts)
+        sleep(retry_delay_seconds(attempts))
+        next
+      end
 
-    error_message = parsed.dig("error", "message").presence || parsed["message"].presence || "HTTP #{response.code}"
-    raise OpenAiError, "Exa API request failed (#{response.code}): #{error_message}"
+      error_message = parsed.dig("error", "message").presence || parsed["message"].presence || "HTTP #{response.code}"
+      raise OpenAiError, "Exa API request failed (#{response.code}): #{error_message}"
+    rescue *NETWORK_ERRORS => e
+      if should_retry_network_error?(method: method, attempts: attempts)
+        sleep(retry_delay_seconds(attempts))
+        next
+      end
+
+      Rails.logger.error "Exa API network error: #{e.class}: #{e.message}"
+      raise OpenAiError, "Exa API request failed: #{e.message}"
+    end
   rescue OpenAiError
     raise
   rescue StandardError => e
     Rails.logger.error "Exa API request error: #{e.message}"
     raise OpenAiError, "Exa API request failed: #{e.message}"
+  end
+
+  def build_http_client(uri)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = DEFAULT_OPEN_TIMEOUT_SECONDS if http.respond_to?(:open_timeout=)
+    http.read_timeout = DEFAULT_READ_TIMEOUT_SECONDS if http.respond_to?(:read_timeout=)
+    http.write_timeout = DEFAULT_WRITE_TIMEOUT_SECONDS if http.respond_to?(:write_timeout=)
+    http
+  end
+
+  def retryable_status_code?(status)
+    RETRYABLE_STATUS_CODES.include?(status)
+  end
+
+  def retryable_method?(method)
+    method.to_sym == :get
+  end
+
+  def should_retry_request?(method:, status:, attempts:)
+    retryable_method?(method) && retryable_status_code?(status) && attempts <= DEFAULT_MAX_RETRIES
+  end
+
+  def should_retry_network_error?(method:, attempts:)
+    retryable_method?(method) && attempts <= DEFAULT_MAX_RETRIES
+  end
+
+  def retry_delay_seconds(attempt)
+    [ 0.25 * (2**(attempt - 1)), 2.0 ].min
   end
 
   def build_request(method:, uri:, payload:)
@@ -179,6 +243,16 @@ class ExaApiService
   def ensure_trailing_slash(url)
     return url if url.blank? || url.end_with?("/")
     "#{url}/"
+  end
+
+  def default_search_options
+    {
+      contents: {
+        highlights: {
+          maxCharacters: 1200
+        }
+      }
+    }
   end
 
   def log_completion_if_possible(response, model:)

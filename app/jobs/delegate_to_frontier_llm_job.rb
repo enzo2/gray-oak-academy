@@ -41,7 +41,8 @@ class DelegateToFrontierLlmJob < ApplicationJob
         model: model,
         task_system_prompt: task_system_prompt,
         enable_tools: false,
-        native_tools: function_call_adapter.delegate_native_tools,
+        provider_native_tools: function_call_adapter.delegate_provider_native_tools,
+        flow_tools: function_call_adapter.delegate_flow_tools,
         store: true,
         log_completion: true
       )

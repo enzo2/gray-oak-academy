@@ -126,4 +126,60 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
     assert_not_nil response_tool
     assert_equal true, response_tool["strict"]
   end
+
+  test "web tool is hidden from chat completions when Exa is disabled" do
+    teacher = users(:admin)
+    conversation = conversations(:teacher_generic_conversation)
+
+    tool = Tool.find_or_initialize_by(name: "Web")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Web",
+      "description" => "Web tool",
+      "parameters" => {
+        "type" => "object",
+        "properties" => { "action" => { "type" => "string", "description" => "Action" } },
+        "required" => [ "action" ]
+      }
+    }
+    tool.save!
+
+    AppSetting.stub(:exa_enabled?, false) do
+      tools = ToolCatalogService.new(
+        user: teacher,
+        conversation: conversation,
+        base_uri: "https://api.openai.com/v1/"
+      ).for_chat_completions
+      names = tools.map { |entry| entry.dig("function", "name") }
+      refute_includes names, "Web"
+    end
+  end
+
+  test "web tool is included in responses when Exa is enabled" do
+    teacher = users(:admin)
+    conversation = conversations(:teacher_generic_conversation)
+
+    tool = Tool.find_or_initialize_by(name: "Web")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Web",
+      "description" => "Web tool",
+      "parameters" => {
+        "type" => "object",
+        "properties" => { "action" => { "type" => "string", "description" => "Action" } },
+        "required" => [ "action" ]
+      }
+    }
+    tool.save!
+
+    AppSetting.stub(:exa_enabled?, true) do
+      tools = ToolCatalogService.new(
+        user: teacher,
+        conversation: conversation,
+        base_uri: "https://api.openai.com/v1/"
+      ).for_responses
+      names = tools.map { |entry| entry["name"] }
+      assert_includes names, "Web"
+    end
+  end
 end

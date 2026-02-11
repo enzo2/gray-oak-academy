@@ -4,6 +4,12 @@ require "securerandom"
 class ToolExecutionService
   class ToolExecutionError < StandardError; end
   include ActionView::RecordIdentifier
+  WEB_DEFAULT_SEARCH_RESULTS = 10
+  WEB_MAX_SEARCH_RESULTS = 20
+  WEB_SEARCH_HIGHLIGHT_MAX_CHARS = 2_000
+  WEB_CONTENT_TEXT_MAX_CHARS = 4_000
+  WEB_CONTENT_HIGHLIGHT_MAX_CHARS = 4_000
+  WEB_MAX_CONTENT_URLS = 5
 
   def initialize(conversation:, message:)
     @conversation = conversation
@@ -373,6 +379,58 @@ class ToolExecutionService
       Rails.logger.debug "PythonCodeExecutorService output: #{content}"
       create_tool_message(content)
     end
+  end
+
+  def execute_web
+    action = @args["action"].to_s.strip.downcase
+
+    payload = case action
+    when "search"
+      query = @args["query"].to_s.strip
+      raise ToolExecutionError, "query is required for action 'search'." if query.blank?
+
+      num_results = @args["num_results"].to_i
+      num_results = WEB_DEFAULT_SEARCH_RESULTS if num_results <= 0
+      num_results = [ num_results, WEB_MAX_SEARCH_RESULTS ].min
+
+      ExaApiService.new(current_user: @user, conversation: @conversation).search(
+        query: query,
+        numResults: num_results,
+        contents: {
+          text: false,
+          highlights: { maxCharacters: WEB_SEARCH_HIGHLIGHT_MAX_CHARS }
+        }
+      )
+    when "answer"
+      query = @args["query"].to_s.strip
+      raise ToolExecutionError, "query is required for action 'answer'." if query.blank?
+
+      ExaApiService.new(current_user: @user, conversation: @conversation).answer(query: query)
+    when "content"
+      urls = Array(@args["urls"]).map { |u| u.to_s.strip }.reject(&:blank?).uniq
+      raise ToolExecutionError, "urls is required for action 'content'." if urls.blank?
+      if urls.size > WEB_MAX_CONTENT_URLS
+        raise ToolExecutionError, "A maximum of #{WEB_MAX_CONTENT_URLS} URLs is allowed for action 'content'."
+      end
+
+      query = @args["query"].to_s.strip
+
+      options = { text: { maxCharacters: WEB_CONTENT_TEXT_MAX_CHARS } }
+      if query.present?
+        options[:highlights] = {
+          query: query,
+          maxCharacters: WEB_CONTENT_HIGHLIGHT_MAX_CHARS
+        }
+      end
+
+      ExaApiService.new(current_user: @user, conversation: @conversation).get_contents(urls: urls, **options)
+    else
+      raise ToolExecutionError, "action must be one of: search, answer, content."
+    end
+
+    create_tool_message(JSON.pretty_generate(payload))
+  rescue OpenAiError => e
+    raise ToolExecutionError, e.message
   end
 
   def execute_list_students

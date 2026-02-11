@@ -390,6 +390,25 @@ tool.specifications = {
 }
 tool.save!
 
+tool = Tool.find_or_initialize_by(name: 'Web')
+tool.access = :admin
+tool.specifications = {
+  name: "Web",
+  description: "Search and retrieve web-grounded information for curriculum development and resource vetting. Actions: search, answer, content.",
+  parameters: {
+    type: "object",
+    properties: {
+      "action" => { "type" => "string", "description" => "Web action to run.", "enum" => [ "search", "answer", "content" ] },
+      "query" => { "type" => "string", "description" => "Required for search/answer. Optional focus query for content highlights." },
+      "urls" => { "type" => "array", "description" => "Required for content. One or more absolute HTTPS URLs.", "items" => { "type" => "string" } },
+      "num_results" => { "type" => "integer", "description" => "Optional search result count for action=search (default 10, max 20)." }
+    },
+    required: [ "action" ],
+    additionalProperties: false
+  }
+}
+tool.save!
+
 # Generator tools (schema-driven; blocking; strict)
 
 tool = Tool.find_or_initialize_by(name: 'Generate_Course_Outline')
@@ -952,6 +971,7 @@ p.prompt = <<~PROMPT
   6. When asked about a student, call list_students to disambiguate identities; never guess student IDs. When discussing with the teacher, don't refer to students by ID, but by name.
   7. Return tool arguments as concise JSON only; avoid extraneous commentary in tool calls.
   8. Be user-friendly. Users do not have any database IDs; you need to find these yourself. The user may not know that an 'outline' pertains to a course and is used to generate lessons, or that a 'lesson plan' is what is used by the LLM tutor to conduct the lesson. Therefore, don't just list off the available tools and ask the user to pick one; rather collaborate with the user.
+  9. Use the Web tool only when a specific curriculum-development objective requires external verification (for example: checking source quality, finding a primary source, or validating factual claims). Avoid open-ended browsing.
 
   Follow this general approach to curriculum development:
   1. When creating a course, discuss it with the teacher first to understand the grade level, scope, any specific goals or approach desired. The course summary should be concise but descriptive, encapsulating the course in a few sentences to guide the course outline generation.

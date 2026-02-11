@@ -1,12 +1,12 @@
 require "test_helper"
 
 class ProposeResourcesToolExecutorTest < ActiveSupport::TestCase
-  def build_executor
+  def build_executor(exa_service: Object.new)
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
     executor = nil
 
-    ExaApiService.stub(:new, ->(**_kwargs) { Object.new }) do
+    ExaApiService.stub(:new, ->(**_kwargs) { exa_service }) do
       executor = ProposeResourcesToolExecutor.new(lesson_plan: lesson_plan, current_user: teacher)
     end
     executor
@@ -70,5 +70,68 @@ class ProposeResourcesToolExecutorTest < ActiveSupport::TestCase
     assert_equal "ok", result[:status]
     assert_nil result[:embed_status]
     assert_nil result[:presentation_mode]
+  end
+
+  test "exa_content uses default 10,000 chars and query-driven highlights when query is present" do
+    captured = {}
+    fake_exa = Object.new
+    fake_exa.define_singleton_method(:get_contents) do |**kwargs|
+      captured[:kwargs] = kwargs
+      { "results" => [] }
+    end
+
+    executor = build_executor(exa_service: fake_exa)
+    executor.send(
+      :execute_exa_content,
+      {
+        "urls" => [ "https://example.com/a" ],
+        "max_characters" => nil,
+        "query" => "methodology and results"
+      }
+    )
+
+    assert_equal [ "https://example.com/a" ], captured.dig(:kwargs, :urls)
+    assert_equal 10_000, captured.dig(:kwargs, :text, :maxCharacters)
+    assert_equal "methodology and results", captured.dig(:kwargs, :highlights, :query)
+    assert_equal 4000, captured.dig(:kwargs, :highlights, :maxCharacters)
+  end
+
+  test "exa_content omits highlights when query is blank" do
+    captured = {}
+    fake_exa = Object.new
+    fake_exa.define_singleton_method(:get_contents) do |**kwargs|
+      captured[:kwargs] = kwargs
+      { "results" => [] }
+    end
+
+    executor = build_executor(exa_service: fake_exa)
+    executor.send(
+      :execute_exa_content,
+      {
+        "urls" => [ "https://example.com/a" ],
+        "max_characters" => 50_000,
+        "query" => "   "
+      }
+    )
+
+    assert_equal 10_000, captured.dig(:kwargs, :text, :maxCharacters)
+    assert_nil captured.dig(:kwargs, :highlights)
+  end
+
+  test "exa_search uses explicit default numResults and search-specific highlight size" do
+    captured = {}
+    fake_exa = Object.new
+    fake_exa.define_singleton_method(:search) do |**kwargs|
+      captured[:kwargs] = kwargs
+      { "results" => [] }
+    end
+
+    executor = build_executor(exa_service: fake_exa)
+    executor.send(:execute_exa_search, { "query" => "fractions manipulatives" })
+
+    assert_equal "fractions manipulatives", captured.dig(:kwargs, :query)
+    assert_equal 10, captured.dig(:kwargs, :numResults)
+    assert_equal false, captured.dig(:kwargs, :contents, :text)
+    assert_equal 2000, captured.dig(:kwargs, :contents, :highlights, :maxCharacters)
   end
 end

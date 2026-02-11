@@ -9,7 +9,9 @@ class ProposeResourcesToolExecutor
 
   MAX_FILE_SIZE = 10.megabytes
   MAX_SEARCH_RESULTS = 20
-  MAX_EXA_CONTENT_CHARS = 6000
+  MAX_EXA_CONTENT_CHARS = 10_000
+  EXA_SEARCH_HIGHLIGHT_MAX_CHARS = 2_000
+  EXA_CONTENT_HIGHLIGHT_MAX_CHARS = 4_000
   PDF_SIGNATURE = "%PDF-".b.freeze
 
   def initialize(lesson_plan:, current_user:)
@@ -108,9 +110,12 @@ class ProposeResourcesToolExecutor
 
     @exa_service.search(
       query: query,
-      numResults: 6,
+      numResults: 10,
       contents: {
-        text: { maxCharacters: 1400 }
+        text: false,
+        highlights: {
+          maxCharacters: EXA_SEARCH_HIGHLIGHT_MAX_CHARS
+        }
       }
     )
   end
@@ -129,10 +134,22 @@ class ProposeResourcesToolExecutor
     max_characters = args["max_characters"].to_i
     max_characters = MAX_EXA_CONTENT_CHARS if max_characters <= 0
     max_characters = [ max_characters, MAX_EXA_CONTENT_CHARS ].min
+    query = args["query"].to_s.strip
+
+    options = {
+      text: { maxCharacters: max_characters }
+    }
+
+    if query.present?
+      options[:highlights] = {
+        query: query,
+        maxCharacters: EXA_CONTENT_HIGHLIGHT_MAX_CHARS
+      }
+    end
 
     @exa_service.get_contents(
       urls: urls,
-      text: { maxCharacters: max_characters }
+      **options
     )
   end
 
@@ -384,10 +401,14 @@ class ProposeResourcesToolExecutor
           },
           max_characters: {
             type: [ "integer", "null" ],
-            description: "Maximum characters to retrieve per URL (max 6000)."
+            description: "Maximum characters to retrieve per URL (max 10,000)."
+          },
+          query: {
+            type: [ "string", "null" ],
+            description: "Optional focus query for highlight extraction (for example: methodology and results)."
           }
         },
-        required: [ "urls", "max_characters" ],
+        required: [ "urls", "max_characters", "query" ],
         additionalProperties: false
       },
       strict: true

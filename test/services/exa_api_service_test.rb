@@ -20,6 +20,7 @@ class ExaApiServiceTest < ActiveSupport::TestCase
       body = JSON.parse(captured[:request_body])
       assert_equal "refraction demos", body["query"]
       assert_equal 3, body["numResults"]
+      assert_equal 1200, body.dig("contents", "highlights", "maxCharacters")
       assert_equal [ "exa-test-key" ], captured[:request_headers]["x-api-key"]
     end
   end
@@ -69,12 +70,16 @@ class ExaApiServiceTest < ActiveSupport::TestCase
   test "wait_for_research polls until completion" do
     service = ExaApiService.new
     responses = [ { "status" => "running" }, { "status" => "completed", "output" => "done" } ]
+    logged = 0
 
-    service.stub(:get_research, ->(research_id:, stream: nil, events: nil) { responses.shift }) do
-      result = service.wait_for_research(research_id: "res_1", timeout_seconds: 5, poll_interval_seconds: 0)
-      assert_equal "completed", result["status"]
-      assert_equal "done", result["output"]
+    service.stub(:get_research, ->(research_id:, stream: nil, events: nil, log_completion: true) { responses.shift }) do
+      service.stub(:log_completion_if_possible, ->(_response, model:) { logged += 1 }) do
+        result = service.wait_for_research(research_id: "res_1", timeout_seconds: 5, poll_interval_seconds: 0)
+        assert_equal "completed", result["status"]
+        assert_equal "done", result["output"]
+      end
     end
+    assert_equal 1, logged
   end
 
   test "raises clear error on Exa API failure" do
@@ -88,6 +93,65 @@ class ExaApiServiceTest < ActiveSupport::TestCase
       assert_includes error.message, "Exa API request failed (401)"
       assert_includes error.message, "invalid key"
     end
+  end
+
+  test "retries transient status errors for idempotent GET requests and succeeds" do
+    responses = [
+      Struct.new(:code, :body).new("429", { error: { message: "rate limited" } }.to_json),
+      Struct.new(:code, :body).new("200", { status: "completed", id: "res_1" }.to_json)
+    ]
+    request_count = 0
+    captured_paths = []
+    http = Object.new
+    http.define_singleton_method(:use_ssl=) { |_value| }
+    http.define_singleton_method(:open_timeout=) { |_value| }
+    http.define_singleton_method(:read_timeout=) { |_value| }
+    http.define_singleton_method(:write_timeout=) { |_value| }
+    http.define_singleton_method(:request) do |request|
+      request_count += 1
+      captured_paths << request.path
+      responses.shift
+    end
+
+    original_new = Net::HTTP.method(:new)
+    Net::HTTP.define_singleton_method(:new) { |_host, _port| http }
+
+    service = ExaApiService.new
+    result = service.get_research(research_id: "res_1")
+
+    assert_equal "completed", result["status"]
+    assert_equal 2, request_count
+    assert_equal [ "/research/v1/res_1", "/research/v1/res_1" ], captured_paths
+  ensure
+    Net::HTTP.define_singleton_method(:new, &original_new.to_proc)
+  end
+
+  test "does not retry transient status errors for POST requests" do
+    responses = [
+      Struct.new(:code, :body).new("429", { error: { message: "rate limited" } }.to_json),
+      Struct.new(:code, :body).new("200", { results: [ { url: "https://retry-success.test" } ] }.to_json)
+    ]
+    request_count = 0
+    http = Object.new
+    http.define_singleton_method(:use_ssl=) { |_value| }
+    http.define_singleton_method(:open_timeout=) { |_value| }
+    http.define_singleton_method(:read_timeout=) { |_value| }
+    http.define_singleton_method(:write_timeout=) { |_value| }
+    http.define_singleton_method(:request) do |_request|
+      request_count += 1
+      responses.shift
+    end
+
+    original_new = Net::HTTP.method(:new)
+    Net::HTTP.define_singleton_method(:new) { |_host, _port| http }
+
+    service = ExaApiService.new
+    error = assert_raises(OpenAiError) { service.search(query: "retry test") }
+
+    assert_includes error.message, "(429)"
+    assert_equal 1, request_count
+  ensure
+    Net::HTTP.define_singleton_method(:new, &original_new.to_proc)
   end
 
   test "requires Exa API key" do
@@ -132,6 +196,9 @@ class ExaApiServiceTest < ActiveSupport::TestCase
   def with_stubbed_http(captured:, response_code:, response_body:)
     http = Object.new
     http.define_singleton_method(:use_ssl=) { |_value| }
+    http.define_singleton_method(:open_timeout=) { |_value| }
+    http.define_singleton_method(:read_timeout=) { |_value| }
+    http.define_singleton_method(:write_timeout=) { |_value| }
     http.define_singleton_method(:request) do |request|
       captured[:request_path] = request.path
       captured[:request_headers] = request.to_hash

@@ -49,7 +49,7 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     end
 
     fake_adapter = Object.new
-    fake_adapter.define_singleton_method(:conversation_native_tools) { [] }
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
     fake_adapter.define_singleton_method(:function_calls) do |response_hash|
       Array(response_hash["output"]).select { |item| item["type"] == "function_call" }
     end

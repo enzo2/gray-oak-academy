@@ -31,10 +31,11 @@ class OpenaiResponsesService
   # - stream_handler: optional Proc; will receive each streamed event (hash)
   # - task_system_prompt: optional; appended to base system prompt
   # - enable_tools: enables tools from Tool model (converted to Responses format)
-  # - native_tools: native Responses tools (e.g. [{ type: "web_search" }])
+  # - provider_native_tools: tools native to the Responses API provider (e.g. [{ type: "web_search" }])
+  # - flow_tools: internal app-defined tools for specialized sub-agent flows
   # - store: when true, Responses API stores state, enabling previous_response_id
   # - previous_response_id: optional; allows chaining stateful Responses calls
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, native_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil)
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
@@ -55,9 +56,11 @@ class OpenaiResponsesService
     # We pass raw streaming events (converted to hashes) to the handler.
     # The handler decides how to render/broadcast output to the UI.
     @stream_handler = wrap_stream_handler(stream_handler)
+
     @tools = []
     @tools.concat(determine_tools) if enable_tools
-    @tools.concat(normalize_native_tools(native_tools))
+    @tools.concat(normalize_flow_tools(flow_tools))
+    @tools.concat(normalize_provider_native_tools(provider_native_tools))
     @tools = @tools.uniq { |tool| tool_dedup_key(tool) }.presence
     @log_completion = log_completion
     @store = store.nil? ? true : store
@@ -649,11 +652,29 @@ class OpenaiResponsesService
     ).for_responses
   end
 
-  def normalize_native_tools(native_tools)
-    Array(native_tools).filter_map do |tool|
+  def normalize_provider_native_tools(provider_native_tools)
+    Array(provider_native_tools).filter_map do |tool|
       case tool
       when String, Symbol
         { "type" => tool.to_s }
+      when Hash
+        normalized = tool.deep_stringify_keys
+        next nil if normalized["type"].blank?
+        if normalized["type"] == "function"
+          Rails.logger.warn("OpenaiResponsesService: function tools are not provider-native; pass them via flow_tools.")
+          next nil
+        end
+
+        normalized
+      else
+        nil
+      end
+    end
+  end
+
+  def normalize_flow_tools(flow_tools)
+    Array(flow_tools).filter_map do |tool|
+      case tool
       when Hash
         normalized = tool.deep_stringify_keys
         normalized["type"].present? ? normalized : nil

@@ -200,6 +200,110 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/unknown)"
   end
 
+  test "web tool action search uses Exa search with bounded num_results" do
+    create_web_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    captured = {}
+    fake_exa = Object.new
+    fake_exa.define_singleton_method(:search) do |**kwargs|
+      captured[:search] = kwargs
+      { "results" => [ { "title" => "Fractions guide", "url" => "https://example.com/fractions" } ] }
+    end
+
+    ExaApiService.stub(:new, ->(**_kwargs) { fake_exa }) do
+      assert_difference "Message.count", 1 do
+        service.execute_tool_call(
+          id: "tc-web-search",
+          name: "Web",
+          arguments: { action: "search", query: "grade 5 fractions", num_results: 500 }.to_json
+        )
+      end
+    end
+
+    assert_equal "grade 5 fractions", captured.dig(:search, :query)
+    assert_equal 20, captured.dig(:search, :numResults)
+    assert_equal false, captured.dig(:search, :contents, :text)
+    assert_equal 2000, captured.dig(:search, :contents, :highlights, :maxCharacters)
+    assert_includes Message.order(:created_at).last.content.to_s, "Fractions guide"
+  end
+
+  test "web tool action answer uses Exa answer" do
+    create_web_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    captured = {}
+    fake_exa = Object.new
+    fake_exa.define_singleton_method(:answer) do |**kwargs|
+      captured[:answer] = kwargs
+      { "answer" => "A fraction represents part of a whole." }
+    end
+
+    ExaApiService.stub(:new, ->(**_kwargs) { fake_exa }) do
+      assert_difference "Message.count", 1 do
+        service.execute_tool_call(
+          id: "tc-web-answer",
+          name: "Web",
+          arguments: { action: "answer", query: "What is a fraction?" }.to_json
+        )
+      end
+    end
+
+    assert_equal "What is a fraction?", captured.dig(:answer, :query)
+    assert_includes Message.order(:created_at).last.content.to_s, "part of a whole"
+  end
+
+  test "web tool action content validates required urls" do
+    create_web_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_call(
+        id: "tc-web-content-missing-urls",
+        name: "Web",
+        arguments: { action: "content", query: "methodology" }.to_json
+      )
+    end
+
+    assert_includes Message.order(:created_at).last.content.to_s, "urls is required for action 'content'"
+  end
+
+  test "web tool action content uses fixed text max characters" do
+    create_web_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    captured = {}
+    fake_exa = Object.new
+    fake_exa.define_singleton_method(:get_contents) do |**kwargs|
+      captured[:contents] = kwargs
+      { "results" => [ { "url" => "https://example.com/paper", "text" => "excerpt" } ] }
+    end
+
+    ExaApiService.stub(:new, ->(**_kwargs) { fake_exa }) do
+      assert_difference "Message.count", 1 do
+        service.execute_tool_call(
+          id: "tc-web-content",
+          name: "Web",
+          arguments: {
+            action: "content",
+            urls: [ "https://example.com/paper" ],
+            query: "methodology"
+          }.to_json
+        )
+      end
+    end
+
+    assert_equal [ "https://example.com/paper" ], captured.dig(:contents, :urls)
+    assert_equal 4000, captured.dig(:contents, :text, :maxCharacters)
+    assert_equal "methodology", captured.dig(:contents, :highlights, :query)
+    assert_equal 4000, captured.dig(:contents, :highlights, :maxCharacters)
+    assert_includes Message.order(:created_at).last.content.to_s, "https://example.com/paper"
+  end
+
   test "generate_lesson_plan runs synchronous content generation when action is generate_content" do
     Rails.cache.clear
     create_generate_lesson_plan_tool!
@@ -347,6 +451,27 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
           "action" => { "type" => "string", "description" => "Action", "enum" => [ "generate_content", "propose_resources_async", "generate_content_and_propose_resources_async" ] }
         },
         "required" => [ "lesson_id", "action" ],
+        "additionalProperties" => false
+      }
+    }
+    tool.save!
+  end
+
+  def create_web_tool!
+    tool = Tool.find_or_initialize_by(name: "Web")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Web",
+      "description" => "Search and retrieve web-grounded information.",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "action" => { "type" => "string", "description" => "Action", "enum" => [ "search", "answer", "content" ] },
+          "query" => { "type" => "string", "description" => "Query" },
+          "urls" => { "type" => "array", "description" => "URLs", "items" => { "type" => "string" } },
+          "num_results" => { "type" => "integer", "description" => "Search result count" }
+        },
+        "required" => [ "action" ],
         "additionalProperties" => false
       }
     }

@@ -2,6 +2,8 @@ require "json/repair"
 
 class ResponsesFunctionCallAdapter
   EXA_TOOL_NAMES = %w[exa_websearch exa_answer].freeze
+  EXA_WEBSEARCH_NUM_RESULTS = 10
+  EXA_WEBSEARCH_HIGHLIGHT_MAX_CHARS = 2_000
 
   def initialize(current_user:, conversation: nil, message: nil, exa_enabled: false, allow_app_tools: true)
     @current_user = current_user
@@ -11,15 +13,18 @@ class ResponsesFunctionCallAdapter
     @allow_app_tools = allow_app_tools
   end
 
-  def delegate_native_tools
-    return exa_tools if @exa_enabled
-
+  def delegate_provider_native_tools
+    return [] if @exa_enabled
     [ { type: "web_search" } ]
   end
 
-  def conversation_native_tools
+  def delegate_flow_tools
     return [] unless @exa_enabled
+    exa_tools
+  end
 
+  def conversation_flow_tools
+    return [] unless @exa_enabled
     exa_tools
   end
 
@@ -115,9 +120,12 @@ class ResponsesFunctionCallAdapter
     when "exa_websearch"
       exa_service.search(
         query: query,
-        numResults: 5,
+        numResults: EXA_WEBSEARCH_NUM_RESULTS,
         contents: {
-          text: { maxCharacters: 1200 }
+          text: false,
+          highlights: {
+            maxCharacters: EXA_WEBSEARCH_HIGHLIGHT_MAX_CHARS
+          }
         }
       ).to_json
     when "exa_answer"

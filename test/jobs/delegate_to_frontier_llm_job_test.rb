@@ -44,7 +44,8 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
     assert_equal "gpt-5.2", captured_new_kwargs[:model]
     assert_equal "sk-test", captured_new_kwargs[:access_token]
     assert_equal teacher, captured_new_kwargs[:current_user]
-    assert_equal [ { type: "web_search" } ], captured_new_kwargs[:native_tools]
+    assert_equal [ { type: "web_search" } ], captured_new_kwargs[:provider_native_tools]
+    assert_equal [], captured_new_kwargs[:flow_tools]
 
     assert_equal [ { role: "user", content: "Build a course outline" } ], calls[:complete_messages]
     assert_equal true, calls.dig(:complete_kwargs, :background)
@@ -125,7 +126,8 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
       end
     end
 
-    tool_names = captured_new_kwargs[:native_tools].map { |tool| tool[:name] }
+    assert_equal [], captured_new_kwargs[:provider_native_tools]
+    tool_names = captured_new_kwargs[:flow_tools].map { |tool| tool[:name] }
     assert_includes tool_names, "exa_websearch"
     assert_includes tool_names, "exa_answer"
     assert_equal [ "refraction simulation applet" ], exa_queries

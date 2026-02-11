@@ -23,7 +23,7 @@ class GetResponsesCompletionJob < ApplicationJob
       conversation: conversation,
       task_system_prompt: conversation.task_system_prompt,
       enable_tools: true,
-      native_tools: function_call_adapter.conversation_native_tools
+      flow_tools: function_call_adapter.conversation_flow_tools
     )
 
     messages = Message.for_completion(

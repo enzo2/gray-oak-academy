@@ -14,6 +14,9 @@ class ToolCatalogService
       if @conversation&.lesson_progress.blank? && @user.role_teacher?
         tools.reject! { |tool| tool.name == "View_Applets" }
       end
+      unless AppSetting.exa_enabled?
+        tools.reject! { |tool| tool.name == "Web" }
+      end
       tools
     end
   end

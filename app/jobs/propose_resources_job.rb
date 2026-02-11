@@ -47,7 +47,7 @@ class ProposeResourcesJob < ApplicationJob
       access_token: openai_config[:access_token],
       base_uri: openai_config[:base_uri],
       model: openai_config[:model],
-      native_tools: executor.tool_definitions,
+      flow_tools: executor.tool_definitions,
       enable_tools: false,
       reasoning_model: true,
       store: true
