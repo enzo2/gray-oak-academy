@@ -32,6 +32,11 @@
                   outline_research_input_admin_course_path(course, anchor: "guidance-report"),
                   class: "btn-secondary" %>
     <% end %>
+    <% if Array(course.outline_research_hash["source_anchors"]).any? %>
+      <%= link_to "View Source Anchors",
+                  outline_research_input_admin_course_path(course, anchor: "source-anchors"),
+                  class: "btn-secondary" %>
+    <% end %>
   </div>
   <% unless show_research_button %>
     <p class="text-xs text-dim mb-3">Research complete. Use the report links below to review outcomes.</p>

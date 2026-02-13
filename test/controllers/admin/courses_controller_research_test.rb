@@ -52,7 +52,17 @@ module Admin
         outline_research_stage: "completed",
         outline_guidance_report_md: "## Guidance\nUse the research framing.",
         outline_research: {
-          "source_anchors" => [],
+          "source_anchors" => [
+            {
+              "id" => "anchor_1",
+              "title" => "Source A",
+              "url" => "https://example.com/a",
+              "excerpt" => "Reference excerpt",
+              "highlights" => [],
+              "notes" => "",
+              "decision" => "approved"
+            }
+          ],
           "coverage_gaps" => [],
           "factual_notes" => [],
           "alternative_approaches" => [],
@@ -71,6 +81,7 @@ module Admin
       assert_includes response.body, "Research Pipeline Complete"
       assert_includes response.body, "Applied successfully."
       assert_includes response.body, "View Guidance Report"
+      assert_includes response.body, "View Source Anchors"
       assert_includes response.body, "Open full guidance report"
       assert_includes response.body, "Research Findings Snapshot"
       assert_not_includes response.body, "Research Outline"
@@ -196,6 +207,17 @@ module Admin
         outline_research_stage: "completed",
         outline_guidance_report_md: "## Guidance\nUse more chronology.",
         outline_research: {
+          "source_anchors" => [
+            {
+              "id" => "anchor_1",
+              "title" => "Source A",
+              "url" => "https://example.com/a",
+              "excerpt" => "Reference excerpt",
+              "highlights" => [ "Point 1" ],
+              "notes" => "Review this",
+              "decision" => "approved"
+            }
+          ],
           "apply_agent_summary_md" => "Applied updates.",
           "apply_completed_at" => "2026-02-12T16:44:06Z"
         }
@@ -207,8 +229,41 @@ module Admin
       assert_includes response.body, "Outline Research Report"
       assert_includes response.body, "Guidance Report"
       assert_includes response.body, "Applied updates."
+      assert_includes response.body, "Source Anchors (Read-Only)"
+      assert_includes response.body, "Source A"
+      assert_includes response.body, "Decision:"
       assert_not_includes response.body, "Resume Agent Apply Phase"
       assert_not_includes response.body, "Save Progress"
+    end
+
+    test "outline_research_input does not show completion text while apply phase is in progress" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline_research_stage: "applying_guidance_updates",
+        outline_guidance_report_md: "## Guidance\nQueued apply phase.",
+        outline_research: {
+          "source_anchors" => [
+            {
+              "id" => "anchor_1",
+              "title" => "Source A",
+              "url" => "https://example.com/a",
+              "excerpt" => "Reference excerpt",
+              "highlights" => [],
+              "notes" => "",
+              "decision" => "approved"
+            }
+          ]
+        }
+      )
+
+      get outline_research_input_admin_course_path(course)
+
+      assert_response :success
+      assert_includes response.body, "Apply Phase In Progress"
+      assert_not_includes response.body, "Research Pipeline Complete"
+      assert_includes response.body, "Source Anchors (Read-Only)"
     end
 
     test "outline_research_input redirects when completed and report is missing" do

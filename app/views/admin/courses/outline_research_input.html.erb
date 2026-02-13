@@ -9,6 +9,8 @@
 <% apply_agent_summary_md = outline_research["apply_agent_summary_md"].to_s %>
 <% apply_completed_at_raw = outline_research["apply_completed_at"].to_s %>
 <% apply_completed_at = begin Time.zone.parse(apply_completed_at_raw) rescue nil end %>
+<% apply_in_progress = @course.outline_research_stage == "applying_guidance_updates" %>
+<% pipeline_completed = @course.outline_research_stage == "completed" %>
 
 <div class="w-full max-w-5xl goa-research-workspace">
   <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -39,15 +41,24 @@
   <% end %>
 
   <% if @read_only_report_mode %>
+    <% status_badge_text = pipeline_completed ? "✓" : "..." %>
     <div class="goa-outline-complete mb-4">
       <div class="goa-outline-complete__header">
-        <span class="goa-outline-complete__badge" aria-hidden="true">✓</span>
+        <span class="goa-outline-complete__badge" aria-hidden="true"><%= status_badge_text %></span>
         <div>
-          <h3 class="font-semibold text-base">Research Pipeline Complete</h3>
-          <p class="text-sm">Guidance has already been applied. Use this page as your report and audit view.</p>
+          <% if pipeline_completed %>
+            <h3 class="font-semibold text-base">Research Pipeline Complete</h3>
+            <p class="text-sm">Guidance has already been applied. Use this page as your report and audit view.</p>
+          <% elsif apply_in_progress %>
+            <h3 class="font-semibold text-base">Apply Phase In Progress</h3>
+            <p class="text-sm">Teacher inputs have been submitted and the agent is currently applying updates. Refresh this page to check status.</p>
+          <% else %>
+            <h3 class="font-semibold text-base">Outline Research Report</h3>
+            <p class="text-sm">This page is currently read-only for review and audit.</p>
+          <% end %>
         </div>
       </div>
-      <% if apply_completed_at.present? %>
+      <% if pipeline_completed && apply_completed_at.present? %>
         <p class="text-xs text-stone-600 dark:text-stone-300 mt-2">
           Completed <%= apply_completed_at.strftime("%b %-d, %Y %-I:%M %p %Z") %>
         </p>
@@ -56,6 +67,43 @@
         <div class="goa-outline-complete__report prose dark:prose-invert max-w-none text-sm mt-3">
           <%= markdown(apply_agent_summary_md) %>
         </div>
+      <% end %>
+    </div>
+
+    <div id="source-anchors" class="goa-outline-findings mb-4">
+      <h3 class="font-semibold mb-2">Source Anchors (Read-Only)</h3>
+      <% if source_anchors.any? %>
+        <div class="space-y-3">
+          <% source_anchors.each_with_index do |anchor, idx| %>
+            <% anchor_hash = anchor.is_a?(Hash) ? anchor : {} %>
+            <% decision = anchor_hash["decision"].to_s.presence || "pending" %>
+            <div class="rounded border border-stone-200 dark:border-stone-700 p-3 bg-white/70 dark:bg-stone-900/50">
+              <p class="text-sm font-semibold"><%= anchor_hash["title"].presence || "Source #{idx + 1}" %></p>
+              <% if anchor_hash["url"].present? %>
+                <p class="text-xs mt-1">
+                  <%= link_to anchor_hash["url"], anchor_hash["url"], target: "_blank", rel: "noopener", class: "underline break-all" %>
+                </p>
+              <% end %>
+              <% if anchor_hash["excerpt"].present? %>
+                <p class="text-sm mt-2"><%= anchor_hash["excerpt"] %></p>
+              <% end %>
+              <% highlights = Array(anchor_hash["highlights"]) %>
+              <% if highlights.any? %>
+                <ul class="list-disc pl-5 text-sm mt-2">
+                  <% highlights.each do |highlight| %>
+                    <li><%= highlight %></li>
+                  <% end %>
+                </ul>
+              <% end %>
+              <% if anchor_hash["notes"].present? %>
+                <p class="text-xs text-dim mt-2"><%= anchor_hash["notes"] %></p>
+              <% end %>
+              <p class="text-xs mt-2"><b>Decision:</b> <%= decision.humanize %></p>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-dim">No source anchors were captured for this run.</p>
       <% end %>
     </div>
   <% else %>
