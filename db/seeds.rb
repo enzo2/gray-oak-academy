@@ -9,7 +9,7 @@
 tool = Tool.find_or_initialize_by(name: 'Chalkboard_URL')
 tool.specifications = {
   name: "Chalkboard_URL",
-  description: "Updates the chalkboard to display a URL in an iframe. Allows URLs provided in the lesson plan to be displayed. This function is not for generative JavaScript applets or any on-the-fly content generation. Do not use a function call to create applets; write the applet code as per the generative instructions.",
+  description: "Updates the chalkboard to display a URL in an iframe. Allows URLs provided in the lesson plan to be displayed. This tool is not for generative JavaScript applets or any on-the-fly content generation.",
   parameters: {
     type: "object",
     properties: {
@@ -26,7 +26,7 @@ tool.save!
 tool = Tool.find_or_initialize_by(name: 'Chalkboard_File')
 tool.specifications = {
   name: "Chalkboard_File",
-  description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types will be displayed as a downloadlink.",
+  description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types will be displayed as a download link.",
   parameters: {
     type: "object",
     properties: {
@@ -428,6 +428,22 @@ tool.specifications = {
 }
 tool.save!
 
+tool = Tool.find_or_initialize_by(name: 'Research_Course_Outline')
+tool.access = :admin
+tool.specifications = {
+  name: "Research_Course_Outline",
+  description: "Significantly validates, refines, and supplements the course planning phase via web-based deep research, followed by subagent analysis. Will generate anchoring citations, a markdown guidance report, and teacher questions for input. After completion, teacher must steer by answering the questions. If answered, subagent will resume and revise the course summary, outline, guidance report, and research. Teacher may undo changes.",
+  parameters: {
+    type: "object",
+    properties: {
+      "course_id" => { "type" => "integer", "description" => "ID of the course" }
+    },
+    "required" => [ "course_id" ],
+    "additionalProperties" => false
+  }
+}
+tool.save!
+
 tool = Tool.find_or_initialize_by(name: 'Generate_Course_Lessons')
 tool.access = :admin
 tool.specifications = {
@@ -586,12 +602,103 @@ p.prompt = <<~PROMPT
 PROMPT
 p.save!
 
+p = Prompt.find_or_initialize_by(category: 'research_course_outline', teacher_id: nil)
+p.title = "Research Course Outline"
+p.prompt = <<~PROMPT
+  You are performing grounded course-level research to support curriculum planning.
+  Course title: {title}
+  Grade level: {grade_level}
+  Course summary: {summary}
+  Existing outline:
+  {outline}
+
+  Return focused research in JSON only with these fields:
+  - source_anchors: high-quality course-level references that a teacher may use while planning the curriculum. Include concise excerpts/highlights and a short note on relevance.
+  - coverage_gaps: topics or perspectives that appear underrepresented in the current outline.
+  - factual_notes: accuracy caveats or clarifications important for course planning. Focus on high-value information or areas of contention/dispute.
+  - alternative_approaches: alternative/heterodox sequencing or framing approaches
+PROMPT
+p.save!
+
+p = Prompt.find_or_initialize_by(category: 'analyze_course_outline_research', teacher_id: nil)
+p.title = "Analyze Course Outline Research"
+p.prompt = <<~PROMPT
+  You are assisting a teacher with course design decisions. A preliminary outline was formulated and grounded research conducted.
+  Now, you will analyze the research and produce a guidance report for the teacher, with the goal of helping the teacher drill down on important pedagogical decisions and material approach. Include salient teacher questions, the answers to which you'll use to lock in the teacher's preferred approach when you later revise the course outline. (Note: In this platform, the teacher retains manual control over the course outline; but you have been called to assist. They might make edits to the outline after you've provided your guidance and questions, but before you get the answer responses.)
+
+  Course title: {title}
+  Grade level: {grade_level}
+  Current summary: {summary}
+  Current outline:
+  {outline}
+
+  Grounded research payload:
+  {outline_research}
+
+  Produce valid JSON only:
+  {
+    "report_markdown": "A concise, actionable markdown report for the teacher.",
+    "research_questions": [
+      {
+        "id": "q1",
+        "question": "...",
+        "choices": {
+          "a": "Option A text",
+          "b": "Option B text",
+          "c": "Option C text",
+          "other": "Other option label"
+        }
+      }
+    ]
+  }
+
+  Requirements:
+  - Ask at most 5 questions.
+  - Each question must include 2-3 explicit choices tailored to that question.
+  - Focus on clarifying teacher intent and tradeoffs before edits.
+  - Keep an open mind. The teacher may prefer a standard approach, or something novel.
+  - Keep the report practical and non-redundant.
+PROMPT
+p.save!
+
+p = Prompt.find_or_initialize_by(category: 'apply_course_outline_research', teacher_id: nil)
+p.title = "Apply Course Outline Research"
+p.prompt = <<~PROMPT
+  Resume the same course-research run and apply changes based on teacher responses.
+
+  Course: {title}
+  Grade level: {grade_level}
+  Current summary: {summary}
+  Current outline: {outline}
+  Current guidance report markdown:#{' '}
+  {outline_guidance_report_md}
+
+  Current outline research payload:#{' '}
+  {outline_research}
+
+  Teacher responses:
+  {teacher_answers}
+  Additional comments from teacher:
+  {additional_comments}
+
+  Instructions:
+  - First call get_course_state to read the latest course state.
+  - Then decide whether updates are warranted.
+  - Apply updates with apply_course_research_update (full-field overwrite semantics for provided fields).
+  - If you need to revise outline_research details, use update_outline_research.
+  - Avoid unnecessary edits; preserve teacher voice and intent.
+  - Provide a brief final summary after any tool calls.
+PROMPT
+p.save!
+
 p = Prompt.find_or_initialize_by(category: 'generate_lessons', teacher_id: nil)
 p.title = "Default Lessons Generator"
 p.prompt = <<~PROMPT
   I am designing a course titled "{title}" for grade level {grade_level} with the following summary: "{summary}".
   The course has been outlined:
   {course_outline}
+  Additional course-level guidance from outline research (if any):
+  {outline_guidance_report}
   The next step is to develop the list of lessons.
   Existing lessons in this course: {existing_lessons}
   Please generate a list of lessons for the course in JSON format as a "lessons" object containing an array of objects.

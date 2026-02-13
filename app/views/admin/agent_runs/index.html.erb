@@ -56,7 +56,15 @@
             <td><%= run[:duration_seconds] %></td>
             <td><%= run[:tool_turn_count].to_i %></td>
             <td><%= run[:tool_call_count] %></td>
-            <td class="max-w-xs"><%= run[:task_preview] %></td>
+            <td class="max-w-md">
+              <div><%= run[:task_preview] %></div>
+              <% if run[:task_prompt].to_s.present? %>
+                <details class="mt-1">
+                  <summary class="cursor-pointer text-xs text-dim">Full task prompt</summary>
+                  <pre class="mt-1 text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-2 rounded overflow-x-auto"><%= run[:task_prompt] %></pre>
+                </details>
+              <% end %>
+            </td>
             <td class="max-w-xs text-red-700 dark:text-red-400"><%= run[:error_message] %></td>
             <td>
               <% if run[:response_id].present? %>
@@ -146,6 +154,28 @@
         <details class="mt-4">
           <summary class="text-sm font-medium cursor-pointer">Assistant Output Text</summary>
           <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:output_text] %></pre>
+        </details>
+      <% end %>
+
+      <% trace_task_prompt = @trace_data[:task_prompt].to_s.presence || @trace_run[:task_prompt].to_s.presence %>
+      <% if trace_task_prompt.present? %>
+        <details class="mt-4">
+          <summary class="text-sm font-medium cursor-pointer">Submitted Task Prompt</summary>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= trace_task_prompt %></pre>
+        </details>
+      <% end %>
+
+      <% if @trace_data[:instructions_text].present? %>
+        <details class="mt-4">
+          <summary class="text-sm font-medium cursor-pointer">Responses Instructions</summary>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:instructions_text] %></pre>
+        </details>
+      <% end %>
+
+      <% if @trace_data[:input_text].present? %>
+        <details class="mt-4">
+          <summary class="text-sm font-medium cursor-pointer">Responses Input Text</summary>
+          <pre class="text-xs whitespace-pre-wrap bg-stone-100 dark:bg-stone-800 p-3 rounded overflow-x-auto mt-2"><%= @trace_data[:input_text] %></pre>
         </details>
       <% end %>
 

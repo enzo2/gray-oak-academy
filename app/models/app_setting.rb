@@ -1,5 +1,6 @@
 class AppSetting < ApplicationRecord
   MASKED_SECRET_VALUE = "__STORED_SECRET__".freeze
+  MAX_OPENAI_AGENT_TOOL_TURNS = 50
 
   # Singleton app-wide settings stored in a JSONB `settings` column
   encrypts :settings
@@ -189,7 +190,9 @@ class AppSetting < ApplicationRecord
 
   def coerce_tool_turn_limit(value)
     parsed = Integer(value, exception: false)
-    parsed if parsed&.positive?
+    return nil unless parsed&.positive?
+
+    [ parsed, MAX_OPENAI_AGENT_TOOL_TURNS ].min
   end
 
   def llms_not_archived

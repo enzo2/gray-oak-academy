@@ -55,6 +55,12 @@ Rails.application.routes.draw do
 
     resources :courses do
       post "generate_outline", on: :member
+      post "start_outline_research", on: :member
+      get "outline_research_input", on: :member
+      patch "submit_outline_research_inputs", on: :member
+      post "resume_outline_research", on: :member
+      patch "resume_outline_research", on: :member
+      post "undo_outline_research_changes", on: :member
       patch "archive", on: :member
       patch "unarchive", on: :member
       resources :lessons do

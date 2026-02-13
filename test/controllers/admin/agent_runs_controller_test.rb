@@ -82,6 +82,9 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
       calls << { response_id: response_id, kwargs: kwargs }
       {
         "id" => response_id,
+        "metadata" => {
+          "task_full" => "FULL TASK PROMPT FROM METADATA"
+        },
         "output" => [
           {
             "type" => "message",
@@ -104,6 +107,8 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "call_1"
     assert_includes response.body, "Assistant output text."
     assert_includes response.body, "Repeated Argument Patterns"
+    assert_includes response.body, "Submitted Task Prompt"
+    assert_includes response.body, "FULL TASK PROMPT FROM METADATA"
   end
 
   test "admin is blocked from agent runs dashboard" do

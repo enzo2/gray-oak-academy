@@ -36,6 +36,7 @@ class AgentRunLogServiceTest < ActiveSupport::TestCase
     assert_equal "run_1", run[:run_id]
     assert_equal "resp_1", run[:response_id]
     assert_equal "completed", run[:status]
+    assert_equal "Build a thing", run[:task_prompt]
     assert_equal 1, run[:assistant_turns]
     assert_equal 1, run[:tool_call_count]
     assert_equal 1, run[:tool_turn_count]

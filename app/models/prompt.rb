@@ -24,7 +24,10 @@ class Prompt < ApplicationRecord
     # tool_usage: "tool_usage", # unused, there is a Tool model for this
     delegate_to_frontier_llm: "delegate_to_frontier_llm", # allow model to query the thinking LLM
     memories_semantic_merge: "memories_semantic_merge", # merge new student memories via LLM
-    generate_observations: "generate_observations" # generate academic observations from lesson reports
+    generate_observations: "generate_observations", # generate academic observations from lesson reports
+    research_course_outline: "research_course_outline", # Exa-grounded course-level research retrieval
+    analyze_course_outline_research: "analyze_course_outline_research", # synthesize report + teacher questions
+    apply_course_outline_research: "apply_course_outline_research" # interpret teacher input and apply updates
   }, validate: true, prefix: true
 
   FRIENDLY_CATEGORIES = {
@@ -48,7 +51,10 @@ class Prompt < ApplicationRecord
     # tool_usage: "Tool Usage",
     delegate_to_frontier_llm: "Delegate To Frontier LLM",
     memories_semantic_merge: "Memories: Semantic Merge",
-    generate_observations: "Generate Observations"
+    generate_observations: "Generate Observations",
+    research_course_outline: "Research Course Outline",
+    analyze_course_outline_research: "Analyze Course Outline Research",
+    apply_course_outline_research: "Apply Course Outline Research"
   }
 
   validates :title, presence: true

@@ -27,28 +27,29 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 
   *Solution*: Raw audio input, STT, and TTS are combined to enable voice-only lessons without the high cost of realtime models. This enables learning in any setting, like "walk-and-talk" or workshops. Going further, "offline" lessons are encouraged, where the student is given an activity and debriefed afterward.
 
-* **Vendor Lock-in**: LLMs are constantly changing in intelligence, personality, and relevant traits like sycophancy. It should be easy to switch models. In addition, for privacy, Zero Data Retention (ZDR) is needed.
+* **Vendor Lock-in**: LLMs are constantly changing in intelligence, personality, and relevant traits like sycophancy. It should be easy to switch models. 
 
-  *Solution*: Both the API and models are fully user-configurable. Any OpenAI-compatible API can be used, with special support for OpenRouter, making it easy to try different models, providers, and configure ZDR. 
+  *Solution*: Both the API and models are fully user-configurable. Any OpenAI-compatible API can be used, with special support for OpenRouter, making it easy to try different models and providers.
 
-Importantly, the system should negate the arguments made in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home&ndash; or small&ndash;group schooling, the supervisory teacher or parent remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. 
+Importantly, the system should negate the arguments implied in Isaac Asimov's 1951 short story ["The Fun They Had"](http://visual-memory.co.uk/daniel/funtheyhad.html), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home– or small–group schooling, the supervisory teacher or parent remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. 
 
-*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling. It's a prototype.
+*Notice: I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling.
 
 ## Features
-- Self-hostable with docker
-- Works with any OpenAI-compatible API (including local)
-- Highly configurable LLM tutoring: design your own curriculum with Courses, Lessons, Resources, Applets
-- Rapid yet deliberate curriculum planning: Use a frontier LLM to quickly generate a full set of lessons according to your goals, then finalize lessons manually or with LLM assistance
-- Integrated multimodal LLM chat for teachers and students, with STT/TTS/auto-read, images & webcam, and "chalkboard" (multipurpose frame accessible by the LLM)
-- LLM can create/run Javascript applets, display files and URLs, finish lessons, save memories, and generate student reports
+- Complete learning environment: LLM-assisted curriculum design with courses, lessons, resources, and applets
+- AI-augmented, yet deliberate curriculum planning: Rapidly expand a full set of lessons according to your goals; take manual control at any point in the process
+- 
+- Powerful LLM tutor: can create/run Javascript applets, display web resources, save memories and observations, evaluate students
+- Integrated multimodal LLM chat for teachers and students, with STT/TTS/auto-read, images & webcam, and "chalkboard" (canvas accessible by the LLM)
+- Encourages away-from-keyboard: Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 - Longitudinal student model with atomic observations keeps a fluid view of student progress; teacher may veto observations
 - Reports, observations, and memories feed forward, ensuring continuity
 - Discuss student progress with the LLM in depth, or review progress reports manually
-- Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 
 ### More cool stuff
+- Self-hostable with docker
 - All system prompts can be customized (opinionated defaults included)
+- Works with any OpenAI-compatible API (including local)
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API and token management: Preload multiple LLM APIs for teachers to choose from
 - Automated memory saving and semantic consolidation
@@ -113,27 +114,15 @@ Importantly, the system should negate the arguments made in Isaac Asimov's 1951 
 - The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
-- Improve curriculum design:
-   - web search / open textbook / deep research support
-   - Automated resource finding/validation 
+- Expand search/research-grounded agentic curriculum planning
 - MCP support
 - Improve student analytics
-- Resource tagging, archive
+- Resource archive & auto-organization
 - Hide more advanced settings/features under a Power User setting
 - Python applets (pyodide iframe)
 - Speed up audio input with ffmpeg to reduce cost
-- Experiment with live/realtime APIs for voice lessons - if doesn't reduce intelligence
+- Avoiding live/realtime APIs thus far due to risk of forced conversation and lower intelligence. May be suitable for AFK lessons.
 - Mobile push notifications
-
-## Contributor guidelines:
-Maintain the core app principles:
-- Do not vibe-code without fully reviewing
-- The goal is to meet or exceed the level of a private tutor 
-- Self-hostable, and ideally improve in this respect
-- Suitable for all student ages
-- Follow generally accepted Rails architecture, keep models heavy, controllers light, code easy to follow and commented.
-- All LLM prompts and tools should be user-editable; use the existing models for Prompt and Tool.
-- Test with different LLM APIs and models
 
 ## License
 See LICENSE.md.

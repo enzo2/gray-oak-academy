@@ -50,10 +50,15 @@ module Admin
       )
 
       response = service.retrieve_response(run[:response_id])
+      task_prompt = resolved_task_prompt(run: run, response: response)
 
       {
         tool_calls: tool_calls,
         tool_call_summary: tool_call_summary,
+        task_prompt: task_prompt.to_s,
+        task_preview: resolved_task_preview(run: run, response: response),
+        input_text: extract_input_text(response),
+        instructions_text: response["instructions"].to_s,
         output_text: extract_output_text(response),
         response_json: JSON.pretty_generate(response)
       }
@@ -61,6 +66,10 @@ module Admin
       {
         tool_calls: tool_calls,
         tool_call_summary: tool_call_summary,
+        task_prompt: run[:task_prompt].to_s,
+        task_preview: run[:task_preview].to_s,
+        input_text: "",
+        instructions_text: "",
         output_text: "",
         response_json: "",
         error: e.message
@@ -70,21 +79,66 @@ module Admin
       {
         tool_calls: tool_calls,
         tool_call_summary: tool_call_summary,
+        task_prompt: run[:task_prompt].to_s,
+        task_preview: run[:task_preview].to_s,
+        input_text: "",
+        instructions_text: "",
         output_text: "",
         response_json: "",
         error: "Failed to fetch run trace: #{e.message}"
       }
     end
 
-    def extract_output_text(response)
-      Array(response["output"]).flat_map do |item|
-        next [] unless item["type"].to_s == "message"
+  def resolved_task_prompt(run:, response:)
+    run[:task_prompt].to_s.presence || response_metadata_value(response, "task_full", "task_prompt")
+  end
+
+  def resolved_task_preview(run:, response:)
+    run[:task_preview].to_s.presence || response_metadata_value(response, "task_preview")
+  end
+
+  def response_metadata_value(response, *keys)
+    metadata = response["metadata"]
+    return "" unless metadata.is_a?(Hash)
+
+    keys.each do |key|
+      value = metadata[key] || metadata[key.to_sym]
+      return value.to_s if value.present?
+    end
+
+    ""
+  end
+
+  def extract_output_text(response)
+    Array(response["output"]).flat_map do |item|
+      next [] unless item["type"].to_s == "message"
 
         Array(item["content"]).filter_map do |part|
           part["text"] if part["type"].to_s == "output_text"
-        end
-      end.join("\n\n")
+      end
+    end.join("\n\n")
+  end
+
+  def extract_input_text(response)
+    Array(response["input"]).flat_map do |item|
+      next item.to_s unless item.is_a?(Hash)
+
+      extract_text_from_content(item["content"])
+    end.join("\n\n")
+  end
+
+  def extract_text_from_content(content)
+    case content
+    when String
+      content
+    when Array
+      content.filter_map { |part| extract_text_from_content(part) }.join(" ")
+    when Hash
+      content["text"] || content["input_text"] || content["output_text"] || content["content"]&.to_s
+    else
+      content.to_s
     end
+  end
 
     def normalize_tool_calls(tool_calls)
       Array(tool_calls).filter_map do |tool_call|

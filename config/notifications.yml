@@ -70,6 +70,97 @@ events:
       - quantity_str
       - student_id
 
+  course_outline_research.started:
+    category: agent_ops
+    subject: "Course Outline Research Started"
+    message: "Queued outline research for %{course_title} (course_id=%{course_id}) by %{teacher_name}."
+    required_params:
+      - teacher_name
+      - teacher_id
+      - course_id
+      - course_title
+      - source
+      - stage
+
+  course_outline_research.exa_completed:
+    category: agent_ops
+    subject: "Course Outline Research Exa Completed"
+    message: "Exa research completed for %{course_title}: %{source_anchor_count} anchors, %{coverage_gap_count} gaps, %{factual_note_count} factual notes, %{alternative_approach_count} alternatives."
+    required_params:
+      - teacher_name
+      - teacher_id
+      - course_id
+      - course_title
+      - source
+      - stage
+      - research_id
+      - source_anchor_count
+      - coverage_gap_count
+      - factual_note_count
+      - alternative_approach_count
+
+  course_outline_research.guidance_ready:
+    category: agent_ops
+    subject: "Course Outline Research Guidance Ready"
+    message: "Guidance is ready for %{course_title}: %{question_count} teacher questions generated."
+    required_params:
+      - teacher_name
+      - teacher_id
+      - course_id
+      - course_title
+      - source
+      - stage
+      - run_id
+      - response_id
+      - question_count
+      - source_anchor_count
+
+  course_outline_research.resume_queued:
+    category: agent_ops
+    subject: "Course Outline Research Resume Queued"
+    message: "Queued apply phase for %{course_title} (run %{run_id}) after teacher input."
+    required_params:
+      - teacher_name
+      - teacher_id
+      - course_id
+      - course_title
+      - source
+      - stage
+      - run_id
+      - question_count
+      - source_anchor_count
+
+  course_outline_research.apply_completed:
+    category: agent_ops
+    subject: "Course Outline Research Apply Completed"
+    message: "Apply phase completed for %{course_title} (run %{run_id}, response %{response_id}) after %{tool_turns} tool turns."
+    required_params:
+      - teacher_name
+      - teacher_id
+      - course_id
+      - course_title
+      - source
+      - stage
+      - run_id
+      - response_id
+      - tool_turns
+
+  course_outline_research.pipeline_failed:
+    category: agent_ops
+    subject: "Course Outline Research Failed"
+    message: "Course outline research failed for %{course_title} during %{phase}: %{error_message}"
+    required_params:
+      - teacher_name
+      - teacher_id
+      - course_id
+      - course_title
+      - source
+      - stage
+      - phase
+      - run_id
+      - response_id
+      - error_message
+
   agent_run.failed:
     category: agent_ops
     subject: "Agent Run Failed"

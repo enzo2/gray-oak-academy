@@ -33,6 +33,7 @@ class GenerateCourseLessonsJob < ApplicationJob
       .gsub("{summary}", course.summary)
       .gsub("{grade_level}", course.grade_level)
       .gsub("{course_outline}", course.outline.to_json)
+      .gsub("{outline_guidance_report}", course.outline_guidance_report_md.to_s)
       .gsub("{existing_lessons}", existing_list)
 
     # Prepare messages for the LLM

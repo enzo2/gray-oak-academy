@@ -436,6 +436,41 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_includes Message.order(:created_at).last.content.to_s, "Generate the lesson plan once before proposing resources."
   end
 
+  test "research_course_outline queues outline research asynchronously" do
+    create_research_course_outline_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    course = courses(:one)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    captured_kwargs = {}
+    fake_async_service = Object.new
+    fake_async_service.define_singleton_method(:enqueue_start) do
+      { ok: true, stage: "researching_outline", message: "Queued outline research." }
+    end
+
+    CourseOutlineResearchAsyncService.stub(:new, ->(**kwargs) {
+      captured_kwargs = kwargs
+      fake_async_service
+    }) do
+      assert_difference "Message.count", 1 do
+        service.execute_tool_call(
+          id: "tc-research-outline",
+          name: "Research_Course_Outline",
+          arguments: { course_id: course.id }.to_json
+        )
+      end
+    end
+
+    assert_equal course, captured_kwargs[:course]
+    assert_equal users(:admin), captured_kwargs[:current_user]
+    assert_equal "teacher_chat_tool", captured_kwargs[:source]
+
+    content = Message.order(:created_at).last.content.to_s
+    assert_includes content, "\"status\": \"queued\""
+    assert_includes content, "\"action\": \"research_outline\""
+    assert_includes content, "\"course_id\": #{course.id}"
+  end
+
   private
 
   def create_generate_lesson_plan_tool!
@@ -451,6 +486,24 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
           "action" => { "type" => "string", "description" => "Action", "enum" => [ "generate_content", "propose_resources_async", "generate_content_and_propose_resources_async" ] }
         },
         "required" => [ "lesson_id", "action" ],
+        "additionalProperties" => false
+      }
+    }
+    tool.save!
+  end
+
+  def create_research_course_outline_tool!
+    tool = Tool.find_or_initialize_by(name: "Research_Course_Outline")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Research_Course_Outline",
+      "description" => "Run optional Exa-grounded outline research for a course.",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "course_id" => { "type" => "integer", "description" => "ID of the course" }
+        },
+        "required" => [ "course_id" ],
         "additionalProperties" => false
       }
     }

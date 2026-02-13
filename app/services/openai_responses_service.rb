@@ -839,7 +839,7 @@ class OpenaiResponsesService
     meta = metadata.is_a?(Hash) ? metadata.deep_stringify_keys : {}
     existing = @agent_run_context || {}
     run_id = meta["run_id"].presence || existing[:run_id] || SecureRandom.uuid
-    prompt = meta["task_preview"].presence || existing[:prompt] || derive_prompt_preview(messages: messages, input: input)
+    prompt = meta["task_full"].presence || meta["task_preview"].presence || existing[:prompt] || derive_prompt_preview(messages: messages, input: input)
 
     @agent_run_terminal_logged = false if existing[:run_id] != run_id
 

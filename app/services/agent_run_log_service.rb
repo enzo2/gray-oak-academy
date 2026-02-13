@@ -1,5 +1,6 @@
 class AgentRunLogService
   MAX_LOGS = 500
+  MAX_TASK_PROMPT_CHARS = 50_000
 
   def initialize(app_setting: AppSetting.settings)
     @app_setting = app_setting
@@ -31,6 +32,7 @@ class AgentRunLogService
       model: model.to_s,
       source: source.to_s,
       task_preview: truncate_prompt(prompt),
+      task_prompt: normalize_task_prompt(prompt),
       submitted_at: Time.current.iso8601
     )
   end
@@ -101,6 +103,10 @@ class AgentRunLogService
 
   def truncate_prompt(prompt)
     prompt.to_s.squish.truncate(220)
+  end
+
+  def normalize_task_prompt(prompt)
+    prompt.to_s.first(MAX_TASK_PROMPT_CHARS)
   end
 
   def output_metrics(response_hash)

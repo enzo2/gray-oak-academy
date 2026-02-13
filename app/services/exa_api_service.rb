@@ -109,6 +109,7 @@ class ExaApiService
 
     loop do
       response = get_research(research_id: research_id, log_completion: false)
+      yield(response) if block_given?
       status = response["status"].to_s.downcase
 
       if TERMINAL_RESEARCH_STATUSES.include?(status)

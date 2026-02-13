@@ -1,0 +1,160 @@
+<div id="outline-research-panel" class="mt-6 border border-stone-300 dark:border-stone-700 rounded-md p-4">
+  <h3 class="text-xl font-semibold mb-2">Outline Research</h3>
+  <p class="text-sm mb-3">
+    Optional course-level research pass. This can take ~5 minutes and will produce a report plus teacher questions.
+  </p>
+
+  <% show_research_button = course.outline_research_stage != "completed" %>
+  <div class="flex flex-wrap gap-2 items-center mb-3">
+    <% disable_research_button = course.outline_research_in_progress? || course.outline_research_restart_blocked? %>
+    <% if show_research_button %>
+      <%= form_with url: start_outline_research_admin_course_path(course), method: :post do %>
+        <button type="submit" class="btn-primary gap-2" <%= "disabled" if disable_research_button %>>
+          <% if course.outline_research_in_progress? %>
+            <sl-spinner></sl-spinner>
+            Research In Progress
+          <% else %>
+            <sl-icon name="search"></sl-icon>
+            Research Outline
+          <% end %>
+          </button>
+      <% end %>
+    <% end %>
+
+    <% if course.course_prior_state.present? %>
+      <%= form_with url: undo_outline_research_changes_admin_course_path(course), method: :post do %>
+        <button type="submit" class="btn-secondary">Undo Latest Agent Changes</button>
+      <% end %>
+    <% end %>
+
+    <% if course.outline_guidance_report_present? %>
+      <%= link_to "View Guidance Report",
+                  outline_research_input_admin_course_path(course, anchor: "guidance-report"),
+                  class: "btn-secondary" %>
+    <% end %>
+  </div>
+  <% unless show_research_button %>
+    <p class="text-xs text-dim mb-3">Research complete. Use the report links below to review outcomes.</p>
+  <% end %>
+
+  <% outline_research = course.outline_research_hash %>
+  <% exa_status = outline_research.dig("exa_research", "status").to_s.downcase %>
+  <% exa_running = course.outline_research_stage == "researching_outline" && %w[queued pending in_progress running processing].include?(exa_status) %>
+  <% apply_agent_summary_md = outline_research["apply_agent_summary_md"].to_s %>
+  <% apply_completed_at_raw = outline_research["apply_completed_at"].to_s %>
+  <% apply_completed_at = begin Time.zone.parse(apply_completed_at_raw) rescue nil end %>
+  <p class="text-sm mb-2">
+    <b>Status:</b> <%= course.outline_research_stage.humanize %><%= raw(" &mdash; running...") if exa_running %>
+  </p>
+  <% if course.outline_research_error.present? %>
+    <p class="text-sm text-red-700 dark:text-red-300 mb-2">
+      <b>Error:</b> <%= course.outline_research_error %>
+    </p>
+  <% end %>
+  <div class="mt-3 mb-4 border-t border-stone-200 dark:border-stone-700"></div>
+
+  <% if course.outline_research_stage == "completed" %>
+    <div class="goa-outline-complete mb-4">
+      <div class="goa-outline-complete__header">
+        <span class="goa-outline-complete__badge" aria-hidden="true">✓</span>
+        <div>
+          <h4 class="font-semibold text-base">Research Pipeline Complete</h4>
+          <p class="text-sm">Guidance has been applied and your course has been updated.</p>
+          <%= link_to "Open full guidance report",
+                      outline_research_input_admin_course_path(course, anchor: "guidance-report"),
+                      class: "text-sm underline" if course.outline_guidance_report_present? %>
+        </div>
+      </div>
+      <% if apply_completed_at.present? %>
+        <p class="text-xs text-stone-600 dark:text-stone-300 mt-2">
+          Completed <%= apply_completed_at.strftime("%b %-d, %Y %-I:%M %p %Z") %>
+        </p>
+      <% end %>
+      <% if apply_agent_summary_md.present? %>
+        <div class="goa-outline-complete__report prose dark:prose-invert max-w-none text-sm mt-3">
+          <%= markdown(apply_agent_summary_md) %>
+        </div>
+      <% else %>
+        <p class="text-sm mt-2">No completion summary was returned by the model.</p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% has_research_content = %w[source_anchors coverage_gaps factual_notes alternative_approaches].any? { |k| outline_research.key?(k) } %>
+  <% if has_research_content %>
+    <div class="goa-outline-findings mb-4">
+      <h4 class="font-semibold mb-1">Research Findings Snapshot</h4>
+      <p class="text-sm mb-3">Raw research results captured during the run, shown for reference.</p>
+
+      <div class="mb-4">
+        <h5 class="font-semibold mb-1">Coverage Gaps</h5>
+        <% coverage_gaps = Array(outline_research["coverage_gaps"]) %>
+        <% if coverage_gaps.any? %>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <% coverage_gaps.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-dim">No coverage gaps returned.</p>
+        <% end %>
+      </div>
+
+      <div class="mb-4">
+        <h5 class="font-semibold mb-1">Factual Notes</h5>
+        <% factual_notes = Array(outline_research["factual_notes"]) %>
+        <% if factual_notes.any? %>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <% factual_notes.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-dim">No factual notes returned.</p>
+        <% end %>
+      </div>
+
+      <div class="mb-0">
+        <h5 class="font-semibold mb-1">Alternative Approaches</h5>
+        <% alternative_approaches = Array(outline_research["alternative_approaches"]) %>
+        <% if alternative_approaches.any? %>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <% alternative_approaches.each do |item| %>
+              <li><%= item %></li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-sm text-dim">No alternate approaches returned.</p>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <% source_anchor_count = Array(outline_research["source_anchors"]).size %>
+  <% question_count = Array(course.outline_guidance_questions).size %>
+  <% unanswered_count = course.unanswered_research_question_ids.size %>
+  <% pending_source_count = course.pending_source_anchor_count %>
+
+  <% if source_anchor_count.positive? || question_count.positive? %>
+    <div class="mb-3 text-sm">
+      <% if source_anchor_count.positive? %>
+        <p><b>Source anchors:</b> <%= source_anchor_count %> total, <%= pending_source_count %> pending decisions.</p>
+      <% end %>
+      <% if question_count.positive? %>
+        <p><b>Teacher questions:</b> <%= question_count %> total, <%= unanswered_count %> unanswered.</p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if course.outline_research_input_open? %>
+    <div class="border border-stone-200 dark:border-stone-700 rounded p-3">
+      <h4 class="font-semibold mb-2"><%= course.awaiting_outline_research_input? ? "Awaiting Teacher Input" : "Research Workspace Available" %></h4>
+      <p class="text-sm mb-3">
+        Continue in the dedicated review workspace to approve sources, read guidance, answer questions, and resume or retry the agent.
+      </p>
+      <%= link_to "Review Outline Research",
+                  outline_research_input_admin_course_path(course),
+                  class: "btn-primary" %>
+    </div>
+  <% end %>
+</div>

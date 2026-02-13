@@ -1,9 +1,17 @@
 <div class="flex flex-row justify-between">
   <%= link_to "Back to Courses", admin_courses_path, class: "block mb-4 hover:underline" %>
-  <sl-button href="<%= printable_admin_course_lessons_path(@course) %>" target="_blank">
-    <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
-    Printable View
-  </sl-button>
+  <div class="flex flex-wrap items-center gap-2 mb-4">
+    <% if @course.outline_guidance_report_present? %>
+      <%= link_to outline_research_input_admin_course_path(@course, anchor: "guidance-report"), class: "btn-secondary" do %>
+        <sl-icon name="file-earmark-richtext"></sl-icon>
+        View Guidance Report
+      <% end %>
+    <% end %>
+    <sl-button href="<%= printable_admin_course_lessons_path(@course) %>" target="_blank">
+      <sl-icon slot="prefix" name="file-earmark-text"></sl-icon>
+      Printable View
+    </sl-button>
+  </div>
 </div>
 
 <h2 class="text-2xl mb-5 block">Lessons for: <b> <%= @course.title %></b></h2>

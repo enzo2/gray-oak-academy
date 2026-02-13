@@ -84,6 +84,9 @@ class AppSettingTest < ActiveSupport::TestCase
     @app.update!(openai_agent_max_tool_turns: "25")
     assert_equal 25, AppSetting.openai_agent_max_tool_turns
 
+    @app.update!(openai_agent_max_tool_turns: "1000")
+    assert_equal 50, AppSetting.openai_agent_max_tool_turns
+
     @app.update!(openai_agent_max_tool_turns: "0")
     assert_nil AppSetting.openai_agent_max_tool_turns
 

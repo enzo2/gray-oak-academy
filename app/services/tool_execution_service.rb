@@ -801,6 +801,36 @@ class ToolExecutionService
     end
   end
 
+  def execute_research_course_outline
+    # Teacher-only tool
+    course_id = @args["course_id"].to_i
+    course = current_teacher.taught_courses.find_by(id: course_id)
+    raise ToolExecutionError, "Course not found" unless course
+
+    result = CourseOutlineResearchAsyncService.new(
+      course: course,
+      current_user: current_teacher,
+      source: "teacher_chat_tool"
+    ).enqueue_start
+
+    raise ToolExecutionError, result[:message] unless result[:ok]
+
+    course.reload
+    create_tool_message(JSON.pretty_generate({
+      status: "queued",
+      action: "research_outline",
+      message: result[:message],
+      course_id: course.id,
+      outline_research_stage: course.outline_research_stage,
+      next_step: "Use Get_Course_Details to check outline_research_stage until it reaches awaiting_teacher_input, completed, or failed."
+    }))
+  rescue StandardError => e
+    raise e if e.is_a?(ToolExecutionError)
+
+    Rails.logger.error "ResearchCourseOutline error: #{e.message}"
+    raise ToolExecutionError, "Failed to research course outline: #{e.message}"
+  end
+
   def execute_edit_course_lessons
     # Teacher-only tool
     course_id = @args["course_id"].to_i

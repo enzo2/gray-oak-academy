@@ -1,0 +1,303 @@
+class ResumeCourseOutlineResearchJob < ApplicationJob
+  queue_as :default
+
+  def perform(course_id:, user_id:, permission_granted:, source: "course_edit")
+    current_user = User.find(user_id)
+    course = Course.find(course_id)
+    failure_phase = "initialize"
+
+    permission = ActiveModel::Type::Boolean.new.cast(permission_granted)
+    raise OpenAiError, "Teacher permission is required before applying research updates." unless permission
+
+    validate_resume_prerequisites!(course)
+
+    course.update!(
+      outline_research_stage: "applying_guidance_updates",
+      outline_research_error: nil,
+      outline_research: clear_apply_completion_fields(course.outline_research_hash)
+    )
+    broadcast_refresh(current_user)
+
+    openai_config = openai_agent_config!
+    run_id = course.outline_research_run_id.presence || SecureRandom.uuid
+    executor = CourseResearchToolExecutor.new(course: course, current_user: current_user)
+    client = OpenaiResponsesService.new(
+      current_user: current_user,
+      access_token: openai_config[:access_token],
+      base_uri: openai_config[:base_uri],
+      model: openai_config[:model],
+      flow_tools: executor.tool_definitions,
+      enable_tools: false,
+      reasoning_model: true,
+      store: true
+    )
+
+    max_tool_turns = AppSetting.openai_agent_max_tool_turns
+    raise OpenAiError, "OpenAI agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
+
+    response_hash = submit_initial_resume_prompt(
+      client: client,
+      course: course,
+      run_id: run_id,
+      source: source,
+      previous_response_id: course.outline_research_response_id
+    )
+
+    turns = 0
+    failure_phase = "apply_with_tools"
+    loop do
+      function_calls = Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
+      break if function_calls.blank?
+
+      turns += 1
+      if turns > max_tool_turns
+        raise OpenAiError, "Outline research apply run exceeded tool-call limit (#{max_tool_turns})."
+      end
+
+      outputs = function_calls.map { |function_call| executor.execute(function_call) }
+      response_hash = continue_run(
+        client: client,
+        input: outputs,
+        previous_response_id: response_hash["id"],
+        run_id: run_id,
+        source: source,
+        course: course,
+        current_user: current_user
+      )
+    end
+
+    final_status = response_hash["status"].to_s
+    if final_status != "completed"
+      raise OpenAiError, "Outline research apply run failed with status '#{final_status}'."
+    end
+
+    final_agent_summary = extract_output_text(response_hash)
+    course.update!(
+      outline_research_stage: "completed",
+      outline_research_error: nil,
+      outline_research: merge_apply_completion_summary(
+        outline_research: course.outline_research_hash,
+        summary_md: final_agent_summary
+      ),
+      outline_research_run_id: run_id,
+      outline_research_response_id: response_hash["id"].to_s
+    )
+    emit_analytics_event(
+      Events::CourseOutlineResearchApplyCompleted,
+      course: course,
+      current_user: current_user,
+      source: source,
+      stage: "completed",
+      run_id: run_id.to_s,
+      response_id: response_hash["id"].to_s,
+      tool_turns: turns.to_i
+    )
+    broadcast_refresh(current_user)
+  rescue StandardError => e
+    Rails.logger.error("ResumeCourseOutlineResearchJob failed for course=#{course_id}: #{e.message}")
+    course&.update(
+      outline_research_stage: "failed",
+      outline_research_error: "Failed to apply outline research guidance: #{e.message}"
+    )
+    emit_analytics_event(
+      Events::CourseOutlineResearchPipelineFailed,
+      course: course,
+      current_user: current_user,
+      source: source,
+      stage: course&.outline_research_stage || "failed",
+      phase: failure_phase,
+      run_id: course&.outline_research_run_id.to_s,
+      response_id: course&.outline_research_response_id.to_s,
+      error_message: e.message.to_s.truncate(500)
+    )
+    broadcast_refresh(current_user) if current_user.present?
+    raise
+  end
+
+  private
+
+  def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:)
+    raise OpenAiError, "No previous response id is available to resume outline research run." if previous_response_id.to_s.blank?
+
+    prompt = build_resume_prompt(course)
+    submitted = client.complete(
+      [ { role: "user", content: prompt } ],
+      previous_response_id: previous_response_id,
+      background: true,
+      metadata: {
+        run_id: run_id,
+        run_type: "outline_research_apply",
+        teacher_id: course.teacher_id.to_s,
+        course_id: course.id.to_s,
+        source: source.to_s
+      }
+    )
+
+    response_id = submitted["id"].to_s
+    raise OpenAiError, "Responses API did not return a response id when resuming outline research." if response_id.blank?
+
+    client.wait_for_response(response_id, timeout_seconds: 900, poll_interval_seconds: 2)
+  end
+
+  def continue_run(client:, input:, previous_response_id:, run_id:, source:, course:, current_user:)
+    submitted = client.complete(
+      nil,
+      input: input,
+      previous_response_id: previous_response_id,
+      background: true,
+      metadata: {
+        run_id: run_id,
+        run_type: "outline_research_apply",
+        teacher_id: current_user.id.to_s,
+        course_id: course.id.to_s,
+        source: source.to_s
+      }
+    )
+    response_id = submitted["id"].to_s
+    raise OpenAiError, "Responses API did not return a response id while continuing outline research apply run." if response_id.blank?
+
+    client.wait_for_response(response_id, timeout_seconds: 900, poll_interval_seconds: 2)
+  end
+
+  def clear_apply_completion_fields(outline_research)
+    payload = outline_research.is_a?(Hash) ? outline_research.deep_dup : {}
+    payload.except("apply_agent_summary_md", "apply_completed_at")
+  end
+
+  def merge_apply_completion_summary(outline_research:, summary_md:)
+    payload = clear_apply_completion_fields(outline_research)
+    return payload if summary_md.blank?
+
+    payload.merge(
+      "apply_agent_summary_md" => summary_md,
+      "apply_completed_at" => Time.current.iso8601
+    )
+  end
+
+  def extract_output_text(response_hash)
+    Array(response_hash["output"]).flat_map do |item|
+      next [] unless item["type"].to_s == "message"
+
+      Array(item["content"]).filter_map do |content|
+        next unless content["type"].to_s == "output_text"
+
+        content["text"].to_s
+      end
+    end.map(&:strip).reject(&:blank?).join("\n\n")
+  end
+
+  def build_resume_prompt(course)
+    answers = course.outline_guidance_answers_hash
+    question_text = Array(course.outline_guidance_questions).map do |question|
+      question_hash = question.is_a?(Hash) ? question : {}
+      id = question_hash["id"].to_s
+      prompt = question_hash["question"].to_s
+      answer = formatted_teacher_answer(question_hash: question_hash, raw_answer: answers[id])
+      "- #{id}: #{prompt}\n  Teacher answer: #{answer}"
+    end.join("\n")
+
+    Prompt.get_prompt(category: "apply_course_outline_research", user: course.teacher)
+      .gsub("{title}", course.title.to_s)
+      .gsub("{summary}", course.summary.to_s)
+      .gsub("{grade_level}", course.grade_level.to_s)
+      .gsub("{outline}", course.outline.to_json)
+      .gsub("{outline_guidance_report_md}", course.outline_guidance_report_md.to_s)
+      .gsub("{outline_research}", course.outline_research.to_json)
+      .gsub("{additional_comments}", course.outline_guidance_additional_comments.presence || "None.")
+      .gsub("{teacher_answers}", question_text)
+  end
+
+  def formatted_teacher_answer(question_hash:, raw_answer:)
+    payload = parse_teacher_answer(raw_answer)
+    choice = payload["choice"].to_s.upcase
+
+    case choice
+    when "A", "B", "C"
+      choice_label = question_choice_label(question_hash, choice)
+      "Choice #{choice}: #{choice_label}."
+    when "OTHER"
+      other_text = payload["other_text"].to_s.strip
+      return "No response provided." if other_text.blank?
+
+      "Other: #{other_text}"
+    else
+      "No response provided."
+    end
+  end
+
+  def parse_teacher_answer(raw_answer)
+    case raw_answer
+    when Hash
+      raw_answer.deep_stringify_keys
+    when String
+      raw = raw_answer.to_s
+      return {} if raw.blank?
+
+      parsed = JSON.parse(raw)
+      parsed.is_a?(Hash) ? parsed : {}
+    else
+      {}
+    end
+  rescue JSON::ParserError
+    {}
+  end
+
+  def question_choice_label(question_hash, key)
+    defaults = {
+      "A" => "Keep current direction",
+      "B" => "Adopt research recommendations",
+      "C" => "Blend both approaches",
+      "OTHER" => "Custom response"
+    }
+    choices = question_hash["choices"].is_a?(Hash) ? question_hash["choices"] : {}
+    label = choices[key].to_s.strip
+    label = choices[key.downcase].to_s.strip if label.blank?
+    label.presence || defaults[key]
+  end
+
+  def validate_resume_prerequisites!(course)
+    if course.unanswered_research_question_ids.any?
+      raise OpenAiError, "All research questions must be answered before resuming."
+    end
+
+    if course.pending_source_anchor_count.positive?
+      raise OpenAiError, "All source anchors must be approved or rejected before resuming."
+    end
+  end
+
+  def openai_agent_config!
+    app_setting = AppSetting.settings
+    raise OpenAiError, "OpenAI Agent Runs is not configured. Ask a superuser to set the OpenAI Agent model and key in App Settings." unless app_setting&.openai_agent_enabled?
+
+    openai_api = app_setting.openai_agent_supported_api
+    raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
+
+    {
+      access_token: app_setting.openai_agent_access_token,
+      base_uri: openai_api.api_base_uri,
+      model: app_setting.openai_agent_model
+    }
+  end
+
+  def broadcast_refresh(current_user)
+    Turbo::StreamsChannel.broadcast_refresh_to("teacher_#{current_user.id}-dashboard")
+  end
+
+  def emit_analytics_event(event_class, course:, current_user:, source:, stage:, **params)
+    return if course.blank? || current_user.blank?
+
+    Rails.event.notify(event_class.new(
+      recipient_ids: [],
+      link: Rails.application.routes.url_helpers.edit_admin_course_path(course),
+      teacher_name: current_user.name,
+      teacher_id: current_user.id,
+      course_id: course.id,
+      course_title: course.title.to_s,
+      source: source.to_s,
+      stage: stage.to_s,
+      **params
+    ))
+  rescue StandardError => e
+    Rails.logger.error("ResumeCourseOutlineResearchJob analytics event failed course=#{course&.id}: #{e.message}")
+  end
+end
