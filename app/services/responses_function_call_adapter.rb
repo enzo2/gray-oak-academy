@@ -1,4 +1,5 @@
 require "json/repair"
+require "digest"
 
 class ResponsesFunctionCallAdapter
   EXA_TOOL_NAMES = %w[exa_websearch exa_answer].freeze
@@ -39,7 +40,7 @@ class ResponsesFunctionCallAdapter
   def function_calls_as_chat_tool_calls(function_calls)
     Array(function_calls).map do |function_call|
       call_id = function_call["call_id"] || function_call["id"]
-      {
+      tool_call = {
         "type" => "function",
         "id" => call_id,
         "function" => {
@@ -47,6 +48,9 @@ class ResponsesFunctionCallAdapter
           "arguments" => function_call["arguments"].to_s
         }
       }
+      response_item_id = function_call["id"]
+      tool_call["response_item_id"] = response_item_id if response_item_id.present?
+      tool_call
     end
   end
 
@@ -103,6 +107,7 @@ class ResponsesFunctionCallAdapter
       end
 
     {
+      id: "fco_#{Digest::SHA256.hexdigest("#{call_id}:#{output}")[0, 24]}",
       type: "function_call_output",
       call_id: call_id,
       output: output.to_s

@@ -98,9 +98,9 @@ class GetLlmCompletionJob < ApplicationJob
               }
             }
             # Preserve any provider-specific metadata required for subsequent requests (e.g. Gemini `thought_signature`).
-            tool_calls_buffer[idx].merge!(extract_tool_call_metadata(tool_call))
+            deep_merge_tool_metadata!(tool_calls_buffer[idx], extract_tool_call_metadata(tool_call))
             if tool_call["function"].is_a?(Hash)
-              tool_calls_buffer[idx][:function].merge!(extract_function_metadata(tool_call["function"]))
+              deep_merge_tool_metadata!(tool_calls_buffer[idx][:function], extract_function_metadata(tool_call["function"]))
             end
             # id/type/name are supposed to be set in the first chunk, so we won't change them.
             # Append arguments
@@ -206,6 +206,63 @@ class GetLlmCompletionJob < ApplicationJob
       next if v.nil? || (v.respond_to?(:empty?) && v.empty?)
       acc[k.to_sym] = v
     end
+  end
+
+  # Merge provider-specific metadata from streamed chunks without dropping nested values.
+  # Some providers send required metadata (e.g. thought signatures) inside nested hashes.
+  def deep_merge_tool_metadata!(target, incoming)
+    return target unless target.is_a?(Hash) && incoming.is_a?(Hash)
+
+    incoming.each do |raw_key, raw_value|
+      key = raw_key.to_sym
+      value = normalize_tool_metadata_value(raw_value)
+      next if value.nil? || (value.respond_to?(:empty?) && value.empty?)
+
+      current = target[key]
+
+      if current.is_a?(Hash) && value.is_a?(Hash)
+        deep_merge_tool_metadata!(current, value)
+        next
+      end
+
+      if key == :thought_signature && current.is_a?(String) && value.is_a?(String)
+        target[key] = merge_streamed_string(current, value)
+        next
+      end
+
+      # Keep the first non-empty value unless a later chunk is clearly a fuller version.
+      if current.is_a?(String) && value.is_a?(String)
+        target[key] = value if value.length > current.length && value.include?(current)
+        next
+      end
+
+      target[key] = value if current.nil? || (current.respond_to?(:empty?) && current.empty?)
+    end
+
+    target
+  end
+
+  def normalize_tool_metadata_value(value)
+    case value
+    when Hash
+      value.each_with_object({}) do |(k, v), acc|
+        next if v.nil? || (v.respond_to?(:empty?) && v.empty?)
+        acc[k.to_sym] = normalize_tool_metadata_value(v)
+      end
+    when Array
+      value.map { |entry| normalize_tool_metadata_value(entry) }
+    else
+      value
+    end
+  end
+
+  def merge_streamed_string(existing, incoming)
+    return incoming if existing.blank?
+    return existing if incoming.blank? || incoming == existing
+    return incoming if incoming.start_with?(existing)
+    return existing if existing.start_with?(incoming)
+
+    "#{existing}#{incoming}"
   end
 
   def broadcast_error(message, conversation)

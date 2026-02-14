@@ -42,6 +42,52 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     assert_equal "system", captured[:messages].first[:role]
   end
 
+  test "complete preserves tool call metadata as provided" do
+    captured = nil
+    input_messages = [
+      {
+        "role" => "assistant",
+        "tool_calls" => [
+          {
+            "id" => "call_1",
+            "type" => "function",
+            "extra_content" => { "google" => { "thought_signature" => "sig_1" } },
+            "function" => { "name" => "Generate_Lesson_Plan", "arguments" => "{}" }
+          }
+        ]
+      },
+      { "role" => "tool", "tool_call_id" => "call_1", "content" => "ok" },
+      { "role" => "user", "content" => "Continue." }
+    ]
+    original = Marshal.load(Marshal.dump(input_messages))
+
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: "google/gemini-2.5-pro"
+      )
+      result = service.complete(input_messages)
+      assert_equal "ok", result
+    end
+
+    assistant_message = captured[:messages].find do |message|
+      role = message[:role] || message["role"]
+      tool_calls = message[:tool_calls] || message["tool_calls"]
+      role.to_s == "assistant" && tool_calls.present?
+    end
+    tool_call = (assistant_message[:tool_calls] || assistant_message["tool_calls"]).first
+
+    assert_equal "sig_1", tool_call.dig("extra_content", "google", "thought_signature")
+    assert_equal original, input_messages
+  end
+
   test "complete preserves existing system prompt" do
     captured = nil
     fake_client = build_chat_client do |params|

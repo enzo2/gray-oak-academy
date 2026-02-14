@@ -24,6 +24,11 @@ class OpenaiResponsesService
 
   attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id
 
+  # OpenRouter Responses API only supports stateless.
+  def stateful_supported?
+    @base_uri.include?("api.openai.com")
+  end
+
   # Initialize a new Responses client.
   #
   # - current_user: required (for settings, access token, model selection)
@@ -124,7 +129,7 @@ class OpenaiResponsesService
       }
 
       state_params = build_state_params(store: store, previous_response_id: previous_response_id)
-      @active_store = state_params.fetch(:store, @store)
+      @active_store = stateful_supported? ? state_params.fetch(:store, @store) : false
       request_params.merge!(state_params) if state_params.present?
 
       # Set thinking for OpenRouter
@@ -422,6 +427,8 @@ class OpenaiResponsesService
   # - store: when true, Response is stored server-side
   # - previous_response_id: allows chaining without sending full history
   def build_state_params(store:, previous_response_id:)
+    return {} unless stateful_supported?
+
     effective_store = store.nil? ? @store : store
     effective_previous = previous_response_id.presence || @previous_response_id || conversation_previous_response_id
 
@@ -472,8 +479,10 @@ class OpenaiResponsesService
       return nil if tool_call_id.blank?
 
       output = normalize_function_call_output(hash_value(message, :content))
+      output_id = function_call_output_id(message, tool_call_id, output)
       return {
         "type" => "function_call_output",
+        "id" => output_id,
         "call_id" => tool_call_id,
         "output" => output
       }
@@ -524,15 +533,21 @@ class OpenaiResponsesService
   def build_function_call_items(tool_calls)
     Array(tool_calls).filter_map do |tool_call|
       function = hash_value(tool_call, :function) || {}
-      call_id = hash_value(tool_call, :id)
+      call_id = hash_value(tool_call, :call_id) || hash_value(tool_call, :id)
       name = hash_value(function, :name)
       next if call_id.blank? || name.blank?
 
+      arguments = hash_value(function, :arguments) || ""
+      function_call_id = hash_value(tool_call, :response_item_id) || hash_value(tool_call, :response_function_call_id)
+      function_call_id ||= hash_value(tool_call, :id)
+      function_call_id ||= "fc_#{Digest::SHA256.hexdigest("#{call_id}:#{name}:#{arguments}")[0, 24]}"
+
       {
         "type" => "function_call",
+        "id" => function_call_id,
         "call_id" => call_id,
         "name" => name,
-        "arguments" => hash_value(function, :arguments) || ""
+        "arguments" => arguments
       }
     end
   end
@@ -767,6 +782,7 @@ class OpenaiResponsesService
   def resolve_previous_response_id(explicit_previous)
     return explicit_previous if explicit_previous.present?
     return nil unless @store
+    return nil unless stateful_supported?
 
     conversation_previous_response_id
   end
@@ -774,6 +790,8 @@ class OpenaiResponsesService
   # Persist the latest response id to the conversation so the next call
   # can chain via previous_response_id without re-sending full history.
   def update_conversation_state
+    return unless stateful_supported?
+
     @previous_response_id = @last_response_id
     return unless @conversation
 
@@ -809,6 +827,13 @@ class OpenaiResponsesService
     return normalized if normalized.is_a?(Array)
 
     normalized.to_s
+  end
+
+  def function_call_output_id(message, tool_call_id, output)
+    explicit = hash_value(message, :id)
+    return explicit.to_s if explicit.present?
+
+    "fco_#{Digest::SHA256.hexdigest("#{tool_call_id}:#{output}")[0, 24]}"
   end
 
   def tool_dedup_key(tool)

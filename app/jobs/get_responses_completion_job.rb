@@ -32,17 +32,22 @@ class GetResponsesCompletionJob < ApplicationJob
       images: include_images
     )
 
+    stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
+    history_messages = stateful_supported ? nil : deep_dup_messages(messages)
+
     response_hash = complete_and_capture_response(client, messages: messages)
     final_message_id = nil
     turns = 0
 
     loop do
-      assistant_message = persist_assistant_message(
+      persisted = persist_assistant_message(
         conversation: conversation,
         response_hash: response_hash,
         client: client,
         function_call_adapter: function_call_adapter
       )
+      assistant_message = persisted[:message]
+      history_messages << persisted[:payload] if history_messages && persisted[:payload].present?
       final_message_id = assistant_message&.id if assistant_message
 
       function_calls = function_call_adapter.function_calls(response_hash)
@@ -53,11 +58,18 @@ class GetResponsesCompletionJob < ApplicationJob
         raise OpenAiError, "Tool-call limit exceeded (#{MAX_TOOL_TURNS}). Ask the user to confirm how to proceed."
       end
 
-      response_hash = complete_and_capture_response(
-        client,
-        input: function_call_adapter.function_call_outputs(function_calls),
-        previous_response_id: response_hash["id"]
-      )
+      tool_outputs = function_call_adapter.function_call_outputs(function_calls)
+
+      if stateful_supported
+        response_hash = complete_and_capture_response(
+          client,
+          input: tool_outputs,
+          previous_response_id: response_hash["id"]
+        )
+      else
+        history_messages.concat(function_call_outputs_to_tool_messages(tool_outputs))
+        response_hash = complete_and_capture_response(client, messages: history_messages)
+      end
     end
 
     if final_message_id.present?
@@ -104,14 +116,39 @@ class GetResponsesCompletionJob < ApplicationJob
     tool_calls = function_call_adapter.function_calls_as_chat_tool_calls(function_calls)
 
     content_blank = effectively_blank_text?(text)
-    return nil if content_blank && tool_calls.blank?
+    return { message: nil, payload: nil } if content_blank && tool_calls.blank?
 
-    Message.create!(
+    payload = {
+      role: "assistant",
+      content: content_blank ? nil : text,
+      tool_calls: tool_calls.presence
+    }.compact
+
+    message = Message.create!(
       conversation: conversation,
       role: "assistant",
       content: content_blank ? nil : text,
       tool_calls: tool_calls.presence
     )
+
+    { message: message, payload: payload }
+  end
+
+  def function_call_outputs_to_tool_messages(function_call_outputs)
+    Array(function_call_outputs).filter_map do |function_call_output|
+      call_id = function_call_output[:call_id] || function_call_output["call_id"]
+      next if call_id.blank?
+
+      {
+        role: "tool",
+        tool_call_id: call_id,
+        content: function_call_output[:output] || function_call_output["output"] || ""
+      }
+    end
+  end
+
+  def deep_dup_messages(messages)
+    Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
   end
 
   def broadcast_error(message, conversation)

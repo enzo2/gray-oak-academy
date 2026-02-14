@@ -45,7 +45,7 @@ class OpenaiApiService
 
   def complete(messages, response_format: nil, schema: nil, prefill: nil, temperature: 1)
     check_cost_limits
-    messages = Array(messages).dup
+    messages = deep_dup_messages(Array(messages))
 
     # Inject system prompt to messages if it's not already included
     unless messages.any? { |message| [ message[:role], message["role"] ].compact.first == "system" }
@@ -275,6 +275,10 @@ class OpenaiApiService
     end
 
     options.presence
+  end
+
+  def deep_dup_messages(messages)
+    Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
   end
 
   def ensure_trailing_slash(url)

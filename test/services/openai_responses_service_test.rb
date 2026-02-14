@@ -46,11 +46,44 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "user", captured[:input][0]["role"]
     assert_equal "Find answer", captured[:input][0]["content"]
     assert_equal "function_call", captured[:input][1]["type"]
+    assert_equal "call_1", captured[:input][1]["id"]
     assert_equal "call_1", captured[:input][1]["call_id"]
     assert_equal "Lookup", captured[:input][1]["name"]
     assert_equal "function_call_output", captured[:input][2]["type"]
+    assert captured[:input][2]["id"].to_s.start_with?("fco_")
     assert_equal "call_1", captured[:input][2]["call_id"]
     assert_equal "tool output", captured[:input][2]["output"]
+  end
+
+  test "openrouter requests stay stateless and omit store chaining params" do
+    @conversation.update!(
+      responses_previous_id: "resp_prev",
+      responses_provider: "https://openrouter.ai/api/v1/",
+      responses_model: @model
+    )
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      refute service.stateful_supported?
+      service.complete([ { role: "user", content: "Hello" } ], previous_response_id: "resp_override")
+    end
+
+    assert_nil captured[:store]
+    assert_nil captured[:previous_response_id]
   end
 
   test "complete with store false does not write response state to conversation" do
