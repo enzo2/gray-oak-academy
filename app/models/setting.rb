@@ -49,10 +49,23 @@ class Setting < ApplicationRecord
     defaults.deep_merge(super || {})
   end
 
+  # Effective LLM API base URI, with trailing slash normalization.
+  def effective_llm_api_base_uri
+    ensure_trailing_slash(llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+  end
+
+  # Parsed host from the effective LLM API base URI.
+  def effective_llm_api_host
+    uri = URI.parse(effective_llm_api_base_uri.to_s)
+    uri.host&.downcase
+  rescue URI::InvalidURIError
+    nil
+  end
+
   # Check if an LLM is configured
   def llm_configured?
     # Effective base URI (user setting or ENV) and normalize trailing slash
-    base_uri = ensure_trailing_slash(llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+    base_uri = effective_llm_api_base_uri
 
     has_base = base_uri.present?
     has_model = llm_model_name.present? || ENV["DEFAULT_MODEL"].present?
@@ -88,7 +101,7 @@ class Setting < ApplicationRecord
     return if llm_api_access_token.present?
 
     # Determine the effective base URI
-    base_uri = ensure_trailing_slash(llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+    base_uri = effective_llm_api_base_uri
     return if base_uri.blank?
 
     # Check if this is a supported API (shared token)

@@ -31,8 +31,7 @@ class AutoNameConversationJob < ApplicationJob
         json_schema: TITLE_SCHEMA.slice(:name, :schema, :strict)
       },
       schema: TITLE_SCHEMA[:schema],
-      prefill: "{\"title\":\"",
-      temperature: 0.3
+      prefill: "{\"title\":\""
     )
 
     title = sanitize_title(parsed["title"])

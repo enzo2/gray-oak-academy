@@ -54,7 +54,7 @@ class OpenaiResponsesService
     @user = current_user
     @conversation = conversation
     @reasoning_model_flag = reasoning_model
-    @base_uri = base_uri.presence || current_user.settings.llm_api_base_uri.presence || default_base_uri
+    @base_uri = base_uri.presence || current_user.settings&.effective_llm_api_base_uri.presence || default_base_uri
     @access_token = access_token.presence || determine_access_token
     @model = model.presence || determine_model(reasoning_model)
     @client = create_client
@@ -662,8 +662,7 @@ class OpenaiResponsesService
   def determine_tools
     ToolCatalogService.new(
       user: @user,
-      conversation: @conversation,
-      base_uri: @base_uri
+      conversation: @conversation
     ).for_responses
   end
 

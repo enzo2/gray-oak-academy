@@ -1,6 +1,7 @@
 class MessagesController < ApplicationController
   include ActionView::RecordIdentifier
   include ActionController::Live
+  include LlmCompletionRouting
 
   # For text/image messages
   def create
@@ -16,7 +17,7 @@ class MessagesController < ApplicationController
     @message.save!
 
     # Get completion and stream the response to the conversation view
-    GetLlmCompletionJob.perform_later(conversation: @message.conversation)
+    enqueue_llm_completion(conversation: @message.conversation)
 
     # Turbo stream response updates the form, while Message broadcasts handle the placeholder.
     respond_to do |format|
@@ -59,7 +60,7 @@ class MessagesController < ApplicationController
       respond_to do |format|
         format.turbo_stream { render :create }
       end
-      GetLlmCompletionJob.perform_later(conversation: conversation) # Enqueue the job to process the audio message (will also handle transcription)
+      enqueue_llm_completion(conversation: conversation) # Enqueue the job to process the audio message (will also handle transcription)
     else
       @message.destroy
       render json: { error: "Failed to save audio", details: audio.errors.full_messages }, status: :unprocessable_content
@@ -96,7 +97,7 @@ class MessagesController < ApplicationController
           format.turbo_stream { render :create }
         end
         # Enqueue the completion once we are sure the user message has been transcribed and saved
-        GetLlmCompletionJob.perform_later(conversation: conversation)
+        enqueue_llm_completion(conversation: conversation)
       else
         @message.destroy
         broadcast_flash(conversation, "Failed to save message: #{@message.errors.full_messages.join(', ')}")

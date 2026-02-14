@@ -92,7 +92,7 @@ class ApplicationController < ActionController::Base
 
   def llm_access_token_required?
     settings = current_user.settings
-    base_uri = ensure_trailing_slash(settings.llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"])
+    base_uri = settings.effective_llm_api_base_uri
     return false if base_uri.blank?
     return false if settings.llm_api_access_token.present?
 

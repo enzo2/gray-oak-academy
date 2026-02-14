@@ -34,6 +34,29 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes starter.content, "Manage_Applets with action \"get\""
   end
 
+  test "teacher applet revision starter chat enqueues responses job for openrouter" do
+    teacher = users(:admin)
+    teacher.setting.update!(llm_api_base_uri: "https://openrouter.ai/api/v1/")
+    sign_in(teacher)
+
+    applet = Applet.create!(title: "Revision Target", code: "console.log('hello');", user: teacher)
+    resource = Resource.create!(teacher: teacher, category: "Applet", description: "Applet resource", applet: applet)
+    lesson = lessons(:one)
+
+    with_prompt_stubs do
+      assert_enqueued_jobs 1, only: GetResponsesCompletionJob do
+        assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+          post conversations_path, params: {
+            starter_template: "applet_revision",
+            applet_id: applet.id,
+            resource_id: resource.id,
+            lesson_id: lesson.id
+          }
+        end
+      end
+    end
+  end
+
   test "invalid applet revision context falls back to plain new chat with warning" do
     teacher = users(:admin)
     other_teacher = users(:admin2)

@@ -86,7 +86,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_nil captured[:previous_response_id]
   end
 
-  test "complete with store false does not write response state to conversation" do
+  test "complete with store false does not write response state to conversation for openai providers" do
     @conversation.update!(
       responses_previous_id: "resp_prev",
       responses_provider: @base_uri,
@@ -104,7 +104,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
         current_user: @user,
         conversation: @conversation,
         access_token: @access_token,
-        base_uri: @base_uri,
+        base_uri: "https://api.openai.com/v1/",
         model: @model,
         log_completion: false
       )

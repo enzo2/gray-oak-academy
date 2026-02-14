@@ -1,5 +1,6 @@
 # For generic LLM chats, not lessons.
 class ConversationsController < ApplicationController
+  include LlmCompletionRouting
   before_action :set_conversation, only: [ :show, :update, :destroy, :clear ]
   before_action :require_llm_configured, only: [ :index, :show ]
 
@@ -116,7 +117,7 @@ class ConversationsController < ApplicationController
       role: "user",
       content: applet_revision_starter_prompt(applet: applet, resource: context_resource, lesson: context_lesson)
     )
-    GetLlmCompletionJob.perform_later(conversation: conversation)
+    enqueue_llm_completion(conversation: conversation)
   rescue StandardError => e
     Rails.logger.error("Failed to seed applet revision starter chat: #{e.message}")
     flash[:warning] = "The chat was created, but the starter context could not be prepared."

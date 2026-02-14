@@ -25,8 +25,7 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
 
     tools = ToolCatalogService.new(
       user: teacher,
-      conversation: conversation,
-      base_uri: "https://api.openai.com/v1/"
+      conversation: conversation
     ).for_chat_completions
 
     names = tools.map { |tool| tool.dig("function", "name") }
@@ -62,8 +61,7 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
 
     response_tools = ToolCatalogService.new(
       user: teacher,
-      conversation: lesson_conversation,
-      base_uri: "https://api.openai.com/v1/"
+      conversation: lesson_conversation
     ).for_responses
 
     names = response_tools.map { |tool| tool["name"] }
@@ -90,8 +88,7 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
 
     response_tool = ToolCatalogService.new(
       user: teacher,
-      conversation: conversation,
-      base_uri: "https://api.openai.com/v1/"
+      conversation: conversation
     ).for_responses.find { |entry| entry["name"] == "Strict_Default_False" }
 
     assert_not_nil response_tool
@@ -119,8 +116,7 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
 
     response_tool = ToolCatalogService.new(
       user: teacher,
-      conversation: conversation,
-      base_uri: "https://api.openai.com/v1/"
+      conversation: conversation
     ).for_responses.find { |entry| entry["name"] == "Strict_Enabled_Tool" }
 
     assert_not_nil response_tool
@@ -147,8 +143,7 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
     AppSetting.stub(:exa_enabled?, false) do
       tools = ToolCatalogService.new(
         user: teacher,
-        conversation: conversation,
-        base_uri: "https://api.openai.com/v1/"
+        conversation: conversation
       ).for_chat_completions
       names = tools.map { |entry| entry.dig("function", "name") }
       refute_includes names, "Web"
@@ -175,8 +170,7 @@ class ToolCatalogServiceTest < ActiveSupport::TestCase
     AppSetting.stub(:exa_enabled?, true) do
       tools = ToolCatalogService.new(
         user: teacher,
-        conversation: conversation,
-        base_uri: "https://api.openai.com/v1/"
+        conversation: conversation
       ).for_responses
       names = tools.map { |entry| entry["name"] }
       assert_includes names, "Web"

@@ -22,12 +22,37 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert_equal "http://example.com/test.png", msg.images.first.uri
   end
 
+  test "sending a message enqueues GetResponsesCompletionJob for openrouter provider" do
+    conversation = sign_in_student_with_teacher_provider!(base_uri: "https://openrouter.ai/api/v1/")
+
+    assert_enqueued_jobs 1, only: GetResponsesCompletionJob do
+      assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+        post conversation_messages_path(conversation), params: { message: { content: "Hi there" } }, as: :turbo_stream
+      end
+    end
+    assert_response :success
+
+    conversation.reload
+    assert_equal "Hi there", conversation.messages.last.content
+  end
+
+  test "sending a message enqueues GetResponsesCompletionJob for openai provider" do
+    conversation = sign_in_student_with_teacher_provider!(base_uri: "https://api.openai.com/v1/")
+
+    assert_enqueued_jobs 1, only: GetResponsesCompletionJob do
+      assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+        post conversation_messages_path(conversation), params: { message: { content: "Hi there" } }, as: :turbo_stream
+      end
+    end
+    assert_response :success
+  end
+
   test "create_audio_message enqueues GetLlmCompletionJob and creates placeholder (wav)" do
     user = users(:student)
     conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
-    audio_file = fixture_file_upload("files/sample.wav", "audio/wav") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/wav", original_filename: "sample.wav")
+    audio_file = uploaded_audio_fixture("sample.wav", "audio/wav")
 
     assert_enqueued_jobs 0
     post audio_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
@@ -40,12 +65,32 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert msg.audios.any?
   end
 
+  test "create_audio_message enqueues GetResponsesCompletionJob for openrouter provider" do
+    provider_base_uri = "https://openrouter.ai/api/v1/"
+    conversation = sign_in_student_with_teacher_provider!(base_uri: provider_base_uri)
+    ensure_audio_capable_llm!(api_provider: provider_base_uri)
+
+    audio_file = uploaded_audio_fixture("sample.wav", "audio/wav")
+
+    assert_enqueued_jobs 1, only: GetResponsesCompletionJob do
+      assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+        post audio_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
+      end
+    end
+    assert_response :success
+
+    conversation.reload
+    msg = conversation.messages.last
+    assert_equal "user", msg.role
+    assert msg.audios.any?
+  end
+
   test "create_audio_message enqueues GetLlmCompletionJob and creates placeholder (webm)" do
     user = users(:student)
     conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
-    audio_file = fixture_file_upload("files/sample.webm", "audio/webm") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/webm", original_filename: "sample.webm")
+    audio_file = uploaded_audio_fixture("sample.webm", "audio/webm")
 
     assert_enqueued_jobs 0
     post audio_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
@@ -63,7 +108,7 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     conversation = conversations(:student_generic_conversation)
     sign_in(user)
 
-    audio_file = fixture_file_upload("files/sample.mp4", "audio/mp4") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/mp4", original_filename: "sample.mp4")
+    audio_file = uploaded_audio_fixture("sample.mp4", "audio/mp4")
 
     assert_enqueued_jobs 0
     post audio_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
@@ -83,13 +128,9 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     conversation.messages.destroy_all
     sign_in(user)
 
-    audio_file = fixture_file_upload("files/sample.wav", "audio/wav") rescue Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), "audio/wav", original_filename: "sample.wav")
+    audio_file = uploaded_audio_fixture("sample.wav", "audio/wav")
 
-    # Stub SpeechService to return transcription
-    fake_svc = Object.new
-    def fake_svc.transcribe(_file); "Hello transcribed"; end
-
-    SpeechService.stub(:new, ->(**_kwargs) { fake_svc }) do
+    with_stubbed_transcription("Hello transcribed") do
       assert_enqueued_jobs 0
       post transcribed_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
       assert_response :success
@@ -97,6 +138,54 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
       conversation.reload
       msg = conversation.messages.last
       assert_equal "Hello transcribed", msg.content
+    end
+  end
+
+  test "create_transcribed_message enqueues GetResponsesCompletionJob for openrouter provider" do
+    conversation = sign_in_student_with_teacher_provider!(base_uri: "https://openrouter.ai/api/v1/")
+    conversation.messages.destroy_all
+
+    audio_file = uploaded_audio_fixture("sample.wav", "audio/wav")
+
+    with_stubbed_transcription("Hello transcribed") do
+      assert_enqueued_jobs 1, only: GetResponsesCompletionJob do
+        assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+          post transcribed_messages_conversation_path(conversation), params: { audio: audio_file }, as: :turbo_stream
+        end
+      end
+      assert_response :success
+      conversation.reload
+      assert_equal "Hello transcribed", conversation.messages.last.content
+    end
+  end
+
+  private
+
+  def sign_in_student_with_teacher_provider!(base_uri:)
+    teacher = users(:admin)
+    teacher.setting.update!(llm_api_base_uri: base_uri)
+    user = users(:student)
+    sign_in(user)
+    conversations(:student_generic_conversation)
+  end
+
+  def uploaded_audio_fixture(filename, content_type)
+    fixture_file_upload("files/#{filename}", content_type)
+  rescue StandardError
+    Rack::Test::UploadedFile.new(StringIO.new("RIFFTEST"), content_type, original_filename: filename)
+  end
+
+  def with_stubbed_transcription(text)
+    fake_svc = Object.new
+    fake_svc.define_singleton_method(:transcribe) { |_file| text }
+    SpeechService.stub(:new, ->(**_kwargs) { fake_svc }) { yield }
+  end
+
+  def ensure_audio_capable_llm!(api_provider:)
+    Llm.find_or_create_by!(model: ENV.fetch("DEFAULT_MODEL"), api_provider: api_provider) do |llm|
+      llm.context_length = 200_000
+      llm.supports_audio_input = true
+      llm.metadata_fetched_at = Time.current
     end
   end
 end

@@ -355,7 +355,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "determine_tools filters Generate_Image unless provider is OpenRouter" do
+  test "determine_tools keeps Generate_Image regardless of current provider base_uri" do
     tool_struct = Struct.new(:access, :name) do
       def for_llm
         { "function" => { "name" => name } }
@@ -371,7 +371,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
 
     Tool.stub(:enabled_for_user, ->(user) { allowed_tools }) do
       conversation = OpenStruct.new(lesson_progress: nil)
-      # Use a base_uri that does NOT include openrouter.ai so Generate_Image will be filtered
+      # Use a non-OpenRouter base_uri; tool availability should not depend on active chat provider.
       service = OpenaiApiService.new(
         current_user: @user,
         access_token: @access_token,
@@ -382,7 +382,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       )
 
       tool_names = service.instance_variable_get(:@tools).map { |t| t.dig("function", "name") }
-      assert_equal [ "Chalkboard_URL" ], tool_names
+      assert_equal [ "Generate_Image", "Chalkboard_URL" ], tool_names
     end
   end
 
