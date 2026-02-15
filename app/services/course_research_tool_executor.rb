@@ -122,17 +122,13 @@ class CourseResearchToolExecutor
     source_anchors = Array(normalized["source_anchors"]).map.with_index do |anchor, idx|
       next {} unless anchor.is_a?(Hash)
 
-      decision = anchor["decision"].to_s
-      decision = "pending" unless %w[pending approved rejected].include?(decision)
-
       {
         "id" => anchor["id"].presence || "anchor_#{idx + 1}",
         "title" => anchor["title"].to_s,
         "url" => anchor["url"].to_s,
         "excerpt" => anchor["excerpt"].to_s,
         "highlights" => Array(anchor["highlights"]).map(&:to_s),
-        "notes" => anchor["notes"].to_s,
-        "decision" => decision
+        "notes" => anchor["notes"].to_s
       }
     end
 
@@ -250,13 +246,9 @@ class CourseResearchToolExecutor
                 type: [ "array", "null" ],
                 items: { type: [ "string", "null" ] }
               },
-              notes: { type: [ "string", "null" ] },
-              decision: {
-                type: "string",
-                enum: %w[pending approved rejected]
-              }
+              notes: { type: [ "string", "null" ] }
             },
-            required: %w[id title url excerpt highlights notes decision],
+            required: %w[id title url excerpt highlights notes],
             additionalProperties: false
           }
         },

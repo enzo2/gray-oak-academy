@@ -71,21 +71,6 @@ class CourseTest < ActiveSupport::TestCase
     assert_includes @course.errors[:outline_guidance_questions], "must contain at most 5 questions."
   end
 
-  test "pending_source_anchor_count counts undecided anchors" do
-    @course.update!(
-      outline_research: {
-        "source_anchors" => [
-          { "id" => "a1", "decision" => "approved" },
-          { "id" => "a2", "decision" => "pending" },
-          { "id" => "a3", "decision" => "rejected" },
-          { "id" => "a4" }
-        ]
-      }
-    )
-
-    assert_equal 2, @course.pending_source_anchor_count
-  end
-
   test "unanswered_research_question_ids requires valid structured answers" do
     @course.update!(
       outline_guidance_questions: [
@@ -143,7 +128,7 @@ class CourseTest < ActiveSupport::TestCase
     @course.update!(
       outline_research_stage: "failed",
       outline_research_error: "Some error",
-      outline_research: { "source_anchors" => [ { "id" => "a1", "decision" => "pending" } ] },
+      outline_research: { "source_anchors" => [ { "id" => "a1" } ] },
       outline_guidance_report_md: "## Guidance",
       outline_guidance_questions: [ { "id" => "q1", "question" => "Question?" } ],
       outline_guidance_answers: { "q1" => { "choice" => "B" }, "_additional_comments" => "Please adjust pacing." },

@@ -259,10 +259,6 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     if course.unanswered_research_question_ids.any?
       raise OpenAiError, "All research questions must be answered before resuming."
     end
-
-    if course.pending_source_anchor_count.positive?
-      raise OpenAiError, "All source anchors must be approved or rejected before resuming."
-    end
   end
 
   def openai_agent_config!

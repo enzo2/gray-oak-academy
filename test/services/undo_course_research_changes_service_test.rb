@@ -50,7 +50,7 @@ class UndoCourseResearchChangesServiceTest < ActiveSupport::TestCase
       outline_research_stage: "applying_guidance_updates",
       outline_guidance_questions: [ { "id" => "q1", "question" => "Question?" } ],
       outline_research: {
-        "source_anchors" => [ { "id" => "anchor_1", "decision" => "approved" } ]
+        "source_anchors" => [ { "id" => "anchor_1" } ]
       }
     )
     service.capture_prior_state!

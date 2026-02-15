@@ -63,7 +63,6 @@ class Course < ApplicationRecord
       outline_guidance_questions: self.outline_guidance_questions,
       outline_guidance_answers: self.outline_guidance_answers,
       outline_guidance_additional_comments: outline_guidance_additional_comments,
-      pending_source_anchor_count: pending_source_anchor_count,
       unanswered_research_question_ids: unanswered_research_question_ids,
       lessons: self.lessons.map do |l|
         {
@@ -119,13 +118,6 @@ class Course < ApplicationRecord
     return false unless outline_research_stage == "failed"
 
     outline_research_resumable_run?
-  end
-
-  def pending_source_anchor_count
-    Array(outline_research_hash["source_anchors"]).count do |anchor|
-      anchor_hash = anchor.is_a?(Hash) ? anchor : {}
-      !%w[approved rejected].include?(anchor_hash["decision"].to_s)
-    end
   end
 
   def unanswered_research_question_ids

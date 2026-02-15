@@ -10,7 +10,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
       outline_guidance_report_md: "Original report",
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "title" => "Old", "url" => "https://example.com/old", "excerpt" => "", "highlights" => [], "notes" => "", "decision" => "pending" }
+          { "id" => "anchor_1", "title" => "Old", "url" => "https://example.com/old", "excerpt" => "", "highlights" => [], "notes" => "" }
         ],
         "coverage_gaps" => [ "Gap A" ],
         "factual_notes" => [],
@@ -34,7 +34,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
         outline_guidance_report_md: "Updated report",
         outline_research: {
           "source_anchors" => [
-            { "id" => "anchor_new", "title" => "New source", "url" => "https://example.com/new", "excerpt" => "Excerpt", "highlights" => [ "Point A" ], "notes" => "Keep", "decision" => "approved" }
+            { "id" => "anchor_new", "title" => "New source", "url" => "https://example.com/new", "excerpt" => "Excerpt", "highlights" => [ "Point A" ], "notes" => "Keep" }
           ],
           "coverage_gaps" => [ "Gap B" ],
           "factual_notes" => [ "Note 1" ],
@@ -51,7 +51,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
     course = @course.reload
     assert_equal "Updated summary", course.summary
     assert_equal "Updated report", course.outline_guidance_report_md
-    assert_equal "approved", course.outline_research.dig("source_anchors", 0, "decision")
+    assert_equal "anchor_new", course.outline_research.dig("source_anchors", 0, "id")
     assert_equal "Original summary", course.course_prior_state["summary"]
 
     executor.execute(
@@ -70,7 +70,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
     assert_equal "Original summary", @course.reload.course_prior_state["summary"]
   end
 
-  test "update_outline_research merges patch and normalizes decisions" do
+  test "update_outline_research merges patch and normalizes anchors" do
     executor = CourseResearchToolExecutor.new(course: @course, current_user: @teacher)
 
     result = executor.execute(
@@ -79,7 +79,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
       "arguments" => {
         outline_research_patch: {
           "source_anchors" => [
-            { "id" => "anchor_1", "title" => "Old", "url" => "https://example.com/old", "excerpt" => "", "highlights" => [], "notes" => "", "decision" => "invalid" }
+            { "id" => "anchor_1", "title" => "Old", "url" => "https://example.com/old", "excerpt" => "", "highlights" => [], "notes" => "" }
           ],
           "factual_notes" => [ "Updated note" ]
         }
@@ -88,7 +88,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
 
     assert_equal "function_call_output", result[:type]
     payload = JSON.parse(result[:output])
-    assert_equal "pending", payload.dig("course", "outline_research", "source_anchors", 0, "decision")
+    assert_equal "anchor_1", payload.dig("course", "outline_research", "source_anchors", 0, "id")
     assert_equal [ "Updated note" ], payload.dig("course", "outline_research", "factual_notes")
   end
 
@@ -126,7 +126,7 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
     assert_equal false, outline_research_schema[:additionalProperties]
     assert_equal %w[source_anchors coverage_gaps factual_notes alternative_approaches], outline_research_schema[:required]
     assert_equal false, outline_research_schema.dig(:properties, :source_anchors, :items, :additionalProperties)
-    assert_equal %w[id title url excerpt highlights notes decision], outline_research_schema.dig(:properties, :source_anchors, :items, :required)
+    assert_equal %w[id title url excerpt highlights notes], outline_research_schema.dig(:properties, :source_anchors, :items, :required)
 
     patch_schema = executor.send(:update_outline_research_tool)
       .dig(:parameters, :properties, :outline_research_patch)

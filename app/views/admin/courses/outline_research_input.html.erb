@@ -3,34 +3,14 @@
 <% questions = @questions || Array(@course.outline_guidance_questions).select { |q| q.is_a?(Hash) && q["id"].to_s.present? } %>
 <% answers = @course.outline_guidance_answers_hash %>
 <% unanswered = @course.unanswered_research_question_ids.size %>
-<% pending_sources = @course.pending_source_anchor_count %>
 <% resumable_run = @course.outline_research_resumable_run? %>
-<% ready_to_resume = resumable_run && unanswered.zero? && pending_sources.zero? %>
+<% ready_to_resume = resumable_run && unanswered.zero? %>
 <% apply_agent_summary_md = outline_research["apply_agent_summary_md"].to_s %>
 <% apply_completed_at_raw = outline_research["apply_completed_at"].to_s %>
 <% apply_completed_at = begin Time.zone.parse(apply_completed_at_raw) rescue nil end %>
 <% apply_in_progress = @course.outline_research_stage == "applying_guidance_updates" %>
 <% pipeline_completed = @course.outline_research_stage == "completed" %>
-
-<div class="w-full max-w-5xl goa-research-workspace">
-  <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-    <%= link_to "Back to course editor", edit_admin_course_path(@course), class: "inline-block hover:underline" %>
-    <%= link_to "Back to lessons", admin_course_lessons_path(@course), class: "inline-block hover:underline" %>
-  </div>
-
-  <h2 class="text-2xl my-2">
-    <%= @read_only_report_mode ? "Outline Research Report" : "Outline Research Input" %>: <b><%= @course.title %></b>
-  </h2>
-  <p class="text-sm mb-4">
-    Stage: <b><%= @course.outline_research_stage.humanize %></b>
-  </p>
-
-  <% if @course.outline_research_error.present? %>
-    <p class="text-sm text-red-700 dark:text-red-300 mb-4">
-      <b>Error:</b> <%= @course.outline_research_error %>
-    </p>
-  <% end %>
-
+<% report_and_findings = capture do %>
   <% if @course.outline_guidance_report_md.present? %>
     <div id="guidance-report" class="mb-6 border border-stone-200 dark:border-stone-700 rounded p-4 bg-stone-50/60 dark:bg-stone-900/40">
       <h3 class="font-semibold mb-2">Guidance Report</h3>
@@ -40,45 +20,26 @@
     </div>
   <% end %>
 
-  <% if @read_only_report_mode %>
-    <% status_badge_text = pipeline_completed ? "✓" : "..." %>
-    <div class="goa-outline-complete mb-4">
-      <div class="goa-outline-complete__header">
-        <span class="goa-outline-complete__badge" aria-hidden="true"><%= status_badge_text %></span>
-        <div>
-          <% if pipeline_completed %>
-            <h3 class="font-semibold text-base">Research Pipeline Complete</h3>
-            <p class="text-sm">Guidance has already been applied. Use this page as your report and audit view.</p>
-          <% elsif apply_in_progress %>
-            <h3 class="font-semibold text-base">Apply Phase In Progress</h3>
-            <p class="text-sm">Teacher inputs have been submitted and the agent is currently applying updates. Refresh this page to check status.</p>
-          <% else %>
-            <h3 class="font-semibold text-base">Outline Research Report</h3>
-            <p class="text-sm">This page is currently read-only for review and audit.</p>
-          <% end %>
-        </div>
-      </div>
-      <% if pipeline_completed && apply_completed_at.present? %>
-        <p class="text-xs text-stone-600 dark:text-stone-300 mt-2">
-          Completed <%= apply_completed_at.strftime("%b %-d, %Y %-I:%M %p %Z") %>
-        </p>
-      <% end %>
-      <% if apply_agent_summary_md.present? %>
-        <div class="goa-outline-complete__report prose dark:prose-invert max-w-none text-sm mt-3">
-          <%= markdown(apply_agent_summary_md) %>
-        </div>
-      <% end %>
-    </div>
+  <div id="source-anchors" class="goa-outline-findings mb-6 border border-stone-200 dark:border-stone-700 rounded p-4 bg-stone-50/60 dark:bg-stone-900/40">
+    <h3 class="font-semibold mb-2">Raw Research Findings</h3>
 
-    <div id="source-anchors" class="goa-outline-findings mb-4">
-      <h3 class="font-semibold mb-2">Source Anchors (Read-Only)</h3>
+    <div class="mb-4">
+      <h4 class="font-semibold mb-1">Source Anchors</h4>
       <% if source_anchors.any? %>
         <div class="space-y-3">
           <% source_anchors.each_with_index do |anchor, idx| %>
             <% anchor_hash = anchor.is_a?(Hash) ? anchor : {} %>
-            <% decision = anchor_hash["decision"].to_s.presence || "pending" %>
             <div class="rounded border border-stone-200 dark:border-stone-700 p-3 bg-white/70 dark:bg-stone-900/50">
-              <p class="text-sm font-semibold"><%= anchor_hash["title"].presence || "Source #{idx + 1}" %></p>
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <p class="text-sm font-semibold"><%= anchor_hash["title"].presence || "Source #{idx + 1}" %></p>
+                <%= link_to "Convert to Resource",
+                            convert_source_anchor_to_resource_admin_course_path(@course, source_anchor_index: idx),
+                            class: "btn-secondary",
+                            data: {
+                              turbo_method: :post,
+                              turbo_confirm: "Create a new resource from this source anchor?"
+                            } %>
+              </div>
               <% if anchor_hash["url"].present? %>
                 <p class="text-xs mt-1">
                   <%= link_to anchor_hash["url"], anchor_hash["url"], target: "_blank", rel: "noopener", class: "underline break-all" %>
@@ -98,7 +59,6 @@
               <% if anchor_hash["notes"].present? %>
                 <p class="text-xs text-dim mt-2"><%= anchor_hash["notes"] %></p>
               <% end %>
-              <p class="text-xs mt-2"><b>Decision:</b> <%= decision.humanize %></p>
             </div>
           <% end %>
         </div>
@@ -106,277 +66,332 @@
         <p class="text-sm text-dim">No source anchors were captured for this run.</p>
       <% end %>
     </div>
-  <% else %>
-  <%= form_with url: submit_outline_research_inputs_admin_course_path(@course),
-                method: :patch,
-                class: "goa-stepper-shell",
-                data: {
-                  controller: "stepper",
-                  stepper_variant_value: "parent",
-                  stepper_start_value: 0
-                } do %>
-    <%= hidden_field_tag :from_outline_research_input, "1" %>
 
-    <nav class="goa-stepper-nav goa-stepper-nav--parent mb-6" aria-label="Research workflow steps">
-      <button type="button"
-              class="goa-step-indicator is-active"
-              data-stepper-target="indicator"
-              data-step-index="0"
-              data-state="active"
-              aria-current="step"
-              data-action="stepper#go">
-        <span class="goa-step-indicator__dot">1</span>
-        <span class="goa-step-indicator__label">Source Anchors</span>
-        <span class="goa-step-indicator__meta"><%= pending_sources %> pending</span>
-      </button>
+    <div class="mb-4">
+      <h4 class="font-semibold mb-1">Coverage Gaps</h4>
+      <% coverage_gaps = Array(outline_research["coverage_gaps"]) %>
+      <% if coverage_gaps.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% coverage_gaps.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No coverage gaps returned.</p>
+      <% end %>
+    </div>
 
-      <button type="button"
-              class="goa-step-indicator is-upcoming"
-              data-stepper-target="indicator"
-              data-step-index="1"
-              data-state="upcoming"
-              data-action="stepper#go">
-        <span class="goa-step-indicator__dot">2</span>
-        <span class="goa-step-indicator__label">Question Responses</span>
-        <span class="goa-step-indicator__meta"><%= unanswered %> unanswered</span>
-      </button>
+    <div class="mb-4">
+      <h4 class="font-semibold mb-1">Factual Notes</h4>
+      <% factual_notes = Array(outline_research["factual_notes"]) %>
+      <% if factual_notes.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% factual_notes.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No factual notes returned.</p>
+      <% end %>
+    </div>
 
-      <button type="button"
-              class="goa-step-indicator is-upcoming"
-              data-stepper-target="indicator"
-              data-step-index="2"
-              data-state="upcoming"
-              data-action="stepper#go">
-        <span class="goa-step-indicator__dot">3</span>
-        <span class="goa-step-indicator__label">Additional Comments</span>
-        <span class="goa-step-indicator__meta">Optional context</span>
-      </button>
+    <div class="mb-0">
+      <h4 class="font-semibold mb-1">Alternative Approaches</h4>
+      <% alternative_approaches = Array(outline_research["alternative_approaches"]) %>
+      <% if alternative_approaches.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% alternative_approaches.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No alternate approaches returned.</p>
+      <% end %>
+    </div>
+  </div>
+<% end %>
 
-      <button type="button"
-              class="goa-step-indicator is-upcoming"
-              data-stepper-target="indicator"
-              data-step-index="3"
-              data-state="upcoming"
-              data-action="stepper#go">
-        <span class="goa-step-indicator__dot">4</span>
-        <span class="goa-step-indicator__label">Resume Agent</span>
-        <span class="goa-step-indicator__meta"><%= ready_to_resume ? "Ready" : "Blocked" %></span>
-      </button>
-    </nav>
+<div class="w-full max-w-5xl goa-research-workspace">
+  <div class="flex flex-wrap items-center gap-2 mb-2">
+    <%= link_to "Back to course editor", edit_admin_course_path(@course), class: "inline-block hover:underline" %>
+  </div>
 
-    <section class="goa-step-panel" data-stepper-target="step">
-      <h3 class="text-xl font-semibold mb-2">Source Anchors</h3>
-      <p class="text-sm mb-4">Approve or reject each source before resuming the apply phase.</p>
+  <h2 class="text-2xl my-2">
+    <%= @read_only_report_mode ? "Outline Research Report" : "Outline Research Input" %>: <b><%= @course.title %></b>
+  </h2>
+  <p class="text-sm mb-4">
+    Stage: <b><%= @course.outline_research_stage.humanize %></b>
+  </p>
 
-      <% if source_anchors.any? %>
-        <div data-controller="stepper" data-stepper-variant-value="nested" class="goa-stepper-nested">
-          <nav class="goa-stepper-nav goa-stepper-nav--nested goa-stepper-nav--compact mb-4" aria-label="Source anchors">
-            <% source_anchors.each_with_index do |anchor, idx| %>
-              <% anchor_label = anchor["title"].presence || "Source #{idx + 1}" %>
-              <% current_decision = anchor["decision"].to_s.presence || "pending" %>
-              <button type="button"
-                      class="goa-step-indicator goa-step-indicator--compact"
-                      data-stepper-target="indicator"
-                      data-step-index="<%= idx %>"
-                      data-state="<%= idx.zero? ? "active" : "upcoming" %>"
-                      aria-current="<%= "step" if idx.zero? %>"
-                      data-action="stepper#go"
-                      aria-label="Source <%= idx + 1 %>: <%= anchor_label %>, <%= current_decision %>">
-                <span class="goa-step-indicator__dot"><%= idx + 1 %></span>
-              </button>
+  <% if @course.outline_research_stage == "failed" %>
+    <div class="goa-outline-failed mb-4">
+      <div class="goa-outline-failed__header">
+        <span class="goa-outline-failed__badge" aria-hidden="true">!</span>
+        <div>
+          <h3 class="font-semibold text-base">Outline Research Run Failed</h3>
+          <% if resumable_run %>
+            <p class="text-sm">This run can be resumed after you review and finalize teacher inputs.</p>
+          <% else %>
+            <p class="text-sm">This failed run cannot be resumed because no previous response id is available.</p>
+          <% end %>
+        </div>
+      </div>
+      <% if @course.outline_research_error.present? %>
+        <p class="text-sm mt-2">
+          <b>Error:</b> <%= @course.outline_research_error %>
+        </p>
+      <% end %>
+      <% unless resumable_run %>
+        <div class="mt-3">
+          <%= link_to "Back to course editor", edit_admin_course_path(@course), class: "btn-secondary" %>
+        </div>
+      <% end %>
+    </div>
+  <% elsif @course.outline_research_error.present? %>
+    <p class="text-sm text-red-700 dark:text-red-300 mb-4">
+      <b>Error:</b> <%= @course.outline_research_error %>
+    </p>
+  <% end %>
+
+  <% if @read_only_report_mode %>
+    <% status_badge_text = pipeline_completed ? "✓" : "..." %>
+    <% status_banner = capture do %>
+      <div class="goa-outline-complete mb-4">
+        <div class="goa-outline-complete__header">
+          <span class="goa-outline-complete__badge" aria-hidden="true"><%= status_badge_text %></span>
+          <div>
+            <% if pipeline_completed %>
+              <h3 class="font-semibold text-base">Research Pipeline Complete</h3>
+              <p class="text-sm">Guidance has already been applied. Use this page as your report and audit view.</p>
+            <% elsif apply_in_progress %>
+              <h3 class="font-semibold text-base">Apply Phase In Progress</h3>
+              <p class="text-sm">Teacher inputs have been submitted and the agent is currently applying updates. Refresh this page to check status.</p>
+            <% else %>
+              <h3 class="font-semibold text-base">Outline Research Report</h3>
+              <p class="text-sm">This page is currently read-only for review and audit.</p>
             <% end %>
-          </nav>
+          </div>
+        </div>
+        <% if pipeline_completed && apply_completed_at.present? %>
+          <p class="text-xs text-stone-600 dark:text-stone-300 mt-2">
+            Completed <%= apply_completed_at.strftime("%b %-d, %Y %-I:%M %p %Z") %>
+          </p>
+        <% end %>
+        <% if apply_agent_summary_md.present? %>
+          <div class="goa-outline-complete__report prose dark:prose-invert max-w-none text-sm mt-3">
+            <%= markdown(apply_agent_summary_md) %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
 
-          <% source_anchors.each_with_index do |anchor, idx| %>
-            <% anchor_hash = anchor.is_a?(Hash) ? anchor : {} %>
-            <div class="border border-stone-200 dark:border-stone-700 rounded p-4 bg-white/70 dark:bg-stone-900/50 <%= "hidden" unless idx.zero? %>" data-stepper-target="step">
-              <p class="text-sm font-semibold mb-1"><%= anchor_hash["title"].presence || "Untitled Source" %></p>
-              <% if anchor_hash["url"].present? %>
-                <p class="text-xs mb-2">
-                  <%= link_to anchor_hash["url"], anchor_hash["url"], target: "_blank", rel: "noopener", class: "underline break-all" %>
-                </p>
+    <%= status_banner if apply_in_progress || pipeline_completed %>
+    <%= report_and_findings %>
+    <%= status_banner unless apply_in_progress || pipeline_completed %>
+  <% else %>
+    <%= form_with url: submit_outline_research_inputs_admin_course_path(@course),
+                  method: :patch,
+                  class: "goa-stepper-shell",
+                  data: {
+                    controller: "stepper outline-research-autosave",
+                    action: "stepper:change->outline-research-autosave#handleStepperChange",
+                    stepper_variant_value: "parent",
+                    stepper_start_value: 0,
+                    "outline-research-autosave-url-value": submit_outline_research_inputs_admin_course_path(@course)
+                  } do %>
+      <%= hidden_field_tag :from_outline_research_input, "1" %>
+
+      <nav class="goa-research-progress mb-6" aria-label="Research workflow steps">
+        <button type="button"
+                class="goa-research-progress__step"
+                data-stepper-target="indicator"
+                data-step-index="0"
+                data-state="active"
+                aria-current="step"
+                data-action="stepper#go">
+          <span class="goa-research-progress__dot">1</span>
+          <span class="goa-research-progress__label">Question Responses</span>
+          <span class="goa-research-progress__meta"><span data-outline-research-autosave-target="unansweredCount"><%= unanswered %></span> unanswered</span>
+        </button>
+
+        <button type="button"
+                class="goa-research-progress__step"
+                data-stepper-target="indicator"
+                data-step-index="1"
+                data-state="upcoming"
+                data-action="stepper#go">
+          <span class="goa-research-progress__dot">2</span>
+          <span class="goa-research-progress__label">Additional Comments</span>
+          <span class="goa-research-progress__meta">Optional context</span>
+        </button>
+
+        <button type="button"
+                class="goa-research-progress__step"
+                data-stepper-target="indicator"
+                data-step-index="2"
+                data-state="upcoming"
+                data-action="stepper#go">
+          <span class="goa-research-progress__dot">3</span>
+          <span class="goa-research-progress__label">Resume Agent</span>
+          <span class="goa-research-progress__meta" data-outline-research-autosave-target="resumeReadinessMeta"><%= ready_to_resume ? "Ready" : "Blocked" %></span>
+        </button>
+      </nav>
+
+      <section class="goa-step-panel" data-stepper-target="step">
+        <h3 class="text-xl font-semibold mb-2">Question Responses</h3>
+        <p class="text-sm mb-4">Answer each question by selecting an option, or choose Other.</p>
+
+        <% if questions.any? %>
+          <div data-controller="stepper" data-stepper-variant-value="nested" class="goa-stepper-nested">
+            <nav class="goa-stepper-nav goa-stepper-nav--nested goa-stepper-nav--compact mb-4" aria-label="Guidance questions">
+              <% questions.each_with_index do |question, idx| %>
+                <% question_id = question["id"].to_s %>
+                <% answered = !@course.unanswered_research_question_ids.include?(question_id) %>
+                <button type="button"
+                        class="goa-step-indicator goa-step-indicator--compact"
+                        data-stepper-target="indicator"
+                        data-step-index="<%= idx %>"
+                        data-state="<%= idx.zero? ? "active" : "upcoming" %>"
+                        aria-current="<%= "step" if idx.zero? %>"
+                        data-action="stepper#go"
+                        aria-label="Question <%= idx + 1 %> <%= answered ? "completed" : "pending" %>">
+                  <span class="goa-step-indicator__dot"><%= idx + 1 %></span>
+                </button>
               <% end %>
+            </nav>
 
-              <% if anchor_hash["excerpt"].present? %>
-                <p class="text-sm mb-2"><%= anchor_hash["excerpt"] %></p>
-              <% end %>
+            <% questions.each_with_index do |question, idx| %>
+              <% question_hash = question.is_a?(Hash) ? question : {} %>
+              <% question_id = question_hash["id"].to_s %>
+              <% parsed_answer = parse_outline_guidance_answer(answers[question_id]) %>
+              <% option_a = outline_question_choice_label(question_hash, "A") %>
+              <% option_b = outline_question_choice_label(question_hash, "B") %>
+              <% option_c = outline_question_choice_label(question_hash, "C") %>
 
-              <% highlights = Array(anchor_hash["highlights"]) %>
-              <% if highlights.any? %>
-                <ul class="list-disc pl-5 text-sm mb-2">
-                  <% highlights.each do |highlight| %>
-                    <li><%= highlight %></li>
-                  <% end %>
-                </ul>
-              <% end %>
+              <div class="rounded border border-stone-200 dark:border-stone-700 p-4 bg-white/70 dark:bg-stone-900/50 <%= "hidden" unless idx.zero? %>" data-stepper-target="step">
+                <p class="font-semibold mb-3"><%= question_hash["question"] %></p>
 
-              <% if anchor_hash["notes"].present? %>
-                <p class="text-xs text-dim mb-3"><%= anchor_hash["notes"] %></p>
-              <% end %>
-
-              <% source_decision = anchor_hash["decision"].to_s %>
-              <fieldset class="mt-3">
-                <legend class="text-sm font-semibold mb-2">Decision</legend>
-                <div class="goa-decision-toggle" role="radiogroup" aria-label="Source decision">
-                  <label class="goa-decision-option">
-                    <%= radio_button_tag "source_anchor_decisions[#{idx}]", "approved", source_decision == "approved" %>
-                    <span>Approve</span>
+                <div class="space-y-2 text-sm">
+                  <label class="block">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "A", parsed_answer["choice"] == "A" %>
+                    <span class="ml-1"><%= option_a %></span>
                   </label>
-                  <label class="goa-decision-option">
-                    <%= radio_button_tag "source_anchor_decisions[#{idx}]", "rejected", source_decision == "rejected" %>
-                    <span>Reject</span>
+                  <label class="block">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "B", parsed_answer["choice"] == "B" %>
+                    <span class="ml-1"><%= option_b %></span>
+                  </label>
+                  <label class="block">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "C", parsed_answer["choice"] == "C" %>
+                    <span class="ml-1"><%= option_c %></span>
+                  </label>
+                  <label class="block">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "OTHER", parsed_answer["choice"] == "OTHER" %>
+                    <span class="ml-1">Other</span>
                   </label>
                 </div>
-                <p class="text-xs text-dim mt-2">Current: <%= source_decision.presence&.humanize || "Pending" %></p>
-              </fieldset>
-            </div>
-          <% end %>
 
-          <div class="mt-4 flex flex-wrap gap-2 justify-between items-center">
-            <div class="flex flex-wrap gap-2">
-              <button type="button" class="btn-secondary" data-stepper-target="prevButton" data-action="stepper#prev">Previous Source</button>
-              <button type="button" class="btn-secondary" data-stepper-target="nextButton" data-action="stepper#next">Next Source</button>
-            </div>
-            <button type="submit" name="approve_all" value="1" class="btn-secondary">Approve All Sources</button>
-          </div>
-        </div>
-      <% else %>
-        <p class="text-sm text-dim">No source anchors were returned for this run.</p>
-      <% end %>
-    </section>
-
-    <section class="goa-step-panel hidden" data-stepper-target="step">
-      <h3 class="text-xl font-semibold mb-2">Question Responses</h3>
-      <p class="text-sm mb-4">Answer each question by selecting an option, or choose Other.</p>
-
-      <% if questions.any? %>
-        <div data-controller="stepper" data-stepper-variant-value="nested" class="goa-stepper-nested">
-          <nav class="goa-stepper-nav goa-stepper-nav--nested goa-stepper-nav--compact mb-4" aria-label="Guidance questions">
-            <% questions.each_with_index do |question, idx| %>
-              <% question_id = question["id"].to_s %>
-              <% answered = !@course.unanswered_research_question_ids.include?(question_id) %>
-              <button type="button"
-                      class="goa-step-indicator goa-step-indicator--compact"
-                      data-stepper-target="indicator"
-                      data-step-index="<%= idx %>"
-                      data-state="<%= idx.zero? ? "active" : "upcoming" %>"
-                      aria-current="<%= "step" if idx.zero? %>"
-                      data-action="stepper#go"
-                      aria-label="Question <%= idx + 1 %> <%= answered ? "completed" : "pending" %>">
-                <span class="goa-step-indicator__dot"><%= idx + 1 %></span>
-              </button>
+                <div class="mt-3">
+                  <label class="form-label" for="question_other_text_<%= question_id %>">Other response text</label>
+                  <%= text_area_tag "question_other_text[#{question_id}]",
+                                    parsed_answer["other_text"],
+                                    id: "question_other_text_#{question_id}",
+                                    class: "input-primary",
+                                    rows: 2,
+                                    placeholder: "Required when selecting Other." %>
+                </div>
+              </div>
             <% end %>
-          </nav>
 
-          <% questions.each_with_index do |question, idx| %>
-            <% question_hash = question.is_a?(Hash) ? question : {} %>
-            <% question_id = question_hash["id"].to_s %>
-            <% parsed_answer = parse_outline_guidance_answer(answers[question_id]) %>
-            <% option_a = outline_question_choice_label(question_hash, "A") %>
-            <% option_b = outline_question_choice_label(question_hash, "B") %>
-            <% option_c = outline_question_choice_label(question_hash, "C") %>
-
-            <div class="rounded border border-stone-200 dark:border-stone-700 p-4 bg-white/70 dark:bg-stone-900/50 <%= "hidden" unless idx.zero? %>" data-stepper-target="step">
-              <p class="font-semibold mb-3"><%= question_hash["question"] %></p>
-
-              <div class="space-y-2 text-sm">
-                <label class="block">
-                  <%= radio_button_tag "question_choices[#{question_id}]", "A", parsed_answer["choice"] == "A" %>
-                  <span class="ml-1"><%= option_a %></span>
-                </label>
-                <label class="block">
-                  <%= radio_button_tag "question_choices[#{question_id}]", "B", parsed_answer["choice"] == "B" %>
-                  <span class="ml-1"><%= option_b %></span>
-                </label>
-                <label class="block">
-                  <%= radio_button_tag "question_choices[#{question_id}]", "C", parsed_answer["choice"] == "C" %>
-                  <span class="ml-1"><%= option_c %></span>
-                </label>
-                <label class="block">
-                  <%= radio_button_tag "question_choices[#{question_id}]", "OTHER", parsed_answer["choice"] == "OTHER" %>
-                  <span class="ml-1">Other</span>
-                </label>
-              </div>
-
-              <div class="mt-3">
-                <label class="form-label" for="question_other_text_<%= question_id %>">Other response text</label>
-                <%= text_area_tag "question_other_text[#{question_id}]",
-                                  parsed_answer["other_text"],
-                                  id: "question_other_text_#{question_id}",
-                                  class: "input-primary",
-                                  rows: 2,
-                                  placeholder: "Required when selecting Other." %>
-              </div>
+            <div class="goa-question-nav mt-4 flex items-center gap-2">
+              <button type="button"
+                      class="btn-secondary goa-question-nav__arrow"
+                      data-stepper-target="prevButton"
+                      data-action="stepper#prev"
+                      aria-label="Previous question"
+                      title="Previous question">
+                <sl-icon name="arrow-left" aria-hidden="true"></sl-icon>
+                <span class="sr-only">Previous question</span>
+              </button>
+              <button type="button"
+                      class="btn-secondary goa-question-nav__arrow"
+                      data-stepper-target="nextButton"
+                      data-action="stepper#next"
+                      aria-label="Next question"
+                      title="Next question">
+                <sl-icon name="arrow-right" aria-hidden="true"></sl-icon>
+                <span class="sr-only">Next question</span>
+              </button>
             </div>
-          <% end %>
-
-          <div class="mt-4 flex flex-wrap gap-2">
-            <button type="button" class="btn-secondary" data-stepper-target="prevButton" data-action="stepper#prev">Previous Question</button>
-            <button type="button" class="btn-secondary" data-stepper-target="nextButton" data-action="stepper#next">Next Question</button>
           </div>
+        <% else %>
+          <p class="text-sm text-dim">No guidance questions were generated for this run.</p>
+        <% end %>
+      </section>
+
+      <section class="goa-step-panel hidden" data-stepper-target="step">
+        <h3 class="text-xl font-semibold mb-2">Additional Comments</h3>
+        <p class="text-sm mb-4">Optional: share any final guidance for the agent before apply.</p>
+
+        <label class="form-label" for="additional_comments">Teacher comments</label>
+        <%= text_area_tag :additional_comments,
+                          @course.outline_guidance_additional_comments,
+                          id: "additional_comments",
+                          class: "input-primary",
+                          rows: 5,
+                          placeholder: "Constraints, priorities, concerns, or style guidance for the updates." %>
+      </section>
+
+      <section class="goa-step-panel hidden" data-stepper-target="step">
+        <h3 class="text-xl font-semibold mb-2">Resume Agent Apply Phase</h3>
+        <% if !resumable_run %>
+          <p class="text-sm mb-3">
+            This failed run cannot be resumed because no previous response id is available. Start a new outline research run from the course editor.
+          </p>
+        <% elsif ready_to_resume %>
+          <p class="text-sm mb-3">
+            All required teacher inputs are complete. You can resume the run and allow the agent to apply updates.
+          </p>
+        <% else %>
+          <p class="text-sm mb-3">
+            Resume will unlock after all required inputs are complete.
+          </p>
+        <% end %>
+
+        <div class="mb-3 text-sm">
+          <p>Remaining unanswered questions: <b data-outline-research-autosave-target="unansweredCount"><%= unanswered %></b></p>
         </div>
-      <% else %>
-        <p class="text-sm text-dim">No guidance questions were generated for this run.</p>
-      <% end %>
-    </section>
 
-    <section class="goa-step-panel hidden" data-stepper-target="step">
-      <h3 class="text-xl font-semibold mb-2">Additional Comments</h3>
-      <p class="text-sm mb-4">Optional: share any final guidance for the agent before apply.</p>
+        <% if resumable_run %>
+          <label class="inline-flex items-center gap-2 mb-4 text-sm">
+            <%= check_box_tag :allow_agent_modifications, "1", false, class: "checkbox-primary" %>
+            I approve the agent to modify this course.
+          </label>
 
-      <label class="form-label" for="additional_comments">Teacher comments</label>
-      <%= text_area_tag :additional_comments,
-                        @course.outline_guidance_additional_comments,
-                        id: "additional_comments",
-                        class: "input-primary",
-                        rows: 5,
-                        placeholder: "Constraints, priorities, concerns, or style guidance for the updates." %>
-    </section>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit"
+                    formaction="<%= resume_outline_research_admin_course_path(@course) %>"
+                    class="btn-primary"
+                    data-outline-research-autosave-target="resumeButton"
+                    <%= "disabled" unless ready_to_resume %>>
+              Resume and Apply
+            </button>
+          </div>
+        <% else %>
+          <%= link_to "Back to course editor", edit_admin_course_path(@course), class: "btn-secondary" %>
+        <% end %>
+      </section>
 
-    <section class="goa-step-panel hidden" data-stepper-target="step">
-      <h3 class="text-xl font-semibold mb-2">Resume Agent Apply Phase</h3>
-      <% if !resumable_run %>
-        <p class="text-sm mb-3">
-          This failed run cannot be resumed because no previous response id is available. Return to the course editor and start a new outline research run.
+      <div class="goa-stepper-footer mt-6 flex flex-wrap justify-between items-center gap-3 border-t border-stone-200 dark:border-stone-700 pt-4">
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn-secondary" data-stepper-target="prevButton" data-action="stepper#prev">Previous Section</button>
+          <button type="button" class="btn-primary" data-stepper-target="nextButton" data-action="stepper#next">Next Section</button>
+        </div>
+        <p class="goa-autosave-status goa-autosave-status--idle text-xs" aria-live="polite" data-outline-research-autosave-target="status">
+          Progress saves automatically when you move between questions or sections.
         </p>
-      <% elsif ready_to_resume %>
-        <p class="text-sm mb-3">
-          All teacher inputs are complete. You can resume the run and allow the agent to apply updates.
-        </p>
-      <% else %>
-        <p class="text-sm mb-3">
-          Resume will unlock after all required inputs are complete.
-        </p>
-      <% end %>
-
-      <div class="mb-3 text-sm">
-        <p>Remaining unanswered questions: <b><%= unanswered %></b></p>
-        <p>Remaining pending source decisions: <b><%= pending_sources %></b></p>
       </div>
+    <% end %>
 
-      <label class="inline-flex items-center gap-2 mb-4 text-sm">
-        <%= check_box_tag :allow_agent_modifications, "1", false, class: "checkbox-primary" %>
-        I explicitly approve the agent to modify this course.
-      </label>
-
-      <div class="flex flex-wrap gap-2">
-        <button type="submit" class="btn-secondary">Save Progress</button>
-        <button type="submit"
-                formaction="<%= resume_outline_research_admin_course_path(@course) %>"
-                class="btn-primary"
-                <%= "disabled" unless ready_to_resume %>>
-          Resume and Apply
-        </button>
-      </div>
-    </section>
-
-    <div class="goa-stepper-footer mt-6 flex flex-wrap justify-between items-center gap-3 border-t border-stone-200 dark:border-stone-700 pt-4">
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class="btn-secondary" data-stepper-target="prevButton" data-action="stepper#prev">Previous Section</button>
-        <button type="button" class="btn-primary" data-stepper-target="nextButton" data-action="stepper#next">Next Section</button>
-      </div>
-      <button type="submit" class="btn-secondary">Save Progress</button>
-    </div>
-  <% end %>
+    <%= report_and_findings %>
   <% end %>
 </div>

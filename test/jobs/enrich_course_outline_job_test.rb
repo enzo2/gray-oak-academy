@@ -100,7 +100,6 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal "awaiting_teacher_input", course.outline_research_stage
     assert_equal "resp_guidance_1", course.outline_research_response_id
     assert course.outline_research_run_id.present?
-    assert_equal "pending", course.outline_research.dig("source_anchors", 0, "decision")
     assert_equal "https://example.com/source", course.outline_research.dig("source_anchors", 0, "url")
     assert_equal "Useful excerpt", course.outline_research.dig("source_anchors", 0, "excerpt")
     assert_equal [ "Key point" ], course.outline_research.dig("source_anchors", 0, "highlights")

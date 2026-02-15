@@ -60,6 +60,7 @@ Rails.application.routes.draw do
       patch "submit_outline_research_inputs", on: :member
       post "resume_outline_research", on: :member
       patch "resume_outline_research", on: :member
+      post "convert_source_anchor_to_resource", on: :member
       post "undo_outline_research_changes", on: :member
       patch "archive", on: :member
       patch "unarchive", on: :member

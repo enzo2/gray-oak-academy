@@ -27,7 +27,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       },
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "title" => "Source A", "url" => "https://example.com/a", "excerpt" => "", "highlights" => [], "notes" => "", "decision" => "approved" }
+          { "id" => "anchor_1", "title" => "Source A", "url" => "https://example.com/a", "excerpt" => "", "highlights" => [], "notes" => "" }
         ],
         "coverage_gaps" => [],
         "factual_notes" => [],
@@ -66,7 +66,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
                 outline_guidance_report_md: "Updated report",
                 outline_research: {
                   "source_anchors" => [
-                    { "id" => "anchor_1", "title" => "Source A", "url" => "https://example.com/a", "excerpt" => "", "highlights" => [], "notes" => "", "decision" => "approved" }
+                    { "id" => "anchor_1", "title" => "Source A", "url" => "https://example.com/a", "excerpt" => "", "highlights" => [], "notes" => "" }
                   ],
                   "coverage_gaps" => [ "Add local case study" ],
                   "factual_notes" => [],
@@ -136,7 +136,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       outline_guidance_answers: {},
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "decision" => "approved" }
+          { "id" => "anchor_1" }
         ]
       },
       outline_research_response_id: "resp_previous"

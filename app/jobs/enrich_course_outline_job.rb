@@ -213,8 +213,7 @@ class EnrichCourseOutlineJob < ApplicationJob
         "url" => payload_value(anchor_hash, "url", "sourceUrl").to_s,
         "excerpt" => payload_value(anchor_hash, "excerpt", "summary").to_s,
         "highlights" => Array(payload_value(anchor_hash, "highlights", "key_points", "keyPoints", "bulletPoints")).map(&:to_s),
-        "notes" => payload_value(anchor_hash, "notes", "note").to_s,
-        "decision" => "pending"
+        "notes" => payload_value(anchor_hash, "notes", "note").to_s
       }
     end
 

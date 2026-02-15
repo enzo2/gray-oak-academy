@@ -59,7 +59,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       outline_research_response_id: "resp_123",
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "decision" => "approved" }
+          { "id" => "anchor_1" }
         ]
       },
       outline_guidance_questions: [
@@ -99,7 +99,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       outline_research_response_id: "resp_123",
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "decision" => "approved" }
+          { "id" => "anchor_1" }
         ]
       },
       outline_guidance_questions: [
@@ -131,7 +131,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       outline_research_response_id: "resp_123",
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "decision" => "approved" }
+          { "id" => "anchor_1" }
         ]
       },
       outline_guidance_questions: [
@@ -165,7 +165,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       outline_research_response_id: nil,
       outline_research: {
         "source_anchors" => [
-          { "id" => "anchor_1", "decision" => "approved" }
+          { "id" => "anchor_1" }
         ]
       },
       outline_guidance_questions: [],

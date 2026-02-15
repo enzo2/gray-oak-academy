@@ -59,8 +59,7 @@ module Admin
               "url" => "https://example.com/a",
               "excerpt" => "Reference excerpt",
               "highlights" => [],
-              "notes" => "",
-              "decision" => "approved"
+              "notes" => ""
             }
           ],
           "coverage_gaps" => [],
@@ -80,9 +79,7 @@ module Admin
       assert_response :success
       assert_includes response.body, "Research Pipeline Complete"
       assert_includes response.body, "Applied successfully."
-      assert_includes response.body, "View Guidance Report"
-      assert_includes response.body, "View Source Anchors"
-      assert_includes response.body, "Open full guidance report"
+      assert_includes response.body, "Review Research Workspace"
       assert_includes response.body, "Research Findings Snapshot"
       assert_not_includes response.body, "Research Outline"
     end
@@ -112,8 +109,7 @@ module Admin
       end
 
       assert_response :success
-      assert_not_includes response.body, "View Guidance Report"
-      assert_not_includes response.body, "Open full guidance report"
+      assert_not_includes response.body, "Review Research Workspace"
     end
 
     test "edit enables start button for failed non-resumable run" do
@@ -187,6 +183,7 @@ module Admin
       course.update!(
         outline_research_stage: "awaiting_teacher_input",
         outline_research: { "source_anchors" => [] },
+        outline_guidance_report_md: "## Guidance\nPrioritize evidence strength.",
         outline_guidance_questions: [ { "id" => "q1", "question" => "Question one?" } ],
         outline_guidance_answers: {}
       )
@@ -195,8 +192,17 @@ module Admin
 
       assert_response :success
       assert_includes response.body, "Outline Research Input"
-      assert_includes response.body, "Source Anchors"
+      assert_includes response.body, "Raw Research Findings"
       assert_includes response.body, "Question Responses"
+      assert_includes response.body, "Back to course editor"
+      assert_not_includes response.body, "Back to lessons"
+      assert_not_includes response.body, "Save Progress"
+
+      question_index = response.body.index("Question Responses")
+      report_index = response.body.index("Guidance Report")
+      findings_index = response.body.index("Raw Research Findings")
+      assert_operator question_index, :<, report_index
+      assert_operator question_index, :<, findings_index
     end
 
     test "outline_research_input renders read-only report mode when completed and report exists" do
@@ -214,8 +220,7 @@ module Admin
               "url" => "https://example.com/a",
               "excerpt" => "Reference excerpt",
               "highlights" => [ "Point 1" ],
-              "notes" => "Review this",
-              "decision" => "approved"
+              "notes" => "Review this"
             }
           ],
           "apply_agent_summary_md" => "Applied updates.",
@@ -229,11 +234,14 @@ module Admin
       assert_includes response.body, "Outline Research Report"
       assert_includes response.body, "Guidance Report"
       assert_includes response.body, "Applied updates."
-      assert_includes response.body, "Source Anchors (Read-Only)"
+      assert_includes response.body, "Raw Research Findings"
       assert_includes response.body, "Source A"
-      assert_includes response.body, "Decision:"
       assert_not_includes response.body, "Resume Agent Apply Phase"
       assert_not_includes response.body, "Save Progress"
+
+      complete_index = response.body.index("Research Pipeline Complete")
+      findings_index = response.body.index("Raw Research Findings")
+      assert_operator complete_index, :<, findings_index
     end
 
     test "outline_research_input does not show completion text while apply phase is in progress" do
@@ -251,8 +259,7 @@ module Admin
               "url" => "https://example.com/a",
               "excerpt" => "Reference excerpt",
               "highlights" => [],
-              "notes" => "",
-              "decision" => "approved"
+              "notes" => ""
             }
           ]
         }
@@ -263,7 +270,11 @@ module Admin
       assert_response :success
       assert_includes response.body, "Apply Phase In Progress"
       assert_not_includes response.body, "Research Pipeline Complete"
-      assert_includes response.body, "Source Anchors (Read-Only)"
+      assert_includes response.body, "Raw Research Findings"
+
+      apply_index = response.body.index("Apply Phase In Progress")
+      findings_index = response.body.index("Raw Research Findings")
+      assert_operator apply_index, :<, findings_index
     end
 
     test "outline_research_input redirects when completed and report is missing" do
@@ -309,7 +320,7 @@ module Admin
       assert_equal "Use research guidance where useful.", course.outline_guidance_additional_comments
     end
 
-    test "submit_outline_research_inputs persists teacher answers and anchor decisions" do
+    test "submit_outline_research_inputs persists teacher answers only" do
       teacher = users(:admin)
       course = courses(:one)
       sign_in(teacher)
@@ -318,8 +329,8 @@ module Admin
         outline_research_stage: "awaiting_teacher_input",
         outline_research: {
           "source_anchors" => [
-            { "id" => "anchor_1", "decision" => "pending" },
-            { "id" => "anchor_2", "decision" => "pending" }
+            { "id" => "anchor_1" },
+            { "id" => "anchor_2" }
           ]
         },
         outline_guidance_questions: [
@@ -329,16 +340,64 @@ module Admin
       )
 
       patch submit_outline_research_inputs_admin_course_path(course), params: {
-        question_choices: { q1: "B" },
-        source_anchor_decisions: { "0" => "approved", "1" => "rejected" }
+        question_choices: { q1: "B" }
       }
 
       assert_redirected_to edit_admin_course_path(course)
       course.reload
       answer_payload = course.outline_guidance_answers["q1"]
       assert_equal "B", answer_payload["choice"]
-      assert_equal "approved", course.outline_research.dig("source_anchors", 0, "decision")
-      assert_equal "rejected", course.outline_research.dig("source_anchors", 1, "decision")
+      assert_equal [ { "id" => "anchor_1" }, { "id" => "anchor_2" } ], course.outline_research["source_anchors"]
+    end
+
+    test "submit_outline_research_inputs autosave returns JSON payload and persists inputs" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+
+      course.update!(
+        outline_research_stage: "awaiting_teacher_input",
+        outline_research_response_id: "resp_123",
+        outline_research: { "source_anchors" => [] },
+        outline_guidance_questions: [ { "id" => "q1", "question" => "Question one?" } ],
+        outline_guidance_answers: {}
+      )
+
+      patch submit_outline_research_inputs_admin_course_path(course),
+            params: {
+              autosave: "1",
+              from_outline_research_input: "1",
+              question_choices: { q1: "A" },
+              additional_comments: "Focus on implementation detail."
+            },
+            headers: { "ACCEPT" => "application/json" }
+
+      assert_response :success
+      payload = JSON.parse(response.body)
+      assert_equal true, payload["ok"]
+      assert_equal 0, payload["unanswered_count"]
+      assert_equal true, payload["ready_to_resume"]
+      assert_equal true, payload["resumable_run"]
+
+      course.reload
+      assert_equal "A", course.outline_guidance_answers.dig("q1", "choice")
+      assert_equal "Focus on implementation detail.", course.outline_guidance_additional_comments
+    end
+
+    test "submit_outline_research_inputs autosave returns conflict JSON when stage is not open" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(outline_research_stage: "completed")
+
+      patch submit_outline_research_inputs_admin_course_path(course),
+            params: { autosave: "1", question_choices: { q1: "A" } },
+            headers: { "ACCEPT" => "application/json" }
+
+      assert_response :conflict
+      payload = JSON.parse(response.body)
+      assert_equal false, payload["ok"]
+      assert_includes payload["error"], "Outline research input is only available"
     end
 
     test "resume_outline_research passes permission and saves latest inputs first" do
@@ -350,7 +409,7 @@ module Admin
         outline_research_stage: "awaiting_teacher_input",
         outline_research: {
           "source_anchors" => [
-            { "id" => "anchor_1", "decision" => "pending" }
+            { "id" => "anchor_1" }
           ]
         },
         outline_guidance_questions: [
@@ -370,8 +429,7 @@ module Admin
         post resume_outline_research_admin_course_path(course), params: {
           from_outline_research_input: "1",
           allow_agent_modifications: "1",
-          question_choices: { q1: "C" },
-          source_anchor_decisions: { "0" => "approved" }
+          question_choices: { q1: "C" }
         }
       end
 
@@ -380,7 +438,101 @@ module Admin
       course.reload
       answer_payload = course.outline_guidance_answers["q1"]
       assert_equal "C", answer_payload["choice"]
-      assert_equal "approved", course.outline_research.dig("source_anchors", 0, "decision")
+    end
+
+    test "convert_source_anchor_to_resource creates URI resource when anchor has URL" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline_research_stage: "awaiting_teacher_input",
+        outline_research: {
+          "source_anchors" => [
+            {
+              "id" => "anchor_1",
+              "title" => "Source A",
+              "url" => "https://example.com/a",
+              "excerpt" => "Reference excerpt",
+              "highlights" => [ "Point 1" ],
+              "notes" => "Review this"
+            }
+          ]
+        },
+        outline_guidance_questions: [],
+        outline_guidance_answers: {}
+      )
+
+      assert_difference("Resource.count", 1) do
+        post convert_source_anchor_to_resource_admin_course_path(course), params: {
+          source_anchor_index: "0"
+        }
+      end
+
+      resource = Resource.order(:id).last
+      assert_equal teacher, resource.teacher
+      assert_equal "Source Anchor", resource.category
+      assert_equal "Source A", resource.description
+      assert_equal "https://example.com/a", resource.uri
+      assert_nil resource.content
+      assert_redirected_to outline_research_input_admin_course_path(course, anchor: "source-anchors")
+    end
+
+    test "convert_source_anchor_to_resource creates text resource when URL is missing" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline_research_stage: "awaiting_teacher_input",
+        outline_research: {
+          "source_anchors" => [
+            {
+              "id" => "anchor_1",
+              "title" => "Source A",
+              "excerpt" => "Reference excerpt",
+              "highlights" => [ "Point 1", "Point 2" ],
+              "notes" => "Review this"
+            }
+          ]
+        },
+        outline_guidance_questions: [],
+        outline_guidance_answers: {}
+      )
+
+      assert_difference("Resource.count", 1) do
+        post convert_source_anchor_to_resource_admin_course_path(course), params: {
+          source_anchor_index: "0"
+        }
+      end
+
+      resource = Resource.order(:id).last
+      assert_equal "Source Anchor", resource.category
+      assert_equal "Source A", resource.description
+      assert_nil resource.uri
+      assert_includes resource.content.to_s, "Excerpt:"
+      assert_includes resource.content.to_s, "Highlights:"
+      assert_includes resource.content.to_s, "Notes:"
+      assert_redirected_to outline_research_input_admin_course_path(course, anchor: "source-anchors")
+    end
+
+    test "convert_source_anchor_to_resource returns alert for invalid index" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline_research_stage: "awaiting_teacher_input",
+        outline_research: { "source_anchors" => [ { "id" => "anchor_1", "title" => "Source A" } ] },
+        outline_guidance_questions: [],
+        outline_guidance_answers: {}
+      )
+
+      assert_no_difference("Resource.count") do
+        post convert_source_anchor_to_resource_admin_course_path(course), params: {
+          source_anchor_index: "9"
+        }
+      end
+
+      assert_redirected_to outline_research_input_admin_course_path(course, anchor: "source-anchors")
+      assert_equal "Source anchor was not found.", flash[:alert]
     end
 
     test "submit_outline_research_inputs redirects when not awaiting teacher input" do
@@ -433,6 +585,27 @@ module Admin
       assert_redirected_to outline_research_input_admin_course_path(course)
       follow_redirect!
       assert_includes response.body, "cannot be resumed"
+    end
+
+    test "outline_research_input failed non-resumable run shows restart guidance without resume controls" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline_research_stage: "failed",
+        outline_research_response_id: nil,
+        outline_research_error: "No response id",
+        outline_research: { "source_anchors" => [] },
+        outline_guidance_questions: [ { "id" => "q1", "question" => "Question one?" } ],
+        outline_guidance_answers: {}
+      )
+
+      get outline_research_input_admin_course_path(course)
+
+      assert_response :success
+      assert_includes response.body, "Start a new outline research run from the course editor."
+      assert_not_includes response.body, "I explicitly approve the agent to modify this course."
+      assert_not_includes response.body, "Resume and Apply"
     end
 
     test "undo_outline_research_changes delegates to undo service" do

@@ -24,7 +24,7 @@ export default class extends Controller {
   connect() {
     this.currentIndex = this.hasStartValue ? this.startValue : 0
     this.currentIndex = this.clamp(this.currentIndex)
-    this.render()
+    this.render({ initial: true })
   }
 
   next(event) {
@@ -50,7 +50,7 @@ export default class extends Controller {
     if (this.stepTargets.length === 0) return
 
     this.currentIndex = this.clamp(index)
-    this.render()
+    this.render({ initial: false })
   }
 
   clamp(index) {
@@ -58,9 +58,11 @@ export default class extends Controller {
     return Math.min(Math.max(index, 0), maxIndex)
   }
 
-  render() {
+  render({ initial = false } = {}) {
     const total = this.stepTargets.length
     if (total === 0) return
+
+    this.element.dataset.stepperInitialized = "1"
 
     this.stepTargets.forEach((stepElement, index) => {
       const isActive = index === this.currentIndex
@@ -90,7 +92,7 @@ export default class extends Controller {
       button.disabled = this.currentIndex >= total - 1
     })
 
-    this.dispatch("change", { detail: { index: this.currentIndex, total: total } })
+    this.dispatch("change", { detail: { index: this.currentIndex, total: total, initial: initial } })
   }
 
   indicatorState(index) {

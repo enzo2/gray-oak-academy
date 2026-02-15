@@ -2,9 +2,9 @@ module Admin
   class CoursesController < Admin::BaseController
     before_action :set_course, only: [
       :edit, :update, :destroy, :generate_outline, :archive, :unarchive,
-      :start_outline_research, :outline_research_input, :submit_outline_research_inputs, :resume_outline_research, :undo_outline_research_changes
+      :start_outline_research, :outline_research_input, :submit_outline_research_inputs, :resume_outline_research, :convert_source_anchor_to_resource, :undo_outline_research_changes
     ]
-    before_action :authorize_course_generation_access!, only: [ :start_outline_research, :outline_research_input, :submit_outline_research_inputs, :resume_outline_research, :undo_outline_research_changes ]
+    before_action :authorize_course_generation_access!, only: [ :start_outline_research, :outline_research_input, :submit_outline_research_inputs, :resume_outline_research, :convert_source_anchor_to_resource, :undo_outline_research_changes ]
     before_action :ensure_outline_research_review_page_available!, only: [ :outline_research_input ]
     before_action :ensure_outline_research_input_stage!, only: [ :submit_outline_research_inputs, :resume_outline_research ]
 
@@ -101,9 +101,19 @@ module Admin
     # PATCH /admin/courses/:id/submit_outline_research_inputs
     def submit_outline_research_inputs
       update_outline_research_inputs!(@course)
-      redirect_to outline_research_inputs_redirect_path(@course), notice: "Saved research responses and source-anchor decisions.", status: :see_other
+
+      if autosave_request?
+        @course.reload
+        render json: autosave_outline_research_payload(@course), status: :ok
+      else
+        redirect_to outline_research_inputs_redirect_path(@course), notice: "Saved research responses.", status: :see_other
+      end
     rescue StandardError => e
-      redirect_to outline_research_inputs_error_redirect_path(@course), alert: "Failed to save research inputs: #{e.message}", status: :see_other
+      if autosave_request?
+        render json: { ok: false, error: "Failed to save research inputs: #{e.message}" }, status: :unprocessable_content
+      else
+        redirect_to outline_research_inputs_error_redirect_path(@course), alert: "Failed to save research inputs: #{e.message}", status: :see_other
+      end
     end
 
     # PATCH|POST /admin/courses/:id/resume_outline_research
@@ -126,6 +136,34 @@ module Admin
       redirect_to outline_research_inputs_error_redirect_path(@course), alert: "Failed to resume outline research: #{e.message}", status: :see_other
     end
 
+    # POST /admin/courses/:id/convert_source_anchor_to_resource
+    def convert_source_anchor_to_resource
+      index = Integer(params[:source_anchor_index])
+      anchor = @source_anchors.fetch(index)
+      title = anchor["title"].to_s.strip.presence || "Source Anchor #{index + 1}"
+      url = anchor["url"].to_s.strip
+      resource_attrs = {
+        teacher: current_user,
+        category: "Source Anchor",
+        description: title
+      }
+
+      if url.present?
+        resource_attrs[:uri] = url
+      else
+        resource_attrs[:content] = source_anchor_text_content(anchor)
+      end
+
+      resource = Resource.new(resource_attrs)
+      if resource.save
+        redirect_to outline_research_input_admin_course_path(@course, anchor: "source-anchors"), notice: "Converted source anchor to resource.", status: :see_other
+      else
+        redirect_to outline_research_input_admin_course_path(@course, anchor: "source-anchors"), alert: "Failed to convert source anchor: #{resource.errors.full_messages.to_sentence}", status: :see_other
+      end
+    rescue ArgumentError, TypeError, IndexError
+      redirect_to outline_research_input_admin_course_path(@course, anchor: "source-anchors"), alert: "Source anchor was not found.", status: :see_other
+    end
+
     # POST /admin/courses/:id/undo_outline_research_changes
     def undo_outline_research_changes
       result = UndoCourseResearchChangesService.new(course: @course).undo!
@@ -141,6 +179,7 @@ module Admin
 
     def set_course
       @course = Course.find(params[:id])
+      @source_anchors = Array(@course.outline_research_hash["source_anchors"]).map { |anchor| anchor.is_a?(Hash) ? anchor : {} }
     end
 
     def course_params
@@ -165,7 +204,12 @@ module Admin
     def ensure_outline_research_input_stage!
       return if @course.outline_research_input_open?
 
-      redirect_to edit_admin_course_path(@course), alert: "Outline research input is only available while awaiting teacher input or after a failed apply run.", status: :see_other
+      message = "Outline research input is only available while awaiting teacher input or after a failed apply run."
+      if autosave_request?
+        render json: { ok: false, error: message }, status: :conflict
+      else
+        redirect_to edit_admin_course_path(@course), alert: message, status: :see_other
+      end
     end
 
     def ensure_outline_research_review_page_available!
@@ -213,27 +257,6 @@ module Admin
         updates[:outline_guidance_answers] = merged_answers
       end
 
-      if params[:approve_all].to_s == "1" || params[:source_anchor_decisions].present?
-        research = course.outline_research_hash.deep_dup
-        decisions = params[:source_anchor_decisions].respond_to?(:to_unsafe_h) ? params[:source_anchor_decisions].to_unsafe_h : {}
-
-        research["source_anchors"] = Array(research["source_anchors"]).map.with_index do |anchor, idx|
-          anchor_hash = anchor.is_a?(Hash) ? anchor.deep_dup : {}
-          desired_decision =
-            if params[:approve_all].to_s == "1"
-              "approved"
-            else
-              decisions[idx.to_s].to_s
-            end
-
-          if %w[pending approved rejected].include?(desired_decision)
-            anchor_hash["decision"] = desired_decision
-          end
-          anchor_hash
-        end
-        updates[:outline_research] = research
-      end
-
       course.update!(updates) if updates.present?
     end
 
@@ -258,6 +281,33 @@ module Admin
     def outline_research_inputs_error_redirect_path(course)
       return edit_admin_course_path(course) unless params[:from_outline_research_input].to_s == "1"
       outline_research_input_admin_course_path(course)
+    end
+
+    def source_anchor_text_content(anchor)
+      excerpt = anchor["excerpt"].to_s.strip
+      highlights = Array(anchor["highlights"]).map(&:to_s).map(&:strip).reject(&:blank?)
+      notes = anchor["notes"].to_s.strip
+
+      segments = []
+      segments << "Excerpt:\n#{excerpt}" if excerpt.present?
+      segments << "Highlights:\n#{highlights.map { |item| "- #{item}" }.join("\n")}" if highlights.any?
+      segments << "Notes:\n#{notes}" if notes.present?
+      segments.join("\n\n").presence || "No additional source details were provided."
+    end
+
+    def autosave_request?
+      ActiveModel::Type::Boolean.new.cast(params[:autosave]) || request.format.json?
+    end
+
+    def autosave_outline_research_payload(course)
+      unanswered_count = course.unanswered_research_question_ids.size
+      resumable_run = course.outline_research_resumable_run?
+      {
+        ok: true,
+        unanswered_count: unanswered_count,
+        ready_to_resume: resumable_run && unanswered_count.zero?,
+        resumable_run: resumable_run
+      }
     end
   end
 end

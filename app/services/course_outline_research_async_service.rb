@@ -53,7 +53,6 @@ class CourseOutlineResearchAsyncService
         return failure("This failed run cannot be resumed because no prior response id is available. Start a new outline research run.")
       end
       return failure("All research questions must be answered before resuming.") if @course.unanswered_research_question_ids.any?
-      return failure("All source anchors must be approved or rejected before resuming.") if @course.pending_source_anchor_count.positive?
 
       @course.update!(
         outline_research_stage: "applying_guidance_updates",

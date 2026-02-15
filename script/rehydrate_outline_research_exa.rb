@@ -41,21 +41,6 @@ job = EnrichCourseOutlineJob.new
 raw_payload = job.send(:extract_research_output, response)
 normalized = job.send(:normalize_outline_research, raw_payload)
 
-# Preserve prior decisions when anchors can be matched.
-existing_decisions = Array(existing["source_anchors"]).each_with_object({}) do |anchor, memo|
-  next unless anchor.is_a?(Hash)
-
-  key = [ anchor["id"].to_s, anchor["url"].to_s ]
-  memo[key] = anchor["decision"].to_s if %w[pending approved rejected].include?(anchor["decision"].to_s)
-end
-normalized["source_anchors"] = Array(normalized["source_anchors"]).map do |anchor|
-  next anchor unless anchor.is_a?(Hash)
-
-  key = [ anchor["id"].to_s, anchor["url"].to_s ]
-  decision = existing_decisions[key]
-  decision.present? ? anchor.merge("decision" => decision) : anchor
-end
-
 poll_count = existing.dig("exa_research", "poll_count").to_i
 hydrated = normalized.merge(
   "research_id" => research_id,
