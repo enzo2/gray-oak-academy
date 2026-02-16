@@ -158,6 +158,59 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_includes course.outline_research_error.to_s, "Failed to apply outline research guidance"
   end
 
+  test "uses development stub apply phase when enabled" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      summary: "Original summary",
+      outline: [ { "Topic 1" => "Old details" } ],
+      outline_research_stage: "awaiting_teacher_input",
+      outline_guidance_questions: [
+        {
+          "id" => "q1",
+          "question" => "Question one?",
+          "choices" => { "A" => "A", "B" => "B", "C" => "C", "OTHER" => "Other" }
+        }
+      ],
+      outline_guidance_answers: {
+        "q1" => { "choice" => "A" }
+      },
+      outline_research: {
+        "source_anchors" => [
+          { "id" => "anchor_1", "title" => "Source A", "url" => "https://example.com/a", "excerpt" => "", "highlights" => [], "notes" => "" }
+        ],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => []
+      },
+      outline_research_run_id: "run_stub_1",
+      outline_research_response_id: "resp_stub_previous",
+      course_prior_state: {}
+    )
+
+    CourseOutlineResearchStubService.stub(:enabled?, true) do
+      OpenaiResponsesService.stub(:new, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          ResumeCourseOutlineResearchJob.perform_now(
+            course_id: course.id,
+            user_id: teacher.id,
+            permission_granted: true,
+            source: "teacher_chat_tool"
+          )
+        end
+      end
+    end
+
+    course.reload
+    assert_equal "completed", course.outline_research_stage
+    assert_predicate course.outline_research_hash["apply_agent_summary_md"].to_s, :present?
+    assert_predicate course.outline_research_hash["apply_completed_at"].to_s, :present?
+    assert_predicate course.course_prior_state, :present?
+    assert_match(/stub_apply_resp_/, course.outline_research_response_id.to_s)
+    assert_predicate course.summary.to_s, :present?
+    assert_operator course.outline.size, :>, 0
+  end
+
   private
 
   def ensure_prompt(category, text)

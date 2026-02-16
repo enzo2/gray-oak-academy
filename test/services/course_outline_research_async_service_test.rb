@@ -21,11 +21,13 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
 
   test "enqueue_start queues enrich job and resets research artifacts" do
     @course.update!(course_prior_state: { "summary" => "stale snapshot" })
+    conversation = conversations(:teacher_generic_conversation)
 
     service = CourseOutlineResearchAsyncService.new(
       course: @course,
       current_user: @teacher,
-      source: "course_edit_page"
+      source: "course_edit_page",
+      conversation_id: conversation.id
     )
 
     AppSetting.stub(:openai_agent_enabled?, true) do
@@ -41,6 +43,10 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
         assert_includes emitted_events, Events::CourseOutlineResearchStarted
       end
     end
+
+    job = enqueued_jobs.find { |entry| entry[:job] == EnrichCourseOutlineJob }
+    job_args = job[:args].first
+    assert_equal conversation.id, job_args["conversation_id"] || job_args[:conversation_id]
 
     @course.reload
     assert_equal "researching_outline", @course.outline_research_stage

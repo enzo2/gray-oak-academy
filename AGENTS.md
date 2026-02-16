@@ -2,6 +2,8 @@
 
 Gray Oak Academy is a teacher-directed, LLM-conducted learning platform for 1-on-1 AI tutoring. Teachers create courses and lesson plans; students receive personalized tutoring via LLM with multimodal chat, generative applets, and progress tracking. See README for detailed explanation and vision.
 
+To fully understand the app, read README.md, seeds.rb, and schema.rb. 
+
 ## Development Commands
 
 ```bash

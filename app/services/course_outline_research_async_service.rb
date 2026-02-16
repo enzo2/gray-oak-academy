@@ -1,8 +1,9 @@
 class CourseOutlineResearchAsyncService
-  def initialize(course:, current_user:, source:)
+  def initialize(course:, current_user:, source:, conversation_id: nil)
     @course = course
     @current_user = current_user
     @source = source.to_s.presence || "unknown"
+    @conversation_id = conversation_id
   end
 
   def enqueue_start
@@ -29,7 +30,8 @@ class CourseOutlineResearchAsyncService
       EnrichCourseOutlineJob.perform_later(
         course_id: @course.id,
         user_id: @current_user.id,
-        source: @source
+        source: @source,
+        conversation_id: @conversation_id
       )
 
       emit_analytics_event(
@@ -88,6 +90,8 @@ class CourseOutlineResearchAsyncService
   end
 
   def research_pipeline_enabled?
+    return true if CourseOutlineResearchStubService.enabled?
+
     AppSetting.openai_agent_enabled? && AppSetting.exa_enabled?
   end
 

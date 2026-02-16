@@ -48,13 +48,22 @@ class EnrichCourseOutlineJob < ApplicationJob
     schema: LlmSchemas::CourseOutlineResearchGuidanceSchema.to_json_schema.deep_stringify_keys
   }.freeze
 
-  def perform(course_id:, user_id:, source: "course_edit")
+  def perform(course_id:, user_id:, source: "course_edit", conversation_id: nil)
     current_user = User.find(user_id)
     course = Course.find(course_id)
     failure_phase = "initialize"
 
     course.update!(outline_research_stage: "researching_outline", outline_research_error: nil)
     broadcast_refresh(current_user)
+    if CourseOutlineResearchStubService.enabled?
+      run_stub_pipeline(
+        course: course,
+        current_user: current_user,
+        source: source,
+        conversation_id: conversation_id
+      )
+      return
+    end
 
     failure_phase = "exa_research"
     research_payload = run_exa_research(course: course, current_user: current_user)
@@ -107,6 +116,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       question_count: Array(guidance_payload["research_questions"]).size,
       source_anchor_count: Array(course.outline_research_hash["source_anchors"]).size
     )
+    broadcast_chalkboard_research_input(course: course, conversation_id: conversation_id)
     broadcast_refresh(current_user)
   rescue StandardError => e
     Rails.logger.error("EnrichCourseOutlineJob failed for course=#{course_id}: #{e.message}")
@@ -130,6 +140,59 @@ class EnrichCourseOutlineJob < ApplicationJob
   end
 
   private
+
+  def run_stub_pipeline(course:, current_user:, source:, conversation_id:)
+    research_payload = CourseOutlineResearchStubService.research_payload(course: course)
+    emit_analytics_event(
+      Events::CourseOutlineResearchExaCompleted,
+      course: course,
+      current_user: current_user,
+      source: source,
+      stage: "researching_outline",
+      research_id: research_payload["research_id"].to_s,
+      source_anchor_count: Array(research_payload["source_anchors"]).size,
+      coverage_gap_count: Array(research_payload["coverage_gaps"]).size,
+      factual_note_count: Array(research_payload["factual_notes"]).size,
+      alternative_approach_count: Array(research_payload["alternative_approaches"]).size
+    )
+
+    course.update!(
+      outline_research: research_payload,
+      outline_research_stage: "generating_guidance_questions",
+      outline_research_error: nil
+    )
+    broadcast_refresh(current_user)
+
+    run_id = course.outline_research_run_id.presence || SecureRandom.uuid
+    guidance_payload = CourseOutlineResearchStubService.guidance_payload(course: course)
+    response_id = "stub_guidance_resp_#{SecureRandom.hex(6)}"
+    prefilled_answers = CourseOutlineResearchStubService.prefilled_guidance_answers(
+      guidance_payload.fetch("research_questions")
+    )
+
+    course.update!(
+      outline_guidance_report_md: guidance_payload.fetch("report_markdown"),
+      outline_guidance_questions: guidance_payload.fetch("research_questions"),
+      outline_guidance_answers: prefilled_answers,
+      outline_research_stage: "awaiting_teacher_input",
+      outline_research_error: nil,
+      outline_research_run_id: run_id,
+      outline_research_response_id: response_id
+    )
+    emit_analytics_event(
+      Events::CourseOutlineResearchGuidanceReady,
+      course: course,
+      current_user: current_user,
+      source: source,
+      stage: "awaiting_teacher_input",
+      run_id: run_id.to_s,
+      response_id: response_id.to_s,
+      question_count: Array(guidance_payload["research_questions"]).size,
+      source_anchor_count: Array(course.outline_research_hash["source_anchors"]).size
+    )
+    broadcast_chalkboard_research_input(course: course, conversation_id: conversation_id)
+    broadcast_refresh(current_user)
+  end
 
   def run_exa_research(course:, current_user:)
     prompt = Prompt.get_prompt(category: "research_course_outline", user: current_user)
@@ -438,6 +501,35 @@ class EnrichCourseOutlineJob < ApplicationJob
 
   def broadcast_refresh(current_user)
     Turbo::StreamsChannel.broadcast_refresh_to("teacher_#{current_user.id}-dashboard")
+  end
+
+  def broadcast_chalkboard_research_input(course:, conversation_id:)
+    return if conversation_id.blank?
+
+    conversation = Conversation.find_by(id: conversation_id)
+    return unless conversation
+
+    content_html = ApplicationController.render(
+      partial: "admin/courses/chalkboard_research_input",
+      locals: { course: course }
+    )
+
+    payload = {
+      event_type: "open_push_tab",
+      tab_id: "outline_research_#{course.id}_#{SecureRandom.hex(6)}",
+      tab_title: "Outline Research",
+      kind: "outline_research",
+      content_html: content_html
+    }
+
+    Turbo::StreamsChannel.broadcast_append_to(
+      "conversation_#{conversation.id}",
+      target: "chalkboard_tab_inbox",
+      partial: "shared/chalkboard_tab_event",
+      locals: { payload: payload }
+    )
+  rescue StandardError => e
+    Rails.logger.error("EnrichCourseOutlineJob chalkboard notification failed course=#{course&.id} conversation=#{conversation_id}: #{e.message}")
   end
 
   def emit_analytics_event(event_class, course:, current_user:, source:, stage:, **params)

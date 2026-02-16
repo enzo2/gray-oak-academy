@@ -436,8 +436,8 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_includes Message.order(:created_at).last.content.to_s, "Generate the lesson plan once before proposing resources."
   end
 
-  test "research_course_outline queues outline research asynchronously" do
-    create_research_course_outline_tool!
+  test "generate_course_outline action research_outline queues outline research asynchronously" do
+    create_generate_course_outline_tool!
     conversation = conversations(:teacher_generic_conversation)
     course = courses(:one)
     service = ToolExecutionService.new(conversation: conversation, message: nil)
@@ -455,8 +455,8 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
       assert_difference "Message.count", 1 do
         service.execute_tool_call(
           id: "tc-research-outline",
-          name: "Research_Course_Outline",
-          arguments: { course_id: course.id }.to_json
+          name: "Generate_Course_Outline",
+          arguments: { course_id: course.id, action: "research_outline" }.to_json
         )
       end
     end
@@ -464,11 +464,45 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_equal course, captured_kwargs[:course]
     assert_equal users(:admin), captured_kwargs[:current_user]
     assert_equal "teacher_chat_tool", captured_kwargs[:source]
+    assert_equal conversation.id, captured_kwargs[:conversation_id]
 
     content = Message.order(:created_at).last.content.to_s
     assert_includes content, "\"status\": \"queued\""
     assert_includes content, "\"action\": \"research_outline\""
     assert_includes content, "\"course_id\": #{course.id}"
+    assert_includes content, "teacher will be notified in chalkboard"
+    refute_includes content, "\"next_step\""
+  end
+
+  test "generate_course_outline action generate_and_research generates then queues research" do
+    create_generate_course_outline_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    course = courses(:one)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    generated = false
+    fake_async_service = Object.new
+    fake_async_service.define_singleton_method(:enqueue_start) do
+      { ok: true, stage: "researching_outline", message: "Queued outline research." }
+    end
+
+    GenerateCourseOutlineJob.stub(:perform_now, ->(*_args) { generated = true }) do
+      CourseOutlineResearchAsyncService.stub(:new, ->(**_kwargs) { fake_async_service }) do
+        assert_difference "Message.count", 1 do
+          service.execute_tool_call(
+            id: "tc-generate-and-research",
+            name: "Generate_Course_Outline",
+            arguments: { course_id: course.id, action: "generate_and_research" }.to_json
+          )
+        end
+      end
+    end
+
+    assert_equal true, generated
+    content = Message.order(:created_at).last.content.to_s
+    assert_includes content, "\"status\": \"ok\""
+    assert_includes content, "\"action\": \"generate_and_research\""
+    assert_includes content, "\"research_status\": \"queued\""
   end
 
   private
@@ -492,18 +526,23 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     tool.save!
   end
 
-  def create_research_course_outline_tool!
-    tool = Tool.find_or_initialize_by(name: "Research_Course_Outline")
+  def create_generate_course_outline_tool!
+    tool = Tool.where("LOWER(name) = LOWER(?)", "Generate_Course_Outline").first_or_initialize
     tool.access = :admin
     tool.specifications = {
-      "name" => "Research_Course_Outline",
-      "description" => "Run optional Exa-grounded outline research for a course.",
+      "name" => "Generate_Course_Outline",
+      "description" => "Generate and/or research a course outline.",
       "parameters" => {
         "type" => "object",
         "properties" => {
-          "course_id" => { "type" => "integer", "description" => "ID of the course" }
+          "course_id" => { "type" => "integer", "description" => "ID of the course" },
+          "action" => {
+            "type" => "string",
+            "description" => "Action",
+            "enum" => [ "generate_outline", "research_outline", "generate_and_research" ]
+          }
         },
-        "required" => [ "course_id" ],
+        "required" => [ "course_id", "action" ],
         "additionalProperties" => false
       }
     }

@@ -790,45 +790,70 @@ class ToolExecutionService
     course = current_teacher.taught_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
 
-    begin
-      # Run the generation job synchronously; caller is expected to wait for completion
-      GenerateCourseOutlineJob.perform_now(course, current_user = current_teacher)
-      course.reload
-      create_tool_message(JSON.pretty_generate(course.for_llm))
-    rescue StandardError => e
-      Rails.logger.error "GenerateCourseOutlineJob error: #{e.message}"
-      raise ToolExecutionError, "Failed to generate course outline: #{e.message}"
+    action = @args["action"].to_s.strip.presence || "generate_outline"
+
+    case action
+    when "generate_outline"
+      begin
+        GenerateCourseOutlineJob.perform_now(course, current_teacher)
+        course.reload
+        create_tool_message(JSON.pretty_generate(course.for_llm))
+      rescue StandardError => e
+        Rails.logger.error "GenerateCourseOutlineJob error: #{e.message}"
+        raise ToolExecutionError, "Failed to generate course outline: #{e.message}"
+      end
+    when "research_outline"
+      begin
+        enqueue_result = enqueue_course_outline_research(course: course)
+        broadcast_chalkboard_outline_research_queued(course)
+        course.reload
+        create_tool_message(JSON.pretty_generate({
+          status: "queued",
+          action: action,
+          message: enqueue_result[:message],
+          course_id: course.id,
+          outline_research_stage: course.outline_research_stage,
+          note: "Outline research runs asynchronously. The teacher will be notified in chalkboard when guidance input is ready."
+        }))
+      rescue StandardError => e
+        raise e if e.is_a?(ToolExecutionError)
+
+        Rails.logger.error "GenerateCourseOutline research_outline error: #{e.message}"
+        raise ToolExecutionError, "Failed to research course outline: #{e.message}"
+      end
+    when "generate_and_research"
+      begin
+        GenerateCourseOutlineJob.perform_now(course, current_teacher)
+      rescue StandardError => e
+        Rails.logger.error "GenerateCourseOutlineJob error: #{e.message}"
+        raise ToolExecutionError, "Failed to generate course outline: #{e.message}"
+      end
+
+      begin
+        enqueue_result = enqueue_course_outline_research(course: course)
+        broadcast_chalkboard_outline_research_queued(course)
+        course.reload
+        create_tool_message(JSON.pretty_generate({
+          status: "ok",
+          action: action,
+          message: "Generated outline and queued deep research.",
+          generation_status: "completed",
+          research_status: "queued",
+          research_message: enqueue_result[:message],
+          course_id: course.id,
+          outline_research_stage: course.outline_research_stage,
+          note: "Outline research runs asynchronously. The teacher will be notified in chalkboard when guidance input is ready.",
+          course: course.for_llm
+        }))
+      rescue StandardError => e
+        raise e if e.is_a?(ToolExecutionError)
+
+        Rails.logger.error "GenerateCourseOutline generate_and_research enqueue error: #{e.message}"
+        raise ToolExecutionError, "Outline was generated, but failed to queue research: #{e.message}"
+      end
+    else
+      raise ToolExecutionError, "Unknown Generate_Course_Outline action: #{action.inspect}"
     end
-  end
-
-  def execute_research_course_outline
-    # Teacher-only tool
-    course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.find_by(id: course_id)
-    raise ToolExecutionError, "Course not found" unless course
-
-    result = CourseOutlineResearchAsyncService.new(
-      course: course,
-      current_user: current_teacher,
-      source: "teacher_chat_tool"
-    ).enqueue_start
-
-    raise ToolExecutionError, result[:message] unless result[:ok]
-
-    course.reload
-    create_tool_message(JSON.pretty_generate({
-      status: "queued",
-      action: "research_outline",
-      message: result[:message],
-      course_id: course.id,
-      outline_research_stage: course.outline_research_stage,
-      next_step: "Use Get_Course_Details to check outline_research_stage until it reaches awaiting_teacher_input, completed, or failed."
-    }))
-  rescue StandardError => e
-    raise e if e.is_a?(ToolExecutionError)
-
-    Rails.logger.error "ResearchCourseOutline error: #{e.message}"
-    raise ToolExecutionError, "Failed to research course outline: #{e.message}"
   end
 
   def execute_edit_course_lessons
@@ -979,6 +1004,27 @@ class ToolExecutionService
     else
       raise ToolExecutionError, "Unknown Generate_Lesson_Plan action: #{action.inspect}"
     end
+  end
+
+  def enqueue_course_outline_research(course:)
+    result = CourseOutlineResearchAsyncService.new(
+      course: course,
+      current_user: current_teacher,
+      source: "teacher_chat_tool",
+      conversation_id: @conversation.id
+    ).enqueue_start
+    raise ToolExecutionError, result[:message] unless result[:ok]
+
+    result
+  end
+
+  def broadcast_chalkboard_outline_research_queued(course)
+    broadcast_chalkboard_push_tab(
+      tab_title: "Outline Research",
+      kind: "outline_research",
+      partial: "admin/courses/chalkboard_research_queued",
+      locals: { course: course }
+    )
   end
 
   def execute_generate_image

@@ -18,8 +18,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     )
     broadcast_refresh(current_user)
 
-    openai_config = openai_agent_config!
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
+    if CourseOutlineResearchStubService.enabled?
+      run_stub_apply_phase(course: course, current_user: current_user, source: source, run_id: run_id)
+      return
+    end
+
+    openai_config = openai_agent_config!
     executor = CourseResearchToolExecutor.new(course: course, current_user: current_user)
     client = OpenaiResponsesService.new(
       current_user: current_user,
@@ -115,6 +120,47 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
   end
 
   private
+
+  def run_stub_apply_phase(course:, current_user:, source:, run_id:)
+    executor = CourseResearchToolExecutor.new(course: course, current_user: current_user)
+    function_result = executor.execute(
+      {
+        "type" => "function_call",
+        "name" => "apply_course_research_update",
+        "call_id" => "stub_apply_#{SecureRandom.hex(6)}",
+        "arguments" => CourseOutlineResearchStubService.apply_update_payload(course: course).to_json
+      }
+    )
+
+    if function_result[:output].to_s.start_with?("Tool execution error:")
+      raise OpenAiError, function_result[:output]
+    end
+
+    course.reload
+    response_id = "stub_apply_resp_#{SecureRandom.hex(6)}"
+    final_agent_summary = CourseOutlineResearchStubService.apply_summary_markdown
+    course.update!(
+      outline_research_stage: "completed",
+      outline_research_error: nil,
+      outline_research: merge_apply_completion_summary(
+        outline_research: course.outline_research_hash,
+        summary_md: final_agent_summary
+      ),
+      outline_research_run_id: run_id,
+      outline_research_response_id: response_id
+    )
+    emit_analytics_event(
+      Events::CourseOutlineResearchApplyCompleted,
+      course: course,
+      current_user: current_user,
+      source: source,
+      stage: "completed",
+      run_id: run_id.to_s,
+      response_id: response_id.to_s,
+      tool_turns: 1
+    )
+    broadcast_refresh(current_user)
+  end
 
   def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:)
     raise OpenAiError, "No previous response id is available to resume outline research run." if previous_response_id.to_s.blank?

@@ -4,6 +4,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
   test "stores research artifacts and guidance questions then awaits teacher input" do
     teacher = users(:admin)
     course = courses(:one)
+    conversation = conversations(:teacher_generic_conversation)
     course.update!(outline: [ { "Origins" => "How the city began" } ])
 
     ensure_prompt("research_course_outline", "Title: {title}\nSummary: {summary}\nOutline: {outline}")
@@ -85,14 +86,34 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     ExaApiService.stub(:new, ->(**_kwargs) { fake_exa }) do
       OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
         emitted_events = []
+        chalkboard_broadcasts = []
         job = EnrichCourseOutlineJob.new
         job.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
           Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-            job.perform(course_id: course.id, user_id: teacher.id, source: "course_edit_page")
+            Turbo::StreamsChannel.stub(:broadcast_append_to, ->(*args, **kwargs) {
+              chalkboard_broadcasts << { args: args, kwargs: kwargs }
+            }) do
+              job.perform(
+                course_id: course.id,
+                user_id: teacher.id,
+                source: "course_edit_page",
+                conversation_id: conversation.id
+              )
+            end
           end
         end
         assert_includes emitted_events, Events::CourseOutlineResearchExaCompleted
         assert_includes emitted_events, Events::CourseOutlineResearchGuidanceReady
+        assert_equal 1, chalkboard_broadcasts.size
+
+        broadcast = chalkboard_broadcasts.first
+        assert_equal "conversation_#{conversation.id}", broadcast[:args].first
+        assert_equal "chalkboard_tab_inbox", broadcast.dig(:kwargs, :target)
+        assert_equal "shared/chalkboard_tab_event", broadcast.dig(:kwargs, :partial)
+        payload = broadcast.dig(:kwargs, :locals, :payload)
+        assert_equal "open_push_tab", payload[:event_type]
+        assert_equal "Outline Research", payload[:tab_title]
+        assert_includes payload[:content_html], "Outline Research Ready"
       end
     end
 
@@ -119,6 +140,50 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal 3, captured_exa[:poll_interval_seconds]
     assert_equal true, captured_responses[:background]
     assert_equal "resp_guidance_1", captured_responses[:response_id]
+  end
+
+  test "does not broadcast chalkboard notification when conversation_id is blank" do
+    job = EnrichCourseOutlineJob.new
+    course = courses(:one)
+    called = false
+
+    Turbo::StreamsChannel.stub(:broadcast_append_to, ->(*_args, **_kwargs) { called = true }) do
+      job.send(:broadcast_chalkboard_research_input, course: course, conversation_id: nil)
+    end
+
+    assert_equal false, called
+  end
+
+  test "uses development stub pipeline and pre-fills guidance answers" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      outline: [ { "Topic One" => "Details" } ],
+      outline_research_stage: "idle",
+      outline_guidance_answers: {}
+    )
+
+    CourseOutlineResearchStubService.stub(:enabled?, true) do
+      ExaApiService.stub(:new, ->(**_kwargs) { raise "Exa should not run in stub mode" }) do
+        OpenaiResponsesService.stub(:new, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
+          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+            EnrichCourseOutlineJob.perform_now(
+              course_id: course.id,
+              user_id: teacher.id,
+              source: "teacher_chat_tool"
+            )
+          end
+        end
+      end
+    end
+
+    course.reload
+    assert_equal "awaiting_teacher_input", course.outline_research_stage
+    assert_predicate course.outline_guidance_report_md.to_s, :present?
+    assert_operator course.outline_guidance_questions.size, :>, 0
+    assert_operator course.outline_guidance_answers.size, :>, 0
+    assert_equal [], course.unanswered_research_question_ids
+    assert_equal "completed", course.outline_research_hash.dig("exa_research", "status")
   end
 
   private

@@ -1,0 +1,26 @@
+<% question_count = Array(course.outline_guidance_questions).size %>
+<% report_md = course.outline_guidance_report_md.to_s %>
+
+<div class="not-prose rounded-lg border border-stone-300 bg-stone-50 p-4 dark:border-stone-700 dark:bg-stone-900">
+  <h3 class="text-base font-semibold">Outline Research Ready</h3>
+  <p class="mt-1 text-sm text-stone-700 dark:text-stone-300">
+    <b><%= course.title %></b> now has <%= question_count %> guidance <%= "question".pluralize(question_count) %> for teacher input.
+  </p>
+  <p class="mt-1 text-sm text-stone-700 dark:text-stone-300">
+    Continue in the full research workspace to answer questions and resume the apply phase.
+  </p>
+  <%= link_to "Open Research Workspace",
+              outline_research_input_admin_course_path(course),
+              class: "btn-primary inline-flex mt-3",
+              target: "_blank",
+              rel: "noopener noreferrer" %>
+</div>
+
+<% if report_md.present? %>
+  <div class="mt-4">
+    <h4 class="not-prose text-sm font-semibold">Guidance Report Preview</h4>
+    <div class="mt-2">
+      <%= markdown(report_md) %>
+    </div>
+  </div>
+<% end %>
