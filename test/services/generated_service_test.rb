@@ -9,23 +9,29 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     @message = Message.create!(conversation: @conversation, role: :user, content: "Requesting tool")
   end
 
-  test "execute Chalkboard_URL broadcasts and creates tool message" do
+  test "execute Show_On_Chalkboard with url broadcasts and creates tool message" do
     # Ensure tool exists in DB so Tool.find_by can locate it
     chalk_spec = {
-      "name" => "Chalkboard_URL",
-      "description" => "Updates the chalkboard iframe",
+      "name" => "Show_On_Chalkboard",
+      "description" => "Displays resources on the chalkboard",
+      "strict_mode" => true,
       "parameters" => {
         "type" => "object",
         "properties" => {
-          "url" => { "type" => "string", "description" => "URL to show" }
+          "url" => { "type" => "string", "description" => "URL to show" },
+          "resource_id" => { "type" => "string", "description" => "Resource ID" }
         },
-        "required" => [ "url" ]
+        "additionalProperties" => false,
+        "oneOf" => [
+          { "required" => [ "url" ] },
+          { "required" => [ "resource_id" ] }
+        ]
       }
     }
     Tool.create!(specifications: chalk_spec)
 
     service = ToolHandlerService.new(conversation: @conversation, message: @message)
-    tool_calls = [ { id: "call-1", function: { name: "Chalkboard_URL", arguments: { url: "https://example.com" }.to_json } } ]
+    tool_calls = [ { id: "call-1", function: { name: "Show_On_Chalkboard", arguments: { url: "https://example.com" }.to_json } } ]
 
     embed_result = {
       status: "embeddable",
@@ -50,22 +56,28 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "execute Chalkboard_File raises tool message when resource missing" do
+  test "execute Show_On_Chalkboard with resource_id raises tool message when resource missing" do
     chalk_file_spec = {
-      "name" => "Chalkboard_File",
-      "description" => "Displays a file on the chalkboard",
+      "name" => "Show_On_Chalkboard",
+      "description" => "Displays resources on the chalkboard",
+      "strict_mode" => true,
       "parameters" => {
         "type" => "object",
         "properties" => {
+          "url" => { "type" => "string", "description" => "URL" },
           "resource_id" => { "type" => "string", "description" => "ID of resource" }
         },
-        "required" => [ "resource_id" ]
+        "additionalProperties" => false,
+        "oneOf" => [
+          { "required" => [ "url" ] },
+          { "required" => [ "resource_id" ] }
+        ]
       }
     }
     Tool.create!(specifications: chalk_file_spec)
 
     service = ToolHandlerService.new(conversation: @conversation, message: @message)
-    tool_call = { id: "call-2", name: "Chalkboard_File", arguments: { resource_id: "nonexistent" }.to_json }
+    tool_call = { id: "call-2", name: "Show_On_Chalkboard", arguments: { resource_id: "nonexistent" }.to_json }
 
     # Stub Turbo broadcast to avoid actual ActionCable usage
     Turbo::StreamsChannel.stub(:broadcast_update_to, true) do

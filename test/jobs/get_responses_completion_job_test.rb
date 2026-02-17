@@ -169,4 +169,42 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal "call_1", second_messages[2][:tool_call_id]
     assert_equal "tool output", second_messages[2][:content]
   end
+
+  test "does not delete latest user message on OpenAiError when a newer tool message exists" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    user_message = conversation.messages.create!(role: :user, content: "Yes")
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
+      conversation.messages.create!(
+        role: :tool,
+        content: "Tool output after user message",
+        tool_call_id: "tool_Show_On_Chalkboard_1"
+      )
+      raise OpenAiError, "Empty response from LLM."
+    end
+    fake_client.define_singleton_method(:last_response_hash) { nil }
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
+            assert_raises(OpenAiError) do
+              GetResponsesCompletionJob.perform_now(conversation: conversation)
+            end
+          end
+        end
+      end
+    end
+
+    assert Message.exists?(id: user_message.id), "User message should not be deleted when a newer tool message exists"
+  end
 end

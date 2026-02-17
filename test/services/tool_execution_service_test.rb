@@ -98,7 +98,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_includes tool_message.content, "Invalid JSON in tool arguments, unable to repair."
   end
 
-  test "execute_chalkboard_url renders iframe tab for embeddable URL" do
+  test "execute_show_on_chalkboard with url renders iframe tab for embeddable URL" do
     conversation = conversations(:teacher_generic_conversation)
     service = ToolExecutionService.new(conversation: conversation, message: nil)
 
@@ -114,25 +114,21 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     }
 
     broadcast_args = nil
-    counters = []
 
     UrlEmbeddabilityService.stub(:check, embed_result) do
       service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
-        service.stub(:increment_chalkboard_url_counter!, ->(key) { counters << key }) do
-          assert_difference "Message.count", 1 do
-            service.send(:execute_chalkboard_url)
-          end
+        assert_difference "Message.count", 1 do
+          service.send(:execute_show_on_chalkboard)
         end
       end
     end
 
     assert_equal "shared/chalkboard_iframe", broadcast_args[:partial]
     assert_equal({ url: "https://example.com/embeddable" }, broadcast_args[:locals])
-    assert_equal [ "chalkboard_url.embed_success" ], counters
     assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/embeddable)"
   end
 
-  test "execute_chalkboard_url renders fallback tab for x-frame blocked URL" do
+  test "execute_show_on_chalkboard with url renders fallback tab for x-frame blocked URL" do
     conversation = conversations(:teacher_generic_conversation)
     service = ToolExecutionService.new(conversation: conversation, message: nil)
 
@@ -148,25 +144,21 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     }
 
     broadcast_args = nil
-    counters = []
 
     UrlEmbeddabilityService.stub(:check, embed_result) do
       service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
-        service.stub(:increment_chalkboard_url_counter!, ->(key) { counters << key }) do
-          assert_difference "Message.count", 1 do
-            service.send(:execute_chalkboard_url)
-          end
+        assert_difference "Message.count", 1 do
+          service.send(:execute_show_on_chalkboard)
         end
       end
     end
 
     assert_equal "shared/chalkboard_link_fallback", broadcast_args[:partial]
     assert_equal "Site blocks embedding via X-Frame-Options.", broadcast_args.dig(:locals, :reason)
-    assert_equal [ "chalkboard_url.fallback_blocked" ], counters
     assert_includes Message.order(:created_at).last.content, "blocks iframe embedding"
   end
 
-  test "execute_chalkboard_url keeps iframe attempt and adds markdown link when embeddability is unknown" do
+  test "execute_show_on_chalkboard with url keeps iframe attempt and adds markdown link when embeddability is unknown" do
     conversation = conversations(:teacher_generic_conversation)
     service = ToolExecutionService.new(conversation: conversation, message: nil)
 
@@ -182,22 +174,190 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     }
 
     broadcast_args = nil
-    counters = []
 
     UrlEmbeddabilityService.stub(:check, embed_result) do
       service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
-        service.stub(:increment_chalkboard_url_counter!, ->(key) { counters << key }) do
-          assert_difference "Message.count", 1 do
-            service.send(:execute_chalkboard_url)
-          end
+        assert_difference "Message.count", 1 do
+          service.send(:execute_show_on_chalkboard)
         end
       end
     end
 
     assert_equal "shared/chalkboard_iframe", broadcast_args[:partial]
-    assert_equal [ "chalkboard_url.embed_unknown" ], counters
     assert_includes Message.order(:created_at).last.content, "Embeddability check was inconclusive"
     assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/unknown)"
+  end
+
+  test "execute_show_on_chalkboard with resource_id renders file payload" do
+    conversation = conversations(:teacher_generic_conversation)
+    teacher = users(:admin)
+    resource = Resource.create!(teacher: teacher, category: "File", description: "Worksheet")
+    resource.file.attach(io: StringIO.new("%PDF-1.4 sample"), filename: "worksheet.pdf", content_type: "application/pdf")
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    service.instance_variable_set(:@args, { "resource_id" => resource.id.to_s })
+    service.instance_variable_set(:@tool_call_id, "tc-resource-file-1")
+
+    broadcast_args = nil
+    service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
+      assert_difference "Message.count", 1 do
+        service.send(:execute_show_on_chalkboard)
+      end
+    end
+
+    assert_equal "shared/chalkboard_file", broadcast_args[:partial]
+    assert_equal "application/pdf", broadcast_args.dig(:locals, :file_type)
+    assert_equal "worksheet.pdf", broadcast_args.dig(:locals, :filename)
+    assert_includes Message.order(:created_at).last.content, "Chalkboard updated with file: worksheet.pdf"
+  end
+
+  test "execute_show_on_chalkboard with resource_id routes uri resources through url flow" do
+    conversation = conversations(:teacher_generic_conversation)
+    teacher = users(:admin)
+    resource = Resource.create!(
+      teacher: teacher,
+      category: "Website",
+      description: "Fractions site",
+      uri: "https://example.com/resource-uri"
+    )
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    service.instance_variable_set(:@args, { "resource_id" => resource.id.to_s })
+    service.instance_variable_set(:@tool_call_id, "tc-resource-uri-1")
+
+    embed_result = {
+      status: "embeddable",
+      reason: "No blocking iframe headers detected.",
+      final_url: resource.uri,
+      x_frame_options: nil,
+      csp_frame_ancestors: nil
+    }
+    broadcast_args = nil
+
+    UrlEmbeddabilityService.stub(:check, embed_result) do
+      service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
+        assert_difference "Message.count", 1 do
+          service.send(:execute_show_on_chalkboard)
+        end
+      end
+    end
+
+    assert_equal "shared/chalkboard_iframe", broadcast_args[:partial]
+    assert_equal "Resource Link", broadcast_args[:tab_title]
+    assert_equal({ url: resource.uri }, broadcast_args[:locals])
+    assert_includes Message.order(:created_at).last.content, "[Open link](https://example.com/resource-uri)"
+  end
+
+  test "execute_show_on_chalkboard with resource_id renders text payload" do
+    conversation = conversations(:teacher_generic_conversation)
+    teacher = users(:admin)
+    resource = Resource.create!(
+      teacher: teacher,
+      category: "Text",
+      description: "Warmup notes",
+      content: "# Warmup\nDiscuss one key idea."
+    )
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    service.instance_variable_set(:@args, { "resource_id" => resource.id.to_s })
+    service.instance_variable_set(:@tool_call_id, "tc-resource-text-1")
+
+    broadcast_args = nil
+    service.stub(:broadcast_chalkboard_push_tab, ->(**kwargs) { broadcast_args = kwargs }) do
+      assert_difference "Message.count", 1 do
+        service.send(:execute_show_on_chalkboard)
+      end
+    end
+
+    assert_equal "shared/chalkboard_text_resource", broadcast_args[:partial]
+    assert_equal "Warmup notes", broadcast_args[:tab_title]
+    assert_equal "Text", broadcast_args.dig(:locals, :resource_name)
+    assert_equal "Warmup notes", broadcast_args.dig(:locals, :resource_description)
+    assert_includes broadcast_args.dig(:locals, :text_content), "# Warmup"
+    assert_includes Message.order(:created_at).last.content, "Chalkboard updated with text resource: Warmup notes"
+  end
+
+  test "execute_show_on_chalkboard with resource_id registers applet payload on chalkboard" do
+    conversation = conversations(:teacher_generic_conversation)
+    teacher = users(:admin)
+    resource = nil
+
+    NodeJsSyntaxChecker.stub(:check, { valid: true, errors: [] }) do
+      resource = Resource.new(teacher: teacher, category: "Applet", description: "Graph applet")
+      resource.build_applet(user: teacher, title: "Graph Explorer", code: "const value = 1;")
+      resource.save!
+    end
+
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+    service.instance_variable_set(:@args, { "resource_id" => resource.id.to_s })
+    service.instance_variable_set(:@tool_call_id, "tc-resource-applet-1")
+
+    payload = nil
+    service.stub(:broadcast_chalkboard_event, ->(kwargs) { payload = kwargs }) do
+      assert_difference "Message.count", 1 do
+        service.send(:execute_show_on_chalkboard)
+      end
+    end
+
+    assert_equal "register_applet", payload[:event_type]
+    assert_equal "resource", payload[:source]
+    assert_equal "resource_#{resource.id}", payload[:key]
+    assert_equal resource.applet.id, payload[:applet_id]
+    assert_includes Message.order(:created_at).last.content, "Graph Explorer"
+  end
+
+  test "execute_tool_call enforces lesson-linked resource scope for show_on_chalkboard" do
+    create_show_on_chalkboard_tool!
+    conversation = conversations(:student_lesson_conversation)
+    resource = Resource.create!(
+      teacher: users(:admin),
+      category: "Text",
+      description: "Not linked",
+      content: "Unlinked lesson content"
+    )
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_call(
+        id: "tc-scope-1",
+        name: "Show_On_Chalkboard",
+        arguments: { resource_id: resource.id.to_s }.to_json
+      )
+    end
+
+    assert_includes Message.order(:created_at).last.content, "Resource not available for this lesson"
+  end
+
+  test "execute_tool_call rejects show_on_chalkboard arguments when both url and resource_id are provided" do
+    create_show_on_chalkboard_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_call(
+        id: "tc-show-args-both",
+        name: "Show_On_Chalkboard",
+        arguments: { url: "https://example.com", resource_id: "1" }.to_json
+      )
+    end
+
+    assert_includes Message.order(:created_at).last.content, "Arguments failed schema validation"
+  end
+
+  test "execute_tool_call rejects show_on_chalkboard arguments when neither url nor resource_id is provided" do
+    create_show_on_chalkboard_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    service = ToolExecutionService.new(conversation: conversation, message: nil)
+
+    assert_difference "Message.count", 1 do
+      service.execute_tool_call(
+        id: "tc-show-args-neither",
+        name: "Show_On_Chalkboard",
+        arguments: {}.to_json
+      )
+    end
+
+    assert_includes Message.order(:created_at).last.content, "Arguments failed schema validation"
   end
 
   test "web tool action search uses Exa search with bounded num_results" do
@@ -506,6 +666,29 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
   end
 
   private
+
+  def create_show_on_chalkboard_tool!
+    tool = Tool.find_or_initialize_by(name: "Show_On_Chalkboard")
+    tool.access = :student
+    tool.specifications = {
+      "name" => "Show_On_Chalkboard",
+      "description" => "Displays lesson resources on the chalkboard. Provide exactly one argument: either a URL or a resource_id.",
+      "strict_mode" => true,
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "url" => { "type" => "string", "description" => "URL to display." },
+          "resource_id" => { "type" => "string", "description" => "Resource ID to display." }
+        },
+        "additionalProperties" => false,
+        "oneOf" => [
+          { "required" => [ "url" ] },
+          { "required" => [ "resource_id" ] }
+        ]
+      }
+    }
+    tool.save!
+  end
 
   def create_generate_lesson_plan_tool!
     tool = Tool.find_or_initialize_by(name: "Generate_Lesson_Plan")

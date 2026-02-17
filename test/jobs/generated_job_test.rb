@@ -10,7 +10,7 @@ class GetLlmCompletionJobTest < ActiveSupport::TestCase
   end
 
   test "stream handler processes tool_calls and invokes ToolHandlerService" do
-    # Ensure a tool exists (fixture provides Chalkboard_URL)
+    # Ensure a tool exists (fixture provides Show_On_Chalkboard)
     tool = tools(:one) rescue Tool.first
     # Stub Turbo broadcasts to no-op
     Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
@@ -33,7 +33,7 @@ class GetLlmCompletionJobTest < ActiveSupport::TestCase
                     {
                       "index" => 0,
                       "id" => "call-tt",
-                      "function" => { "name" => "Chalkboard_URL", "arguments" => '{"url":"https://example.com"}' }
+                      "function" => { "name" => "Show_On_Chalkboard", "arguments" => '{"url":"https://example.com"}' }
                     }
                   ]
                 },

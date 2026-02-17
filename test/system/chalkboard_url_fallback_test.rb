@@ -19,7 +19,7 @@ class ChalkboardUrlFallbackTest < ApplicationSystemTestCase
       service = ToolExecutionService.new(conversation: conversation, message: nil)
       service.instance_variable_set(:@tool_call_id, "tc-system-fallback-1")
       service.instance_variable_set(:@args, { "url" => "https://example.com/blocked" })
-      service.send(:execute_chalkboard_url)
+      service.send(:execute_show_on_chalkboard)
     end
 
     assert_selector "#chalkboard", text: "Open Resource In New Tab", wait: 5

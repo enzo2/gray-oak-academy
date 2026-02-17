@@ -91,7 +91,7 @@ class GetResponsesCompletionJob < ApplicationJob
   rescue OpenAiError => e
     Rails.logger.error "OpenAiService: #{e.message}"
     # Destroy the last message if it was a user message, since it was not sent and may have caused an error
-    conversation.messages.role_user.last&.destroy if conversation.messages.last&.role_user?
+    destroy_last_user_message_if_latest!(conversation)
     broadcast_error(e.message.to_s, conversation)
     raise
   rescue StandardError => e
@@ -149,6 +149,13 @@ class GetResponsesCompletionJob < ApplicationJob
 
   def deep_dup_messages(messages)
     Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
+  end
+
+  def destroy_last_user_message_if_latest!(conversation)
+    latest_role = conversation.messages.reorder(created_at: :desc).limit(1).pick(:role)
+    return unless latest_role == "user"
+
+    conversation.messages.role_user.reorder(created_at: :desc).first&.destroy
   end
 
   def broadcast_error(message, conversation)

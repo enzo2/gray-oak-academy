@@ -1,0 +1,10 @@
+<div class="chalkboard-markdown prose dark:prose-invert max-w-none p-4">
+  <% if local_assigns[:resource_name].present? %>
+    <p class="my-0"><strong>Name:</strong> <%= resource_name %></p>
+  <% end %>
+  <% if local_assigns[:resource_description].present? %>
+    <p class="mt-1 mb-3"><strong>Description:</strong> <%= resource_description %></p>
+  <% end %>
+  <h3 class="mt-0 mb-2">Content</h3>
+  <%= markdown(text_content.to_s) %>
+</div>

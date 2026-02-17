@@ -243,50 +243,15 @@ class ToolExecutionService
 
   # -- Tool execution methods --
 
-  def execute_chalkboard_url
-    url = @args["url"].to_s.strip
-    begin
-      embed_result = UrlEmbeddabilityService.check(url: url)
-    rescue UrlEmbeddabilityService::ValidationError
-      raise ToolExecutionError, "Invalid or unsafe URL provided"
+  def execute_show_on_chalkboard
+    if @args.key?("url")
+      execute_chalkboard_url_payload(@args["url"], tab_title: "Web Link")
+      return
     end
 
-    case embed_result[:status].to_s
-    when "embeddable"
-      increment_chalkboard_url_counter!("chalkboard_url.embed_success")
-      Rails.logger.debug "Broadcasting embeddable URL to chalkboard #{url}"
-      broadcast_chalkboard_push_tab(
-        tab_title: "Web Link",
-        kind: "url",
-        partial: "shared/chalkboard_iframe",
-        locals: { url: url }
-      )
-      create_tool_message("Chalkboard URL opened in new tab: #{url}\nBackup link: [Open link](#{url})")
-    when "blocked_xfo", "blocked_csp"
-      increment_chalkboard_url_counter!("chalkboard_url.fallback_blocked")
-      reason = embed_result[:reason].to_s
-      Rails.logger.debug "Broadcasting fallback URL tab to chalkboard #{url} reason=#{reason}"
-      broadcast_chalkboard_push_tab(
-        tab_title: "Web Link",
-        kind: "url",
-        partial: "shared/chalkboard_link_fallback",
-        locals: { url: url, reason: reason }
-      )
-      create_tool_message("This site blocks iframe embedding. A direct-link chalkboard tab was opened.\nOpen link: [#{url}](#{url})")
-    else
-      increment_chalkboard_url_counter!("chalkboard_url.embed_unknown")
-      Rails.logger.debug "Broadcasting URL with unknown embeddability to chalkboard #{url}"
-      broadcast_chalkboard_push_tab(
-        tab_title: "Web Link",
-        kind: "url",
-        partial: "shared/chalkboard_iframe",
-        locals: { url: url }
-      )
-      create_tool_message(
-        "Chalkboard URL was changed to: #{url}. Embeddability check was inconclusive, so iframe display may fail.\n" \
-        "Backup link: [Open link](#{url})"
-      )
-    end
+    resource = find_and_authorize_chalkboard_resource!(@args["resource_id"])
+    enforce_lesson_resource_scope!(resource)
+    execute_chalkboard_resource_payload(resource)
   end
 
   def execute_complete_lesson
@@ -324,48 +289,6 @@ class ToolExecutionService
     # Broadcast completion message to the conversation
     broadcast_lesson_completed
     create_tool_message("Confirmation: Lesson completed and student report generated successfully. Any further conversation will not be reflected in the progress report. Don't attempt to continue the lesson, but inform that you're still available for any questions. If the student decides to continue, you can engage, but inform them that any progress won't be reflected in future lessons.")
-  end
-
-  def execute_chalkboard_file
-    resource_id = @args["resource_id"]
-    # Find the resource
-    resource = Resource.find_by(id: resource_id)
-    raise ToolExecutionError, "Resource not found with ID: #{resource_id}" unless resource
-
-    # Ensure the resource is available for the user, unless it's public
-    if resource.teacher.present?
-      if @user.role_student?
-        # Students can only access resources belonging to their teacher
-        unless @user.teacher == resource.teacher
-          raise ToolExecutionError, "Permission denied: resource does not belong to your teacher"
-        end
-      else
-        # Teachers can only access their own resources
-        unless @user == resource.teacher
-          raise ToolExecutionError, "Permission denied: resource does not belong to you"
-        end
-      end
-    end
-
-    # Check if the resource has a file attached
-    raise ToolExecutionError, "Resource does not have a file attached" unless resource.file.attached?
-
-    # Get the file URL
-    url = Rails.application.routes.url_helpers.rails_blob_path(resource.file, disposition: "inline", only_path: true)
-
-    # Get the file type and filename
-    file_type = resource.file.content_type
-    filename = resource.file.filename.to_s
-
-    broadcast_chalkboard_push_tab(
-      tab_title: "File: #{filename}",
-      kind: "file",
-      partial: "shared/chalkboard_file",
-      locals: { url: url, file_type: file_type, filename: filename }
-    )
-
-    Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
-    create_tool_message("Chalkboard updated with file: #{filename} (#{file_type}) (opened in a new chalkboard tab)")
   end
 
   def execute_python_sandbox
@@ -1214,21 +1137,7 @@ class ToolExecutionService
     raise ToolExecutionError, "Applet not found" unless applet
     enforce_lesson_applet_scope!(applet)
 
-    run_url = Rails.application.routes.url_helpers.run_applet_path(applet)
-    broadcast_chalkboard_event(
-      event_type: "register_applet",
-      source: "linked",
-      key: "linked_#{applet.id}",
-      applet_id: applet.id,
-      title: applet.title.to_s,
-      launch_url: run_url,
-      embed_src: run_url,
-      embed_srcdoc: nil,
-      shareable: true,
-      share_url: run_url,
-      focus: true,
-      auto_open_in_board: true
-    )
+    run_applet_on_chalkboard(applet: applet, source: "linked", key: "linked_#{applet.id}")
 
     Rails.logger.debug("Chalkboard applet registered: #{applet.title}")
     create_tool_message("Applet is available in the chalkboard Applets tab: #{applet.title}")
@@ -1240,6 +1149,141 @@ class ToolExecutionService
     return if applet.resource_id.present? && @conversation.lesson_progress.resources.exists?(id: applet.resource_id)
 
     raise ToolExecutionError, "Applet not available for this lesson"
+  end
+
+  def execute_chalkboard_url_payload(raw_url, tab_title:)
+    url = raw_url.to_s.strip
+    begin
+      embed_result = UrlEmbeddabilityService.check(url: url)
+    rescue UrlEmbeddabilityService::ValidationError
+      raise ToolExecutionError, "Invalid or unsafe URL provided"
+    end
+
+    case embed_result[:status].to_s
+    when "embeddable"
+      Rails.logger.debug "Broadcasting embeddable URL to chalkboard #{url}"
+      broadcast_chalkboard_push_tab(
+        tab_title: tab_title,
+        kind: "url",
+        partial: "shared/chalkboard_iframe",
+        locals: { url: url }
+      )
+      create_tool_message("Chalkboard URL opened in new tab: #{url}\nBackup link: [Open link](#{url})")
+    when "blocked_xfo", "blocked_csp"
+      reason = embed_result[:reason].to_s
+      Rails.logger.debug "Broadcasting fallback URL tab to chalkboard #{url} reason=#{reason}"
+      broadcast_chalkboard_push_tab(
+        tab_title: tab_title,
+        kind: "url",
+        partial: "shared/chalkboard_link_fallback",
+        locals: { url: url, reason: reason }
+      )
+      create_tool_message("This site blocks iframe embedding. A direct-link chalkboard tab was opened.\nOpen link: [#{url}](#{url})")
+    else
+      Rails.logger.debug "Broadcasting URL with unknown embeddability to chalkboard #{url}"
+      broadcast_chalkboard_push_tab(
+        tab_title: tab_title,
+        kind: "url",
+        partial: "shared/chalkboard_iframe",
+        locals: { url: url }
+      )
+      create_tool_message(
+        "Chalkboard URL was changed to: #{url}. Embeddability check was inconclusive, so iframe display may fail.\n" \
+        "Backup link: [Open link](#{url})"
+      )
+    end
+  end
+
+  def execute_chalkboard_resource_payload(resource)
+    if resource.file.attached?
+      execute_chalkboard_file_payload(resource)
+    elsif resource.uri.present?
+      execute_chalkboard_url_payload(resource.uri, tab_title: "Resource Link")
+    elsif resource.content.present?
+      execute_chalkboard_text_payload(resource)
+    elsif resource.applet.present?
+      run_applet_on_chalkboard(applet: resource.applet, source: "resource", key: "resource_#{resource.id}")
+      create_tool_message("Applet is available in the chalkboard Applets tab: #{resource.applet.title}")
+    else
+      raise ToolExecutionError, "Resource does not have a displayable payload"
+    end
+  end
+
+  def execute_chalkboard_file_payload(resource)
+    url = Rails.application.routes.url_helpers.rails_blob_path(resource.file, disposition: "inline", only_path: true)
+    file_type = resource.file.content_type.to_s
+    filename = resource.file.filename.to_s
+
+    broadcast_chalkboard_push_tab(
+      tab_title: "File: #{filename}",
+      kind: "file",
+      partial: "shared/chalkboard_file",
+      locals: { url: url, file_type: file_type, filename: filename }
+    )
+
+    Rails.logger.debug("Chalkboard updated with file: #{filename} (#{file_type})")
+    create_tool_message("Chalkboard updated with file: #{filename} (#{file_type}) (opened in a new chalkboard tab)")
+  end
+
+  def execute_chalkboard_text_payload(resource)
+    name = resource.category.to_s.strip.presence || "Text Resource"
+    description = resource.description.to_s.strip.presence || "No description."
+    broadcast_chalkboard_push_tab(
+      tab_title: description,
+      kind: "resource_text",
+      partial: "shared/chalkboard_text_resource",
+      locals: {
+        resource_name: name,
+        resource_description: description,
+        text_content: resource.content.to_s
+      }
+    )
+    create_tool_message("Chalkboard updated with text resource: #{description} (opened in a new chalkboard tab)")
+  end
+
+  def find_and_authorize_chalkboard_resource!(resource_id)
+    resource = Resource.find_by(id: resource_id)
+    raise ToolExecutionError, "Resource not found with ID: #{resource_id}" unless resource
+
+    authorize_chalkboard_resource_access!(resource)
+    resource
+  end
+
+  def authorize_chalkboard_resource_access!(resource)
+    return unless resource.teacher.present?
+
+    if @user.role_student?
+      unless @user.teacher == resource.teacher
+        raise ToolExecutionError, "Permission denied: resource does not belong to your teacher"
+      end
+    elsif @user != resource.teacher
+      raise ToolExecutionError, "Permission denied: resource does not belong to you"
+    end
+  end
+
+  def enforce_lesson_resource_scope!(resource)
+    return unless @conversation&.lesson_progress.present?
+    return if @conversation.lesson_progress.resources.exists?(id: resource.id)
+
+    raise ToolExecutionError, "Resource not available for this lesson"
+  end
+
+  def run_applet_on_chalkboard(applet:, source:, key:)
+    run_url = Rails.application.routes.url_helpers.run_applet_path(applet)
+    broadcast_chalkboard_event(
+      event_type: "register_applet",
+      source: source,
+      key: key,
+      applet_id: applet.id,
+      title: applet.title.to_s,
+      launch_url: run_url,
+      embed_src: run_url,
+      embed_srcdoc: nil,
+      shareable: true,
+      share_url: run_url,
+      focus: true,
+      auto_open_in_board: true
+    )
   end
 
   def execute_delegate_to_frontier_llm
@@ -1325,19 +1369,5 @@ class ToolExecutionService
       target: "#{dom_id(@conversation)}",
       partial: "student/lessons/lesson_completed"
     )
-  end
-
-  def increment_chalkboard_url_counter!(counter_key)
-    app_setting = AppSetting.settings
-    return unless app_setting
-
-    app_setting.with_lock do
-      log = (app_setting.log || {}).deep_dup
-      counters = (log["chalkboard_url_counters"] || {}).deep_dup
-      counters[counter_key] = counters.fetch(counter_key, 0).to_i + 1
-      app_setting.update!(log: log.merge("chalkboard_url_counters" => counters))
-    end
-  rescue StandardError => e
-    Rails.logger.error("Failed to increment chalkboard URL counter #{counter_key}: #{e.message}")
   end
 end

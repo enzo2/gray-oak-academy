@@ -2,35 +2,22 @@
 
 one:
   specifications:
-    name: "Chalkboard_URL"
-    description: "Updates the chalkboard to display a URL in an iframe."
-    parameters: {
-      type: "object",
-      properties: {
-        url: {
-          type: "string",
-          description: "The URL to load in the chalkboard iframe."
-        }
-      },
-      required: [ "url" ]
-    }
-  created_at: <%= Time.now %>
-  updated_at: <%= Time.now %>
-
-two:
-  specifications:
-    name: "Chalkboard_File"
-    description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types will be displayed as a downloadlink."
-    parameters: {
-      type: "object",
-      properties: {
-        resource_id: {
-          type: "string",
-          description: "The ID of the resource containing the file to display. Only use explicitly provided IDs from the list of resources. Do not make up IDs."
-        }
-      },
-      required: [ "resource_id" ]
-    }
+    name: "Show_On_Chalkboard"
+    description: "Displays lesson resources on the chalkboard. Provide exactly one argument: either a URL or a resource_id."
+    strict_mode: true
+    parameters:
+      type: "object"
+      properties:
+        url:
+          type: "string"
+          description: "URL to load in the chalkboard iframe."
+        resource_id:
+          type: "string"
+          description: "ID of the resource to display on the chalkboard."
+      additionalProperties: false
+      oneOf:
+        - required: [ "url" ]
+        - required: [ "resource_id" ]
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 

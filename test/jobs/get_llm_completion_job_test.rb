@@ -386,4 +386,32 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_equal "reasoning.summary", assistant_msg.reasoning_details.first["type"]
     assert_equal 0, assistant_msg.reasoning_details.first["index"]
   end
+
+  test "does not delete latest user message on OpenAiError when a newer tool message exists" do
+    conversation = @conversation
+    user_message = conversation.messages.create!(role: :user, content: "Yes")
+
+    OpenaiApiService.stub(:new, ->(**_kwargs) {
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |_messages|
+          conversation.messages.create!(
+            role: :tool,
+            content: "Tool output after user message",
+            tool_call_id: "tool_Show_On_Chalkboard_1"
+          )
+          raise OpenAiError, "Empty response from LLM."
+        end
+      end
+    }) do
+      Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+        Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
+          assert_raises(OpenAiError) do
+            GetLlmCompletionJob.perform_now(conversation: conversation)
+          end
+        end
+      end
+    end
+
+    assert Message.exists?(id: user_message.id), "User message should not be deleted when a newer tool message exists"
+  end
 end

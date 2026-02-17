@@ -332,7 +332,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
 
     admin_tool = tool_struct.new("admin", "List_Students")
-    student_tool = tool_struct.new("student", "Chalkboard_URL")
+    student_tool = tool_struct.new("student", "Show_On_Chalkboard")
     allowed_tools = [ admin_tool, student_tool ]
     # Provide a simple where implementation to mimic ActiveRecord::Relation#where
     def allowed_tools.where(hash)
@@ -351,7 +351,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       )
 
       tool_names = service.instance_variable_get(:@tools).map { |t| t.dig("function", "name") }
-      assert_equal [ "Chalkboard_URL" ], tool_names
+      assert_equal [ "Show_On_Chalkboard" ], tool_names
     end
   end
 
@@ -363,7 +363,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
 
     gen_tool = tool_struct.new("student", "Generate_Image")
-    student_tool = tool_struct.new("student", "Chalkboard_URL")
+    student_tool = tool_struct.new("student", "Show_On_Chalkboard")
     allowed_tools = [ gen_tool, student_tool ]
     def allowed_tools.where(hash)
       select { |t| t.access.to_s == hash[:access].to_s }
@@ -382,7 +382,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
       )
 
       tool_names = service.instance_variable_get(:@tools).map { |t| t.dig("function", "name") }
-      assert_equal [ "Generate_Image", "Chalkboard_URL" ], tool_names
+      assert_equal [ "Generate_Image", "Show_On_Chalkboard" ], tool_names
     end
   end
 

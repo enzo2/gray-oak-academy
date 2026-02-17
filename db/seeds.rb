@@ -6,36 +6,31 @@
 
 # Basic chat tools
 
-tool = Tool.find_or_initialize_by(name: 'Chalkboard_URL')
+# Replace legacy chalkboard tools with a single unified tool.
+Tool.where(name: [ "Chalkboard_URL", "Chalkboard_File" ]).destroy_all
+
+tool = Tool.find_or_initialize_by(name: "Show_On_Chalkboard")
 tool.specifications = {
-  name: "Chalkboard_URL",
-  description: "Updates the chalkboard to display a URL in an iframe. Allows URLs provided in the lesson plan to be displayed. This tool is not for generative JavaScript applets or any on-the-fly content generation.",
+  name: "Show_On_Chalkboard",
+  description: "Displays lesson resources on the chalkboard. Provide exactly one argument: either a URL or a resource_id.",
+  strict_mode: true,
   parameters: {
     type: "object",
     properties: {
       url: {
         type: "string",
-        description: "The URL to load in the chalkboard iframe. Must begin with 'https://'. May adjust for obvious errors in formatting or query parameters. Do not send HTML. Only use URLs included in the lesson plan or resources; do not invent, guess, or attempt to recall URLs."
-      }
-    },
-    required: [ "url" ]
-  }
-}
-tool.save!
-
-tool = Tool.find_or_initialize_by(name: 'Chalkboard_File')
-tool.specifications = {
-  name: "Chalkboard_File",
-  description: "Displays a file from the lesson resources on the chalkboard. Images and PDFs can be displayed natively; other types will be displayed as a download link.",
-  parameters: {
-    type: "object",
-    properties: {
+        description: "URL to load in the chalkboard iframe. Must begin with 'https://'. Use only URLs included in lesson resources or lesson plan context. May be an image URL. Do not invent, guess, or attempt to recall URLs."
+      },
       resource_id: {
         type: "string",
-        description: "The ID of the resource containing the file to display. Only use explicitly provided IDs from the list of resources. Do not make up IDs."
+        description: "ID of the lesson resource to display on the chalkboard. Supports URL (web page or image), file (stored files), and text resources. For files, images and PDFs can be displayed natively; other types will be displayed as a download link."
       }
     },
-    required: [ "resource_id" ]
+    additionalProperties: false,
+    oneOf: [
+      { required: [ "url" ] },
+      { required: [ "resource_id" ] }
+    ]
   }
 }
 tool.save!
@@ -1047,7 +1042,7 @@ p = Prompt.find_or_initialize_by(category: 'teacher_assistant', teacher_id: nil)
 p.title = "Default Teacher Assistant Chat"
 p.prompt = <<~PROMPT
   You are now assisting the teacher in a chat format, outside of any specific lesson.
-  Don't use the Chalkboard_File or Chalkboard_URL tools, since these are only applicable during a lesson.
+  Don't use the Show_On_Chalkboard tool, since this is only applicable during a lesson.
   Chat does not need to pertain to this app, teaching, or the curriculum, although that is the intended use case.
 
   You can serve as a curriculum-building assistant; you have access to tools that allow you to manage the curriculum for the teacher.

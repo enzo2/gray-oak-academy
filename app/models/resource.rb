@@ -1,4 +1,6 @@
 class Resource < ApplicationRecord
+  FORMAT_COLLECTION_CONTENT_LIMIT = 1_000
+
   has_and_belongs_to_many :lesson_plans
   has_one_attached :file
   has_one :applet, dependent: :destroy, validate: true
@@ -85,7 +87,8 @@ class Resource < ApplicationRecord
     resources = includes(:applet, file_attachment: :blob).to_a
     resources_data = resources.map do |resource|
       resource_info = {
-        "Description" => resource.description
+        "Description" => resource.description,
+        "resource_id" => resource.id.to_s
       }
       resource_info["Category"] = resource.category if resource.category.present?
       resource_info["Approval"] = case resource.approved
@@ -97,10 +100,11 @@ class Resource < ApplicationRecord
         "Human-created"
       end
       resource_info["URI"] = resource.uri if resource.uri.present?
-      resource_info["Content"] = resource.content if resource.content.present?
+      if resource.content.present?
+        resource_info["Content"] = format_collection_content(resource.content)
+      end
       if resource.file.attached?
         resource_info["file_attached"] = "Yes"
-        resource_info["resource_id"] = resource.id.to_s
         resource_info["filename"] = resource.file.filename.to_s
         resource_info["content_type"] = resource.file.content_type
       end
@@ -119,6 +123,17 @@ class Resource < ApplicationRecord
       resources_data.to_json
     end
   end
+
+  def self.format_collection_content(content)
+    content = content.to_s
+    if content.length > FORMAT_COLLECTION_CONTENT_LIMIT
+      truncated = content[0, FORMAT_COLLECTION_CONTENT_LIMIT]
+      "#{truncated}... [truncated]"
+    else
+      content
+    end
+  end
+  private_class_method :format_collection_content
 
   # For human-clicked links in the admin UI, convert YouTube embed URLs back to
   # watch URLs so they open reliably outside iframes.
