@@ -5,7 +5,6 @@ import "@hotwired/turbo-rails";
 import "turbo_stream_actions";
 import "controllers"; //pin of all from app/javascript/controllers
 import "channels"; //pin of all from app/javascript/channels
-import "sl-tab-group_handler";
 
 //shoelace (with Webawesome (WA) replacements)
 import { setBasePath } from '@shoelace-style/shoelace/cdn/utilities/base-path';
@@ -15,9 +14,6 @@ import "@shoelace-style/shoelace/icon-button"; // WA: MISSING (Use button+icon)
 import "@shoelace-style/shoelace/button"; // WA: button
 import "@shoelace-style/shoelace/spinner"; // WA: spinner
 import "@shoelace-style/shoelace/progress-bar"; // WA: progress-bar
-import "@shoelace-style/shoelace/tab-group"; // WA: tab-group
-import "@shoelace-style/shoelace/tab"; // WA: tab
-import "@shoelace-style/shoelace/tab-panel"; // WA: tab-panel
 import "@shoelace-style/shoelace/alert"; // WA: MISSING - can use Callout to show the message itself but lacks toast functionality
 import "@shoelace-style/shoelace/dropdown"; // WA: dropdown
 import "@shoelace-style/shoelace/menu"; // WA: now part of dropdown

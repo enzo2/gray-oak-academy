@@ -66,9 +66,12 @@
             <div class="flex-grow"></div>
 
             <div class="py-1 sm:py-1.5 flex items-start justify-center w-full">
-               <button class="flex mb-1 h-8 w-9 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" aria-label="Profile" title="Profile">
+               <%= link_to edit_user_registration_path,
+                           class: "flex mb-1 h-8 w-9 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800",
+                           aria: { label: "Open user settings" },
+                           title: "User settings" do %>
                  <sl-icon name="person-circle" class="text-xl"></sl-icon>
-               </button>
+               <% end %>
             </div>
           </summary>
 

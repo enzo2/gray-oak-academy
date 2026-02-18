@@ -1,29 +1,44 @@
 <main class="container mx-auto p-2 max-w-160">
   <h2 class="text-2xl">Settings</h2>
 
-  <sl-tab-group class="[&::part(body)]:overflow-visible">
-    <% if current_user.role_teacher? %>
-      <sl-tab slot="nav" panel="api" <%= 'active' if @active_tab == :api %>>LLMs</sl-tab>
-    <% end %>
-    <sl-tab slot="nav" panel="notifications" <%= 'active' if @active_tab == :notifications %>>Notifications</sl-tab>
-    <sl-tab slot="nav" panel="memories" <%= 'active' if @active_tab == :memories %>>Memories</sl-tab>
-    <sl-tab slot="nav" panel="account" <%= 'active' if @active_tab == :account %>>Account</sl-tab>
+  <div id="user-settings-tabs"
+       data-controller="tabs"
+       data-tabs-active-tab-value="<%= @active_tab %>">
+    <% tab_nav_classes = "mb-4 mt-2 flex flex-wrap gap-1 border-b border-stone-200 pb-2.5 max-[420px]:gap-[0.2rem] dark:border-stone-700" %>
+    <% tab_button_classes = "rounded-[0.3rem] border border-transparent bg-transparent px-[0.55rem] py-[0.2rem] text-sm font-medium whitespace-nowrap text-stone-600 transition-colors duration-[120ms] hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 max-[420px]:px-[0.4rem] max-[420px]:py-[0.15rem] max-[420px]:text-[0.88rem] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 data-[state=open]:border-moss-700 data-[state=open]:bg-moss-600 data-[state=open]:text-white data-[state=open]:hover:bg-moss-600 data-[state=open]:hover:text-moss-100" %>
+
+    <div role="tablist" class="<%= tab_nav_classes %>">
+      <% if current_user.role_teacher? %>
+        <button role="tab" type="button" class="<%= tab_button_classes %>"
+                data-tabs-target="tab" data-tabs-panel="api"
+                data-action="click->tabs#show keydown->tabs#handleTabKeydown">LLMs</button>
+      <% end %>
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="notifications"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Notifications</button>
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="memories"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Memories</button>
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="account"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Account</button>
+    </div>
 
     <% if current_user.role_teacher? %>
-      <sl-tab-panel name="api" <%= 'active' if @active_tab == :api %>>
+      <div id="api" role="tabpanel" data-tabs-target="panel">
         <%= render "user_settings/api", settings: current_user.settings %>
-      </sl-tab-panel>
+      </div>
     <% end %>
 
-    <sl-tab-panel name="notifications" <%= 'active' if @active_tab == :notifications %>>
+    <div id="notifications" role="tabpanel" data-tabs-target="panel">
       <%= render "user_settings/notifications", settings: current_user.settings %>
-    </sl-tab-panel>
+    </div>
 
-    <sl-tab-panel name="memories" <%= 'active' if @active_tab == :memories %>>
+    <div id="memories" role="tabpanel" data-tabs-target="panel">
       <%= render "memories/panel" %>
-    </sl-tab-panel>
+    </div>
 
-    <sl-tab-panel name="account" <%= 'active' if @active_tab == :account %>>
+    <div id="account" role="tabpanel" data-tabs-target="panel">
       <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put, data: { turbo: false } }) do |f| %>
         <%= render "devise/shared/error_messages", resource: resource %>
 
@@ -147,6 +162,6 @@
         <span class="text-dim">To delete your account, you must ask your teacher.</span>
       <% end %>
 
-    </sl-tab-panel>
-  </sl-tab-group>
+    </div>
+  </div>
 </main>

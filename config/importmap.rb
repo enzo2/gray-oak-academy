@@ -10,7 +10,6 @@ pin_all_from "app/javascript/channels", under: "channels"
 # Custom JS
 pin "turbo_stream_actions", to: "turbo_stream_actions.js"
 pin "darkModeManager", to: "darkModeManager.js"
-pin "sl-tab-group_handler", to: "sl-tab-group_handler.js"
 pin "global_handlers", to: "global_handlers.js"
 
 # Import shoelace components individually
@@ -20,9 +19,6 @@ pin "@shoelace-style/shoelace/icon-button", to: "https://cdn.jsdelivr.net/npm/@s
 pin "@shoelace-style/shoelace/button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/button/button.js"
 pin "@shoelace-style/shoelace/spinner", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/spinner/spinner.js"
 pin "@shoelace-style/shoelace/progress-bar", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/progress-bar/progress-bar.js"
-pin "@shoelace-style/shoelace/tab-group", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tab-group/tab-group.js"
-pin "@shoelace-style/shoelace/tab-panel", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tab-panel/tab-panel.js"
-pin "@shoelace-style/shoelace/tab", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tab/tab.js"
 pin "@shoelace-style/shoelace/alert", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/alert/alert.js"
 pin "@shoelace-style/shoelace/input", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/input/input.js"
 pin "@shoelace-style/shoelace/dropdown", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/dropdown/dropdown.js"
