@@ -49,6 +49,7 @@ export default class extends Controller {
   static values = { activeTab: String }
 
   connect() {
+    this.currentTabId = null
     const fallback = this.tabTargets[0]?.dataset.tabsPanel
     const initial = this.resolvePanelId(this.activeTabValue || fallback, fallback)
     if (initial) this.showTab(initial, { initial: true })
@@ -56,7 +57,12 @@ export default class extends Controller {
 
   // Action: click->tabs#show
   show(event) {
-    const contentId = event.currentTarget.dataset.tabsPanel
+    const trigger = event.currentTarget
+    const contentId = trigger.dataset.tabsPanel
+    // For dropdown trigger tabs, keep the current sub-tab when already inside
+    // that tab group so opening the menu doesn't jump back to the default tab.
+    if (trigger.dataset.tabsMenuTrigger === "true" && this.isCurrentTabInGroup(trigger)) return
+
     if (contentId) this.showTab(contentId)
   }
 
@@ -104,6 +110,8 @@ export default class extends Controller {
     const resolvedContentId = this.resolvePanelId(contentId)
     if (!resolvedContentId) return
 
+    this.currentTabId = resolvedContentId
+
     this.tabTargets.forEach(tab => {
       const panelId = tab.dataset.tabsPanel
       const group = tab.dataset.tabsGroup ? tab.dataset.tabsGroup.split(" ") : []
@@ -127,5 +135,10 @@ export default class extends Controller {
     if (exists(contentId)) return contentId
     if (exists(fallbackId)) return fallbackId
     return this.panelTargets[0]?.id
+  }
+
+  isCurrentTabInGroup(trigger) {
+    const group = trigger.dataset.tabsGroup ? trigger.dataset.tabsGroup.split(" ") : []
+    return !!this.currentTabId && (trigger.dataset.tabsPanel === this.currentTabId || group.includes(this.currentTabId))
   }
 }

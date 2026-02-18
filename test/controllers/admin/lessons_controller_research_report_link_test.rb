@@ -2,6 +2,18 @@ require "test_helper"
 
 module Admin
   class LessonsControllerResearchReportLinkTest < ActionDispatch::IntegrationTest
+    test "lesson show redirects to lesson plan editor" do
+      teacher = users(:admin)
+      course = courses(:one)
+      lesson = lessons(:one)
+      sign_in(teacher)
+
+      get admin_course_lesson_path(course, lesson)
+
+      assert_redirected_to edit_admin_course_lesson_lesson_plan_path(course, lesson)
+      assert_equal 303, response.status
+    end
+
     test "lessons index shows guidance report link when report exists" do
       teacher = users(:admin)
       course = courses(:one)

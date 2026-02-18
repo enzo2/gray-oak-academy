@@ -53,6 +53,55 @@ class Admin::StudentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "You are not that student's teacher.", flash[:warning]
   end
 
+  test "cannot view show page of unadopted student as non-superuser teacher" do
+    teacher = users(:admin)
+    unadopted_student = users(:student2)
+    unadopted_student.update!(teacher: nil)
+    sign_in teacher
+
+    get admin_student_path(unadopted_student)
+
+    assert_redirected_to admin_students_path
+    assert_equal "You are not that student's teacher.", flash[:warning]
+  end
+
+  test "cannot view journal of unadopted student as non-superuser teacher" do
+    teacher = users(:admin)
+    unadopted_student = users(:student2)
+    unadopted_student.update!(teacher: nil)
+    sign_in teacher
+
+    get journal_admin_student_path(unadopted_student), as: :turbo_stream
+
+    assert_redirected_to admin_students_path
+    assert_equal "You are not that student's teacher.", flash[:warning]
+  end
+
+  test "superuser can view show page and journal for unadopted student" do
+    superuser = users(:super_user)
+    unadopted_student = users(:student2)
+    unadopted_student.update!(teacher: nil)
+    sign_in superuser
+
+    get admin_student_path(unadopted_student)
+    assert_response :success
+
+    get journal_admin_student_path(unadopted_student), as: :turbo_stream
+    assert_response :success
+  end
+
+  test "non-superuser teacher sees other student name without dashboard link" do
+    teacher = users(:admin)
+    other_student = users(:student2)
+    sign_in teacher
+
+    get admin_students_path
+
+    assert_response :success
+    assert_select "#other-students-content", text: other_student.name
+    assert_select "#other-students-content a[href='#{admin_student_path(other_student)}']", count: 0
+  end
+
   test "cannot enroll another teacher's student" do
     teacher = users(:admin)
     sign_in teacher

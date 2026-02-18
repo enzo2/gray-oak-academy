@@ -8,6 +8,7 @@ module Admin
     end
 
     def show
+      redirect_to edit_admin_course_lesson_lesson_plan_path(@course, @lesson), status: :see_other
     end
 
     def new

@@ -2,9 +2,9 @@ module Admin
   class StudentsController < Admin::BaseController
     before_action :require_superuser, only: [ :destroy ]
     before_action :set_student, only: [ :show, :journal, :adopt, :unadopt, :enroll, :unenroll, :destroy ]
+    before_action :require_own_student, only: [ :show, :journal, :unadopt, :enroll, :unenroll ]
     before_action :set_enrollment_data, only: [ :show, :enroll, :unenroll ]
     before_action :set_students_nav, only: [ :index, :show ]
-    before_action :require_own_student, only: [ :show, :unadopt, :enroll, :unenroll ]
 
     # POST /admin/students/new
     def new_student
@@ -111,7 +111,7 @@ module Admin
 
     def require_own_student
       # Superusers can access any student. Admins can only access their own students.
-      unless current_user.role_superuser? || current_user == @student || current_user.students.include?(@student)
+      unless current_user.role_superuser? || current_user == @student || @student.teacher_id == current_user.id
         flash[:warning] = "You are not that student's teacher."
         redirect_to admin_students_path
       end

@@ -131,7 +131,7 @@
     <% if @resource.lesson_plans.any? %>
       <ul class="[&_li]:pl-3">
         <% @resource.lesson_plans.each do |lesson_plan| %>
-          <li><%= link_to lesson_plan.lesson.title, admin_course_lesson_path(lesson_plan.lesson.course, lesson_plan.lesson), class: "hover:underline" %></li>
+          <li><%= link_to lesson_plan.lesson.title, edit_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson), class: "hover:underline" %></li>
         <% end %>
       </ul>
     <% else %>
