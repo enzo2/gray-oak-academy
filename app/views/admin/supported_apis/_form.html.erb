@@ -50,7 +50,7 @@
   <% if @supported_api.new_record? && current_user.role_superuser? %>
     <div class="mt-4 p-3 border rounded">
       <h4 class="font-semibold mb-2">Verify models now (comma or newline separated)</h4>
-      <%= text_area_tag :models_to_verify, nil, class: "input-primary w-full", rows: 3, placeholder: "e.g.\nopenai/gpt-5-mini\ngoogle/gemini-2.5-flash" %>
+      <%= text_area_tag :models_to_verify, nil, class: "input-primary w-full", rows: 3, placeholder: "e.g.\nopenai/gpt-5-mini\ngoogle/gemini-3-flash" %>
       <p class="text-xs text-dim mt-1">On save, a background job will verify each model by issuing a minimal completion and will add it to the site-wide Models list if successful.</p>
     </div>
   <% end %>

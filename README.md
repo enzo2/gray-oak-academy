@@ -92,14 +92,13 @@ Importantly, the system should negate the arguments implied in Isaac Asimov's 19
 
 ### Choosing an API:
 - Any OpenAI-compatible API is supported for chat/lessons. For background agent runs during curriculum design, only OpenAI is supported, along with Exa for web search.
-- Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. They also allow BYOK and ZDR.
-- Gemini API's OpenAI compatibility endpoint is a good option for casual use, with free tier, raw audio support, and long context window models.
-- For cost savings, make sure to use an API that supports automated prompt caching.
+- Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. OpenRouter also supports BYOK and ZDR.
+- Make sure to use an API that supports automated prompt caching.
 
 ### Choosing LLMs: 
-- For the main chat/lesson LLM: model must support images and function calling. Audio input is optional. A long context window is recommended. For speed and cost, use a medium-sized, non-thinking or adaptive-thinking model. You must use a fairly intelligent model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs.) 
-- Add a dedicated thinking model for better performance on curriculum generation tasks, applets, and more. Model must support structured outputs. It should be a frontier, large-sized model.
-- For image generation, gemini-3-pro-image (or equivalent) is recommended. You can also enable 2-pass generation to allow the model to critique and regenerate its own output, for twice the cost.
+- For the main chat/lesson LLM, choose a high-performing, adaptive-thinking model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs; however, avoid the largest frontier models, or chat will be too slow and expensive.) Model must support image input and function calling. Raw audio input is optional. A long context window is recommended. 
+- Add a dedicated frontier thinking model for better performance on curriculum generation tasks, applets, and more. Model must support structured outputs.
+- For image generation, gemini-3-pro-image or better is recommended. You can also enable 2-pass generation to allow a model to critique and regenerate its own output, for twice the cost.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code. 
@@ -123,7 +122,6 @@ Importantly, the system should negate the arguments implied in Isaac Asimov's 19
 - Speed up audio input with ffmpeg to reduce cost
 - Avoiding live/realtime APIs thus far due to risk of forced conversation and lower intelligence. May be suitable for AFK lessons.
 - Mobile push notifications
-
 
 ## About the Developer
 

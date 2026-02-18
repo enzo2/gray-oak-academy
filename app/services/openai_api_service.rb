@@ -266,18 +266,6 @@ class OpenaiApiService
     headers = attribution_headers
     options[:extra_headers] = headers if headers.present?
 
-    # Set thinking for Google OpenAI-compatibility API
-    if @reasoning_model_flag && @base_uri.include?("generativelanguage.googleapis.com")
-      options[:extra_body] = {
-        "google": {
-          "thinking_config": {
-            "thinking_budget": "3000",
-            "include_thoughts": "False"
-          }
-        }
-      }
-    end
-
     options.presence
   end
 

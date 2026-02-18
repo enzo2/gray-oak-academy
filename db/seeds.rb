@@ -1212,7 +1212,6 @@ p.save!
 
 openai = SupportedApi.find_or_create_by!(api_base_uri: 'https://api.openai.com/v1/')
 openrouter = SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
-SupportedApi.find_or_create_by!(api_base_uri: 'https://generativelanguage.googleapis.com/v1beta/openai/')
 # SupportedApi.find_or_create_by!(api_base_uri: 'https://api.cerebras.ai/v1/') # Fast but no image models yet.
 
 # Create default AppSetting pointing at OpenAI for speech and openrouter for embeddings
