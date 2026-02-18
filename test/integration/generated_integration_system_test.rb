@@ -303,7 +303,7 @@ class StudentLessonsIntegrationTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to student_root_path
-    assert_equal "You can only access your next lesson or earlier lessons.", flash[:alert]
+    assert_equal "Lesson plan is not available yet.", flash[:alert]
   end
 
   test "student cannot access lessons from another teacher" do
@@ -354,6 +354,48 @@ class StudentLessonsIntegrationTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("LessonProgress.count") do
       get student_lesson_path(future_lesson)
+    end
+
+    assert_redirected_to student_root_path
+    assert_equal "You can only access your next lesson or earlier lessons.", flash[:alert]
+  end
+
+  test "student cannot start a later published lesson when the next lesson is draft" do
+    student = users(:student)
+    sign_in(student)
+
+    next_draft_lesson = Lesson.create!(
+      course: courses(:one),
+      title: "Next Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Build understanding with guided arithmetic practice"
+    )
+    next_draft_lesson.insert_at(1)
+    LessonPlan.create!(
+      lesson: next_draft_lesson,
+      content: {},
+      status: "draft",
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+
+    later_published_lesson = Lesson.create!(
+      course: courses(:one),
+      title: "Later Published Lesson",
+      approx_duration_min: 20,
+      goals: "Apply arithmetic skills to mixed challenges"
+    )
+    later_published_lesson.insert_at(2)
+    LessonPlan.create!(
+      lesson: later_published_lesson,
+      content: [ { "Practice" => "Solve mixed challenge problems." } ],
+      status: "published",
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+
+    assert_no_difference("LessonProgress.count") do
+      get student_lesson_path(later_published_lesson)
     end
 
     assert_redirected_to student_root_path

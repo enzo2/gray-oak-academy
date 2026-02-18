@@ -34,7 +34,7 @@ class Lesson < ApplicationRecord
   def student_access_status_for(student)
     enrollment = student.enrollments.find_by(course_id: course_id)
     return :not_enrolled unless enrollment
-    return :ahead_of_progress unless enrollment.allows_lesson_position?(position)
+    return :ahead_of_progress unless enrollment.not_ahead_of_progress?(position)
     return :wrong_teacher unless belongs_to_student_teacher_or_student?(student)
     return :missing_lesson_plan unless lesson_plan.present?
     return :unpublished_lesson unless lesson_plan.status_published?

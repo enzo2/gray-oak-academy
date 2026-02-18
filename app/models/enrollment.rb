@@ -12,29 +12,41 @@ class Enrollment < ApplicationRecord
       id: joins(:student_reports).where(student_reports: { status: :completed }).select(:id)
   )}
 
+  # Find enrollments where the student is awaiting their next lesson, meaning they have an incomplete lesson that is not currently available to start.
   def self.awaiting_lessons_for_teacher(teacher_id)
     joins(:student, :course)
       .where(users: { teacher_id: teacher_id })
       .where(courses: { status: :active })
       .in_progress
+      # Query shape:
+      # 1) Correlated subquery picks the earliest incomplete lesson in course order.
+      #    A lesson is incomplete when no completed LessonProgress report exists for this student.
+      # 2) That lesson is "unavailable" when it has no lesson_plan or its plan is not published.
+      # 3) EXISTS(...) returns only enrollments that satisfy the unavailable-next-lesson condition.
       .where(<<~SQL.squish)
-        NOT EXISTS (
+        EXISTS (
           SELECT 1
-          FROM lessons
-          INNER JOIN lesson_plans ON lesson_plans.lesson_id = lessons.id
-          WHERE lessons.course_id = enrollments.course_id
-            AND lesson_plans.status = 'published'
-            AND NOT EXISTS (
-              SELECT 1
-              FROM lesson_progresses
-              INNER JOIN student_reports
-                ON student_reports.reportable_type = 'LessonProgress'
-                AND student_reports.reportable_id = lesson_progresses.id
-                AND student_reports.status = 'completed'
-              WHERE lesson_progresses.lesson_id = lessons.id
-                AND lesson_progresses.student_id = enrollments.student_id
-                AND student_reports.student_id = enrollments.student_id
-            )
+          FROM lessons AS next_lesson
+          LEFT JOIN lesson_plans ON lesson_plans.lesson_id = next_lesson.id
+          WHERE next_lesson.id = (
+            SELECT lessons.id
+            FROM lessons
+            WHERE lessons.course_id = enrollments.course_id
+              AND NOT EXISTS (
+                SELECT 1
+                FROM lesson_progresses
+                INNER JOIN student_reports
+                  ON student_reports.reportable_type = 'LessonProgress'
+                  AND student_reports.reportable_id = lesson_progresses.id
+                  AND student_reports.status = 'completed'
+                WHERE lesson_progresses.lesson_id = lessons.id
+                  AND lesson_progresses.student_id = enrollments.student_id
+                  AND student_reports.student_id = enrollments.student_id
+              )
+            ORDER BY lessons.position ASC
+            LIMIT 1
+          )
+            AND (lesson_plans.id IS NULL OR lesson_plans.status <> 'published')
         )
       SQL
   end
@@ -72,23 +84,34 @@ class Enrollment < ApplicationRecord
     (completed_lessons_count.to_f / total_lessons_count * 100).round
   end
 
-  # Whether course has any published lessons not yet completed by student
+  # Whether the next incomplete lesson is currently available to start.
   def has_available_lesson?
-    incomplete_lessons.published.exists?
+    next_available_lesson.present?
   end
 
+  # Returns the first incomplete lesson in course order, regardless of lesson-plan state.
+  def next_incomplete_lesson
+    incomplete_lessons.includes(:lesson_plan).first
+  end
+
+  # Returns the first incomplete lesson only when that exact lesson has a published plan.
+  # This never skips ahead to later lessons.
   def next_available_lesson
-    incomplete_lessons.published.first
+    lesson = next_incomplete_lesson
+    return unless lesson&.lesson_plan&.status_published?
+
+    lesson
   end
 
-  # Position of the student's next published incomplete lesson for access gating.
-  # Returns nil when no published incomplete lessons remain.
+  # Position of the student's next incomplete lesson for access gating.
+  # Returns nil when no incomplete lessons remain.
   def next_incomplete_lesson_position
-    incomplete_lessons.published.pick(:position)
+    next_incomplete_lesson&.position
   end
 
-  # Students may access the next incomplete lesson or any earlier lesson.
-  def allows_lesson_position?(lesson_position)
+  # Sequence-only gate for :ahead_of_progress.
+  # Lesson-plan presence/publication is validated separately.
+  def not_ahead_of_progress?(lesson_position)
     return false if lesson_position.blank?
 
     next_position = next_incomplete_lesson_position

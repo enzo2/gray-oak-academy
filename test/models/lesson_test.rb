@@ -137,6 +137,50 @@ class LessonTest < ActiveSupport::TestCase
     assert_equal :unpublished_lesson, draft_lesson.student_access_status_for(@student)
   end
 
+  test "student_access_status_for blocks published lessons that are past an unpublished next lesson" do
+    course = Course.create!(
+      teacher: users(:admin),
+      title: "Strict Sequence Course",
+      summary: "Course used to verify students cannot skip unpublished next lessons.",
+      grade_level: "1",
+      outline: [],
+      status: "active"
+    )
+    Enrollment.create!(student: @student, course: course)
+
+    next_draft_lesson = Lesson.create!(
+      course: course,
+      title: "Next Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Practice arithmetic fluency with guided steps"
+    )
+    next_draft_lesson.insert_at(1)
+    LessonPlan.create!(
+      lesson: next_draft_lesson,
+      content: {},
+      status: "draft",
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+
+    later_published_lesson = Lesson.create!(
+      course: course,
+      title: "Later Published Lesson",
+      approx_duration_min: 20,
+      goals: "Apply arithmetic ideas in mixed word problems"
+    )
+    later_published_lesson.insert_at(2)
+    LessonPlan.create!(
+      lesson: later_published_lesson,
+      content: [ { "Activity" => "Complete mixed arithmetic and word problems." } ],
+      status: "published",
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+
+    assert_equal :ahead_of_progress, later_published_lesson.student_access_status_for(@student)
+  end
+
   test "student_access_status_for returns not_enrolled when student has teacher but no enrollment" do
     student_without_enrollment = users(:student2)
     student_without_enrollment.update!(teacher: users(:admin))

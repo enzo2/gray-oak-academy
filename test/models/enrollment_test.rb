@@ -32,11 +32,11 @@ class EnrollmentTest < ActiveSupport::TestCase
     assert_not @enrollment.completed?
   end
 
-  test "next_incomplete_lesson_position returns nil when there are no published incomplete lessons" do
-    assert_nil @enrollment.next_incomplete_lesson_position
+  test "next_incomplete_lesson_position returns the first incomplete lesson position" do
+    assert_equal 1, @enrollment.next_incomplete_lesson_position
   end
 
-  test "next_incomplete_lesson_position prefers published incomplete lessons" do
+  test "next lesson availability is blocked when an earlier incomplete lesson is unpublished" do
     course = Course.create!(
       teacher: users(:admin),
       title: "Published Gate Course",
@@ -71,15 +71,55 @@ class EnrollmentTest < ActiveSupport::TestCase
       audio: "enabled"
     )
 
-    assert_equal published_lesson.position, enrollment.next_incomplete_lesson_position
-    assert enrollment.allows_lesson_position?(published_lesson.position)
+    assert_equal draft_lesson.position, enrollment.next_incomplete_lesson_position
+    assert_not enrollment.has_available_lesson?
+    assert_nil enrollment.next_available_lesson
+    assert_not enrollment.not_ahead_of_progress?(published_lesson.position)
   end
 
-  test "allows_lesson_position? returns false when no published lessons are available" do
-    assert_not @enrollment.allows_lesson_position?(1)
+  test "next_available_lesson does not skip an earlier incomplete lesson without a plan" do
+    course = Course.create!(
+      teacher: users(:admin),
+      title: "Missing Plan Gate Course",
+      summary: "Course for next_available_lesson missing-plan sequencing checks.",
+      grade_level: "1",
+      outline: [],
+      status: "active"
+    )
+    enrollment = Enrollment.create!(student: users(:student), course: course)
+
+    lesson_without_plan = Lesson.create!(
+      course: course,
+      title: "Lesson Without Plan",
+      approx_duration_min: 20,
+      goals: "Practice arithmetic with guided checks"
+    )
+    lesson_without_plan.insert_at(1)
+
+    later_published_lesson = Lesson.create!(
+      course: course,
+      title: "Later Published Lesson",
+      approx_duration_min: 20,
+      goals: "Practice arithmetic with mixed challenge items"
+    )
+    later_published_lesson.insert_at(2)
+    LessonPlan.create!(
+      lesson: later_published_lesson,
+      content: [ { "Activity" => "Solve mixed arithmetic challenge items." } ],
+      status: "published",
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+
+    assert_equal lesson_without_plan.id, enrollment.next_incomplete_lesson.id
+    assert_nil enrollment.next_available_lesson
   end
 
-  test "allows_lesson_position? permits next lesson or earlier and blocks later lessons" do
+  test "not_ahead_of_progress? allows the next incomplete lesson position" do
+    assert @enrollment.not_ahead_of_progress?(1)
+  end
+
+  test "not_ahead_of_progress? permits next lesson or earlier and blocks later lessons" do
     course = Course.create!(
       teacher: users(:admin),
       title: "Progress Gate Course",
@@ -123,15 +163,15 @@ class EnrollmentTest < ActiveSupport::TestCase
     next_position = enrollment.next_incomplete_lesson_position
     assert next_position.present?
 
-    assert enrollment.allows_lesson_position?(next_position)
-    assert_not enrollment.allows_lesson_position?(next_position + 1)
+    assert enrollment.not_ahead_of_progress?(next_position)
+    assert_not enrollment.not_ahead_of_progress?(next_position + 1)
   end
 
-  test "allows_lesson_position? returns false for blank lesson position" do
-    assert_not @enrollment.allows_lesson_position?(nil)
+  test "not_ahead_of_progress? returns false for blank lesson position" do
+    assert_not @enrollment.not_ahead_of_progress?(nil)
   end
 
-  test "awaiting_lessons_for_teacher returns only active in-progress enrollments without published incomplete lessons" do
+  test "awaiting_lessons_for_teacher returns only active in-progress enrollments whose next incomplete lesson is unavailable" do
     teacher = users(:admin)
     other_teacher = users(:admin2)
     student = users(:student)
@@ -177,6 +217,38 @@ class EnrollmentTest < ActiveSupport::TestCase
       audio: "enabled"
     )
     available_enrollment = Enrollment.create!(student: student, course: available_course)
+
+    blocked_course = Course.create!(
+      teacher: teacher,
+      title: "Blocked by Draft Next Lesson Course",
+      summary: "Course where a later published lesson exists but next lesson is draft.",
+      grade_level: "1",
+      outline: [],
+      status: :active
+    )
+    blocked_next_lesson = Lesson.create!(
+      course: blocked_course,
+      title: "Blocked Next Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    blocked_next_lesson.insert_at(1)
+    LessonPlan.create!(lesson: blocked_next_lesson, content: {}, status: :draft, chalkboard_enabled: true, audio: "enabled")
+    blocked_later_lesson = Lesson.create!(
+      course: blocked_course,
+      title: "Blocked Later Published Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    blocked_later_lesson.insert_at(2)
+    LessonPlan.create!(
+      lesson: blocked_later_lesson,
+      content: [ { "Activity" => "Practice published lesson content" } ],
+      status: :published,
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+    blocked_enrollment = Enrollment.create!(student: student, course: blocked_course)
 
     completed_course = Course.create!(
       teacher: teacher,
@@ -240,6 +312,7 @@ class EnrollmentTest < ActiveSupport::TestCase
     results = Enrollment.awaiting_lessons_for_teacher(teacher.id)
 
     assert_includes results, waiting_enrollment
+    assert_includes results, blocked_enrollment
     assert_not_includes results, available_enrollment
     assert_not_includes results, completed_enrollment
     assert_not_includes results, archived_enrollment

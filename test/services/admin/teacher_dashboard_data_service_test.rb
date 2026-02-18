@@ -36,10 +36,18 @@ module Admin
       create_lesson_with_plan(course: available_course, title: "Published next", plan_status: :published)
       available_enrollment = Enrollment.create!(student: @student, course: available_course)
 
+      blocked_course = create_course(teacher: @teacher, title: "Blocked Course")
+      blocked_next_lesson = create_lesson_with_plan(course: blocked_course, title: "Draft next", plan_status: :draft)
+      blocked_next_lesson.insert_at(1)
+      blocked_later_lesson = create_lesson_with_plan(course: blocked_course, title: "Published later", plan_status: :published)
+      blocked_later_lesson.insert_at(2)
+      blocked_enrollment = Enrollment.create!(student: @student, course: blocked_course)
+
       dashboard = TeacherDashboardDataService.call(teacher: @teacher, today: @today)
       awaiting_ids = dashboard[:awaiting_lesson_enrollments].map(&:id)
 
       assert_includes awaiting_ids, waiting_enrollment.id
+      assert_includes awaiting_ids, blocked_enrollment.id
       refute_includes awaiting_ids, available_enrollment.id
     end
 
