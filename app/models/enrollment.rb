@@ -12,6 +12,33 @@ class Enrollment < ApplicationRecord
       id: joins(:student_reports).where(student_reports: { status: :completed }).select(:id)
   )}
 
+  def self.awaiting_lessons_for_teacher(teacher_id)
+    joins(:student, :course)
+      .where(users: { teacher_id: teacher_id })
+      .where(courses: { status: :active })
+      .in_progress
+      .where(<<~SQL.squish)
+        NOT EXISTS (
+          SELECT 1
+          FROM lessons
+          INNER JOIN lesson_plans ON lesson_plans.lesson_id = lessons.id
+          WHERE lessons.course_id = enrollments.course_id
+            AND lesson_plans.status = 'published'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM lesson_progresses
+              INNER JOIN student_reports
+                ON student_reports.reportable_type = 'LessonProgress'
+                AND student_reports.reportable_id = lesson_progresses.id
+                AND student_reports.status = 'completed'
+              WHERE lesson_progresses.lesson_id = lessons.id
+                AND lesson_progresses.student_id = enrollments.student_id
+                AND student_reports.student_id = enrollments.student_id
+            )
+        )
+      SQL
+  end
+
   # Returns the lessons completed by the student, as determined by having a student report
   # (Would not include any lessons that were completed and then deleted)
   def completed_lessons

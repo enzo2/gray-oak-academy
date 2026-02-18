@@ -1,0 +1,30 @@
+<section data-testid="attention-required" class="rounded-sm border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+  <div class="flex items-start justify-between gap-3">
+    <h2 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Attention Required</h2>
+    <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
+      <%= pluralize(dashboard[:pending_observations_total], "pending") %>
+    </span>
+  </div>
+
+  <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
+    Pending observations are waiting for teacher review.
+  </p>
+
+  <% if dashboard[:students_with_pending_observations].any? %>
+    <ul class="mt-3 space-y-2">
+      <% dashboard[:students_with_pending_observations].each do |summary| %>
+        <li data-testid="pending-observation-student" class="rounded-sm border border-stone-200 p-3 dark:border-stone-700">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <%= link_to summary[:student_name], admin_student_path(summary[:student_id], active_tab: "journal", anchor: "pending_observations"), class: "text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-2 hover:decoration-stone-500 dark:text-stone-100 dark:decoration-stone-600" %>
+            <span class="text-xs font-medium text-amber-700 dark:text-amber-300"><%= pluralize(summary[:pending_count], "pending observation") %></span>
+          </div>
+          <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">
+            Latest: <%= time_ago_in_words(summary[:latest_pending_at]) %> ago
+          </p>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-3 text-sm text-stone-600 dark:text-stone-400">No pending observations.</p>
+  <% end %>
+</section>

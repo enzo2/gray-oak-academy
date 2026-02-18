@@ -1,1 +1,24 @@
-<p class="mb-4">Select a section from the sidebar.</p>
+<main class="w-full p-2 sm:p-4 space-y-4">
+  <section class="rounded-sm border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+    <h1 class="text-2xl font-bold text-stone-900 dark:text-stone-100">Teacher Dashboard</h1>
+    <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
+      <%= @dashboard[:today].strftime("%A, %B %-d, %Y") %>
+    </p>
+  </section>
+
+  <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <% if @dashboard[:pending_observations_total].to_i.positive? %>
+      <%= render "attention_required", dashboard: @dashboard %>
+    <% end %>
+
+    <%= render "awaiting_lessons", dashboard: @dashboard %>
+
+    <% if @dashboard[:unread_notifications_total].to_i.positive? %>
+      <%= render "unread_notifications", dashboard: @dashboard %>
+    <% end %>
+
+    <%= render "recent_activity", dashboard: @dashboard %>
+  </div>
+
+  <%= render "lesson_activity_overview", dashboard: @dashboard %>
+</main>

@@ -1,0 +1,32 @@
+<section data-testid="recent-activity" class="rounded-sm border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
+  <h2 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Recent Activity</h2>
+  <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
+    Lesson completions, profile updates, and student feedback.
+  </p>
+
+  <% if dashboard[:recent_activity_items].any? %>
+    <ul class="mt-3 space-y-2">
+      <% dashboard[:recent_activity_items].each do |item| %>
+        <% badge_label, badge_classes = case item[:kind]
+          when :lesson_completed
+            ["Lesson", "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200"]
+          when :profile_generated
+            ["Profile", "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-200"]
+          else
+            ["Feedback", "bg-cyan-100 text-cyan-900 dark:bg-cyan-900/40 dark:text-cyan-200"]
+          end %>
+
+        <li data-testid="recent-activity-row" class="rounded-sm border border-stone-200 p-3 dark:border-stone-700">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full px-2 py-0.5 text-xs font-semibold <%= badge_classes %>"><%= badge_label %></span>
+            <span class="text-xs text-stone-500 dark:text-stone-400"><%= time_ago_in_words(item[:occurred_at]) %> ago</span>
+          </div>
+          <%= link_to item[:title], item[:path], class: "mt-1 block text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-2 hover:decoration-stone-500 dark:text-stone-100 dark:decoration-stone-600" %>
+          <p class="mt-1 text-xs text-stone-600 dark:text-stone-400"><%= item[:subtitle] %></p>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="mt-3 text-sm text-stone-600 dark:text-stone-400">No recent activity yet.</p>
+  <% end %>
+</section>

@@ -130,4 +130,119 @@ class EnrollmentTest < ActiveSupport::TestCase
   test "allows_lesson_position? returns false for blank lesson position" do
     assert_not @enrollment.allows_lesson_position?(nil)
   end
+
+  test "awaiting_lessons_for_teacher returns only active in-progress enrollments without published incomplete lessons" do
+    teacher = users(:admin)
+    other_teacher = users(:admin2)
+    student = users(:student)
+    other_student = users(:student2)
+    other_student.update!(teacher: other_teacher)
+
+    waiting_course = Course.create!(
+      teacher: teacher,
+      title: "Waiting Enrollment Course",
+      summary: "Waiting course summary with sufficient length.",
+      grade_level: "1",
+      outline: [],
+      status: :active
+    )
+    waiting_lesson = Lesson.create!(
+      course: waiting_course,
+      title: "Waiting Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    LessonPlan.create!(lesson: waiting_lesson, content: {}, status: :draft, chalkboard_enabled: true, audio: "enabled")
+    waiting_enrollment = Enrollment.create!(student: student, course: waiting_course)
+
+    available_course = Course.create!(
+      teacher: teacher,
+      title: "Available Enrollment Course",
+      summary: "Available course summary with sufficient length.",
+      grade_level: "1",
+      outline: [],
+      status: :active
+    )
+    available_lesson = Lesson.create!(
+      course: available_course,
+      title: "Published Available Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    LessonPlan.create!(
+      lesson: available_lesson,
+      content: [ { "Activity" => "Practice published lesson content" } ],
+      status: :published,
+      chalkboard_enabled: true,
+      audio: "enabled"
+    )
+    available_enrollment = Enrollment.create!(student: student, course: available_course)
+
+    completed_course = Course.create!(
+      teacher: teacher,
+      title: "Completed Enrollment Course",
+      summary: "Completed course summary with sufficient length.",
+      grade_level: "1",
+      outline: [],
+      status: :active
+    )
+    completed_lesson = Lesson.create!(
+      course: completed_course,
+      title: "Completed Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    LessonPlan.create!(lesson: completed_lesson, content: {}, status: :draft, chalkboard_enabled: true, audio: "enabled")
+    completed_enrollment = Enrollment.create!(student: student, course: completed_course)
+    StudentReport.create!(
+      student: student,
+      teacher: teacher,
+      reportable: completed_enrollment,
+      author_type: :teacher_written,
+      status: :completed,
+      progress_data: { "summary" => "Course completed" }
+    )
+
+    archived_course = Course.create!(
+      teacher: teacher,
+      title: "Archived Enrollment Course",
+      summary: "Archived course summary with sufficient length.",
+      grade_level: "1",
+      outline: [],
+      status: :archived
+    )
+    archived_lesson = Lesson.create!(
+      course: archived_course,
+      title: "Archived Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    LessonPlan.create!(lesson: archived_lesson, content: {}, status: :draft, chalkboard_enabled: true, audio: "enabled")
+    archived_enrollment = Enrollment.create!(student: student, course: archived_course)
+
+    other_teacher_course = Course.create!(
+      teacher: other_teacher,
+      title: "Other Teacher Course",
+      summary: "Other teacher course summary with sufficient length.",
+      grade_level: "1",
+      outline: [],
+      status: :active
+    )
+    other_teacher_lesson = Lesson.create!(
+      course: other_teacher_course,
+      title: "Other Teacher Draft Lesson",
+      approx_duration_min: 20,
+      goals: "Practice with guided examples and checks"
+    )
+    LessonPlan.create!(lesson: other_teacher_lesson, content: {}, status: :draft, chalkboard_enabled: true, audio: "enabled")
+    other_teacher_enrollment = Enrollment.create!(student: other_student, course: other_teacher_course)
+
+    results = Enrollment.awaiting_lessons_for_teacher(teacher.id)
+
+    assert_includes results, waiting_enrollment
+    assert_not_includes results, available_enrollment
+    assert_not_includes results, completed_enrollment
+    assert_not_includes results, archived_enrollment
+    assert_not_includes results, other_teacher_enrollment
+  end
 end
