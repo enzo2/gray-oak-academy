@@ -5,9 +5,9 @@
       - extra_meta: optional captured block for additional metadata
 %>
 
-<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-4 mb-4" id="<%= dom_id(memory) %>">
-  <div class="flex items-start justify-between">
-    <div>
+<div class="border border-stone-200 dark:border-stone-700 rounded-lg p-3 sm:p-4 mb-4" id="<%= dom_id(memory) %>">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
       <%= markdown(memory.body) %>
 
       <div class="text-xs text-dim mt-1">
@@ -24,7 +24,7 @@
     </div>
 
     <% if local_assigns[:actions].present? %>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 self-start sm:self-auto">
         <%= actions %>
       </div>
     <% end %>

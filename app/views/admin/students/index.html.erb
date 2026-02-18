@@ -1,13 +1,3 @@
-<h2 class="text-xl font-semibold">Manage Students</h2>
-
-<div class="py-4 flex flex-row gap-2">
-  <!-- Students List Column -->
-  <div class="basis-48 pr-2 border-r">
-    <%= render partial: "students_nav", locals: { my_students: @my_students, other_students: @other_students } %>
-  </div>
-
-  <!-- Control Panel Column -->
-  <div class="grow pl-4 max-w-7xl">
-    <p>Select a student to view their control panel.</p>
-  </div>
-</div>
+<%= render "students_layout", my_students: @my_students, other_students: @other_students do %>
+  <p>Select a student to view their control panel.</p>
+<% end %>

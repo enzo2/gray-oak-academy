@@ -1,18 +1,73 @@
-<h2 class="text-xl font-semibold mb-4"><%= @student.name %></h2>
+<h2 class="text-xl font-semibold mb-1"><%= @student.name %></h2>
 
-<sl-tab-group id="student-dashboard-tabs" class="">
-  <sl-tab slot="nav" panel="journal" <%= "active" if @active_tab == :journal %>>Journal</sl-tab>
-  <sl-tab slot="nav" panel="active_courses" <%= "active" if @active_tab == :active_courses %>>Active Courses</sl-tab>
-  <sl-tab slot="nav" panel="past_courses" <%= "active" if @active_tab == :past_courses %>>Past Courses</sl-tab>
-  <sl-tab slot="nav" panel="enroll" <%= "active" if @active_tab == :enroll %>>Add Course</sl-tab>
-  <sl-tab slot="nav" panel="memories" <%= "active" if @active_tab == :memories %>>Memories</sl-tab>
-  <sl-tab slot="nav" panel="applets" <%= "active" if @active_tab == :applets %>>Applets</sl-tab>
-  <sl-tab slot="nav" panel="settings" <%= "active" if @active_tab == :settings %>>Settings</sl-tab>
+<div id="student-dashboard-tabs"
+     data-controller="tabs"
+     data-tabs-active-tab-value="<%= @active_tab %>">
+  <% tab_nav_classes = "mb-4 flex flex-wrap gap-1 border-b border-stone-200 pb-2.5 max-[420px]:gap-[0.2rem] dark:border-stone-700" %>
+  <% tab_button_classes = "rounded-[0.3rem] border border-transparent bg-transparent px-[0.55rem] py-[0.2rem] text-sm font-medium whitespace-nowrap text-stone-600 transition-colors duration-[120ms] hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 max-[420px]:px-[0.4rem] max-[420px]:py-[0.15rem] max-[420px]:text-[0.88rem] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 data-[state=open]:border-moss-700 data-[state=open]:bg-moss-600 data-[state=open]:text-white" %>
+  <% tab_dropdown_viewport_classes = "absolute left-0 top-full z-50 pt-1 transition-opacity duration-150 data-[state=closed]:hidden data-[state=closing]:pointer-events-none data-[state=closing]:opacity-0" %>
+  <% tab_dropdown_bg_classes = "min-w-44 rounded-md border border-stone-200 bg-white p-1 shadow-[0_4px_12px_-2px_rgb(0_0_0_/_0.1),0_2px_4px_-1px_rgb(0_0_0_/_0.06)] dark:border-stone-700 dark:bg-stone-900 dark:shadow-[0_4px_12px_-2px_rgb(0_0_0_/_0.3),0_2px_4px_-1px_rgb(0_0_0_/_0.2)]" %>
+  <% tab_dropdown_item_classes = "flex w-full items-center rounded border-0 bg-transparent px-3 py-[0.4rem] text-left text-sm font-medium whitespace-nowrap text-stone-700 transition-colors duration-100 hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss-500 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100" %>
 
-  <sl-tab-panel name="journal" <%= "active" if @active_tab == :journal %>>
+  <div role="tablist" class="<%= tab_nav_classes %>">
+    <button role="tab" type="button" class="<%= tab_button_classes %>"
+            data-tabs-target="tab" data-tabs-panel="journal"
+            data-action="click->tabs#show keydown->tabs#handleTabKeydown">Journal</button>
+
+    <%# Courses tab — a pill tab that also opens a dropdown via the navbar controller %>
+    <div class="relative" data-controller="railsblocks--navbar">
+      <button role="tab" type="button" class="<%= "#{tab_button_classes} inline-flex items-center gap-1" %>"
+              data-tabs-target="tab"
+              data-tabs-panel="active_courses"
+              data-tabs-group="active_courses past_courses enroll"
+              data-tabs-menu-trigger="true"
+              data-railsblocks--navbar-target="trigger"
+              data-content-id="courses-dropdown"
+              data-action="click->tabs#show
+                           click->railsblocks--navbar#toggleMenu
+                           keydown->tabs#handleTabKeydown
+                           keydown->railsblocks--navbar#handleTriggerKeydown">
+        Courses
+        <sl-icon name="chevron-down" class="text-xs opacity-70"></sl-icon>
+      </button>
+
+      <div data-railsblocks--navbar-target="viewport"
+           data-state="closed"
+           class="<%= tab_dropdown_viewport_classes %>">
+        <div data-railsblocks--navbar-target="background" class="<%= tab_dropdown_bg_classes %>">
+          <div id="courses-dropdown" data-railsblocks--navbar-target="content" class="hidden">
+            <button type="button" class="<%= tab_dropdown_item_classes %>"
+                    data-tabs-panel="active_courses"
+                    data-railsblocks--navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->railsblocks--navbar#close">Active Courses</button>
+            <button type="button" class="<%= tab_dropdown_item_classes %>"
+                    data-tabs-panel="past_courses"
+                    data-railsblocks--navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->railsblocks--navbar#close">Past Courses</button>
+            <button type="button" class="<%= tab_dropdown_item_classes %>"
+                    data-tabs-panel="enroll"
+                    data-railsblocks--navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->railsblocks--navbar#close">Add Course</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button role="tab" type="button" class="<%= tab_button_classes %>"
+            data-tabs-target="tab" data-tabs-panel="memories"
+            data-action="click->tabs#show keydown->tabs#handleTabKeydown">Memories</button>
+    <button role="tab" type="button" class="<%= tab_button_classes %>"
+            data-tabs-target="tab" data-tabs-panel="applets"
+            data-action="click->tabs#show keydown->tabs#handleTabKeydown">Applets</button>
+    <button role="tab" type="button" class="<%= tab_button_classes %>"
+            data-tabs-target="tab" data-tabs-panel="settings"
+            data-action="click->tabs#show keydown->tabs#handleTabKeydown">Settings</button>
+  </div>
+
+  <div id="journal" role="tabpanel" data-tabs-target="panel">
     <div class="journal-wrapper" data-controller="journal-filter" data-journal-filter-infinite-scroll-outlet=".journal-timeline-container">
       <%= render "shared/journal_toolbar", url: journal_admin_student_path(@student) %>
-      
+
       <div id="pending_observations" class="space-y-4 mb-6">
         <% if @pending_observations.present? %>
           <div class="flex items-center gap-2 mb-2">
@@ -30,17 +85,17 @@
         <%= render "shared/journal_timeline", teacher_mode: true %>
       </div>
     </div>
-  </sl-tab-panel>
+  </div>
 
-  <sl-tab-panel name="active_courses" <%= "active" if @active_tab == :active_courses %>>
+  <div id="active_courses" role="tabpanel" data-tabs-target="panel">
     <% if @active_enrollments.presence %>
       <%= render 'active_courses', enrollments: @active_enrollments %>
     <% else %>
       <p class="">This student is not currently enrolled in any courses.</p>
     <% end %>
-  </sl-tab-panel>
-  
-  <sl-tab-panel name="past_courses" <%= "active" if @active_tab == :past_courses %>>
+  </div>
+
+  <div id="past_courses" role="tabpanel" data-tabs-target="panel">
     <% if @completed_enrollments.presence %>
       <%= render 'completed_courses', enrollments: @completed_enrollments %>
     <% else %>
@@ -66,24 +121,24 @@
           <% end %>
         </sl-details>
     <% end %>
-  </sl-tab-panel>
+  </div>
 
-  <sl-tab-panel name="enroll" <%= "active" if @active_tab == :enroll %>>
+  <div id="enroll" role="tabpanel" data-tabs-target="panel">
     <h3 class="text-lg">Enroll in a New Course</h3>
     <% available_courses = Course.available_for_enrollment(@student, current_user) %>
     <% if available_courses.any? %>
-      <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex", data: { turbo_stream: true } do |form| %>
+      <%= form_with url: enroll_admin_student_path(@student), method: :post, class: "mt-2 flex flex-col sm:flex-row gap-2 max-w-md", data: { turbo_stream: true } do |form| %>
         <%= form.collection_select :course_id, available_courses, :id, :title,
-          { prompt: "Select Course" }, { class: "form-select-primary" } %>
-        <%= form.submit 'Enroll', class: "btn-primary ml-2" %>
+          { prompt: "Select Course" }, { class: "form-select-primary w-full" } %>
+        <%= form.submit 'Enroll', class: "btn-primary w-full sm:w-auto" %>
       <% end %>
     <% else %>
       <p class="text-sm">No courses available for enrollment.</p>
     <% end %>
-  </sl-tab-panel>
+  </div>
 
-  <sl-tab-panel name="memories" <%= "active" if @active_tab == :memories %>>
-    <h3 class="text-lg font-semibold">Memories</h3>
+  <div id="memories" role="tabpanel" data-tabs-target="panel">
+    <h3 class="text-lg">Memories</h3>
 
     <p class="text-sm text-stone-600 dark:text-stone-400 mb-4">
       Memories are personal facts or recollections about the student.<br>
@@ -102,27 +157,27 @@
         <p><i>No memories yet.</i></p>
       <% end %>
     </div>
-  </sl-tab-panel>
+  </div>
 
-  <sl-tab-panel name="applets" <%= "active" if @active_tab == :applets %>>
+  <div id="applets" role="tabpanel" data-tabs-target="panel">
     <h2 class="text-lg mb-4">Applets</h2>
     <p class="mb-4 block">
       These are JavaScript applets the student has archived.
       <br>To re-use them in future lessons, convert to a Resource.
     </p>
     <%= render "applets/applets_table", applets: @student.applets %>
-  </sl-tab-panel>
+  </div>
 
-  <sl-tab-panel name="settings" <%= "active" if @active_tab == :settings %>>
+  <div id="settings" role="tabpanel" data-tabs-target="panel">
     <h3 class="text-lg mb-4">Settings</h3>
       <% if @student.teacher_id == current_user.id %>
         <p class="text-sm text-dim mb-1">You can release the student so that another teacher can adopt them.</p>
-        <%= button_to 'Release student', unadopt_admin_student_path(@student), 
-          method: :delete, 
-          data: { turbo_confirm: 'This will remove the student from your list. Are you sure?' }, 
+        <%= button_to 'Release student', unadopt_admin_student_path(@student),
+          method: :delete,
+          data: { turbo_confirm: 'This will remove the student from your list. Are you sure?' },
           class: "btn-danger text-sm" %>
       <% end %>
-      
+
       <% if current_user.role_superuser? && current_user != @student %>
         <details class="mt-4">
           <summary class="cursor-pointer text-red-600 font-bold">Danger Zone</summary>
@@ -156,5 +211,6 @@
       <% elsif current_user == @student %>
         <p class="text-sm text-dim">There are no student settings, since you are looking at your own account.</p>
       <% end %>
-  </sl-tab-panel>
-</sl-tab-group>
+  </div>
+
+</div>

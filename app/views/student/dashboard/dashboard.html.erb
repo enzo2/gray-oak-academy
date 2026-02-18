@@ -2,59 +2,107 @@
   <h1 class="font-bold text-2xl mb-4"><%= current_user.first_name %>'s Dashboard</h1>
   <p class="mb-4">Today is <%= Date.current.strftime("%A, %B %d, %Y") %>.</p>
 
-    <sl-tab-group id="student-dashboard-tabs">
-      <sl-tab slot="nav" panel="courses">My Courses</sl-tab>
-      <sl-tab slot="nav" panel="journal">Journal</sl-tab>
-      <sl-tab slot="nav" panel="past_courses">Past Courses</sl-tab>
-      <sl-tab slot="nav" panel="chat">Chat</sl-tab>
-      <sl-tab slot="nav" panel="applets">Applets</sl-tab>
+  <div id="student-dashboard-tabs"
+       data-controller="tabs"
+       data-tabs-active-tab-value="<%= @active_tab %>">
+    <% tab_nav_classes = "mb-4 flex flex-wrap gap-1 border-b border-stone-200 pb-2.5 max-[420px]:gap-[0.2rem] dark:border-stone-700" %>
+    <% tab_button_classes = "rounded-[0.3rem] border border-transparent bg-transparent px-[0.55rem] py-[0.2rem] text-sm font-medium whitespace-nowrap text-stone-600 transition-colors duration-[120ms] hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 max-[420px]:px-[0.4rem] max-[420px]:py-[0.15rem] max-[420px]:text-[0.88rem] dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100 data-[state=open]:border-moss-700 data-[state=open]:bg-moss-600 data-[state=open]:text-white" %>
+    <% tab_dropdown_viewport_classes = "absolute left-0 top-full z-50 pt-1 transition-opacity duration-150 data-[state=closed]:hidden data-[state=closing]:pointer-events-none data-[state=closing]:opacity-0" %>
+    <% tab_dropdown_bg_classes = "min-w-44 rounded-md border border-stone-200 bg-white p-1 shadow-[0_4px_12px_-2px_rgb(0_0_0_/_0.1),0_2px_4px_-1px_rgb(0_0_0_/_0.06)] dark:border-stone-700 dark:bg-stone-900 dark:shadow-[0_4px_12px_-2px_rgb(0_0_0_/_0.3),0_2px_4px_-1px_rgb(0_0_0_/_0.2)]" %>
+    <% tab_dropdown_item_classes = "flex w-full items-center rounded border-0 bg-transparent px-3 py-[0.4rem] text-left text-sm font-medium whitespace-nowrap text-stone-700 transition-colors duration-100 hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss-500 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100" %>
+    <div role="tablist" class="<%= tab_nav_classes %>">
+      <%# Courses tab — grouped with current + past courses via dropdown %>
+      <div class="relative" data-controller="railsblocks--navbar">
+        <button role="tab" type="button" class="<%= "#{tab_button_classes} inline-flex items-center gap-1" %>"
+                data-tabs-target="tab"
+                data-tabs-panel="courses"
+                data-tabs-group="courses past_courses"
+                data-tabs-menu-trigger="true"
+                data-railsblocks--navbar-target="trigger"
+                data-content-id="courses-dropdown"
+                data-action="click->tabs#show
+                             click->railsblocks--navbar#toggleMenu
+                             keydown->tabs#handleTabKeydown
+                             keydown->railsblocks--navbar#handleTriggerKeydown">
+          Courses
+          <sl-icon name="chevron-down" class="text-xs opacity-70"></sl-icon>
+        </button>
 
-      <sl-tab-panel name="courses">
+        <div data-railsblocks--navbar-target="viewport"
+             data-state="closed"
+             class="<%= tab_dropdown_viewport_classes %>">
+          <div data-railsblocks--navbar-target="background" class="<%= tab_dropdown_bg_classes %>">
+            <div id="courses-dropdown" data-railsblocks--navbar-target="content" class="hidden">
+              <button type="button" class="<%= tab_dropdown_item_classes %>"
+                      data-tabs-panel="courses"
+                      data-railsblocks--navbar-preserve-trigger-state-param="true"
+                      data-action="click->tabs#show click->railsblocks--navbar#close">My Courses</button>
+              <button type="button" class="<%= tab_dropdown_item_classes %>"
+                      data-tabs-panel="past_courses"
+                      data-railsblocks--navbar-preserve-trigger-state-param="true"
+                      data-action="click->tabs#show click->railsblocks--navbar#close">Past Courses</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="journal"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Journal</button>
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="chat"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Chat</button>
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="applets"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Applets</button>
+    </div>
+
+    <div id="courses" role="tabpanel" data-tabs-target="panel">
         <%# Filter out archived courses %>
         <%= render 'active_courses', enrollments: @enrollments.in_progress.joins(:course).where(courses: { status: :active }) %>
-      </sl-tab-panel>
+    </div>
 
-      <sl-tab-panel name="journal">
-        <%= render "shared/journal_timeline", url: student_journal_path, teacher_mode: false %>
-      </sl-tab-panel>
+    <div id="journal" role="tabpanel" data-tabs-target="panel">
+      <%= render "shared/journal_timeline", url: student_journal_path, teacher_mode: false %>
+    </div>
 
-      <sl-tab-panel name="past_courses">
+    <div id="past_courses" role="tabpanel" data-tabs-target="panel">
         <%# Include archived courses here %>
         <%= render 'completed_courses', enrollments: @enrollments.completed %>
-      </sl-tab-panel>
+    </div>
 
-      <sl-tab-panel name="chat">
-        <% if current_user.teacher.present? %>
-          <p>
-            You can chat with the LLM without working on a specific lesson.<br>
-            Ask about anything you want to learn.
-          </p>
-          <br>
-          <sl-button href="<%= conversations_path %>">
-            <sl-icon slot="prefix" name="chat-right-dots"></sl-icon>
-            Open LLM Chat
-          </sl-button>
-        <% else %>
-          <%# Prevent use of the default LLM by a student with no teacher. %>
-          <%# This could be allowed by an admin setting in the future. %>
-          <p class="">Before you can use the app, a teacher needs to adopt you.</p>
-        <% end %>
-      </sl-tab-panel>
-      <sl-tab-panel name="applets">
-        <h2 class="text-lg mb-4">Applets</h2>
-        <p class="mb-4 prose dark:prose-invert prose-stone">These are applets written by the LLM that have been saved.<br>
-          Since they're made for this app, you may need some help running them again. You can:
+    <div id="chat" role="tabpanel" data-tabs-target="panel">
+      <% if current_user.teacher.present? %>
+        <p>
+          You can chat with the LLM without working on a specific lesson.<br>
+          Ask about anything you want to learn.
         </p>
-        <ol class="mb-4
-                    prose dark:prose-invert prose-stone
-                    list-decimal list-inside">
-          <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
-          <li>Ask any LLM to modify the code for you and help you run it, for example, on jsfiddle.net.</li>
-        </ol>
+        <br>
+        <%= link_to conversations_path, class: "btn-primary inline-flex items-center gap-2" do %>
+          <sl-icon name="chat-right-dots"></sl-icon>
+          <span>Open LLM Chat</span>
+        <% end %>
+      <% else %>
+        <%# Prevent use of the default LLM by a student with no teacher. %>
+        <%# This could be allowed by an admin setting in the future. %>
+        <p class="">Before you can use the app, a teacher needs to adopt you.</p>
+      <% end %>
+    </div>
 
-        <%= render "applets/applets_table", applets: @applets %>
+    <div id="applets" role="tabpanel" data-tabs-target="panel">
+      <h2 class="text-lg mb-4">Applets</h2>
+      <p class="mb-4 prose dark:prose-invert prose-stone">These are applets written by the LLM that have been saved.<br>
+        Since they're made for this app, you may need some help running them again. You can:
+      </p>
+      <ol class="mb-4
+                  prose dark:prose-invert prose-stone
+                  list-decimal list-inside">
+        <li>Paste it back to the LLM in this app and ask it to run it for you.</li>
+        <li>Ask any LLM to modify the code for you and help you run it, for example, on jsfiddle.net.</li>
+      </ol>
 
-      </sl-tab-panel>
-    </sl-tab-group>
+      <%= render "applets/applets_table", applets: @applets %>
+    </div>
+  </div>
 
 </main>

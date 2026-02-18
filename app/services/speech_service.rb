@@ -299,9 +299,10 @@ class SpeechService
   # STT via the Speech API (legacy / OpenAI Speech API-compatible route)
   def transcribe_via_speech_api(audio_file)
     begin
+      upload_file = normalize_stt_upload_file(audio_file)
       response = @client.audio.transcriptions.create(
         model: @stt_model,
-        file: audio_file,  # No need to transcode first, API should handle webm or mp4.
+        file: upload_file, # No need to transcode first, API should handle webm or mp4.
         response_format: "text"
       )
       text = extract_transcription_text(response)
@@ -347,6 +348,32 @@ class SpeechService
       Rails.logger.error "StandardError in STT transcription (Speech API): #{e.message}"
       raise e
     end
+  end
+
+  # OpenAI SDK treats String file inputs as in-memory text payloads, not filesystem paths.
+  # Normalize inputs to a true file upload type so multipart `file` is always a file part.
+  def normalize_stt_upload_file(audio_file)
+    file = if audio_file.respond_to?(:tempfile)
+      audio_file.tempfile
+    else
+      audio_file
+    end
+
+    if file.is_a?(String)
+      path = Pathname.new(file)
+      unless path.exist?
+        raise SpeechServiceError, "Audio file path does not exist: #{file}"
+      end
+      return path
+    end
+
+    if file.respond_to?(:path) && file.path.present?
+      path = Pathname.new(file.path)
+      return path if path.exist?
+    end
+
+    file.rewind if file.respond_to?(:rewind)
+    file
   end
 
   def extract_transcription_text(response)

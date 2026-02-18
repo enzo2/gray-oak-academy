@@ -32,11 +32,50 @@ class AdminStudentsTest < ApplicationSystemTestCase
     assert_text "Student adopted successfully."
     # After adoption, go to the settings tab and click the unadopt button
     visit admin_student_path(@other_student)
-    find('sl-tab[panel="settings"]').click
+    find('#student-dashboard-tabs [role="tab"][data-tabs-panel="settings"]').click
     # Accept the confirmation dialog for unadopting
     page.accept_confirm do
       click_button "Release student"
     end
     assert_text "Student unadopted successfully."
+  end
+
+  test "mobile student list opens and closes with a single nav instance" do
+    sign_in @admin
+    begin
+      page.current_window.resize_to(375, 812)
+      visit admin_students_path
+
+      assert_selector "sl-icon-button[label='Open student list']"
+      assert_selector "#new-student-modal", count: 1, visible: :all
+
+      find("sl-icon-button[label='Open student list']").click
+      assert_selector "#students-mobile-sidebar:not(.hidden)", wait: 5
+
+      execute_script("document.querySelector('#students-mobile-backdrop').click()")
+      assert_no_selector "#students-mobile-sidebar:not(.hidden)", wait: 5
+      assert_selector "#new-student-modal", count: 1, visible: :all
+    ensure
+      page.current_window.resize_to(1400, 1400)
+    end
+  end
+
+  test "courses tab remains selected after choosing a courses submenu item" do
+    sign_in @admin
+    visit admin_student_path(@my_student)
+
+    find('#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"]').click
+    click_button "Past Courses"
+
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_selector "#past_courses:not(.hidden)"
+  end
+
+  test "invalid active tab param falls back to journal panel" do
+    sign_in @admin
+    visit admin_student_path(@my_student, active_tab: :unknown_tab)
+
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-panel="journal"][data-state="open"]'
+    assert_selector "#journal:not(.hidden)"
   end
 end

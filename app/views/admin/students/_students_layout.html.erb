@@ -1,0 +1,39 @@
+<div id="students-layout"
+     class="relative"
+     data-controller="sidebar"
+     data-action="keydown.esc@window->sidebar#closeMobile">
+  <div class="flex items-center justify-between gap-2">
+    <h2 class="text-xl">Manage Students</h2>
+
+    <sl-icon-button
+      name="people"
+      label="Open student list"
+      class="text-2xl lg:hidden"
+      data-action="click->sidebar#openMobile">
+    </sl-icon-button>
+  </div>
+
+  <div id="students-mobile-sidebar" class="fixed inset-x-0 top-10 bottom-0 z-50 lg:hidden hidden" data-sidebar-target="mobileSidebar">
+    <div id="students-mobile-backdrop" class="absolute inset-0 bg-black/50 transition-opacity duration-300" data-sidebar-target="mobileBackdrop" data-action="click->sidebar#closeMobile"></div>
+
+    <div class="absolute inset-y-0 left-0 w-64 bg-stone-50 dark:bg-stone-900 shadow-xl border-r border-stone-200 dark:border-stone-800 transition-transform duration-300 ease-out" data-sidebar-target="mobilePanel">
+      <div class="h-full overflow-y-auto p-3" data-sidebar-target="sharedContent"></div>
+    </div>
+  </div>
+
+  <div class="pt-4 flex flex-col lg:flex-row gap-2">
+    <div class="basis-48 pr-2 border-r max-lg:hidden">
+      <div data-sidebar-target="desktopContent">
+        <template data-sidebar-target="contentTemplate">
+          <nav class="h-full">
+            <%= render partial: "students_nav", locals: { my_students: my_students, other_students: other_students } %>
+          </nav>
+        </template>
+      </div>
+    </div>
+
+    <div class="grow lg:pl-4 max-w-7xl min-w-0">
+      <%= yield %>
+    </div>
+  </div>
+</div>

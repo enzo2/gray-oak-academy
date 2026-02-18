@@ -11,12 +11,12 @@
 <% end %>
 
 <% actions_content = capture do %>
-  <div class="flex flex-col items-end gap-2">
+  <div class="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
     <div class="flex items-center gap-2">
       <%= form_with url: toggle_hidden_admin_student_memory_path(@student, memory),
                     method: :patch,
                     data: { turbo_stream: true, controller: "auto-submit-toggle" },
-                    class: "flex items-center gap-1 text-xs text-stone-600 dark:text-stone-300" do %>
+                    class: "flex flex-wrap items-center gap-1 text-xs text-stone-600 dark:text-stone-300" do %>
         <%= label_tag "hidden_#{memory.id}", "Hidden from student", class: "text-xs" %>
         <%= check_box_tag "hidden",
                           true,
@@ -27,7 +27,7 @@
       <% end %>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
       <%= button_to(edit_admin_student_memory_path(@student, memory),
                     method: :get,
                     form: { data: { turbo_stream: true } },

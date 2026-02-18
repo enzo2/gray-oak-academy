@@ -83,7 +83,7 @@
       </div>
 
       <!-- Main content -->
-      <main class="grow px-4 pt-4 overflow-y-auto">
+      <main class="grow px-2 md:px-4 pt-2 md:pt-4 overflow-y-auto">
         <%= turbo_stream_from "teacher_#{current_user.id}-dashboard" %>
         <%= yield %>
       </main>

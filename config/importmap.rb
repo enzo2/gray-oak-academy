@@ -32,9 +32,6 @@ pin "@shoelace-style/shoelace/dialog", to: "https://cdn.jsdelivr.net/npm/@shoela
 pin "@shoelace-style/shoelace/textarea", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/textarea/textarea.js"
 pin "@shoelace-style/shoelace/details", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/details/details.js"
 pin "@shoelace-style/shoelace/copy-button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/copy-button/copy-button.js"
-pin "@shoelace-style/shoelace/tree", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree/tree.js"
-pin "@shoelace-style/shoelace/tree-item", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/tree-item/tree-item.js"
-pin "@shoelace-style/shoelace/drawer", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/drawer/drawer.js"
 
 # Webawesome (Shoelace Successor)
 # pin "@awesome.me/webawesome/dist-cdn/webawesome", to: "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/webawesome.js"

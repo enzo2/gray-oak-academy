@@ -43,6 +43,14 @@
   <% apply_agent_summary_md = outline_research["apply_agent_summary_md"].to_s %>
   <% apply_completed_at_raw = outline_research["apply_completed_at"].to_s %>
   <% apply_completed_at = begin Time.zone.parse(apply_completed_at_raw) rescue nil end %>
+  <% outline_failed_classes = "rounded border border-red-300 bg-red-50/70 px-4 py-[0.9rem] dark:border-red-800 dark:bg-red-950/20" %>
+  <% outline_failed_header_classes = "flex items-center gap-3" %>
+  <% outline_failed_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-red-600 to-red-700 text-[0.95rem] font-bold text-white ring-2 ring-red-500/20" %>
+  <% outline_complete_classes = "rounded border border-moss-500/45 bg-gradient-to-b from-moss-100/70 to-stone-100/70 px-4 py-[0.9rem] dark:border-moss-700 dark:from-stone-900 dark:to-stone-800" %>
+  <% outline_complete_header_classes = "flex items-center gap-3" %>
+  <% outline_complete_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-moss-600 to-moss-700 text-[0.9rem] font-bold text-white ring-2 ring-moss-500/25" %>
+  <% outline_complete_report_classes = "prose mt-3 max-w-none rounded border border-stone-300 bg-white/90 px-[0.85rem] py-3 text-sm dark:border-stone-700 dark:bg-stone-900/90 dark:prose-invert" %>
+  <% outline_findings_classes = "rounded border border-stone-300 bg-stone-50/90 px-[0.95rem] py-[0.85rem] dark:border-stone-700 dark:bg-stone-900/90" %>
   <p class="text-sm mb-2">
     <b>Status:</b> <%= course.outline_research_stage.humanize %><%= raw(" &mdash; running...") if exa_running %>
   </p>
@@ -52,9 +60,9 @@
     </p>
   <% end %>
   <% if course.outline_research_stage == "failed" %>
-    <div class="goa-outline-failed mb-3">
-      <div class="goa-outline-failed__header">
-        <span class="goa-outline-failed__badge" aria-hidden="true">!</span>
+    <div class="<%= outline_failed_classes %> mb-3">
+      <div class="<%= outline_failed_header_classes %>">
+        <span class="<%= outline_failed_badge_classes %>" aria-hidden="true">!</span>
         <div>
           <h4 class="font-semibold text-base">Research run failed</h4>
           <% if course.outline_research_resumable_run? %>
@@ -69,9 +77,9 @@
   <div class="mt-3 mb-4 border-t border-stone-200 dark:border-stone-700"></div>
 
   <% if course.outline_research_stage == "completed" %>
-    <div class="goa-outline-complete mb-4">
-      <div class="goa-outline-complete__header">
-        <span class="goa-outline-complete__badge" aria-hidden="true">✓</span>
+    <div class="<%= outline_complete_classes %> mb-4">
+      <div class="<%= outline_complete_header_classes %>">
+        <span class="<%= outline_complete_badge_classes %>" aria-hidden="true">✓</span>
         <div>
           <h4 class="font-semibold text-base">Research Pipeline Complete</h4>
           <p class="text-sm">Guidance has been applied and your course has been updated.</p>
@@ -83,7 +91,7 @@
         </p>
       <% end %>
       <% if apply_agent_summary_md.present? %>
-        <div class="goa-outline-complete__report prose dark:prose-invert max-w-none text-sm mt-3">
+        <div class="<%= outline_complete_report_classes %>">
           <%= markdown(apply_agent_summary_md) %>
         </div>
       <% else %>
@@ -94,7 +102,7 @@
 
   <% has_research_content = %w[source_anchors coverage_gaps factual_notes alternative_approaches].any? { |k| outline_research.key?(k) } %>
   <% if has_research_content %>
-    <div class="goa-outline-findings mb-4">
+    <div class="<%= outline_findings_classes %> mb-4">
       <h4 class="font-semibold mb-1">Research Findings Snapshot</h4>
       <p class="text-sm mb-3">Raw research results captured during the run, shown for reference.</p>
 

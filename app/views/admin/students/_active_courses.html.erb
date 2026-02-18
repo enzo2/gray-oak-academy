@@ -33,10 +33,7 @@
 
       <% if enrollment.completed_lessons_count > 0 %>
         <div class="mb-4">
-          <%= button_to enrollment_path(enrollment), 
-                method: :get, 
-                data: { turbo_stream: true },
-                class: "btn-primary text-sm" do %>
+          <%= link_to enrollment_path(enrollment), class: "btn-primary text-sm inline-flex items-center" do %>
             <div class="flex items-center">
               <sl-icon name="journal-bookmark" class="text-stone-700 dark:text-stone-200"></sl-icon>
               <span>&nbsp;View Past Lessons</span>

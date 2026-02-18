@@ -35,6 +35,10 @@ class Enrollment < ApplicationRecord
     course.lessons.count
   end
 
+  def remaining_lessons
+    incomplete_lessons.count
+  end
+
   # Calculates the percentage of lessons completed in the course
   def progress_percentage
     return 0 if total_lessons_count.zero?

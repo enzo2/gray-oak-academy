@@ -1,63 +1,84 @@
-<h2 class="text-2xl mb-2"><%= @enrollment.course.title %></h2>
+<% teacher_back_tab = @enrollment.completed? ? :past_courses : :active_courses %>
+<% student_back_tab = params[:active_tab].presence&.to_sym || (@enrollment.completed? ? :past_courses : :courses) %>
+<% back_path =
+  if current_user.role_teacher?
+    admin_student_path(@enrollment.student, active_tab: teacher_back_tab)
+  else
+    student_root_path(active_tab: student_back_tab)
+  end %>
+<% wrapper_classes = current_user.role_teacher? ? "max-w-5xl" : "p-2 sm:p-4 max-w-5xl mx-auto" %>
 
-<% if @enrollment.completed? %>
-  <p class="mb-4">Course completed on <%= @enrollment.student_reports.first.created_at.strftime("%B %d, %Y") %>.</p>
-  <div class="bg-stone-300 dark:bg-stone-700 rounded-lg mt-2 mb-4 px-4 py-2 pl-4
-              prose dark:prose-invert prose-stone
-              max-w-2xl
-              prose-p:mb-0 leading-tight
-              prose-li:my-0 prose-ul:my-0
-              prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100">
-    <h3 class="mb-3">Course report</h3>
-    <%= markdown(@enrollment.student_reports.first.to_markdown) %>
+<div class="<%= wrapper_classes %>">
+  <div class="mb-4">
+    <%= link_to back_path, class: "inline-flex items-center gap-1 text-sm underline" do %>
+      <sl-icon name="arrow-left"></sl-icon>
+      <span>
+        <%= current_user.role_teacher? ? "Back to Student Dashboard" : "Back to Dashboard" %>
+      </span>
+    <% end %>
   </div>
-<% else %>
-  <p class="mb-2">This course is not yet completed.</p>
-<% end %>
 
-<h3 class="text-xl mb-2">Lessons:</h3>
-<% @enrollment.course.lessons.each do |lesson| %>
-  <% student_reports = lesson.student_reports.where(student: @enrollment.student) %>
-  <sl-details summary="<%= "✔ " unless student_reports.empty? %><%= lesson.title %>" class="my-1">
-    <p class="mb-4">
-      <b>Lesson Goals:</b>
-      <%= lesson.goals %>
-    </p>
+  <h2 class="text-2xl mb-2"><%= @enrollment.course.title %></h2>
 
-    <% lesson_progress = lesson.lesson_progresses.find_by(student: @enrollment.student) %>
-    <% if lesson_progress %>
-      <div class="mb-4 text-sm text-stone-600 dark:text-stone-400">
-        <p>Started: <%= lesson_progress.created_at.strftime("%B %d, %Y %H:%M") %></p>
-        <% if lesson_progress.completed_at %>
-          <p>Completed: <%= lesson_progress.completed_at.strftime("%B %d, %Y %H:%M") %></p>
-        <% end %>
-        <% if lesson_progress.duration.to_i > 0 %>
-          <p>Time Spent: <%= (lesson_progress.duration / 60.0).round(1) %> minutes</p>
-        <% end %>
+  <% if @enrollment.completed? %>
+    <p class="mb-4">Course completed on <%= @enrollment.student_reports.first.created_at.strftime("%B %d, %Y") %>.</p>
+    <div class="bg-stone-300 dark:bg-stone-700 rounded-lg mt-2 mb-4 px-4 py-2 pl-4
+                prose dark:prose-invert prose-stone
+                max-w-2xl
+                prose-p:mb-0 leading-tight
+                prose-li:my-0 prose-ul:my-0
+                prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100">
+      <h3 class="mb-3">Course report</h3>
+      <%= markdown(@enrollment.student_reports.first.to_markdown) %>
+    </div>
+  <% else %>
+    <p class="mb-2">You are enrolled in this course, and have <%= @enrollment.remaining_lessons %> lessons left.</p>
+  <% end %>
 
-        <% if lesson_progress.conversation %>
-          <div class="mt-2">
-            <%= link_to conversation_path(lesson_progress.conversation), 
-                  class: "inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200", 
-                  target: "_blank" do %>
-              <sl-icon name="chat-square-text"></sl-icon>
-              <span>Review Conversation</span>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
+  <h3 class="text-xl mb-2">Lessons:</h3>
+  <% @enrollment.course.lessons.each do |lesson| %>
+    <% student_reports = lesson.student_reports.where(student: @enrollment.student) %>
+    <sl-details summary="<%= "✔ " unless student_reports.empty? %><%= lesson.title %>" class="my-1">
+      <p class="mb-4">
+        <b>Lesson Goals:</b>
+        <%= lesson.goals %>
+      </p>
 
-    <% student_reports.each do |student_report| %>
-      <div class="bg-stone-300 dark:bg-stone-700 rounded-lg my-2 px-4 py-2 pl-4
-                    prose dark:prose-invert prose-stone
-                    max-w-2xl
-                    prose-p:mb-0 leading-tight
-                    prose-li:my-0  prose-ul:my-0
-                    prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100">
-        <span class="mb-3"><i>Completed <%= student_report.created_at.strftime("%B %d, %Y") %></i>:</span>
-        <%= markdown(student_report.to_markdown) %>
-      </div>
-    <% end %>
-  </sl-details>
-<% end %>
+      <% lesson_progress = lesson.lesson_progresses.find_by(student: @enrollment.student) %>
+      <% if lesson_progress %>
+        <div class="mb-4 text-sm text-stone-600 dark:text-stone-400">
+          <p>Started: <%= lesson_progress.created_at.strftime("%B %d, %Y %H:%M") %></p>
+          <% if lesson_progress.completed_at %>
+            <p>Completed: <%= lesson_progress.completed_at.strftime("%B %d, %Y %H:%M") %></p>
+          <% end %>
+          <% if lesson_progress.duration.to_i > 0 %>
+            <p>Time Spent: <%= (lesson_progress.duration / 60.0).round(1) %> minutes</p>
+          <% end %>
+
+          <% if lesson_progress.conversation %>
+            <div class="mt-2">
+              <%= link_to conversation_path(lesson_progress.conversation),
+                    class: "inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200",
+                    target: "_blank" do %>
+                <sl-icon name="chat-square-text"></sl-icon>
+                <span>Review Conversation</span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% student_reports.each do |student_report| %>
+        <div class="bg-stone-300 dark:bg-stone-700 rounded-lg my-2 px-4 py-2 pl-4
+                      prose dark:prose-invert prose-stone
+                      max-w-2xl
+                      prose-p:mb-0 leading-tight
+                      prose-li:my-0  prose-ul:my-0
+                      prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100">
+          <span class="mb-3"><i>Completed <%= student_report.created_at.strftime("%B %d, %Y") %></i>:</span>
+          <%= markdown(student_report.to_markdown) %>
+        </div>
+      <% end %>
+    </sl-details>
+  <% end %>
+</div>

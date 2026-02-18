@@ -27,9 +27,6 @@ import "@shoelace-style/shoelace/dialog"; // WA: dialog
 import "@shoelace-style/shoelace/textarea"; // WA: textarea
 import "@shoelace-style/shoelace/details"; // WA: details
 import "@shoelace-style/shoelace/copy-button"; // WA: copy-button
-import "@shoelace-style/shoelace/tree"; // WA: tree
-import "@shoelace-style/shoelace/tree-item"; // WA: tree-item
-import "@shoelace-style/shoelace/drawer"; // WA: drawer
 
 /*
 //webawesome

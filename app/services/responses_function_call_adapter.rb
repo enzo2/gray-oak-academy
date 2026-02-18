@@ -150,7 +150,7 @@ class ResponsesFunctionCallAdapter
       arguments: function_call["arguments"].presence || "{}"
     )
 
-    content = tool_message&.content
+    content = tool_message.content if tool_message.respond_to?(:content)
     content ||= @conversation.messages.where(role: "tool", tool_call_id: call_id).reorder(created_at: :desc).pick(:content)
     content.presence || "Tool execution completed."
   end

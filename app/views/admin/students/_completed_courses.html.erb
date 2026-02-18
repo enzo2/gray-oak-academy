@@ -1,13 +1,10 @@
 <h2 class="text-lg mb-2">Completed Courses</h2>
-<div class="w-full grid grid-cols-[repeat(auto-fill,20rem)] gap-4 mb-6">
+<div class="w-full grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4 mb-6">
 
   <% enrollments.each do |enrollment| %>
     <div id="<%= dom_id(enrollment) %>" class="p-4 mb-2 rounded-sm border border-stone-300 dark:border-stone-700">
       <span class="font-medium mb-2 block"><%= enrollment.course.title %></span>
-      <%= button_to enrollment_path(enrollment), 
-            method: :get, 
-            data: { turbo_stream: true },
-            class: "btn-primary mb-2 " do %>
+      <%= link_to enrollment_path(enrollment), class: "btn-primary mb-2 inline-flex items-center" do %>
         <div class="flex items-center">
           <sl-icon name="journal-check" class="text-green-500"></sl-icon>
           <span class="text-sm">&nbsp;View course summary</span>

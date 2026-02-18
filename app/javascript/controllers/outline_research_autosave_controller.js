@@ -122,13 +122,19 @@ export default class extends Controller {
   setStatus(state, message) {
     if (!this.hasStatusTarget) return
 
+    const stateClasses = {
+      idle: ["text-stone-600", "dark:text-stone-300"],
+      saving: ["text-stone-700", "dark:text-stone-200"],
+      saved: ["text-success-700", "dark:text-success-300"],
+      error: ["text-red-700", "dark:text-red-300"]
+    }
+
+    const allStateClasses = Object.values(stateClasses).flat()
+
     this.statusTarget.textContent = message
-    this.statusTarget.classList.remove(
-      "goa-autosave-status--idle",
-      "goa-autosave-status--saving",
-      "goa-autosave-status--saved",
-      "goa-autosave-status--error"
-    )
-    this.statusTarget.classList.add(`goa-autosave-status--${state}`)
+    this.statusTarget.classList.remove(...allStateClasses)
+
+    const classesForState = stateClasses[state] || stateClasses.idle
+    this.statusTarget.classList.add(...classesForState)
   }
 }

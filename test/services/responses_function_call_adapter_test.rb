@@ -89,4 +89,41 @@ class ResponsesFunctionCallAdapterTest < ActiveSupport::TestCase
       assert_equal "Tool ran successfully", outputs.first[:output]
     end
   end
+
+  test "falls back to persisted tool message when app tool returns non-message value" do
+    conversation = conversations(:teacher_generic_conversation)
+    call_id = "call_app_true"
+    Message.create!(
+      conversation: conversation,
+      role: "tool",
+      content: "Image generation done.",
+      tool_call_id: call_id
+    )
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:execute_tool_call) do |_tool_call|
+      true
+    end
+
+    adapter = ResponsesFunctionCallAdapter.new(
+      current_user: users(:admin),
+      conversation: conversation,
+      exa_enabled: false
+    )
+
+    ToolExecutionService.stub(:new, ->(**_kwargs) { fake_executor }) do
+      outputs = adapter.function_call_outputs([
+        {
+          "type" => "function_call",
+          "name" => "generate_image",
+          "call_id" => call_id,
+          "arguments" => { prompt: "water cycle infographic" }.to_json
+        }
+      ])
+
+      assert_equal "function_call_output", outputs.first[:type]
+      assert_equal call_id, outputs.first[:call_id]
+      assert_equal "Image generation done.", outputs.first[:output]
+    end
+  end
 end
