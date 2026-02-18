@@ -14,7 +14,6 @@ import "@shoelace-style/shoelace/icon-button"; // WA: MISSING (Use button+icon)
 import "@shoelace-style/shoelace/button"; // WA: button
 import "@shoelace-style/shoelace/spinner"; // WA: spinner
 import "@shoelace-style/shoelace/progress-bar"; // WA: progress-bar
-import "@shoelace-style/shoelace/alert"; // WA: MISSING - can use Callout to show the message itself but lacks toast functionality
 import "@shoelace-style/shoelace/dropdown"; // WA: dropdown
 import "@shoelace-style/shoelace/menu"; // WA: now part of dropdown
 import "@shoelace-style/shoelace/menu-item"; // WA: moved to dropdown-item 

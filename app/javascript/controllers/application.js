@@ -8,11 +8,6 @@ window.Stimulus   = application
 
 export { application }
 
-//clean up the toast notification if needed
-document.addEventListener("turbo:before-stream-render", function() {
-  document.body.querySelector("div.sl-toast-stack")?.remove();
-});
-
 
 // Dispatch events when Turbo cable stream sources connect or disconnect so listeners can react.
 const streamConnectedEventName = "turbo:stream-connected";

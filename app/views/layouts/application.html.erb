@@ -40,6 +40,17 @@
 
   <%# Height is left to the main content, eg. max-h-[calc(100dvh-2.5rem)] %>
   <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
+    <div data-controller="railsblocks--toast">
+      <ol
+        class="fixed z-[1000] w-[calc(100vw-2rem)] max-w-sm pointer-events-none"
+        data-railsblocks--toast-target="container"
+        data-action="mouseenter->railsblocks--toast#handleMouseEnter mouseleave->railsblocks--toast#handleMouseLeave"
+        aria-live="polite"
+        aria-atomic="false"
+        role="status">
+      </ol>
+    </div>
+
     <header class="h-10 border-b border-stone-400"> <%# h-10 = 2.5rem %>
       <nav class="flex justify-between items-center">
         <div class="pl-2 flex flex-row space-x-2 items-center" id="nav-left-items">
@@ -88,10 +99,10 @@
           </div>
         </div>
       </nav>
-      <!-- flashes will be rendered as toast -->
+      <!-- Flash payloads are routed through this target and rendered by the custom toast controller -->
       <%# Flash.now[:abc] instead of flash[:abc] is needed for turbo_stream renders %>
-      <%# to send a flash message via action cable, use turbo_stream to append shared/flash to flash_bar %>
-      <div id="flash_bar" class="hidden" data-controller="alert" data-turbo-temporary>
+      <%# To send a flash message via Action Cable, broadcast shared/flash to flash_bar %>
+      <div id="flash_bar" class="hidden" data-controller="flash-toast-bridge" data-turbo-temporary>
         <%= render "shared/flash" if flash.any? %>
       </div>
     </header>

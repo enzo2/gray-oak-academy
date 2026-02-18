@@ -296,3 +296,57 @@
 .sl-theme-dark sl-progress-bar {
   --track-color: var(--sl-color-neutral-300);
 }
+
+/* Custom toast stack (replaces Shoelace sl-alert toast usage for flash messages) */
+.toast-item {
+  left: 0;
+  list-style: none;
+  opacity: 0;
+  pointer-events: auto;
+  position: absolute;
+  right: 0;
+  transform: translate3d(0, 0, 0) scale(0.98);
+  transform-origin: top center;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: var(--toast-z-index, 1);
+}
+
+.toast-item[data-position^="bottom"] {
+  transform-origin: bottom center;
+}
+
+.toast-item[data-mounted="true"][data-visible="true"][data-expanded="true"] {
+  opacity: 1;
+  transform: translate3d(0, var(--toast-offset, 0px), 0) scale(1);
+}
+
+.toast-item[data-position^="bottom"][data-mounted="true"][data-visible="true"][data-expanded="true"] {
+  transform: translate3d(0, calc(-1 * var(--toast-offset, 0px)), 0) scale(1);
+}
+
+.toast-item[data-mounted="true"][data-visible="true"][data-expanded="false"] {
+  opacity: calc(1 - (var(--toast-index, 0) * 0.14));
+  transform: translate3d(0, calc(var(--toast-index, 0) * 24px), 0)
+    scale(calc(1 - (var(--toast-index, 0) * 0.04)));
+}
+
+.toast-item[data-position^="bottom"][data-mounted="true"][data-visible="true"][data-expanded="false"] {
+  transform: translate3d(0, calc(var(--toast-index, 0) * -24px), 0)
+    scale(calc(1 - (var(--toast-index, 0) * 0.04)));
+}
+
+.toast-item[data-visible="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toast-item[data-removed="true"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, -16px, 0) scale(0.96);
+}
+
+.toast-item[data-position^="bottom"][data-removed="true"] {
+  transform: translate3d(0, 16px, 0) scale(0.96);
+}

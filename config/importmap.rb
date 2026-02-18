@@ -19,7 +19,6 @@ pin "@shoelace-style/shoelace/icon-button", to: "https://cdn.jsdelivr.net/npm/@s
 pin "@shoelace-style/shoelace/button", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/button/button.js"
 pin "@shoelace-style/shoelace/spinner", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/spinner/spinner.js"
 pin "@shoelace-style/shoelace/progress-bar", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/progress-bar/progress-bar.js"
-pin "@shoelace-style/shoelace/alert", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/alert/alert.js"
 pin "@shoelace-style/shoelace/input", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/input/input.js"
 pin "@shoelace-style/shoelace/dropdown", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/dropdown/dropdown.js"
 pin "@shoelace-style/shoelace/menu-item", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/components/menu-item/menu-item.js"

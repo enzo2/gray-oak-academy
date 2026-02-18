@@ -1,21 +1,26 @@
-<div>
-  <% flash.each do |message_type, message| %>
-    <% Rails.logger.debug "Flash message: #{message_type} - #{message}" %>
-    <% unless message.blank? %>
-      <sl-alert variant="<%=
-          case message_type.to_s
-          when 'success' then 'success'
-          when 'error' then 'danger'
-          when 'warning', 'alert' then 'warning'
-          when 'neutral' then 'neutral'
-          else 'primary'
-          end
-        %>"
-        data-alert-target="alert" 
-        closable data-turbo-temporary>
-        <sl-icon slot="icon" name="info-circle"></sl-icon>
-          <%= message %>
-      </sl-alert>
-    <% end %>
+<%
+  toast_type_for_flash = {
+    "success" => "success",
+    "error" => "error",
+    "danger" => "danger",
+    "warning" => "warning",
+    "alert" => "warning",
+    "notice" => "info",
+    "info" => "info"
+  }
+%>
+
+<% flash.each do |message_type, message| %>
+  <% next if message.blank? %>
+  <% Array(message).each do |entry| %>
+    <% next if entry.blank? %>
+    <div
+      class="hidden"
+      data-flash-toast-bridge-target="message"
+      data-toast-type="<%= toast_type_for_flash.fetch(message_type.to_s, "default") %>"
+      data-html-safe="<%= entry.respond_to?(:html_safe?) && entry.html_safe? %>"
+      data-turbo-temporary>
+      <%= entry %>
+    </div>
   <% end %>
-</div>
+<% end %>
