@@ -93,7 +93,7 @@ class OpenaiApiService
           @stream_handler.call(normalize_response_hash(chunk), nil)
         end
         @usage = @usage_chunk
-        log_completion(@finish_chunk&.dig("model") || @model)
+        log_completion(resolved_model_name(@finish_chunk&.dig("model")))
         return
       end
 
@@ -104,7 +104,7 @@ class OpenaiApiService
 
       # Store the Completion record. Handle streaming and non-streaming cases.
       @usage = response_hash&.dig("usage")
-      log_completion(response_hash&.dig("model") || @model)
+      log_completion(resolved_model_name(response_hash&.dig("model")))
 
       # If no stream handler was provided, process the response.
       check_for_refusal(response_hash)
@@ -225,9 +225,9 @@ class OpenaiApiService
 
   def determine_model(reasoning_model_flag)
     reasoning_model = @user.setting.reasoning_model_name.presence
-    nonreasoning_model = @user.setting.llm_model_name.presence || ENV.fetch("DEFAULT_MODEL")
+    nonreasoning_model = @user.setting.llm_model_name.presence || ENV["DEFAULT_MODEL"].presence
 
-    if reasoning_model_flag && reasoning_model
+    selected_model = if reasoning_model_flag && reasoning_model
       # Use the user's reasoning model
       reasoning_model
     elsif reasoning_model_flag && !reasoning_model
@@ -237,6 +237,10 @@ class OpenaiApiService
       # Use the user's regular model, or fall back to the default model
       nonreasoning_model
     end
+
+    return selected_model if selected_model.present?
+
+    raise OpenAiError, "No LLM model is configured. Ask your teacher to set one in Settings."
   end
 
   def create_client
@@ -469,6 +473,10 @@ class OpenaiApiService
 
   def log_completion(model_name)
     return unless @log_completion
+    if model_name.blank?
+      Rails.logger.error "Skipping completion logging because model was blank."
+      return
+    end
 
     Completion.create(
       conversation: @conversation,
@@ -485,5 +493,9 @@ class OpenaiApiService
       total_cost: @usage&.dig("cost")&.to_f,
       cache_discount: @usage&.dig("cache_discount")&.to_f
     )
+  end
+
+  def resolved_model_name(candidate_model)
+    candidate_model.to_s.presence || @model.presence
   end
 end

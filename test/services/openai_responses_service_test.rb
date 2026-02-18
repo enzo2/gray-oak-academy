@@ -121,6 +121,40 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal @model, @conversation.responses_model
   end
 
+  test "complete logs completion using configured model when response model is blank string" do
+    fake_client = build_responses_client do |_params|
+      {
+        "id" => "resp_blank_model",
+        "model" => "",
+        "output" => [
+          {
+            "type" => "message",
+            "content" => [
+              { "type" => "output_text", "text" => "Done" }
+            ]
+          }
+        ],
+        "usage" => {}
+      }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model
+      )
+
+      assert_difference("Completion.count", 1) do
+        result = service.complete([ { role: "user", content: "Hello" } ])
+        assert_equal "Done", result
+      end
+    end
+
+    assert_equal @model, Completion.order(:created_at).last.model
+  end
+
   test "complete does not raise on tool-call-only output without text" do
     fake_client = build_responses_client do |_params|
       {
@@ -145,6 +179,32 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       result = service.complete([ { role: "user", content: "Find answer" } ])
       assert_equal "", result
       assert_equal "resp_tool_only", service.last_response_id
+    end
+  end
+
+  test "complete does not raise on empty output without tool calls" do
+    fake_client = build_responses_client do |_params|
+      {
+        "id" => "resp_empty",
+        "model" => @model,
+        "status" => "completed",
+        "output" => [],
+        "usage" => {}
+      }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.complete([ { role: "user", content: "Hello" } ])
+      assert_equal "", result
+      assert_equal "resp_empty", service.last_response_id
     end
   end
 

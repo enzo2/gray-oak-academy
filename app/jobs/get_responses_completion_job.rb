@@ -48,10 +48,12 @@ class GetResponsesCompletionJob < ApplicationJob
       )
       assistant_message = persisted[:message]
       history_messages << persisted[:payload] if history_messages && persisted[:payload].present?
-      final_message_id = assistant_message&.id if assistant_message
 
       function_calls = function_call_adapter.function_calls(response_hash)
-      break if function_calls.blank?
+      if function_calls.blank?
+        final_message_id = assistant_message&.id
+        break
+      end
 
       turns += 1
       if turns > MAX_TOOL_TURNS
@@ -76,6 +78,7 @@ class GetResponsesCompletionJob < ApplicationJob
       broadcast_completion_finished(conversation, final_message_id)
     else
       broadcast_warning("LLM returned an empty response.", conversation)
+      Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
     end
 
     if include_images == false && conversation.messages.role_user.count == 1

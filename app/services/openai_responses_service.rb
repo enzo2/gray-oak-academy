@@ -327,9 +327,9 @@ class OpenaiResponsesService
 
   def determine_model(reasoning_model_flag)
     reasoning_model = @user.setting.reasoning_model_name.presence
-    nonreasoning_model = @user.setting.llm_model_name.presence || ENV.fetch("DEFAULT_MODEL")
+    nonreasoning_model = @user.setting.llm_model_name.presence || ENV["DEFAULT_MODEL"].presence
 
-    if reasoning_model_flag && reasoning_model
+    selected_model = if reasoning_model_flag && reasoning_model
       reasoning_model
     elsif reasoning_model_flag && !reasoning_model
       Rails.logger.info "Reasoning model flag is set, but no reasoning model is configured. Falling back to default model: #{nonreasoning_model}"
@@ -337,6 +337,10 @@ class OpenaiResponsesService
     else
       nonreasoning_model
     end
+
+    return selected_model if selected_model.present?
+
+    raise OpenAiError, "No LLM model is configured. Ask your teacher to set one in Settings."
   end
 
   def create_client
@@ -610,10 +614,11 @@ class OpenaiResponsesService
   end
 
   def check_for_blank_content(content, response_hash:)
-    if content.blank? && !response_contains_tool_calls?(response_hash)
-      Rails.logger.warn "Empty response from LLM."
-      raise OpenAiError, "Empty response from LLM."
-    end
+    return unless content.blank? && !response_contains_tool_calls?(response_hash)
+
+    Rails.logger.warn(
+      "LLM returned empty text content. response_id=#{response_hash['id']} status=#{response_hash['status']}"
+    )
   end
 
   def response_contains_tool_calls?(response_hash)
@@ -758,11 +763,17 @@ class OpenaiResponsesService
     completion_tokens = usage["output_tokens"] || usage["completion_tokens"]
     cached_tokens = usage.dig("input_tokens_details", "cached_tokens") || usage.dig("prompt_tokens_details", "cached_tokens")
     reasoning_tokens = usage.dig("output_tokens_details", "reasoning_tokens") || usage.dig("completion_tokens_details", "reasoning_tokens")
+    model_name = resolved_model_name(response_hash)
+
+    if model_name.blank?
+      Rails.logger.error "Skipping completion logging because model was blank. response_id=#{response_hash['id']}"
+      return
+    end
 
     Completion.create(
       conversation: @conversation,
       user: @user,
-      model: response_hash["model"] || @model,
+      model: model_name,
       api_provider: @base_uri,
       prompt_tokens: prompt_tokens&.to_i,
       cached_tokens: cached_tokens&.to_i,
@@ -896,12 +907,17 @@ class OpenaiResponsesService
       run_id: context[:run_id],
       response_id: response_id,
       teacher: @user,
-      model: response_hash["model"] || @model,
+      model: resolved_model_name(response_hash),
       source: context[:source],
       prompt: context[:prompt]
     )
   rescue StandardError => e
     Rails.logger.error "Failed to record submitted agent run #{context[:run_id]}: #{e.message}"
+  end
+
+  def resolved_model_name(response_hash = nil)
+    response_model = response_hash.is_a?(Hash) ? response_hash["model"].presence : nil
+    response_model || @model.presence
   end
 
   def maybe_record_agent_run_terminal(response_hash)

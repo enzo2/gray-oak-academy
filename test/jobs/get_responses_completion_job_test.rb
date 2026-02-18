@@ -207,4 +207,125 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
 
     assert Message.exists?(id: user_message.id), "User message should not be deleted when a newer tool message exists"
   end
+
+  test "blank assistant turn removes placeholder and shows warning" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Hello")
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| nil }
+    fake_client.define_singleton_method(:last_response_hash) do
+      {
+        "id" => "resp_empty",
+        "status" => "completed",
+        "output" => []
+      }
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    warning_calls = []
+    remove_calls = []
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*args, **kwargs) { warning_calls << { args: args, kwargs: kwargs } }) do
+          Turbo::StreamsChannel.stub(:broadcast_remove_to, ->(*args, **kwargs) { remove_calls << { args: args, kwargs: kwargs } }) do
+            Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+              GetResponsesCompletionJob.perform_now(conversation: conversation)
+            end
+          end
+        end
+      end
+    end
+
+    assert_equal 0, conversation.reload.messages.role_assistant.count
+    assert warning_calls.any? { |call| call.dig(:kwargs, :target) == "flash_bar" }
+    assert remove_calls.any? { |call| call.dig(:kwargs, :target) == "new_message" }
+  end
+
+  test "blank terminal turn after tool calls shows warning instead of completion event" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Please help")
+
+    fake_client = Object.new
+    calls = []
+    response_index = 0
+    responses = [
+      {
+        "id" => "resp_1",
+        "status" => "completed",
+        "output" => [
+          {
+            "type" => "function_call",
+            "name" => "list_courses",
+            "call_id" => "call_1",
+            "arguments" => {}.to_json
+          }
+        ]
+      },
+      {
+        "id" => "resp_2",
+        "status" => "completed",
+        "output" => []
+      }
+    ]
+
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **kwargs|
+      calls << kwargs
+      response_index += 1
+    end
+    fake_client.define_singleton_method(:last_response_hash) do
+      responses[response_index - 1]
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) do |response_hash|
+      Array(response_hash["output"]).select { |item| item["type"] == "function_call" }
+    end
+    fake_adapter.define_singleton_method(:function_call_outputs) do |_calls|
+      [ { type: "function_call_output", call_id: "call_1", output: "tool output" } ]
+    end
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) do |calls_for_message|
+      calls_for_message.map do |call|
+        {
+          "type" => "function",
+          "id" => call["call_id"],
+          "function" => { "name" => call["name"], "arguments" => call["arguments"] }
+        }
+      end
+    end
+
+    warning_calls = []
+    remove_calls = []
+    dispatch_calls = []
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*args, **kwargs) { warning_calls << { args: args, kwargs: kwargs } }) do
+          Turbo::StreamsChannel.stub(:broadcast_remove_to, ->(*args, **kwargs) { remove_calls << { args: args, kwargs: kwargs } }) do
+            Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
+              GetResponsesCompletionJob.perform_now(conversation: conversation)
+            end
+          end
+        end
+      end
+    end
+
+    assert_equal 2, calls.size
+    assert_equal "resp_1", calls[1][:previous_response_id]
+    assert_equal 1, conversation.reload.messages.role_assistant.count
+    assert warning_calls.any? { |call| call.dig(:kwargs, :target) == "flash_bar" }
+    assert remove_calls.any? { |call| call.dig(:kwargs, :target) == "new_message" }
+    assert dispatch_calls.none? { |call| call.dig(:kwargs, :action) == :dispatch_event }
+  end
 end
