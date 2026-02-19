@@ -127,6 +127,8 @@ class OpenaiResponsesService
         input_items = prepend_default_developer_input(input_items, messages: messages, chained_state: chained_state)
       end
 
+      reasoning_options = build_reasoning_options(reasoning)
+
       request_params = {
         model: @model,
         input: input_items,
@@ -140,16 +142,11 @@ class OpenaiResponsesService
         **(max_tool_calls.present? ? { max_tool_calls: max_tool_calls } : {}),
         **(parallel_tool_calls.present? ? { parallel_tool_calls: parallel_tool_calls } : {}),
         **(tool_choice.present? ? { tool_choice: tool_choice } : {}),
-        **(reasoning.present? ? { reasoning: reasoning } : {}),
+        **(reasoning_options.present? ? { reasoning: reasoning_options } : {}),
         **build_text_params(response_format)
       }
 
       request_params.merge!(state_params) if state_params.present?
-
-      # Set thinking for OpenRouter
-      if @reasoning_model_flag && @base_uri.include?("openrouter.ai")
-        request_params[:reasoning] = (request_params[:reasoning] || {}).merge(effort: "high", exclude: false)
-      end
 
       request_options = build_request_options
       request_options_param = request_options.present? ? { request_options: request_options } : {}
@@ -387,6 +384,18 @@ class OpenaiResponsesService
     options.presence
   end
 
+  def build_reasoning_options(reasoning)
+    options = reasoning.is_a?(Hash) ? reasoning.deep_dup.deep_symbolize_keys : {}
+    options[:effort] = @reasoning_model_flag ? "high" : "low" if options[:effort].blank?
+
+    # OpenRouter defaults to hidden reasoning; request summaries/tokens unless caller opted out.
+    if @reasoning_model_flag && @base_uri.include?("openrouter.ai") && !options.key?(:exclude)
+      options[:exclude] = false
+    end
+
+    options.presence
+  end
+
   # Build Responses "text.format" for structured output.
   # Accepts the same response_format structure used by OpenaiApiService
   # and adapts it to Responses API shape.
@@ -563,7 +572,9 @@ class OpenaiResponsesService
       summary = normalize_reasoning_summary(hash_value(detail, :summary))
       id = hash_value(detail, :id).to_s
       status = hash_value(detail, :status).to_s
-      next if encrypted_content.blank? && summary.blank? && id.blank? && status.blank?
+      # Responses providers reject bare reasoning IDs. Replay only when
+      # the turn includes concrete reasoning payload (encrypted or summary).
+      next if encrypted_content.blank? && summary.blank?
 
       {
         "type" => "reasoning",

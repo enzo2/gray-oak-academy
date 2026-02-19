@@ -82,10 +82,10 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
 
     assert_equal 2, calls.size
     assert_equal [ { role: "user", content: "Please help" } ], calls[0][:messages]
-    assert_equal({ summary: "auto" }, calls[0][:kwargs][:reasoning])
+    assert_equal({ effort: "low", summary: "auto" }, calls[0][:kwargs][:reasoning])
     assert_equal "resp_1", calls[1][:kwargs][:previous_response_id]
     assert_equal [ { type: "function_call_output", call_id: "call_1", output: "tool output" } ], calls[1][:kwargs][:input]
-    assert_equal({ summary: "auto" }, calls[1][:kwargs][:reasoning])
+    assert_equal({ effort: "low", summary: "auto" }, calls[1][:kwargs][:reasoning])
 
     assistant_messages = conversation.reload.messages.role_assistant
     assert_equal 2, assistant_messages.count
@@ -175,11 +175,11 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
 
     assert_equal 2, calls.size
     assert_equal [ { role: "user", content: "Please help" } ], calls[0][:messages]
-    assert_nil calls[0][:kwargs][:reasoning]
-    assert_equal({ input: nil, previous_response_id: nil, reasoning: nil }, calls[1][:kwargs])
+    assert_equal({ effort: "low" }, calls[0][:kwargs][:reasoning])
+    assert_equal({ input: nil, previous_response_id: nil, reasoning: { effort: "low" } }, calls[1][:kwargs])
     assert_nil calls[1][:kwargs][:previous_response_id]
     assert_nil calls[1][:kwargs][:input]
-    assert_nil calls[1][:kwargs][:reasoning]
+    assert_equal({ effort: "low" }, calls[1][:kwargs][:reasoning])
 
     second_messages = calls[1][:messages]
     assert_equal "user", second_messages[0][:role]
@@ -233,6 +233,86 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal "Gravity attracts masses.", assistant.content
     assert_nil assistant.reasoning_details
     assert assistant.tool_calls.blank?
+  end
+
+  test "does not persist id-only reasoning details for tool-call turns" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Please help")
+
+    fake_client = Object.new
+    response_index = 0
+    responses = [
+      {
+        "id" => "resp_1",
+        "status" => "completed",
+        "output" => [
+          { "type" => "reasoning", "id" => "rs_tmp_only" },
+          {
+            "type" => "function_call",
+            "id" => "fc_1",
+            "name" => "list_courses",
+            "call_id" => "call_1",
+            "arguments" => {}.to_json
+          }
+        ]
+      },
+      {
+        "id" => "resp_2",
+        "status" => "completed",
+        "output" => [
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Final assistant reply" } ] }
+        ]
+      }
+    ]
+    calls = []
+
+    fake_client.define_singleton_method(:stateful_supported?) { false }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      calls << { messages: messages, kwargs: kwargs }
+      response_index += 1
+    end
+    fake_client.define_singleton_method(:last_response_hash) do
+      responses[response_index - 1]
+    end
+    fake_client.define_singleton_method(:output_text) do |response_hash|
+      response_hash["id"] == "resp_2" ? "Final assistant reply" : ""
+    end
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) do |response_hash|
+      Array(response_hash["output"]).select { |item| item["type"] == "function_call" }
+    end
+    fake_adapter.define_singleton_method(:function_call_outputs) do |_calls|
+      [ { id: "fco_1", type: "function_call_output", call_id: "call_1", output: "tool output" } ]
+    end
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) do |calls_for_message|
+      calls_for_message.map do |call|
+        {
+          "type" => "function",
+          "id" => call["call_id"],
+          "response_item_id" => call["id"],
+          "function" => { "name" => call["name"], "arguments" => call["arguments"] }
+        }
+      end
+    end
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    first_assistant = conversation.reload.messages.role_assistant.order(:created_at).first
+    assert first_assistant.tool_calls.present?
+    assert_nil first_assistant.reasoning_details
+
+    second_messages = calls[1][:messages]
+    assert_equal "assistant", second_messages[1][:role]
+    assert_nil second_messages[1][:reasoning_details]
   end
 
   test "does not delete latest user message on OpenAiError when a newer tool message exists" do
@@ -376,6 +456,56 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assistant = conversation.reload.messages.role_assistant.order(:created_at).last
     assert_not_nil assistant
     assert_equal "Hello", assistant.content
+  end
+
+  test "preserves whitespace-only streaming deltas in assistant message" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Stream this")
+
+    captured_stream_handler = nil
+    last_response_hash = nil
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { nil }
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "Jazz" })
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => " " })
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "Fusion" })
+      captured_stream_handler.call({ "type" => "response.completed" })
+      last_response_hash = {
+        "id" => "resp_stream_ws_1",
+        "status" => "completed",
+        "output" => [
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Jazz Fusion" } ] }
+        ]
+      }
+      nil
+    end
+    fake_client.define_singleton_method(:last_response_hash) { last_response_hash }
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "Jazz Fusion" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, lambda { |**kwargs|
+      captured_stream_handler = kwargs[:stream_handler]
+      fake_client
+    }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    assistant = conversation.reload.messages.role_assistant.order(:created_at).last
+    assert_not_nil assistant
+    assert_equal "Jazz Fusion", assistant.content
   end
 
   test "raises OpenAiError with refusal message for streamed responses" do

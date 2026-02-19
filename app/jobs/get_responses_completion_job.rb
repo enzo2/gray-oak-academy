@@ -89,7 +89,11 @@ class GetResponsesCompletionJob < ApplicationJob
       else
         history_messages.concat(function_call_outputs_to_tool_messages(tool_outputs))
         start_stream_turn!(state: stream_state)
-        response_hash = complete_and_capture_response(client, messages: history_messages)
+        response_hash = complete_and_capture_response(
+          client,
+          messages: history_messages,
+          reasoning: reasoning_options_for(stateful_supported: stateful_supported)
+        )
         flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       end
     end
@@ -135,9 +139,9 @@ class GetResponsesCompletionJob < ApplicationJob
   end
 
   def reasoning_options_for(stateful_supported:)
-    return nil unless stateful_supported
-
-    { summary: "auto" }
+    options = { effort: "low" }
+    options[:summary] = "auto" if stateful_supported
+    options
   end
 
   def persist_assistant_message(conversation:, response_hash:, client:, function_call_adapter:, stream_message: nil)
@@ -228,6 +232,8 @@ class GetResponsesCompletionJob < ApplicationJob
   def normalize_reasoning_detail(item)
     encrypted_content = item["encrypted_content"].to_s
     summary = normalize_reasoning_summary(item["summary"])
+    return nil if encrypted_content.blank? && summary.blank?
+
     id = item["id"].to_s
     status = item["status"].to_s
 
@@ -323,13 +329,13 @@ class GetResponsesCompletionJob < ApplicationJob
         case event_type
         when "response.output_text.delta"
           delta = event["delta"].to_s
-          next if delta.blank?
+          next if delta.empty?
 
           state[:content_buffer] << delta
           flush_stream_content!(conversation: conversation, state: state)
         when "response.output_text.done"
           text = event["text"].to_s
-          if text.present? && state[:message].nil? && state[:content_buffer].blank?
+          if !text.empty? && state[:message].nil? && state[:content_buffer].empty?
             state[:content_buffer] << text
           end
           flush_stream_content!(conversation: conversation, state: state, force: true)
@@ -346,7 +352,7 @@ class GetResponsesCompletionJob < ApplicationJob
   end
 
   def flush_stream_content!(conversation:, state:, force: false)
-    return if state[:content_buffer].blank?
+    return if state[:content_buffer].empty?
 
     update_due = force || state[:message].nil? || (Time.current - state[:last_update_time] > state[:update_interval])
     return unless update_due

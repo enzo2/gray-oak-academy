@@ -67,6 +67,48 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert captured[:input][4]["id"].to_s.start_with?("fco_")
     assert_equal "call_1", captured[:input][4]["call_id"]
     assert_equal "tool output", captured[:input][4]["output"]
+    assert_equal({ effort: "low" }, captured[:reasoning])
+  end
+
+  test "complete ignores id-only reasoning details when converting history" do
+    captured = nil
+    messages = [
+      { "role" => "system", "content" => "Custom system prompt" },
+      { "role" => "user", "content" => "Find answer" },
+      {
+        "role" => "assistant",
+        "content" => nil,
+        "reasoning_details" => [ { "id" => "rs_tmp_only" } ],
+        "tool_calls" => [
+          { "id" => "call_1", "function" => { "name" => "Lookup", "arguments" => "{\"query\":\"x\"}" } }
+        ]
+      },
+      { "role" => "tool", "tool_call_id" => "call_1", "content" => "tool output" }
+    ]
+
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.complete(messages)
+      assert_equal "Done", result
+    end
+
+    assert_equal "developer", captured[:input][0]["role"]
+    assert_equal "user", captured[:input][1]["role"]
+    assert_equal "function_call", captured[:input][2]["type"]
+    assert_equal "function_call_output", captured[:input][3]["type"]
+    assert captured[:input].none? { |item| item["type"] == "reasoning" }
   end
 
   test "complete passes explicit instructions for non-chained requests" do
@@ -148,6 +190,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_nil captured[:store]
     assert_nil captured[:previous_response_id]
     assert_equal [ "reasoning.encrypted_content" ], captured[:include]
+    assert_equal({ effort: "low" }, captured[:reasoning])
   end
 
   test "complete merges stateless reasoning include with explicit include fields" do
@@ -173,6 +216,52 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
 
     assert_equal [ "output_text.logprobs", "reasoning.encrypted_content" ], captured[:include]
+  end
+
+  test "complete defaults reasoning effort to high when reasoning_model is enabled" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        reasoning_model: true,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal({ effort: "high" }, captured[:reasoning])
+  end
+
+  test "openrouter reasoning model defaults include visible reasoning" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        reasoning_model: true,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal({ effort: "high", exclude: false }, captured[:reasoning])
   end
 
   test "xai requests support state chaining params" do
