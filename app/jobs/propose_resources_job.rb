@@ -29,6 +29,8 @@ class ProposeResourcesJob < ApplicationJob
     total_tool_calls = 0
     high_tool_call_warning_notified = false
     response_hash = nil
+    pending_retryable_tool_errors = []
+    retry_prompt_sent = false
     lesson_plan.update!(status: "draft") if lesson_plan.status_published?
 
     set_generation_state(lesson_plan, "proposing_resources", nil) if track_stage
@@ -53,21 +55,38 @@ class ProposeResourcesJob < ApplicationJob
     response_hash = complete_and_capture(
       client,
       messages: messages,
-      metadata: {
-        run_type: "propose_resources",
-        teacher_id: current_user.id.to_s,
-        lesson_plan_id: lesson_plan.id.to_s,
+      metadata: run_metadata(
+        current_user: current_user,
+        lesson_plan: lesson_plan,
         source: source,
         task_preview: "Propose resources for lesson plan #{lesson_plan.id}: #{lesson_plan.lesson.title}",
         task_full: prompt
-      }
+      )
     )
     max_tool_turns = AppSetting.openai_agent_max_tool_turns
     raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
 
     loop do
       function_calls = Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
-      break if function_calls.blank?
+      if function_calls.blank?
+        if pending_retryable_tool_errors.present? && !retry_prompt_sent
+          retry_prompt_sent = true
+          response_hash = complete_and_capture(
+            client,
+            messages: [ { role: "user", content: build_tool_error_retry_prompt(pending_retryable_tool_errors) } ],
+            previous_response_id: response_hash["id"],
+            metadata: run_metadata(
+              current_user: current_user,
+              lesson_plan: lesson_plan,
+              source: source,
+              retry_reason: "tool_error"
+            )
+          )
+          next
+        end
+
+        break
+      end
 
       turns += 1
       if turns > max_tool_turns
@@ -78,6 +97,8 @@ class ProposeResourcesJob < ApplicationJob
       total_tool_calls += function_calls.size
 
       outputs = function_calls.map { |fc| executor.execute(fc) }
+      pending_retryable_tool_errors = extract_retryable_tool_errors(outputs)
+      retry_prompt_sent = false if pending_retryable_tool_errors.blank?
       run_model = client.respond_to?(:model) ? client.model : AppSetting.settings&.openai_agent_model
       high_tool_call_warning_notified = log_turn_diagnostics(
         lesson_plan: lesson_plan,
@@ -95,12 +116,7 @@ class ProposeResourcesJob < ApplicationJob
         client,
         input: outputs,
         previous_response_id: response_hash["id"],
-        metadata: {
-          run_type: "propose_resources",
-          teacher_id: current_user.id.to_s,
-          lesson_plan_id: lesson_plan.id.to_s,
-          source: source
-        }
+        metadata: run_metadata(current_user: current_user, lesson_plan: lesson_plan, source: source)
       )
     end
 
@@ -166,6 +182,37 @@ class ProposeResourcesJob < ApplicationJob
     return error.to_s unless error.is_a?(Hash)
 
     error["message"].presence || error["code"].presence || "Unknown error"
+  end
+
+  def run_metadata(current_user:, lesson_plan:, source:, task_preview: nil, task_full: nil, retry_reason: nil)
+    {
+      run_type: "propose_resources",
+      teacher_id: current_user.id.to_s,
+      lesson_plan_id: lesson_plan.id.to_s,
+      source: source,
+      task_preview: task_preview,
+      task_full: task_full,
+      retry_reason: retry_reason
+    }.compact
+  end
+
+  def extract_retryable_tool_errors(outputs)
+    Array(outputs).filter_map do |output|
+      message = (output[:output] || output["output"]).to_s
+      next unless message.start_with?("Tool execution error:")
+
+      message.delete_prefix("Tool execution error:").strip.truncate(220)
+    end.uniq
+  end
+
+  def build_tool_error_retry_prompt(errors)
+    formatted_errors = errors.first(3).map { |error| "- #{error}" }.join("\n")
+    <<~PROMPT
+      One or more tool calls failed.
+      Please address the tool errors below and take another pass before finalizing suggested_resources.
+      Retry the relevant tool calls when needed.
+      #{formatted_errors}
+    PROMPT
   end
 
   def parse_output(content)

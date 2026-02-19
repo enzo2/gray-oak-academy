@@ -66,15 +66,15 @@ class AppSettingTest < ActiveSupport::TestCase
     assert @app.openai_agent_enabled?
   end
 
-  test "openai agent falls back to openai when xai is selected" do
+  test "openai agent uses selected xai provider when configured" do
     openai = supported_apis(:openai)
     xai = supported_apis(:xai)
     openai.update!(enabled: true, api_access_token: "sk-openai")
     xai.update!(enabled: true, api_access_token: "sk-xai")
     @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: xai.id)
 
-    assert_equal openai, @app.openai_agent_supported_api
-    assert_equal "sk-openai", @app.openai_agent_access_token
+    assert_equal xai, @app.openai_agent_supported_api
+    assert_equal "sk-xai", @app.openai_agent_access_token
     assert @app.openai_agent_enabled?
   end
 
@@ -101,6 +101,14 @@ class AppSettingTest < ActiveSupport::TestCase
     @app.update!(openai_agent_model: nil)
 
     assert_not @app.openai_agent_enabled?
+  end
+
+  test "openai_agent_supported_apis includes only responses-compatible selectable providers" do
+    provider_ids = @app.openai_agent_supported_apis.pluck(:id)
+
+    assert_includes provider_ids, supported_apis(:openai).id
+    assert_includes provider_ids, supported_apis(:xai).id
+    assert_not_includes provider_ids, supported_apis(:example_api).id
   end
 
   test "exa defaults are applied and key controls enabled state" do

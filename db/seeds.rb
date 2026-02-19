@@ -783,9 +783,10 @@ p.prompt = <<~PROMPT
   Your tasks:
   1) Review the lesson plan and existing suggested resources.
   2) Find and verify web-available resources where possible.
-  3) Add and link validated resources using tools.
-  4) Design, code and link JavaScript applet(s) specified in the lesson plan or otherwise warranted.
-  5) Return a final refined suggested_resources JSON array excluding any resources now linked, and including anything still unresolved or teacher-dependent.
+  3) You aren't restricted to seeking the suggested_resources. Consider locating additional web-based resources that would be relevant and valuable.
+  4) Design, code and link JavaScript applet(s) specified in the lesson plan, or otherwise warranted. Review the tool call response to ensure they have passed syntax checking.
+  5) Finish adding and linking validated web-based resources using tools. Do not call any tools during your final response, since you would not be able to respond to a failed tool call.
+  6) Return a final refined suggested_resources JSON array, excluding any resources now linked, and including anything still unresolved or teacher-dependent. Consider whether any additional suggested resources should be included for teacher consideration, such as non-web-available resources, teacher-dependent resources, physical items, or activities.
 
   Lesson context:
   - Lesson: {title}
@@ -1208,6 +1209,7 @@ p.save!
 
 openai = SupportedApi.find_or_create_by!(api_base_uri: 'https://api.openai.com/v1/')
 openrouter = SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
+SupportedApi.find_or_create_by!(api_base_uri: 'https://api.x.ai/v1/')
 # SupportedApi.find_or_create_by!(api_base_uri: 'https://api.cerebras.ai/v1/') # Fast but no image models yet.
 
 # Create default AppSetting pointing at OpenAI for speech and openrouter for embeddings

@@ -154,6 +154,32 @@ class ExaApiServiceTest < ActiveSupport::TestCase
     Net::HTTP.define_singleton_method(:new, &original_new.to_proc)
   end
 
+  test "raises clear error on POST network timeout without retrying" do
+    request_count = 0
+    http = Object.new
+    http.define_singleton_method(:use_ssl=) { |_value| }
+    http.define_singleton_method(:open_timeout=) { |_value| }
+    http.define_singleton_method(:read_timeout=) { |_value| }
+    http.define_singleton_method(:write_timeout=) { |_value| }
+    http.define_singleton_method(:request) do |_request|
+      request_count += 1
+      raise Net::ReadTimeout, "timed out"
+    end
+
+    original_new = Net::HTTP.method(:new)
+    Net::HTTP.define_singleton_method(:new) { |_host, _port| http }
+
+    service = ExaApiService.new
+    error = assert_raises(OpenAiError) do
+      service.create_research(instructions: "Create curriculum research.")
+    end
+
+    assert_includes error.message, "timed out"
+    assert_equal 1, request_count
+  ensure
+    Net::HTTP.define_singleton_method(:new, &original_new.to_proc)
+  end
+
   test "requires Exa API key" do
     @app.update!(exa_api_key: nil)
     original_exa_key = ENV["EXA_API_KEY"]

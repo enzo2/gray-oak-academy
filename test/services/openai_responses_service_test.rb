@@ -264,6 +264,29 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal({ effort: "high", exclude: false }, captured[:reasoning])
   end
 
+  test "xai reasoning model omits reasoning effort parameter" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        reasoning_model: true,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_nil captured[:reasoning]
+  end
+
   test "xai requests support state chaining params" do
     @conversation.update!(
       responses_previous_id: "resp_prev",
@@ -318,10 +341,63 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_nil captured[:background]
   end
 
+  test "providers without metadata support omit metadata argument even when requested" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_meta_xai")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      response = service.complete(
+        [ { role: "user", content: "Hello" } ],
+        metadata: { run_id: "run_meta_1", source: "test" }
+      )
+      assert_equal "Done", response
+    end
+
+    assert_nil captured[:metadata]
+  end
+
+  test "openrouter keeps metadata argument when requested" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_meta_or")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      response = service.complete(
+        [ { role: "user", content: "Hello" } ],
+        metadata: { run_id: "run_meta_or", source: "test" }
+      )
+      assert_equal "Done", response
+    end
+
+    assert_equal "run_meta_or", captured.dig(:metadata, :run_id)
+    assert_equal "test", captured.dig(:metadata, :source)
+  end
+
   test "agent_run mode resolves provider, token, and model from app settings" do
     AppSetting.first.update!(
-      openai_agent_supported_api_id: supported_apis(:openai).id,
-      openai_agent_model: "gpt-5.2"
+      openai_agent_supported_api_id: supported_apis(:xai).id,
+      openai_agent_model: "grok-4-0709"
     )
 
     captured_client_kwargs = nil
@@ -340,13 +416,13 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
       result = service.complete([ { role: "user", content: "Hello" } ])
       assert_equal "Done", result
-      assert_equal "https://api.openai.com/v1/", service.base_uri
-      assert_equal "gpt-5.2", service.model
+      assert_equal "https://api.x.ai/v1/", service.base_uri
+      assert_equal "grok-4-0709", service.model
     end
 
-    assert_equal "openai-test-token", captured_client_kwargs[:api_key]
-    assert_equal "https://api.openai.com/v1/", captured_client_kwargs[:base_url]
-    assert_equal "gpt-5.2", captured_request[:model]
+    assert_equal "xai-test-token", captured_client_kwargs[:api_key]
+    assert_equal "https://api.x.ai/v1/", captured_client_kwargs[:base_url]
+    assert_equal "grok-4-0709", captured_request[:model]
   end
 
   test "agent_run mode rejects unsupported provider overrides" do
@@ -565,6 +641,83 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       assert_equal "resp_bg", result["id"]
       assert_equal "queued", result["status"]
     end
+  end
+
+  test "agent_run background requests execute synchronously and wait_for_response reuses cached terminal response" do
+    captured_request = nil
+    captured_client_kwargs = nil
+    retrieve_called = false
+
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |_response_id, _params|
+        retrieve_called = true
+        flunk("retrieve should not be called when the submission already returned a terminal response")
+      }
+    ) do |params|
+      captured_request = params
+      response_payload("Done", id: "resp_sync").merge("status" => "completed")
+    end
+
+    OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: supported_apis(:xai).api_base_uri,
+        model: @model,
+        log_completion: false,
+        agent_run: true
+      )
+
+      submitted = service.complete(
+        [ { role: "user", content: "Run long task" } ],
+        background: true,
+        metadata: { run_id: "run_sync", run_type: "propose_resources" }
+      )
+      assert_equal "resp_sync", submitted["id"]
+      assert_equal "completed", submitted["status"]
+
+      result = service.wait_for_response("resp_sync", timeout_seconds: 5, poll_interval_seconds: 0)
+      assert_equal "completed", result["status"]
+    end
+
+    assert_nil captured_request[:background]
+    assert_nil captured_request[:metadata]
+    assert_equal false, retrieve_called
+    assert_equal(
+      [ OpenaiClientDefaults.timeout_seconds, OpenaiResponsesService::AGENT_RUN_SYNC_TIMEOUT_SECONDS ].max,
+      captured_client_kwargs[:timeout]
+    )
+  end
+
+  test "agent_run on openai keeps background true requests" do
+    captured_request = nil
+    fake_client = build_responses_client do |params|
+      captured_request = params
+      { "id" => "resp_bg", "status" => "queued", "model" => @model, "output" => [] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: supported_apis(:openai).api_base_uri,
+        model: @model,
+        log_completion: false,
+        agent_run: true
+      )
+
+      result = service.complete(
+        [ { role: "user", content: "Run long task" } ],
+        background: true,
+        metadata: { run_id: "run_openai_bg", run_type: "propose_resources" }
+      )
+      assert_equal "resp_bg", result["id"]
+      assert_equal "queued", result["status"]
+    end
+
+    assert_equal true, captured_request[:background]
+    assert_equal "run_openai_bg", captured_request.dig(:metadata, :run_id)
+    assert_equal "propose_resources", captured_request.dig(:metadata, :run_type)
   end
 
   test "complete includes provider-native responses tools without enabling app function tools" do

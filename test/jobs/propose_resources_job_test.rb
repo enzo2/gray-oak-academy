@@ -110,6 +110,113 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal "draft", lesson_plan.reload.status
   end
 
+  test "propose resources requests a retry turn after any tool execution error" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    app_setting = AppSetting.settings
+    app_setting.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: supported_apis(:openai).id)
+
+    complete_calls = []
+    wait_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      complete_calls << { messages: messages, kwargs: kwargs }
+      response_id = "resp_#{complete_calls.size}"
+      { "id" => response_id, "status" => "queued", "output" => [] }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **kwargs|
+      wait_calls << { response_id: response_id, kwargs: kwargs }
+      case response_id
+      when "resp_1"
+        {
+          "id" => "resp_1",
+          "status" => "completed",
+          "output" => [
+            {
+              "type" => "function_call",
+              "name" => "add_and_link_resource",
+              "call_id" => "call_90147326",
+              "arguments" => {
+                resource_type: "applet",
+                category: "interactive-diagram",
+                description: "Jazz fusion signal chain",
+                applet_title: "Signal Chain Explorer",
+                applet_code: "function broken( {"
+              }.to_json
+            }
+          ]
+        }
+      when "resp_2"
+        {
+          "id" => "resp_2",
+          "status" => "completed",
+          "output" => [
+            {
+              "type" => "message",
+              "content" => [
+                { "type" => "output_text", "text" => "{\"suggested_resources\":[]}" }
+              ]
+            }
+          ]
+        }
+      else
+        {
+          "id" => "resp_3",
+          "status" => "completed",
+          "output" => [
+            {
+              "type" => "message",
+              "content" => [
+                {
+                  "type" => "output_text",
+                  "text" => "{\"suggested_resources\":[{\"type\":\"Applet\",\"description\":\"Interactive jazz fusion signal chain applet\"}]}"
+                }
+              ]
+            }
+          ]
+        }
+      end
+    end
+    fake_client.define_singleton_method(:output_text) do |response_hash|
+      Array(response_hash["output"]).flat_map do |item|
+        next [] unless item["type"] == "message"
+        Array(item["content"]).filter_map { |part| part["text"] if part["type"] == "output_text" }
+      end.join("\n")
+    end
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:execute) do |_function_call|
+      {
+        type: "function_call_output",
+        call_id: "call_90147326",
+        output: "Tool execution error: image_token is missing or invalid."
+      }
+    end
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+        end
+      end
+    end
+
+    assert_equal 3, complete_calls.size
+    assert_equal "resp_1", wait_calls.first[:response_id]
+    assert_equal "resp_2", wait_calls.second[:response_id]
+    assert_equal "resp_3", wait_calls.third[:response_id]
+
+    retry_call = complete_calls.third
+    assert_equal "resp_2", retry_call.dig(:kwargs, :previous_response_id)
+    assert_includes retry_call.dig(:messages, 0, :content), "One or more tool calls failed"
+    assert_includes retry_call.dig(:messages, 0, :content), "image_token is missing or invalid"
+
+    assert_equal "completed", lesson_plan.reload.generation_stage
+    assert_equal "Interactive jazz fusion signal chain applet", lesson_plan.suggested_resources.first["Applet"]
+  end
+
   test "propose resources notifies superusers when high tool-call threshold is reached" do
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)

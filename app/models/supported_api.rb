@@ -1,4 +1,8 @@
 class SupportedApi < ApplicationRecord
+  OPENAI_BASE_URI = "https://api.openai.com/v1/".freeze
+  XAI_BASE_URI = "https://api.x.ai/v1/".freeze
+  RESPONSES_AGENT_BASE_URIS = [ OPENAI_BASE_URI, XAI_BASE_URI ].freeze
+
   # Shared/supported OpenAI-compatible API configuration managed by superusers.
 
   # Encrypt the shared token in the DB
@@ -13,26 +17,52 @@ class SupportedApi < ApplicationRecord
   scope :enabled, -> { where(enabled: true) }
   scope :with_token, -> { where.not(api_access_token: nil) }
   scope :selectable_for_teachers, -> { enabled.with_token }
-  scope :openai_platform, -> { where("api_base_uri LIKE ?", "https://api.openai.com/%") }
-  scope :xai_platform, -> { where("api_base_uri LIKE ?", "https://api.x.ai/%") }
-  scope :responses_agent_platforms, -> { openai_platform }
-  scope :responses_agent_selectable, -> { selectable_for_teachers.responses_agent_platforms }
+  scope :responses_agent_compatible, -> { where(api_base_uri: RESPONSES_AGENT_BASE_URIS) }
 
   def self.selectable_uris
     selectable_for_teachers.pluck(:api_base_uri)
   end
 
   def self.openai_supported
-    # Assumes one OpenAI Platform base URI entry for now; if multiple are added,
-    # AppSetting should explicitly store which SupportedApi record to use.
-    openai_platform.first
+    find_by(api_base_uri: OPENAI_BASE_URI)
+  end
+
+  def self.xai_supported
+    find_by(api_base_uri: XAI_BASE_URI)
   end
 
   def self.openai_selectable
-    # Assumes one OpenAI Platform base URI entry for now; if multiple are added,
-    # AppSetting should explicitly store which SupportedApi record to use.
-    selectable_for_teachers.openai_platform.first
+    selectable_for_teachers.find_by(api_base_uri: OPENAI_BASE_URI)
   end
+
+  def self.xai_selectable
+    selectable_for_teachers.find_by(api_base_uri: XAI_BASE_URI)
+  end
+
+  def self.responses_agent_selectable
+    selectable_for_teachers.responses_agent_compatible
+  end
+
+  def self.find_responses_agent_selectable_by_id(id)
+    return nil unless id.present?
+
+    responses_agent_selectable.find_by(id: id.to_i)
+  end
+
+  def self.find_responses_agent_selectable_by_base_uri(base_uri)
+    normalized_uri = normalize_base_uri(base_uri)
+    return nil if normalized_uri.blank?
+
+    responses_agent_selectable.find_by(api_base_uri: normalized_uri)
+  end
+
+  def self.normalize_base_uri(base_uri)
+    value = base_uri.to_s.strip
+    return "" if value.blank?
+
+    value.end_with?("/") ? value : "#{value}/"
+  end
+  private_class_method :normalize_base_uri
 
   private
 

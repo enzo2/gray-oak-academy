@@ -25,6 +25,8 @@ class OpenaiResponsesService
   attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id, :model, :base_uri
   STATEFUL_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
   BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
+  METADATA_RESPONSES_HOSTS = %w[api.openai.com openrouter.ai].freeze
+  AGENT_RUN_SYNC_TIMEOUT_SECONDS = 900
 
   def self.base_uri_host(base_uri)
     URI.parse(base_uri.to_s).host.to_s.downcase.presence
@@ -42,6 +44,11 @@ class OpenaiResponsesService
     host.present? && BACKGROUND_RESPONSES_HOSTS.include?(host)
   end
 
+  def self.metadata_supported_base_uri?(base_uri)
+    host = base_uri_host(base_uri)
+    host.present? && METADATA_RESPONSES_HOSTS.include?(host)
+  end
+
   # OpenAI + xAI support Responses state chaining via previous_response_id.
   def stateful_supported?
     self.class.stateful_supported_base_uri?(@base_uri)
@@ -49,6 +56,10 @@ class OpenaiResponsesService
 
   def background_supported?
     self.class.background_supported_base_uri?(@base_uri)
+  end
+
+  def metadata_supported?
+    self.class.metadata_supported_base_uri?(@base_uri)
   end
 
   # Initialize a new Responses client.
@@ -166,10 +177,21 @@ class OpenaiResponsesService
 
       reasoning_options = build_reasoning_options(reasoning)
 
-      request_background = background && background_supported?
-      if background && !request_background
+      sync_background_fallback = agent_run_synchronous_background?(background: background)
+      request_background = background && !sync_background_fallback && background_supported?
+      request_metadata = metadata_supported? ? metadata : nil
+      if sync_background_fallback
+        Rails.logger.info(
+          "Responses background mode requested for agent run; using synchronous execution for provider #{@base_uri}."
+        )
+      elsif background && !request_background
         Rails.logger.warn(
           "Responses background mode not supported for provider #{@base_uri}. Falling back to synchronous create."
+        )
+      end
+      if metadata.present? && request_metadata.blank?
+        Rails.logger.warn(
+          "Responses metadata is not supported for provider #{@base_uri}. Omitting metadata."
         )
       end
 
@@ -181,7 +203,7 @@ class OpenaiResponsesService
         **(@tools.present? ? { tools: @tools } : {}),
         **(include_fields.present? ? { include: include_fields } : {}),
         **(request_background ? { background: true } : {}),
-        **(metadata.present? ? { metadata: metadata } : {}),
+        **(request_metadata.present? ? { metadata: request_metadata } : {}),
         **(max_output_tokens.present? ? { max_output_tokens: max_output_tokens } : {}),
         **(max_tool_calls.present? ? { max_tool_calls: max_tool_calls } : {}),
         **(parallel_tool_calls.present? ? { parallel_tool_calls: parallel_tool_calls } : {}),
@@ -272,6 +294,17 @@ class OpenaiResponsesService
   # Poll a background response until terminal status or timeout.
   # Returns the final response hash.
   def wait_for_response(response_id, timeout_seconds: 600, poll_interval_seconds: 2, include: nil)
+    if (cached_response = terminal_cached_response_for(response_id))
+      status = cached_response["status"].to_s
+      if status == "completed"
+        log_completion(cached_response)
+        maybe_record_agent_run_terminal(cached_response)
+      else
+        maybe_record_agent_run_terminal(cached_response)
+      end
+      return cached_response
+    end
+
     deadline = Time.current + timeout_seconds
 
     loop do
@@ -324,6 +357,24 @@ class OpenaiResponsesService
   end
 
   private
+
+  def agent_run_synchronous_background?(background:)
+    background && @agent_run && !background_supported?
+  end
+
+  def terminal_cached_response_for(response_id)
+    return nil if response_id.blank? || @last_response_hash.blank?
+    return nil unless @last_response_hash["id"].to_s == response_id.to_s
+
+    status = @last_response_hash["status"].to_s
+    return nil unless terminal_response_status?(status)
+
+    @last_response_hash
+  end
+
+  def terminal_response_status?(status)
+    %w[completed failed cancelled canceled incomplete].include?(status.to_s)
+  end
 
   def with_openai_error_handling(unexpected_message: "An unexpected error occurred")
     yield
@@ -415,7 +466,7 @@ class OpenaiResponsesService
 
     provider = resolve_agent_run_provider(app_setting: app_setting, base_uri_override: base_uri_override)
     unless provider
-      raise OpenAiError, "Background agent runs provider is not configured. Select OpenAI with a shared token in App Settings."
+      raise OpenAiError, "Background agent runs provider is not configured. Select OpenAI or xAI with a shared token in App Settings."
     end
 
     provider_base_uri = provider.api_base_uri.to_s
@@ -426,7 +477,7 @@ class OpenaiResponsesService
 
     if require_stateful && !self.class.stateful_supported_base_uri?(provider_base_uri)
       raise OpenAiError,
-            "Background agent runs provider #{provider_base_uri} does not support required stateful Responses behavior. Select OpenAI in App Settings."
+            "Background agent runs provider #{provider_base_uri} does not support required stateful Responses behavior. Select OpenAI or xAI in App Settings."
     end
 
     {
@@ -438,7 +489,7 @@ class OpenaiResponsesService
 
   def resolve_agent_run_provider(app_setting:, base_uri_override:)
     if base_uri_override.present?
-      return SupportedApi.responses_agent_selectable.find_by(api_base_uri: ensure_trailing_slash(base_uri_override.to_s))
+      return SupportedApi.find_responses_agent_selectable_by_base_uri(base_uri_override)
     end
 
     app_setting.openai_agent_supported_api
@@ -450,8 +501,14 @@ class OpenaiResponsesService
       api_key: @access_token,
       base_url: ensure_trailing_slash(@base_uri),
       max_retries: 2,
-      timeout: OpenaiClientDefaults.timeout_seconds
+      timeout: client_timeout_seconds
     )
+  end
+
+  def client_timeout_seconds
+    return [ OpenaiClientDefaults.timeout_seconds, AGENT_RUN_SYNC_TIMEOUT_SECONDS ].max if @agent_run
+
+    OpenaiClientDefaults.timeout_seconds
   end
 
   def attribution_headers
@@ -473,6 +530,9 @@ class OpenaiResponsesService
   def build_reasoning_options(reasoning)
     options = reasoning.is_a?(Hash) ? reasoning.deep_dup.deep_symbolize_keys : {}
     options[:effort] = @reasoning_model_flag ? "high" : "low" if options[:effort].blank?
+
+    # xAI rejects the Responses reasoning effort parameter for some models.
+    options.delete(:effort) if self.class.base_uri_host(@base_uri) == "api.x.ai"
 
     # OpenRouter defaults to hidden reasoning; request summaries/tokens unless caller opted out.
     if @reasoning_model_flag && @base_uri.include?("openrouter.ai") && !options.key?(:exclude)

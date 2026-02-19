@@ -139,19 +139,22 @@ class AppSetting < ApplicationRecord
     settings&.exa_enabled? || ENV["EXA_API_KEY"].present? || false
   end
 
-  # OpenAI-only agent runner configuration.
-  # Agent runs use this shared key/model path regardless of user API settings.
+  # Legacy OpenAI shared API accessor used by older call sites.
   def openai_supported_api
     SupportedApi.openai_supported
   end
 
   def openai_agent_supported_api
     if openai_agent_supported_api_id.present?
-      selected_api = SupportedApi.responses_agent_selectable.find_by(id: openai_agent_supported_api_id.to_i)
+      selected_api = SupportedApi.find_responses_agent_selectable_by_id(openai_agent_supported_api_id)
       return selected_api if selected_api.present?
     end
 
     SupportedApi.openai_selectable
+  end
+
+  def openai_agent_supported_apis
+    SupportedApi.responses_agent_selectable
   end
 
   def openai_agent_access_token

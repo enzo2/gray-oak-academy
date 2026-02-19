@@ -181,7 +181,7 @@
   <p class="text-dim text-sm mb-2">
     Uses Responses background runs for backend agent tasks (independent of user LLM settings).
   </p>
-  <% agent_supported_apis = SupportedApi.responses_agent_selectable.order(:api_base_uri) %>
+  <% agent_supported_apis = @setting.openai_agent_supported_apis.order(:api_base_uri) %>
   <% selected_agent_provider_id = @setting.openai_agent_supported_api&.id %>
   <% selected_agent_provider_uri = @setting.openai_agent_supported_api&.api_base_uri.to_s %>
   <div
@@ -190,7 +190,7 @@
     data-agent-model-settings-provider-uri-map-value="<%= agent_supported_apis.pluck(:id, :api_base_uri).to_h.to_json %>"
   >
     <div>
-      <%= f.label :openai_agent_supported_api_id, "Background agent runs provider (OpenAI)", class: "form-label" %>
+      <%= f.label :openai_agent_supported_api_id, "Background agent runs provider (OpenAI or xAI)", class: "form-label" %>
       <%= f.collection_select :openai_agent_supported_api_id,
         agent_supported_apis, :id, :api_base_uri,
         { selected: selected_agent_provider_id }, {
@@ -219,7 +219,7 @@
         <% if @setting.openai_agent_access_token.present? %>
           <span class="text-green-600 dark:text-green-400">Shared provider key is configured.</span>
         <% else %>
-          <span class="text-red-600 dark:text-red-400">Add a shared key for OpenAI in LLM APIs to enable this pipeline.</span>
+          <span class="text-red-600 dark:text-red-400">Add a shared key for OpenAI or xAI in LLM APIs to enable this pipeline.</span>
         <% end %>
       </p>
     </div>
