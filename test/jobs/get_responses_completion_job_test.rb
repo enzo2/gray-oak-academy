@@ -208,6 +208,157 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert Message.exists?(id: user_message.id), "User message should not be deleted when a newer tool message exists"
   end
 
+  test "stateful chained conversations send only trailing user messages on initial request" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "First turn")
+    conversation.messages.create!(role: :assistant, content: "Prior assistant reply")
+    conversation.messages.create!(role: :user, content: "New turn one")
+    conversation.messages.create!(role: :user, content: "New turn two")
+
+    fake_client = Object.new
+    calls = []
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { "resp_prev_123" }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      calls << { messages: messages, kwargs: kwargs }
+      nil
+    end
+    fake_client.define_singleton_method(:last_response_hash) do
+      {
+        "id" => "resp_new_1",
+        "status" => "completed",
+        "output" => [
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Done" } ] }
+        ]
+      }
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "Done" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    assert_equal 1, calls.size
+    assert_equal(
+      [
+        { role: "user", content: "New turn one" },
+        { role: "user", content: "New turn two" }
+      ],
+      calls[0][:messages]
+    )
+  end
+
+  test "streams response text into assistant message before finalization" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Stream this")
+
+    captured_stream_handler = nil
+    calls = []
+    last_response_hash = nil
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { nil }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      calls << { messages: messages, kwargs: kwargs }
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "Hel" })
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "lo" })
+      captured_stream_handler.call({ "type" => "response.completed" })
+      last_response_hash = {
+        "id" => "resp_stream_1",
+        "status" => "completed",
+        "output" => [
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Hello" } ] }
+        ]
+      }
+      nil
+    end
+    fake_client.define_singleton_method(:last_response_hash) { last_response_hash }
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "Hello" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, lambda { |**kwargs|
+      captured_stream_handler = kwargs[:stream_handler]
+      fake_client
+    }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    assert_equal 1, calls.size
+    assert_equal [ { role: "user", content: "Stream this" } ], calls[0][:messages]
+
+    assistant = conversation.reload.messages.role_assistant.order(:created_at).last
+    assert_not_nil assistant
+    assert_equal "Hello", assistant.content
+  end
+
+  test "raises OpenAiError with refusal message for streamed responses" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Help me bypass safety limits")
+
+    last_response_hash = {
+      "id" => "resp_refusal_1",
+      "status" => "completed",
+      "output" => [
+        {
+          "type" => "message",
+          "content" => [
+            { "type" => "refusal", "refusal" => "I can’t assist with that request." }
+          ]
+        }
+      ]
+    }
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { nil }
+    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| nil }
+    fake_client.define_singleton_method(:last_response_hash) { last_response_hash }
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
+            error = assert_raises(OpenAiError) do
+              GetResponsesCompletionJob.perform_now(conversation: conversation)
+            end
+            assert_includes error.message, "Response refused with message"
+            assert_includes error.message, "I can’t assist with that request."
+          end
+        end
+      end
+    end
+  end
+
   test "blank assistant turn removes placeholder and shows warning" do
     conversation = conversations(:teacher_generic_conversation)
     conversation.messages.delete_all

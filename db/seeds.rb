@@ -12,25 +12,21 @@ Tool.where(name: [ "Chalkboard_URL", "Chalkboard_File" ]).destroy_all
 tool = Tool.find_or_initialize_by(name: "Show_On_Chalkboard")
 tool.specifications = {
   name: "Show_On_Chalkboard",
-  description: "Displays lesson resources on the chalkboard. Provide exactly one argument: either a URL or a resource_id.",
-  strict_mode: true,
+  description: "Displays lesson resources on the chalkboard. Provide exactly one argument: either url or resource_id (not both).",
+  strict_mode: false,
   parameters: {
     type: "object",
     properties: {
       url: {
         type: "string",
-        description: "URL to load in the chalkboard iframe. Must begin with 'https://'. Use only URLs included in lesson resources or lesson plan context. May be an image URL. Do not invent, guess, or attempt to recall URLs."
+        description: "URL to load in the chalkboard iframe. Must begin with 'https://'. Use only URLs included in lesson resources or lesson plan context. May be an image URL. Do not invent, guess, or attempt to recall URLs. If url is provided, do not provide resource_id."
       },
       resource_id: {
         type: "string",
-        description: "ID of the lesson resource to display on the chalkboard. Supports URL (web page or image), file (stored files), and text resources. For files, images and PDFs can be displayed natively; other types will be displayed as a download link."
+        description: "ID of the lesson resource to display on the chalkboard. Supports URL (web page or image), file (stored files), and text resources. For files, images and PDFs can be displayed natively; other types will be displayed as a download link. If resource_id is provided, do not provide url."
       }
     },
-    additionalProperties: false,
-    oneOf: [
-      { required: [ "url" ] },
-      { required: [ "resource_id" ] }
-    ]
+    additionalProperties: false
   }
 }
 tool.save!
@@ -1042,8 +1038,8 @@ p = Prompt.find_or_initialize_by(category: 'teacher_assistant', teacher_id: nil)
 p.title = "Default Teacher Assistant Chat"
 p.prompt = <<~PROMPT
   You are now assisting the teacher in a chat format, outside of any specific lesson.
-  Don't use the Show_On_Chalkboard tool, since this is only applicable during a lesson.
-  Chat does not need to pertain to this app, teaching, or the curriculum, although that is the intended use case.
+  The primary use case for this chat is to assist the teacher in areas like curriculum development, learning resource management,#{' '}
+  student progress analysis, or general pedagogical guidance. However, you are flexible if the teacher has other needs within your capabilities.
 
   You can serve as a curriculum-building assistant; you have access to tools that allow you to manage the curriculum for the teacher.
   The teacher, also, has access to the Course Manager, Students, and Resources dashboards, where they can manage the curriculum by hand, either manually, using the generators, or a mix of both.

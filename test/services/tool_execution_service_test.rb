@@ -341,7 +341,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
       )
     end
 
-    assert_includes Message.order(:created_at).last.content, "Arguments failed schema validation"
+    assert_includes Message.order(:created_at).last.content, "Provide exactly one argument"
   end
 
   test "execute_tool_call rejects show_on_chalkboard arguments when neither url nor resource_id is provided" do
@@ -357,7 +357,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
       )
     end
 
-    assert_includes Message.order(:created_at).last.content, "Arguments failed schema validation"
+    assert_includes Message.order(:created_at).last.content, "Provide exactly one argument"
   end
 
   test "web tool action search uses Exa search with bounded num_results" do
@@ -673,18 +673,14 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     tool.specifications = {
       "name" => "Show_On_Chalkboard",
       "description" => "Displays lesson resources on the chalkboard. Provide exactly one argument: either a URL or a resource_id.",
-      "strict_mode" => true,
+      "strict_mode" => false,
       "parameters" => {
         "type" => "object",
         "properties" => {
           "url" => { "type" => "string", "description" => "URL to display." },
           "resource_id" => { "type" => "string", "description" => "Resource ID to display." }
         },
-        "additionalProperties" => false,
-        "oneOf" => [
-          { "required" => [ "url" ] },
-          { "required" => [ "resource_id" ] }
-        ]
+        "additionalProperties" => false
       }
     }
     tool.save!

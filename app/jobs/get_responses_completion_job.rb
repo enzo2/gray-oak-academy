@@ -11,6 +11,7 @@ class GetResponsesCompletionJob < ApplicationJob
   def perform(conversation:)
     user = conversation.user
     include_images = conversation.image_input_supported?
+    stream_state = build_stream_state
 
     function_call_adapter = ResponsesFunctionCallAdapter.new(
       current_user: user,
@@ -21,6 +22,7 @@ class GetResponsesCompletionJob < ApplicationJob
     client = OpenaiResponsesService.new(
       current_user: user,
       conversation: conversation,
+      stream_handler: responses_stream_handler(conversation: conversation, state: stream_state),
       task_system_prompt: conversation.task_system_prompt,
       enable_tools: true,
       flow_tools: function_call_adapter.conversation_flow_tools
@@ -33,9 +35,17 @@ class GetResponsesCompletionJob < ApplicationJob
     )
 
     stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
+    chained_state = stateful_supported && client.respond_to?(:previous_response_id) && client.previous_response_id.present?
     history_messages = stateful_supported ? nil : deep_dup_messages(messages)
 
-    response_hash = complete_and_capture_response(client, messages: messages)
+    initial_messages = chained_state ? trailing_user_messages(messages) : messages
+    if chained_state && initial_messages.blank?
+      raise OpenAiError, "No new user messages available for chained Responses request."
+    end
+
+    start_stream_turn!(state: stream_state)
+    response_hash = complete_and_capture_response(client, messages: initial_messages)
+    flush_stream_content!(conversation: conversation, state: stream_state, force: true)
     final_message_id = nil
     turns = 0
 
@@ -44,7 +54,8 @@ class GetResponsesCompletionJob < ApplicationJob
         conversation: conversation,
         response_hash: response_hash,
         client: client,
-        function_call_adapter: function_call_adapter
+        function_call_adapter: function_call_adapter,
+        stream_message: stream_state[:message]
       )
       assistant_message = persisted[:message]
       history_messages << persisted[:payload] if history_messages && persisted[:payload].present?
@@ -63,14 +74,18 @@ class GetResponsesCompletionJob < ApplicationJob
       tool_outputs = function_call_adapter.function_call_outputs(function_calls)
 
       if stateful_supported
+        start_stream_turn!(state: stream_state)
         response_hash = complete_and_capture_response(
           client,
           input: tool_outputs,
           previous_response_id: response_hash["id"]
         )
+        flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       else
         history_messages.concat(function_call_outputs_to_tool_messages(tool_outputs))
+        start_stream_turn!(state: stream_state)
         response_hash = complete_and_capture_response(client, messages: history_messages)
+        flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       end
     end
 
@@ -109,16 +124,39 @@ class GetResponsesCompletionJob < ApplicationJob
     client.complete(messages, input: input, previous_response_id: previous_response_id)
     response_hash = client.last_response_hash
     raise OpenAiError, "Responses API did not return a valid response payload." if response_hash.blank?
+    raise_on_response_refusal!(response_hash)
 
     response_hash
   end
 
-  def persist_assistant_message(conversation:, response_hash:, client:, function_call_adapter:)
+  def persist_assistant_message(conversation:, response_hash:, client:, function_call_adapter:, stream_message: nil)
     text = client.output_text(response_hash)
     function_calls = function_call_adapter.function_calls(response_hash)
     tool_calls = function_call_adapter.function_calls_as_chat_tool_calls(function_calls)
 
     content_blank = effectively_blank_text?(text)
+    if stream_message.present?
+      message = stream_message
+      if !content_blank && effectively_blank_text?(message.content)
+        message.update!(content: text)
+      end
+      if tool_calls.present? && message.tool_calls != tool_calls
+        message.update!(tool_calls: tool_calls)
+      end
+
+      final_content_blank = effectively_blank_text?(message.content)
+      final_tool_calls_blank = message.tool_calls.blank?
+      return { message: nil, payload: nil } if final_content_blank && final_tool_calls_blank
+
+      payload = {
+        role: "assistant",
+        content: final_content_blank ? nil : message.content,
+        tool_calls: message.tool_calls.presence
+      }.compact
+
+      return { message: message, payload: payload }
+    end
+
     return { message: nil, payload: nil } if content_blank && tool_calls.blank?
 
     payload = {
@@ -152,6 +190,94 @@ class GetResponsesCompletionJob < ApplicationJob
 
   def deep_dup_messages(messages)
     Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
+  end
+
+  def raise_on_response_refusal!(response_hash)
+    refusal = response_refusal_message(response_hash)
+    return if refusal.blank?
+
+    raise OpenAiError, "Response refused with message: #{refusal}"
+  end
+
+  def response_refusal_message(response_hash)
+    Array(response_hash["output"]).each do |item|
+      next unless item["type"].to_s == "message"
+
+      Array(item["content"]).each do |content|
+        next unless content["type"].to_s == "refusal"
+
+        refusal = content["refusal"] || content["text"]
+        refusal_text = refusal.to_s.strip
+        return refusal_text if refusal_text.present?
+        return "The model refused to answer."
+      end
+    end
+
+    nil
+  end
+
+  # In stateful mode with previous_response_id, send only new user turns.
+  # This avoids duplicate item IDs when replaying assistant/tool history.
+  def trailing_user_messages(messages)
+    Array(messages).reverse.take_while { |message| (message[:role] || message["role"]).to_s == "user" }.reverse
+  end
+
+  def build_stream_state
+    {
+      message: nil,
+      content_buffer: +"",
+      last_update_time: Time.current,
+      update_interval: 0.120
+    }
+  end
+
+  def start_stream_turn!(state:)
+    state[:message] = nil
+    state[:content_buffer] = +""
+    state[:last_update_time] = Time.current
+  end
+
+  def responses_stream_handler(conversation:, state:)
+    Proc.new do |event|
+      begin
+        event_type = event["type"].to_s
+        case event_type
+        when "response.output_text.delta"
+          delta = event["delta"].to_s
+          next if delta.blank?
+
+          state[:content_buffer] << delta
+          flush_stream_content!(conversation: conversation, state: state)
+        when "response.output_text.done"
+          text = event["text"].to_s
+          if text.present? && state[:message].nil? && state[:content_buffer].blank?
+            state[:content_buffer] << text
+          end
+          flush_stream_content!(conversation: conversation, state: state, force: true)
+        when "response.completed"
+          flush_stream_content!(conversation: conversation, state: state, force: true)
+        else
+          # Ignore non-text events here. Tool calls are finalized from last_response_hash.
+        end
+      rescue StandardError => e
+        Rails.logger.error "Error during Responses streaming event handling: #{e.message}"
+        raise
+      end
+    end
+  end
+
+  def flush_stream_content!(conversation:, state:, force: false)
+    return if state[:content_buffer].blank?
+
+    update_due = force || state[:message].nil? || (Time.current - state[:last_update_time] > state[:update_interval])
+    return unless update_due
+
+    state[:message] ||= conversation.messages.build(role: "assistant")
+    current_content = state[:message].persisted? ? state[:message].content.to_s : ""
+    state[:message].content = current_content + state[:content_buffer]
+    state[:message].save!
+    state[:content_buffer] = +""
+    state[:last_update_time] = Time.current
   end
 
   def destroy_last_user_message_if_latest!(conversation)

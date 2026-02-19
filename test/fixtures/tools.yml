@@ -4,7 +4,7 @@ one:
   specifications:
     name: "Show_On_Chalkboard"
     description: "Displays lesson resources on the chalkboard. Provide exactly one argument: either a URL or a resource_id."
-    strict_mode: true
+    strict_mode: false
     parameters:
       type: "object"
       properties:
@@ -15,9 +15,6 @@ one:
           type: "string"
           description: "ID of the resource to display on the chalkboard."
       additionalProperties: false
-      oneOf:
-        - required: [ "url" ]
-        - required: [ "resource_id" ]
   created_at: <%= Time.now %>
   updated_at: <%= Time.now %>
 

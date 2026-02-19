@@ -135,6 +135,22 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "complete does not append prefill for xAI base" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "world" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: "https://api.x.ai/v1/", model: @model)
+      result = service.complete(@messages, prefill: "Hello ")
+      assert_equal "world", result
+      assert_equal "user", captured[:messages].last[:role]
+      assert_equal "Hello", captured[:messages].last[:content]
+    end
+  end
+
   test "complete raises OpenAiError on OpenAI::Errors::APITimeoutError" do
     fake_client = build_chat_client do |_params|
       raise OpenAI::Errors::APITimeoutError.new("timeout")
@@ -318,6 +334,29 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
       result = service.complete(@messages, response_format: { type: "json_object" }, schema: schema)
+      assert_equal({ "name" => "Test" }, result)
+    end
+  end
+
+  test "complete extracts valid JSON object when content contains earlier invalid brace blocks" do
+    schema = {
+      "type" => "object",
+      "properties" => {
+        "name" => { "type" => "string" }
+      },
+      "required" => [ "name" ]
+    }
+    fake_client = build_chat_client do |_params|
+      {
+        "choices" => [
+          { "message" => { "content" => "Assistant notes: {not valid json} Final output: {\"name\":\"Test\"}" } }
+        ]
+      }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: "https://api.x.ai/v1/", model: @model)
+      result = service.complete(@messages, response_format: { type: "json_object" }, schema: schema, prefill: "{\"name\":")
       assert_equal({ "name" => "Test" }, result)
     end
   end

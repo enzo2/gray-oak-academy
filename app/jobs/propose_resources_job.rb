@@ -61,7 +61,8 @@ class ProposeResourcesJob < ApplicationJob
         teacher_id: current_user.id.to_s,
         lesson_plan_id: lesson_plan.id.to_s,
         source: source,
-        task_preview: "Propose resources for lesson plan #{lesson_plan.id}: #{lesson_plan.lesson.title}"
+        task_preview: "Propose resources for lesson plan #{lesson_plan.id}: #{lesson_plan.lesson.title}",
+        task_full: prompt
       }
     )
     max_tool_turns = AppSetting.openai_agent_max_tool_turns

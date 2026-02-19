@@ -244,12 +244,20 @@ class ToolExecutionService
   # -- Tool execution methods --
 
   def execute_show_on_chalkboard
-    if @args.key?("url")
-      execute_chalkboard_url_payload(@args["url"], tab_title: "Web Link")
+    url = @args["url"].to_s.strip.presence
+    resource_id = @args["resource_id"].to_s.strip.presence
+    provided_argument_count = [ url, resource_id ].count(&:present?)
+
+    unless provided_argument_count == 1
+      raise ToolExecutionError, "Provide exactly one argument: either 'url' or 'resource_id'."
+    end
+
+    if url.present?
+      execute_chalkboard_url_payload(url, tab_title: "Web Link")
       return
     end
 
-    resource = find_and_authorize_chalkboard_resource!(@args["resource_id"])
+    resource = find_and_authorize_chalkboard_resource!(resource_id)
     enforce_lesson_resource_scope!(resource)
     execute_chalkboard_resource_payload(resource)
   end

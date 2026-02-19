@@ -91,7 +91,7 @@
     <% if @active_enrollments.presence %>
       <%= render 'active_courses', enrollments: @active_enrollments %>
     <% else %>
-      <p class="">This student is not currently enrolled in any courses.</p>
+      <p>This student is not currently enrolled in any courses.</p>
     <% end %>
   </div>
 
@@ -99,7 +99,7 @@
     <% if @completed_enrollments.presence %>
       <%= render 'completed_courses', enrollments: @completed_enrollments %>
     <% else %>
-      <p class="">This student has not completed any courses.</p>
+      <p>This student has not completed any courses.</p>
     <% end %>
 
     <% if @orphaned_reports.presence %>

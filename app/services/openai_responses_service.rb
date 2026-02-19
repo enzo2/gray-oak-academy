@@ -23,10 +23,12 @@ class OpenaiResponsesService
   include OpenaiErrorHelper
 
   attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id
+  STATEFUL_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
 
-  # OpenRouter Responses API only supports stateless.
+  # OpenAI + xAI support Responses state chaining via previous_response_id.
   def stateful_supported?
-    @base_uri.include?("api.openai.com")
+    host = base_uri_host
+    host.present? && STATEFUL_RESPONSES_HOSTS.include?(host)
   end
 
   # Initialize a new Responses client.
@@ -74,6 +76,7 @@ class OpenaiResponsesService
     @agent_run_context = nil
     @agent_run_terminal_logged = false
     @response_overview_log_state = {}
+    @response_summary_log_state = {}
 
     # Start with the full system prompt (base system prompt + teaching principles)
     @system_prompt = "Today's date: #{Time.current.strftime("%B %d, %Y")}\n\n" + Prompt.full_system_prompt(user: current_user)
@@ -87,7 +90,8 @@ class OpenaiResponsesService
   #
   # - messages: Chat Completions-style array (role/content/etc). Converted to Responses input items.
   # - input: raw Responses input items (skips conversion).
-  # - instructions: system/developer guidance (if omitted, derived from messages or base prompt).
+  # - instructions: optional explicit top-level guidance; usually omit and rely on
+  #   default developer input prompt injection.
   # - response_format/schema: supports structured output via JSON schema (text.format).
   # - store/previous_response_id: stateful context chaining (useful for chats).
   #
@@ -109,8 +113,18 @@ class OpenaiResponsesService
 
       input_items = input.presence || build_input_from_messages(messages)
       raise OpenAiError, "Input is required for Responses API." if input_items.blank?
+      state_params = build_state_params(store: store, previous_response_id: previous_response_id)
+      @active_store = stateful_supported? ? state_params.fetch(:store, @store) : false
+      chained_state = state_params[:previous_response_id].present?
 
-      instructions = build_instructions(messages, instructions)
+      if instructions.present?
+        if chained_state
+          raise OpenAiError,
+                "Explicit instructions are not allowed with previous_response_id. Use developer messages for stateful follow-up requests."
+        end
+      else
+        input_items = prepend_default_developer_input(input_items, messages: messages, chained_state: chained_state)
+      end
 
       request_params = {
         model: @model,
@@ -128,8 +142,6 @@ class OpenaiResponsesService
         **build_text_params(response_format)
       }
 
-      state_params = build_state_params(store: store, previous_response_id: previous_response_id)
-      @active_store = stateful_supported? ? state_params.fetch(:store, @store) : false
       request_params.merge!(state_params) if state_params.present?
 
       # Set thinking for OpenRouter
@@ -139,6 +151,7 @@ class OpenaiResponsesService
 
       request_options = build_request_options
       request_options_param = request_options.present? ? { request_options: request_options } : {}
+      log_request_summary(request_params: request_params, request_options: request_options, streaming: @stream_handler.present?)
 
       if @stream_handler
         # Streaming: Responses SDK yields a stream of typed events.
@@ -157,6 +170,7 @@ class OpenaiResponsesService
       response_hash = normalize_response_hash(response)
 
       set_last_response(response_hash, response)
+      log_response_summary(response_hash, phase: "submit")
       log_response_overview(response_hash, phase: "submit")
       record_agent_run_submitted(response_hash: response_hash, context: agent_run_context)
 
@@ -202,6 +216,7 @@ class OpenaiResponsesService
 
       response_hash = normalize_response_hash(response)
       set_last_response(response_hash, response)
+      log_response_summary(response_hash, phase: "poll")
       log_response_overview(response_hash, phase: "poll")
       maybe_record_agent_run_terminal(response_hash)
       response_hash
@@ -250,6 +265,7 @@ class OpenaiResponsesService
       request_options_param = request_options.present? ? { request_options: request_options } : {}
       response = @client.responses.cancel(response_id, **request_options_param)
       response_hash = normalize_response_hash(response)
+      log_response_summary(response_hash, phase: "cancel")
       log_response_overview(response_hash, phase: "cancel")
       maybe_record_agent_run_terminal(response_hash)
       response_hash
@@ -443,12 +459,19 @@ class OpenaiResponsesService
     params
   end
 
-  # Prefer explicit instructions if provided.
-  # Otherwise, use system messages from the input, or fall back to the
-  # default system prompt constructed in initialize.
-  def build_instructions(messages, explicit_instructions)
-    return explicit_instructions if explicit_instructions.present?
+  # For non-chained requests, prepend a developer message so prompt context
+  # is carried in input items rather than top-level instructions.
+  def prepend_default_developer_input(input_items, messages:, chained_state:)
+    return input_items if chained_state
+    return input_items if contains_developer_or_system_input_item?(input_items)
 
+    prompt_text = developer_prompt_text(messages)
+    return input_items if prompt_text.blank?
+
+    [ { "role" => "developer", "content" => prompt_text } ] + Array(input_items)
+  end
+
+  def developer_prompt_text(messages)
     system_messages = Array(messages).select { |m| hash_value(m, :role).to_s == "system" }
     if system_messages.present?
       system_messages.map { |m| hash_value(m, :content).to_s }.join("\n\n")
@@ -457,8 +480,16 @@ class OpenaiResponsesService
     end
   end
 
+  def contains_developer_or_system_input_item?(input_items)
+    Array(input_items).any? do |item|
+      role = hash_value(item, :role).to_s
+      role == "developer" || role == "system"
+    end
+  end
+
   # Convert Chat Completions-style messages into Responses input items.
-  # We skip system messages here because instructions are provided separately.
+  # We skip system messages here because they are converted to a developer
+  # input item (or explicit instructions when provided).
   def build_input_from_messages(messages)
     raise OpenAiError, "Messages are required for Responses API." if messages.blank?
 
@@ -569,6 +600,7 @@ class OpenaiResponsesService
 
     response_hash = normalize_response_hash(event.response)
     set_last_response(response_hash, event.response)
+    log_response_summary(response_hash, phase: "stream_completed")
     log_completion(response_hash)
   end
 
@@ -633,27 +665,101 @@ class OpenaiResponsesService
     code_block_regex = /```(?:json)?\s*([\s\S]*?)\s*```/i
     code_blocks = content.scan(code_block_regex)
     code_block_json = code_blocks.last.first.strip if code_blocks.any?
-    match_json = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
-    json_content = code_block_json.presence || match_json.presence || content.strip
-    Rails.logger.info "Extracted JSON: #{json_content}"
-    raise OpenAiError, "No valid JSON found in the LLM response." unless json_content.present?
+    json_candidates = []
+    json_candidates << code_block_json if code_block_json.present?
+    json_candidates << content.strip
 
-    begin
-      parsed_content = JSON.parse(json_content)
-    rescue JSON::ParserError
+    balanced_fragment = extract_balanced_json_fragment(content)
+    json_candidates << balanced_fragment if balanced_fragment.present?
+
+    broad_match = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
+    json_candidates << broad_match if broad_match.present?
+
+    json_candidates = json_candidates.compact.uniq
+    raise OpenAiError, "No valid JSON found in the LLM response." if json_candidates.blank?
+
+    parse_errors = []
+
+    json_candidates.each do |json_content|
+      Rails.logger.info "Extracted JSON candidate: #{json_content}"
+      begin
+        return JSON.parse(json_content)
+      rescue JSON::ParserError => e
+        parse_errors << e
+      end
+    end
+
+    json_candidates.each do |json_content|
       begin
         Rails.logger.info "Invalid JSON in LLM response, attempting to repair"
         repaired_content = JSON.repair(json_content)
         Rails.logger.info "Repaired JSON: #{repaired_content}"
-        parsed_content = JSON.parse(repaired_content)
-      rescue JSON::JSONRepairError => e
-        raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
-      rescue JSON::ParserError => e
-        raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
+        return JSON.parse(repaired_content)
+      rescue JSON::JSONRepairError, JSON::ParserError => e
+        parse_errors << e
       end
     end
 
-    parsed_content
+    raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{parse_errors.last&.message || 'Unknown parsing error'}"
+  end
+
+  def extract_balanced_json_fragment(text)
+    return nil if text.blank?
+
+    text.length.times do |start_idx|
+      char = text[start_idx]
+      next unless char == "{" || char == "["
+
+      fragment = balanced_json_from_index(text, start_idx)
+      next unless fragment.present?
+
+      begin
+        JSON.parse(fragment)
+        return fragment
+      rescue JSON::ParserError
+        next
+      end
+    end
+
+    nil
+  end
+
+  def balanced_json_from_index(text, start_idx)
+    stack = []
+    in_string = false
+    escaped = false
+
+    (start_idx...text.length).each do |idx|
+      ch = text[idx]
+
+      if in_string
+        if escaped
+          escaped = false
+        elsif ch == "\\"
+          escaped = true
+        elsif ch == "\""
+          in_string = false
+        end
+        next
+      end
+
+      case ch
+      when "\""
+        in_string = true
+      when "{", "["
+        stack << ch
+      when "}"
+        return nil if stack.empty? || stack.last != "{"
+        stack.pop
+        return text[start_idx..idx] if stack.empty?
+      when "]"
+        return nil if stack.empty? || stack.last != "["
+        stack.pop
+        return text[start_idx..idx] if stack.empty?
+      end
+    end
+
+    nil
   end
 
   def validate_JSON(parsed_content, schema)
@@ -822,6 +928,12 @@ class OpenaiResponsesService
   def ensure_trailing_slash(url)
     return url if url.blank? || url.end_with?("/")
     "#{url}/"
+  end
+
+  def base_uri_host
+    URI.parse(@base_uri.to_s).host.to_s.downcase.presence
+  rescue URI::InvalidURIError
+    nil
   end
 
   def hash_value(hash, key)
@@ -1003,6 +1115,91 @@ class OpenaiResponsesService
       "output_items=#{output_items.size} output_types=#{output_summary.presence || 'none'} " \
       "tool_calls=#{tool_call_summary}"
     )
+  end
+
+  def log_request_summary(request_params:, request_options:, streaming:)
+    input_items = Array(request_params[:input])
+    tools = Array(request_params[:tools])
+    input_type_counts = input_items.each_with_object(Hash.new(0)) do |item, memo|
+      memo[input_item_type(item)] += 1
+    end
+    input_summary = input_type_counts.map { |type, count| "#{type}=#{count}" }.join(", ")
+    tool_summary = tools.first(8).map { |tool| summarize_tool(tool) }.join(", ")
+    tool_summary = "#{tool_summary}, ...(+#{tools.size - 8} more)" if tools.size > 8
+
+    Rails.logger.debug(
+      "Responses request model=#{@model} provider=#{@base_uri} streaming=#{streaming} " \
+      "store=#{request_params[:store].inspect} previous_response_id=#{request_params[:previous_response_id].presence || 'none'} " \
+      "input_items=#{input_items.size} input_types=#{input_summary.presence || 'none'} " \
+      "tools=#{tools.size} tool_names=#{tool_summary.presence || 'none'} " \
+      "background=#{request_params[:background] ? true : false} " \
+      "response_format=#{request_params.dig(:text, :format, :type).presence || 'text'} " \
+      "extra_headers=#{Array(request_options&.dig(:extra_headers)&.keys).join(',').presence || 'none'}"
+    )
+    log_request_input_items(input_items)
+  end
+
+  def log_response_summary(response_hash, phase:)
+    response_id = response_hash["id"].to_s.presence || "unknown"
+    status = response_hash["status"].to_s.presence || "unknown"
+    output_items = Array(response_hash["output"])
+    output_counts = output_items.each_with_object(Hash.new(0)) { |item, memo| memo[item["type"].to_s] += 1 }
+    tool_calls = output_counts.fetch("function_call", 0)
+    usage = response_hash["usage"] || {}
+
+    state_key = [
+      phase,
+      status,
+      output_counts.to_a.sort_by(&:first),
+      usage["input_tokens"],
+      usage["output_tokens"],
+      usage["total_tokens"]
+    ]
+    cache_key = "#{phase}:#{response_id}"
+    return if @response_summary_log_state[cache_key] == state_key
+
+    @response_summary_log_state[cache_key] = state_key
+    output_summary = output_counts.map { |type, count| "#{type}=#{count}" }.join(", ")
+
+    Rails.logger.debug(
+      "Responses response phase=#{phase} response_id=#{response_id} status=#{status} " \
+      "output_items=#{output_items.size} output_types=#{output_summary.presence || 'none'} " \
+      "function_calls=#{tool_calls} input_tokens=#{usage['input_tokens']} " \
+      "output_tokens=#{usage['output_tokens']} total_tokens=#{usage['total_tokens']}"
+    )
+  end
+
+  def log_request_input_items(input_items)
+    return if input_items.empty?
+    return unless Rails.logger.debug?
+
+    input_items.each_with_index do |item, index|
+      payload =
+        begin
+          JSON.pretty_generate(item)
+        rescue StandardError
+          item.inspect
+        end
+      Rails.logger.debug("Responses request input_item[#{index}]=#{payload}")
+    end
+  end
+
+  def input_item_type(item)
+    return "unknown" unless item.is_a?(Hash)
+
+    type = item["type"] || item[:type]
+    return type.to_s if type.present?
+
+    role = item["role"] || item[:role]
+    role.present? ? "message:#{role}" : "unknown"
+  end
+
+  def summarize_tool(tool)
+    return "unknown" unless tool.is_a?(Hash)
+
+    type = tool["type"].presence || tool[:type].presence || "unknown"
+    name = tool["name"] || tool[:name] || tool.dig("function", "name") || tool.dig(:function, :name)
+    name.present? ? "#{type}:#{name}" : type.to_s
   end
 
   def extract_response_tool_calls(output_items, response_id:)

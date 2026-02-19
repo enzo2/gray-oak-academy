@@ -3,6 +3,7 @@ class OpenaiApiService
   require "json/repair"
   include OpenaiResponseHelper
   include OpenaiErrorHelper
+  PREFILL_UNSUPPORTED_HOSTS = %w[api.openai.com api.x.ai].freeze
 
   # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives, including tool calls and content.
   # Each chunk's choices[0] will be passed to the Proc as a JSON object.
@@ -52,8 +53,8 @@ class OpenaiApiService
       messages.unshift({ role: "system", content: @system_prompt })
     end
 
-    # Inject prefilled assistant message unless OpenAI is being used
-    if prefill && !@base_uri.include?("api.openai.com")
+    # Inject prefilled assistant message only for providers that reliably support continuation.
+    if prefill && prefill_supported?
       messages << { role: "assistant", content: prefill }
     end
 
@@ -123,8 +124,7 @@ class OpenaiApiService
       normalized_content = content.gsub(/\s+/, "")
 
       # If prefill was used, restore the prefilled portion, unless it's present in the response.
-      # Prefill is not supported by OpenAI platform.
-      if !@base_uri.include?("api.openai.com") && prefill.present? && !normalized_content.start_with?(normalized_prefill)
+      if prefill_supported? && prefill.present? && !normalized_content.start_with?(normalized_prefill)
         Rails.logger.debug "Response without prefill: #{content}"
         Rails.logger.debug "Prefilling response with: #{prefill}"
         content = prefill + content
@@ -304,33 +304,109 @@ class OpenaiApiService
     if code_blocks.any?
       code_block_json = code_blocks.last.first.strip
     end
-    # Try to rescue bad responses by removing things before and after the JSON
-    match_json = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
-    json_content = code_block_json.presence || match_json.presence || content.strip
-    Rails.logger.info "Extracted JSON: #{json_content}"
-    unless json_content.present?
-      raise OpenAiError, "No valid JSON found in the LLM response."
+    json_candidates = []
+    json_candidates << code_block_json if code_block_json.present?
+    json_candidates << content.strip
+
+    balanced_fragment = extract_balanced_json_fragment(content)
+    json_candidates << balanced_fragment if balanced_fragment.present?
+
+    # Legacy broad match retained as a last-resort fallback for non-standard outputs.
+    broad_match = content.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)&.[](0)
+    json_candidates << broad_match if broad_match.present?
+
+    json_candidates = json_candidates.compact.uniq
+    raise OpenAiError, "No valid JSON found in the LLM response." if json_candidates.blank?
+
+    parse_errors = []
+
+    json_candidates.each do |json_content|
+      Rails.logger.info "Extracted JSON candidate: #{json_content}"
+      begin
+        return JSON.parse(json_content)
+      rescue JSON::ParserError => e
+        parse_errors << e
+      end
     end
 
-    # Parse the JSON
-    begin
-      # Rails.logger.debug "Parsing JSON: #{json_content}"
-      parsed_content = JSON.parse(json_content)
-    rescue JSON::ParserError => e
-      # If invalid, try repairing the JSON
+    json_candidates.each do |json_content|
       begin
         Rails.logger.info "Invalid JSON in LLM response, attempting to repair"
         repaired_content = JSON.repair(json_content)
         Rails.logger.info "Repaired JSON: #{repaired_content}"
-        parsed_content = JSON.parse(repaired_content)
-      rescue JSON::JSONRepairError => e
-        raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
-      rescue JSON::ParserError => e
-        raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{e.message}"
+        return JSON.parse(repaired_content)
+      rescue JSON::JSONRepairError, JSON::ParserError => e
+        parse_errors << e
       end
     end
 
-    parsed_content
+    raise OpenAiError, "Invalid JSON in LLM response, unable to repair: #{parse_errors.last&.message || 'Unknown parsing error'}"
+  end
+
+  def prefill_supported?
+    host = URI.parse(@base_uri.to_s).host&.downcase
+    host.present? && !PREFILL_UNSUPPORTED_HOSTS.include?(host)
+  rescue URI::InvalidURIError
+    false
+  end
+
+  def extract_balanced_json_fragment(text)
+    return nil if text.blank?
+
+    text.length.times do |start_idx|
+      char = text[start_idx]
+      next unless char == "{" || char == "["
+
+      fragment = balanced_json_from_index(text, start_idx)
+      next unless fragment.present?
+
+      begin
+        JSON.parse(fragment)
+        return fragment
+      rescue JSON::ParserError
+        next
+      end
+    end
+
+    nil
+  end
+
+  def balanced_json_from_index(text, start_idx)
+    stack = []
+    in_string = false
+    escaped = false
+
+    (start_idx...text.length).each do |idx|
+      ch = text[idx]
+
+      if in_string
+        if escaped
+          escaped = false
+        elsif ch == "\\"
+          escaped = true
+        elsif ch == "\""
+          in_string = false
+        end
+        next
+      end
+
+      case ch
+      when "\""
+        in_string = true
+      when "{", "["
+        stack << ch
+      when "}"
+        return nil if stack.empty? || stack.last != "{"
+        stack.pop
+        return text[start_idx..idx] if stack.empty?
+      when "]"
+        return nil if stack.empty? || stack.last != "["
+        stack.pop
+        return text[start_idx..idx] if stack.empty?
+      end
+    end
+
+    nil
   end
 
   def validate_JSON(parsed_content, schema)

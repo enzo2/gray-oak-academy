@@ -14,18 +14,14 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     chalk_spec = {
       "name" => "Show_On_Chalkboard",
       "description" => "Displays resources on the chalkboard",
-      "strict_mode" => true,
+      "strict_mode" => false,
       "parameters" => {
         "type" => "object",
         "properties" => {
           "url" => { "type" => "string", "description" => "URL to show" },
           "resource_id" => { "type" => "string", "description" => "Resource ID" }
         },
-        "additionalProperties" => false,
-        "oneOf" => [
-          { "required" => [ "url" ] },
-          { "required" => [ "resource_id" ] }
-        ]
+        "additionalProperties" => false
       }
     }
     Tool.create!(specifications: chalk_spec)
@@ -60,18 +56,14 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     chalk_file_spec = {
       "name" => "Show_On_Chalkboard",
       "description" => "Displays resources on the chalkboard",
-      "strict_mode" => true,
+      "strict_mode" => false,
       "parameters" => {
         "type" => "object",
         "properties" => {
           "url" => { "type" => "string", "description" => "URL" },
           "resource_id" => { "type" => "string", "description" => "ID of resource" }
         },
-        "additionalProperties" => false,
-        "oneOf" => [
-          { "required" => [ "url" ] },
-          { "required" => [ "resource_id" ] }
-        ]
+        "additionalProperties" => false
       }
     }
     Tool.create!(specifications: chalk_file_spec)

@@ -1,7 +1,7 @@
 module LlmCompletionRouting
   extend ActiveSupport::Concern
 
-  RESPONSES_API_PROVIDER_HOSTS = %w[api.openai.com openrouter.ai].freeze
+  RESPONSES_API_PROVIDER_HOSTS = %w[api.openai.com openrouter.ai api.x.ai].freeze
 
   private
 

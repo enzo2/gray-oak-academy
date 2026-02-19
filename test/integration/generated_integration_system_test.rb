@@ -47,6 +47,17 @@ class MessagesControllerIntegrationTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "sending a message enqueues GetResponsesCompletionJob for xai provider" do
+    conversation = sign_in_student_with_teacher_provider!(base_uri: "https://api.x.ai/v1/")
+
+    assert_enqueued_jobs 1, only: GetResponsesCompletionJob do
+      assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+        post conversation_messages_path(conversation), params: { message: { content: "Hi there" } }, as: :turbo_stream
+      end
+    end
+    assert_response :success
+  end
+
   test "create_audio_message enqueues GetLlmCompletionJob and creates placeholder (wav)" do
     user = users(:student)
     conversation = conversations(:student_generic_conversation)

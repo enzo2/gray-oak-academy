@@ -42,17 +42,68 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       assert_equal "Done", result
     end
 
-    assert_equal "Custom system prompt", captured[:instructions]
-    assert_equal "user", captured[:input][0]["role"]
-    assert_equal "Find answer", captured[:input][0]["content"]
-    assert_equal "function_call", captured[:input][1]["type"]
-    assert_equal "call_1", captured[:input][1]["id"]
-    assert_equal "call_1", captured[:input][1]["call_id"]
-    assert_equal "Lookup", captured[:input][1]["name"]
-    assert_equal "function_call_output", captured[:input][2]["type"]
-    assert captured[:input][2]["id"].to_s.start_with?("fco_")
+    assert_nil captured[:instructions]
+    assert_equal "developer", captured[:input][0]["role"]
+    assert_equal "Custom system prompt", captured[:input][0]["content"]
+    assert_equal "user", captured[:input][1]["role"]
+    assert_equal "Find answer", captured[:input][1]["content"]
+    assert_equal "function_call", captured[:input][2]["type"]
+    assert_equal "call_1", captured[:input][2]["id"]
     assert_equal "call_1", captured[:input][2]["call_id"]
-    assert_equal "tool output", captured[:input][2]["output"]
+    assert_equal "Lookup", captured[:input][2]["name"]
+    assert_equal "function_call_output", captured[:input][3]["type"]
+    assert captured[:input][3]["id"].to_s.start_with?("fco_")
+    assert_equal "call_1", captured[:input][3]["call_id"]
+    assert_equal "tool output", captured[:input][3]["output"]
+  end
+
+  test "complete passes explicit instructions for non-chained requests" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.complete([ { role: "user", content: "Hello" } ], instructions: "Explicit instructions")
+      assert_equal "Done", result
+    end
+
+    assert_equal "Explicit instructions", captured[:instructions]
+    assert_equal "user", captured[:input][0]["role"]
+  end
+
+  test "complete rejects explicit instructions when previous response id is used" do
+    fake_client = build_responses_client do |_params|
+      flunk("Responses create should not be called when instructions and previous_response_id are combined")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      error = assert_raises(OpenAiError) do
+        service.complete(
+          [ { role: "user", content: "Hello" } ],
+          instructions: "Explicit instructions",
+          previous_response_id: "resp_prev"
+        )
+      end
+      assert_includes error.message, "Explicit instructions are not allowed with previous_response_id"
+    end
   end
 
   test "openrouter requests stay stateless and omit store chaining params" do
@@ -84,6 +135,37 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
     assert_nil captured[:store]
     assert_nil captured[:previous_response_id]
+  end
+
+  test "xai requests support state chaining params" do
+    @conversation.update!(
+      responses_previous_id: "resp_prev",
+      responses_provider: "https://api.x.ai/v1/",
+      responses_model: @model
+    )
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      assert service.stateful_supported?
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal true, captured[:store]
+    assert_equal "resp_prev", captured[:previous_response_id]
   end
 
   test "complete with store false does not write response state to conversation for openai providers" do
@@ -211,6 +293,28 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
   test "complete parses string keyed response_format for structured outputs" do
     fake_client = build_responses_client do |_params|
       response_payload("{\"name\":\"Ada\"}")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.complete(
+        [ { role: "user", content: "Return JSON" } ],
+        response_format: { "type" => "json_object" }
+      )
+      assert_equal({ "name" => "Ada" }, result)
+    end
+  end
+
+  test "complete extracts valid JSON when output includes earlier invalid brace content" do
+    fake_client = build_responses_client do |_params|
+      response_payload("Assistant notes: {not valid json} Final output: {\"name\":\"Ada\"}")
     end
 
     OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
@@ -557,6 +661,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     debug_logs = []
     error_logs = []
     fake_logger = Object.new
+    fake_logger.define_singleton_method(:debug?) { true }
     fake_logger.define_singleton_method(:info) { |message| info_logs << message }
     fake_logger.define_singleton_method(:debug) { |message| debug_logs << message }
     fake_logger.define_singleton_method(:error) { |message| error_logs << message }
@@ -586,6 +691,34 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert info_logs.any? { |msg| msg.include?("Responses run tool call sequence run_id=run_log_1") }
     assert debug_logs.none? { |msg| msg.include?("Responses API response:") }
     assert error_logs.none?
+  end
+
+  test "log_request_input_items skips payload serialization when debug logging is disabled" do
+    fake_client = build_responses_client do |_params|
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        log_completion: false
+      )
+
+      pretty_generate_called = false
+      Rails.logger.stub(:debug?, false) do
+        JSON.stub(:pretty_generate, lambda { |_item|
+          pretty_generate_called = true
+          "{}"
+        }) do
+          result = service.send(:log_request_input_items, [ { "role" => "user", "content" => "Hello" } ])
+          assert_nil result
+        end
+      end
+      assert_equal false, pretty_generate_called
+    end
   end
 
   private

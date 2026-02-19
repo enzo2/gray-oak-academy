@@ -7,7 +7,7 @@ pin "@rails/actioncable", to: "actioncable.esm.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
 pin_all_from "app/javascript/channels", under: "channels"
 
-# Custom JS
+# Vanilla JS
 pin "turbo_stream_actions", to: "turbo_stream_actions.js"
 pin "darkModeManager", to: "darkModeManager.js"
 pin "global_handlers", to: "global_handlers.js"
@@ -39,6 +39,3 @@ pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/co
 pin "@floating-ui/dom", to: "https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm"
 
 # pin "html-to-image", to: "https://cdn.jsdelivr.net/npm/html-to-image/+esm"
-
-# Try adding Excalidraw to the chalkboard? Requires React....
-# pin "@excalidraw/excalidraw", to: "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"
