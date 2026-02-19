@@ -69,9 +69,12 @@ module Admin
 
     def scrub_masked_secret_params!(permitted)
       [ :token_override, :exa_api_key ].each do |field|
-        next unless permitted[field] == AppSetting::MASKED_SECRET_VALUE
+        if permitted[field] == AppSetting::MASKED_SECRET_VALUE
+          permitted.delete(field)
+          next
+        end
 
-        permitted.delete(field)
+        permitted[field] = nil if permitted[field].blank?
       end
     end
   end

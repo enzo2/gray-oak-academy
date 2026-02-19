@@ -51,6 +51,22 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "speech-override", app_setting.reload.token_override
   end
 
+  test "superuser can clear token override by submitting blank value" do
+    app_setting = AppSetting.first
+    app_setting.update!(token_override: "speech-override")
+
+    sign_in users(:super_user)
+
+    patch admin_app_setting_path, params: {
+      app_setting: {
+        token_override: ""
+      }
+    }
+
+    assert_redirected_to edit_admin_app_setting_path
+    assert_nil app_setting.reload.token_override
+  end
+
   test "superuser can set background agent provider id" do
     app_setting = AppSetting.first
     sign_in users(:super_user)

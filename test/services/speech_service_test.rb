@@ -67,6 +67,25 @@ class SpeechServiceTest < ActiveSupport::TestCase
     assert_predicate captured[:file].to_s, :present?
   end
 
+  test "tts_stream surfaces unauthorized error when provider returns 401 without body" do
+    AppSetting.settings.update!(tts_model: "tts-1", tts_voice: "alloy")
+    stubs = Faraday::Adapter::Test::Stubs.new do |stub|
+      stub.post("audio/speech") { [ 401, {}, "" ] }
+    end
+    conn = Faraday.new(url: "https://api.example.com/") do |builder|
+      builder.response :raise_error
+      builder.adapter :test, stubs
+    end
+
+    service = SpeechService.new(current_user: @user, conversation: @conversation)
+    error = assert_raises(SpeechService::SpeechServiceError) do
+      service.tts_stream("hello world", connection: conn) { |_chunk| }
+    end
+
+    assert_match(/unauthorized/i, error.message)
+    stubs.verify_stubbed_calls
+  end
+
   private
 
   def build_speech_client(&create_proc)

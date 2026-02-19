@@ -102,10 +102,13 @@ class SpeechService
         stderr_thread = Thread.new do
           begin
             ffmpeg_stderr_output = ffmpeg_stderr.read
+          rescue IOError => e
+            Rails.logger.debug "IOError reading ffmpeg stderr (expected on close): #{e.message}"
           ensure
             ffmpeg_stderr.close # Close stderr pipe when done reading
           end
         end
+        stderr_thread.report_on_exception = false
 
         # Thread to read from ffmpeg's stdout and yield chunks to the controller
         stdout_thread = Thread.new do
@@ -129,48 +132,53 @@ class SpeechService
             ffmpeg_stdout.close unless ffmpeg_stdout.closed?
           end
         end
+        stdout_thread.report_on_exception = false
 
         # Make the API request with streaming response handling
         data_streamed = false
-        response = conn.post(endpoint) do |req|
-          req.headers["Content-Type"] = "application/json"
-          req.headers["Transfer-Encoding"] = "chunked" # Not needed, but included for clarity
-          req.body = payload
-          req.options.timeout = 120 # Timeout for the entire request
-          req.options.open_timeout = 10 # Timeout for connection
+        response = nil
+        begin
+          response = conn.post(endpoint) do |req|
+            req.headers["Content-Type"] = "application/json"
+            req.headers["Transfer-Encoding"] = "chunked" # Not needed, but included for clarity
+            req.body = payload
+            req.options.timeout = 120 # Timeout for the entire request
+            req.options.open_timeout = 10 # Timeout for connection
 
-          # Use Faraday's on_data callback to stream response body directly to ffmpeg
-          req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
-            # Skip writing if client disconnected or pipe closed
-            next if @client_disconnected || ffmpeg_stdin.closed?
-            data_streamed = true
+            # Use Faraday's on_data callback to stream response body directly to ffmpeg
+            req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
+              # Skip writing if client disconnected or pipe closed
+              next if @client_disconnected || ffmpeg_stdin.closed?
+              data_streamed = true
 
-            begin
-              ffmpeg_stdin.write(chunk)
-            rescue Errno::EPIPE
-              Rails.logger.debug "ffmpeg stdin pipe closed prematurely."
+              begin
+                ffmpeg_stdin.write(chunk)
+              rescue Errno::EPIPE
+                Rails.logger.debug "ffmpeg stdin pipe closed prematurely."
+              end
             end
           end
-        end
 
-        # If adapter didn't stream via on_data, write response.body now (e.g., Faraday::Adapter::Test)
-        unless @client_disconnected || ffmpeg_stdin.closed? || data_streamed
-          body = response.body
-          if body.respond_to?(:read)
-            while (c = body.read(8192))
-              ffmpeg_stdin.write(c)
+          # If adapter didn't stream via on_data, write response.body now (e.g., Faraday::Adapter::Test)
+          unless @client_disconnected || ffmpeg_stdin.closed? || data_streamed
+            body = response.body
+            if body.respond_to?(:read)
+              while (c = body.read(8192))
+                ffmpeg_stdin.write(c)
+              end
+            elsif body.respond_to?(:each)
+              body.each { |c| ffmpeg_stdin.write(c) }
+            elsif body
+              ffmpeg_stdin.write(body.to_s)
             end
-          elsif body.respond_to?(:each)
-            body.each { |c| ffmpeg_stdin.write(c) }
-          elsif body
-            ffmpeg_stdin.write(body.to_s)
           end
+        ensure
+          ffmpeg_stdin.close unless ffmpeg_stdin.closed?
+          stdout_thread.join
+          stderr_thread.join
         end
 
-        ffmpeg_stdin.close # After API response finishes, close ffmpeg's stdin to signal EOF
         ffmpeg_status = wait_thr.value # Wait for ffmpeg process to finish
-        stdout_thread.join # Wait for reader threads to finish
-        stderr_thread.join
         Rails.logger.info "ffmpeg process and reader threads finished"
 
         # Check ffmpeg exit status
@@ -202,14 +210,14 @@ class SpeechService
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ServerError in TTS generation: #{e.message}: #{error_message}"
       raise SpeechServiceError, "Server Error: #{e.message}: #{error_message}"
-    rescue Faraday::ClientError => e
-      error_message = extract_faraday_error_message(e)
-      Rails.logger.error "Faraday::ClientError in TTS generation: #{e.message} #{error_message}"
-      raise SpeechServiceError, "#{e.message}: #{error_message}"
     rescue Faraday::UnauthorizedError => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::UnauthorizedError in TTS generation: #{e.message}: #{error_message}"
       raise SpeechServiceError, "Access key was unauthorized for TTS generation: #{error_message}"
+    rescue Faraday::ClientError => e
+      error_message = extract_faraday_error_message(e)
+      Rails.logger.error "Faraday::ClientError in TTS generation: #{e.message} #{error_message}"
+      raise SpeechServiceError, "#{e.message}: #{error_message}"
     rescue Faraday::ResourceNotFound => e
       error_message = extract_faraday_error_message(e)
       Rails.logger.error "Faraday::ResourceNotFound error in TTS generation: #{e.message}: #{error_message}"
@@ -423,15 +431,22 @@ class SpeechService
   # Helper method to extract error messages from Faraday exceptions
   # Duplicated from OpenaiApiService for now. Consider moving to a shared module/concern later.
   def extract_faraday_error_message(exception)
-    response_body = exception.respond_to?(:response) ? exception.response[:body] : nil
-    return "Unknown error" unless response_body
+    response = exception.respond_to?(:response) ? exception.response : nil
+    response_body = response.is_a?(Hash) ? (response[:body] || response["body"]) : nil
+    status = response.is_a?(Hash) ? (response[:status] || response["status"]) : nil
+
+    if response_body.blank?
+      return "Unauthorized (no error body returned by provider)." if status.to_i == 401
+      return exception.message
+    end
+
     Rails.logger.error "Error response body: #{response_body}"
 
     parsed = if response_body.is_a?(String)
       begin
         JSON.parse(response_body)
       rescue JSON::ParserError
-        return "Failed to parse error response: #{response_body}"
+        return response_body
       end
     else
       response_body # Already parsed
@@ -445,8 +460,10 @@ class SpeechService
 
     if parsed.is_a?(Hash) && parsed["error"].is_a?(Hash)
       parsed["error"]["message"] || parsed["error"]["status"] || "Unknown error"
+    elsif parsed.is_a?(Hash) && parsed["error"].is_a?(String)
+      parsed["error"]
     else
-      "Unknown error format: #{parsed.inspect}"
+      parsed.to_s
     end
   end
 end

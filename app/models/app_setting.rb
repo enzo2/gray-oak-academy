@@ -50,6 +50,7 @@ class AppSetting < ApplicationRecord
   end
 
   validates :singleton, inclusion: { in: [ true, false ] }
+  before_validation :normalize_secret_fields
   validate :llms_not_archived, on: :update
   validate :embedding_model_validity, on: :update
 
@@ -196,6 +197,11 @@ class AppSetting < ApplicationRecord
   end
 
   private
+
+  def normalize_secret_fields
+    self.token_override = token_override.to_s.strip.presence
+    self.exa_api_key = exa_api_key.to_s.strip.presence
+  end
 
   def coerce_tool_turn_limit(value)
     parsed = Integer(value, exception: false)

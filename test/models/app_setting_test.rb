@@ -45,6 +45,16 @@ class AppSettingTest < ActiveSupport::TestCase
     assert_equal "provider-token", @app.effective_token
   end
 
+  test "blank token override is normalized to nil and falls back to provider token" do
+    provider = supported_apis(:example_api)
+    provider.update!(api_access_token: "provider-token")
+
+    @app.update!(provider_supported_api_id: provider.id, token_override: "   ")
+
+    assert_nil @app.reload.token_override
+    assert_equal "provider-token", @app.effective_token
+  end
+
   test "openai agent is enabled when model and shared OpenAI token are present" do
     openai = supported_apis(:openai)
     openai.update!(enabled: true, api_access_token: "sk-test")
