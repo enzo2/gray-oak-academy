@@ -22,13 +22,33 @@ class OpenaiResponsesService
   include OpenaiResponseHelper
   include OpenaiErrorHelper
 
-  attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id
+  attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id, :model, :base_uri
   STATEFUL_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
+  BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
+
+  def self.base_uri_host(base_uri)
+    URI.parse(base_uri.to_s).host.to_s.downcase.presence
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def self.stateful_supported_base_uri?(base_uri)
+    host = base_uri_host(base_uri)
+    host.present? && STATEFUL_RESPONSES_HOSTS.include?(host)
+  end
+
+  def self.background_supported_base_uri?(base_uri)
+    host = base_uri_host(base_uri)
+    host.present? && BACKGROUND_RESPONSES_HOSTS.include?(host)
+  end
 
   # OpenAI + xAI support Responses state chaining via previous_response_id.
   def stateful_supported?
-    host = base_uri_host
-    host.present? && STATEFUL_RESPONSES_HOSTS.include?(host)
+    self.class.stateful_supported_base_uri?(@base_uri)
+  end
+
+  def background_supported?
+    self.class.background_supported_base_uri?(@base_uri)
   end
 
   # Initialize a new Responses client.
@@ -42,23 +62,40 @@ class OpenaiResponsesService
   # - flow_tools: internal app-defined tools for specialized sub-agent flows
   # - store: when true, Responses API stores state, enabling previous_response_id
   # - previous_response_id: optional; allows chaining stateful Responses calls
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil)
+  # - agent_run: when true, use AppSetting background agent provider/model config
+  # - agent_run_require_stateful: when true, fail fast unless provider supports stateful runs
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: true)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
-    # Raise error if called with any API overrides without all three present
-    if base_uri.present? || access_token.present? || model.present?
-      unless base_uri.present? && access_token.present? && model.present?
-        raise OpenAiError, "If API overrides are given, the base_uri, access_token, and model must all be present."
-      end
-    end
+    @agent_run = agent_run
 
     @user = current_user
     @conversation = conversation
     @reasoning_model_flag = reasoning_model
-    @base_uri = base_uri.presence || current_user.settings&.effective_llm_api_base_uri.presence || default_base_uri
-    @access_token = access_token.presence || determine_access_token
-    @model = model.presence || determine_model(reasoning_model)
+
+    if @agent_run
+      config = resolve_agent_run_config(
+        base_uri_override: base_uri,
+        access_token_override: access_token,
+        model_override: model,
+        require_stateful: agent_run_require_stateful
+      )
+      @base_uri = config.fetch(:base_uri)
+      @access_token = config.fetch(:access_token)
+      @model = config.fetch(:model)
+    else
+      # Raise error if called with any API overrides without all three present.
+      if base_uri.present? || access_token.present? || model.present?
+        unless base_uri.present? && access_token.present? && model.present?
+          raise OpenAiError, "If API overrides are given, the base_uri, access_token, and model must all be present."
+        end
+      end
+
+      @base_uri = base_uri.presence || current_user.settings&.effective_llm_api_base_uri.presence || default_base_uri
+      @access_token = access_token.presence || determine_access_token
+      @model = model.presence || determine_model(reasoning_model)
+    end
     @client = create_client
     # We pass raw streaming events (converted to hashes) to the handler.
     # The handler decides how to render/broadcast output to the UI.
@@ -129,6 +166,13 @@ class OpenaiResponsesService
 
       reasoning_options = build_reasoning_options(reasoning)
 
+      request_background = background && background_supported?
+      if background && !request_background
+        Rails.logger.warn(
+          "Responses background mode not supported for provider #{@base_uri}. Falling back to synchronous create."
+        )
+      end
+
       request_params = {
         model: @model,
         input: input_items,
@@ -136,7 +180,7 @@ class OpenaiResponsesService
         **(instructions.present? ? { instructions: instructions } : {}),
         **(@tools.present? ? { tools: @tools } : {}),
         **(include_fields.present? ? { include: include_fields } : {}),
-        **(background ? { background: true } : {}),
+        **(request_background ? { background: true } : {}),
         **(metadata.present? ? { metadata: metadata } : {}),
         **(max_output_tokens.present? ? { max_output_tokens: max_output_tokens } : {}),
         **(max_tool_calls.present? ? { max_tool_calls: max_tool_calls } : {}),
@@ -356,6 +400,48 @@ class OpenaiResponsesService
     return selected_model if selected_model.present?
 
     raise OpenAiError, "No LLM model is configured. Ask your teacher to set one in Settings."
+  end
+
+  def resolve_agent_run_config(base_uri_override:, access_token_override:, model_override:, require_stateful:)
+    app_setting = AppSetting.settings
+    unless app_setting
+      raise OpenAiError, "Background agent runs are not configured. Ask a superuser to set App Settings."
+    end
+
+    model_name = model_override.to_s.presence || app_setting.openai_agent_model.to_s.presence
+    if model_name.blank?
+      raise OpenAiError, "Background agent runs model is not configured. Set it in App Settings."
+    end
+
+    provider = resolve_agent_run_provider(app_setting: app_setting, base_uri_override: base_uri_override)
+    unless provider
+      raise OpenAiError, "Background agent runs provider is not configured. Select OpenAI with a shared token in App Settings."
+    end
+
+    provider_base_uri = provider.api_base_uri.to_s
+    access_token = access_token_override.to_s.presence || provider.api_access_token.to_s.presence
+    unless access_token
+      raise OpenAiError, "Background agent runs provider key is missing. Add a shared key for #{provider_base_uri} in LLM APIs."
+    end
+
+    if require_stateful && !self.class.stateful_supported_base_uri?(provider_base_uri)
+      raise OpenAiError,
+            "Background agent runs provider #{provider_base_uri} does not support required stateful Responses behavior. Select OpenAI in App Settings."
+    end
+
+    {
+      base_uri: provider_base_uri,
+      access_token: access_token,
+      model: model_name
+    }
+  end
+
+  def resolve_agent_run_provider(app_setting:, base_uri_override:)
+    if base_uri_override.present?
+      return SupportedApi.responses_agent_selectable.find_by(api_base_uri: ensure_trailing_slash(base_uri_override.to_s))
+    end
+
+    app_setting.openai_agent_supported_api
   end
 
   def create_client
@@ -1011,9 +1097,7 @@ class OpenaiResponsesService
   end
 
   def base_uri_host
-    URI.parse(@base_uri.to_s).host.to_s.downcase.presence
-  rescue URI::InvalidURIError
-    nil
+    self.class.base_uri_host(@base_uri)
   end
 
   def hash_value(hash, key)
@@ -1081,7 +1165,7 @@ class OpenaiResponsesService
   end
 
   def agent_run_logging_enabled?(background:)
-    background && @stream_handler.nil? && @conversation.nil?
+    background && @agent_run && @stream_handler.nil? && @conversation.nil?
   end
 
   def agent_run_log_service
@@ -1100,6 +1184,7 @@ class OpenaiResponsesService
       response_id: response_id,
       teacher: @user,
       model: resolved_model_name(response_hash),
+      provider_base_uri: @base_uri,
       source: context[:source],
       prompt: context[:prompt]
     )

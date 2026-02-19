@@ -131,7 +131,9 @@ Rails.application.routes.draw do
     end
 
     # App-wide settings (singleton)
-    resource :app_setting, only: [ :edit, :update ]
+    resource :app_setting, only: [ :edit, :update ] do
+      get :llm_models, on: :collection
+    end
 
     resources :llms, only: [ :index, :update ] do
       patch "archive", on: :member

@@ -21,13 +21,16 @@
   </div>
 
   <aside class="relative bg-stone-50 p-1.5 last:mb-5 sm:p-2 dark:bg-stone-900">
+    <%= render "layouts/admin/sidebar_link", label: "LLM Chat", path: conversations_path, icon: "chat-dots" %>
+
+    <hr class="border-stone-200 dark:border-stone-800 my-2 mx-1.5">
+
     <%= render "layouts/admin/sidebar_link", label: "Course Manager", path: admin_courses_path, icon: "collection" %>
     <%= render "layouts/admin/sidebar_link", label: "Resources", path: admin_resources_path, icon: "file-earmark" %>
     <%= render "layouts/admin/sidebar_link", label: "Students", path: admin_students_path, icon: "people" %>
 
     <hr class="border-stone-200 dark:border-stone-800 my-2 mx-1.5">
 
-    <%= render "layouts/admin/sidebar_link", label: "LLM Chat", path: conversations_path, icon: "chat-dots" %>
     <%= render "layouts/admin/sidebar_link", label: "Applets", path: applets_path, icon: "grid" %>
     <%= render "layouts/admin/sidebar_link", label: "My Lessons", path: admin_student_path(current_user, active_tab: :active_courses), icon: "book" %>
 
@@ -46,8 +49,8 @@
         <% if current_user.role_superuser? %>
           <%= render "layouts/admin/sidebar_link", label: "LLMs", path: admin_llms_path, icon: "cpu" %>
           <%= render "layouts/admin/sidebar_link", label: "App Settings", path: edit_admin_app_setting_path, icon: "gear" %>
-          <%= render "layouts/admin/sidebar_link", label: "Agent Runs", path: admin_agent_runs_path, icon: "activity" %>
-          <%= render "layouts/admin/sidebar_link", label: "Analytics", path: admin_analytics_events_path, icon: "bar-chart" %>
+          <%= render "layouts/admin/sidebar_link", label: "Agent Runs", path: admin_agent_runs_path, icon: "robot" %>
+          <%= render "layouts/admin/sidebar_link", label: "Analytics", path: admin_analytics_events_path, icon: "bar-chart-line" %>
         <% end %>
 
         <%= render "layouts/admin/sidebar_link", label: "Usage", path: admin_completions_path, icon: "graph-up" %>

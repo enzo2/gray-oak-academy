@@ -9,3 +9,9 @@ openai:
   api_access_token: "openai-test-token"
   enabled: true
   notes: "Fixture OpenAI shared API"
+
+xai:
+  api_base_uri: "https://api.x.ai/v1/"
+  api_access_token: "xai-test-token"
+  enabled: true
+  notes: "Fixture xAI shared API"

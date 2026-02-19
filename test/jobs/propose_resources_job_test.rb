@@ -5,9 +5,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
     app_setting = AppSetting.settings
-    openai_api = supported_apis(:openai)
-    app_setting.update!(openai_agent_model: "gpt-5.2")
-    openai_api.update!(enabled: true, api_access_token: "openai-test-token")
+    app_setting.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: supported_apis(:openai).id)
 
     complete_calls = []
     wait_calls = []
@@ -56,9 +54,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal "completed", lesson_plan.generation_stage
     assert_equal "NASA refraction demonstration video", lesson_plan.suggested_resources.first["Video"]
     assert_equal teacher, captured_new_kwargs[:current_user]
-    assert_equal openai_api.api_base_uri, captured_new_kwargs[:base_uri]
-    assert_equal "openai-test-token", captured_new_kwargs[:access_token]
-    assert_equal "gpt-5.2", captured_new_kwargs[:model]
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_nil captured_new_kwargs[:base_uri]
+    assert_nil captured_new_kwargs[:access_token]
+    assert_nil captured_new_kwargs[:model]
     assert_equal "propose_resources", complete_calls.first.dig(:kwargs, :metadata, :run_type)
     assert_equal true, complete_calls.first.dig(:kwargs, :background)
     assert_equal teacher.id.to_s, complete_calls.first.dig(:kwargs, :metadata, :teacher_id)
@@ -74,9 +73,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     teacher = users(:admin)
     lesson_plan.update!(content: [ { "Intro" => "Ready" } ], status: "published")
     app_setting = AppSetting.settings
-    openai_api = supported_apis(:openai)
     app_setting.update!(openai_agent_model: "gpt-5.2")
-    openai_api.update!(enabled: true, api_access_token: "openai-test-token")
 
     fake_client = Object.new
     fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
@@ -119,9 +116,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     superuser = users(:super_user)
     superuser.create_setting! if superuser.setting.nil?
     app_setting = AppSetting.settings
-    openai_api = supported_apis(:openai)
     app_setting.update!(openai_agent_model: "gpt-5.2")
-    openai_api.update!(enabled: true, api_access_token: "openai-test-token")
 
     tool_calls = Array.new(ProposeResourcesJob::HIGH_TOOL_CALL_WARNING_THRESHOLD + 3) do |idx|
       {

@@ -20,9 +20,7 @@ class DelegateToFrontierLlmJob < ApplicationJob
     run_id = SecureRandom.uuid
     started_at = Time.current
     model = app_setting.openai_agent_model
-    openai_api = app_setting.openai_agent_supported_api
     use_exa_search = app_setting.exa_enabled?
-    raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
 
     response_id = nil
     failure_notified = false
@@ -36,15 +34,13 @@ class DelegateToFrontierLlmJob < ApplicationJob
 
       client = OpenaiResponsesService.new(
         current_user: teacher,
-        access_token: app_setting.openai_agent_access_token,
-        base_uri: openai_api.api_base_uri,
-        model: model,
         task_system_prompt: task_system_prompt,
         enable_tools: false,
         provider_native_tools: function_call_adapter.delegate_provider_native_tools,
         flow_tools: function_call_adapter.delegate_flow_tools,
         store: true,
-        log_completion: true
+        log_completion: true,
+        agent_run: true
       )
 
       submitted = client.complete(
@@ -67,7 +63,7 @@ class DelegateToFrontierLlmJob < ApplicationJob
       )
 
       max_tool_turns = AppSetting.openai_agent_max_tool_turns
-      raise OpenAiError, "OpenAI agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
+      raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
       turns = 0
       loop do
         status = final_response["status"].to_s

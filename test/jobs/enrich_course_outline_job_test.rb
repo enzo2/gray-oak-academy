@@ -83,8 +83,9 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     end
     fake_client.define_singleton_method(:output_text) { |_response_hash| guidance_json }
 
+    captured_new_kwargs = nil
     ExaApiService.stub(:new, ->(**_kwargs) { fake_exa }) do
-      OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
         emitted_events = []
         chalkboard_broadcasts = []
         job = EnrichCourseOutlineJob.new
@@ -140,6 +141,10 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal 3, captured_exa[:poll_interval_seconds]
     assert_equal true, captured_responses[:background]
     assert_equal "resp_guidance_1", captured_responses[:response_id]
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_nil captured_new_kwargs[:base_uri]
+    assert_nil captured_new_kwargs[:access_token]
+    assert_nil captured_new_kwargs[:model]
   end
 
   test "does not broadcast chalkboard notification when conversation_id is blank" do

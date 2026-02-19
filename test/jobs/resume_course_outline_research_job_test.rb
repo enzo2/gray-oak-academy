@@ -94,7 +94,8 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       end
     end
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    captured_new_kwargs = nil
+    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
       emitted_events = []
       job = ResumeCourseOutlineResearchJob.new
       job.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
@@ -125,6 +126,10 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Choice B: Tighten tone and emphasize evidence."
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Additional comments:"
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Tighten tone and add one local source."
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_nil captured_new_kwargs[:base_uri]
+    assert_nil captured_new_kwargs[:access_token]
+    assert_nil captured_new_kwargs[:model]
   end
 
   test "fails when prerequisites are not met" do

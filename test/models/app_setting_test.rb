@@ -56,6 +56,46 @@ class AppSettingTest < ActiveSupport::TestCase
     assert AppSetting.openai_agent_enabled?
   end
 
+  test "openai agent uses selected openai provider when configured" do
+    openai = supported_apis(:openai)
+    openai.update!(enabled: true, api_access_token: "sk-openai")
+    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: openai.id)
+
+    assert_equal openai, @app.openai_agent_supported_api
+    assert_equal "sk-openai", @app.openai_agent_access_token
+    assert @app.openai_agent_enabled?
+  end
+
+  test "openai agent falls back to openai when xai is selected" do
+    openai = supported_apis(:openai)
+    xai = supported_apis(:xai)
+    openai.update!(enabled: true, api_access_token: "sk-openai")
+    xai.update!(enabled: true, api_access_token: "sk-xai")
+    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: xai.id)
+
+    assert_equal openai, @app.openai_agent_supported_api
+    assert_equal "sk-openai", @app.openai_agent_access_token
+    assert @app.openai_agent_enabled?
+  end
+
+  test "openai agent falls back to openai when selected provider id is invalid" do
+    openai = supported_apis(:openai)
+    openai.update!(enabled: true, api_access_token: "sk-openai")
+    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: "999999")
+
+    assert_equal openai, @app.openai_agent_supported_api
+    assert_equal "sk-openai", @app.openai_agent_access_token
+  end
+
+  test "openai agent falls back to openai when selected provider is not verified for agent runs" do
+    openai = supported_apis(:openai)
+    openai.update!(enabled: true, api_access_token: "sk-openai")
+    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: supported_apis(:example_api).id)
+
+    assert_equal openai, @app.openai_agent_supported_api
+    assert_equal "sk-openai", @app.openai_agent_access_token
+  end
+
   test "openai agent is disabled when model is blank" do
     supported_apis(:openai).update!(enabled: true, api_access_token: "sk-test")
     @app.update!(openai_agent_model: nil)

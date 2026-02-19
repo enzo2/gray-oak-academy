@@ -17,6 +17,21 @@ module Admin
       end
     end
 
+    # Returns model options for the selected provider URI for async comboboxes.
+    def llm_models
+      api_uri = params[:api_uri].to_s
+      @models = []
+
+      if api_uri.present?
+        normalized_api_uri = api_uri.end_with?("/") ? api_uri : "#{api_uri}/"
+        scope = Llm.where(api_provider: normalized_api_uri)
+        scope = scope.where("model ILIKE ?", "%#{params[:q]}%") if params[:q].present?
+        @models = scope.pluck(:model)
+      end
+
+      render turbo_stream: helpers.async_combobox_options(@models)
+    end
+
     private
 
     def load_setting
@@ -42,6 +57,7 @@ module Admin
         :image_generation_two_pass,
         :user_daily_budget,
         :max_chat_cost,
+        :openai_agent_supported_api_id,
         :openai_agent_model,
         :openai_agent_max_tool_turns,
         :exa_api_key,

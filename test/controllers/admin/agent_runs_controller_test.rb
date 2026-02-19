@@ -96,11 +96,16 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_service }) do
+    captured_new_kwargs = nil
+    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_service }) do
       get admin_agent_runs_path(trace_response_id: "resp_1")
     end
 
     assert_response :success
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
+    assert_equal "gpt-5.2", captured_new_kwargs[:model]
+    assert_nil captured_new_kwargs[:base_uri]
     assert_equal [ { response_id: "resp_1", kwargs: {} } ], calls
     assert_includes response.body, "Tool Calls"
     assert_includes response.body, "exa_search"
@@ -109,6 +114,41 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Repeated Argument Patterns"
     assert_includes response.body, "Submitted Task Prompt"
     assert_includes response.body, "FULL TASK PROMPT FROM METADATA"
+  end
+
+  test "uses run-persisted provider base uri when fetching trace" do
+    superuser = users(:super_user)
+    sign_in superuser
+    seed_agent_run_logs(
+      [
+        {
+          run_id: "run_provider",
+          response_id: "resp_provider",
+          status: "completed",
+          submitted_at: Time.current.iso8601,
+          teacher_name: "Admin User",
+          teacher_id: users(:admin).id,
+          model: "gpt-5.2",
+          provider_base_uri: "https://api.x.ai/v1/",
+          source: "tool_call"
+        }
+      ]
+    )
+
+    fake_service = Object.new
+    fake_service.define_singleton_method(:retrieve_response) do |_response_id, **_kwargs|
+      { "id" => "resp_provider", "output" => [] }
+    end
+
+    captured_new_kwargs = nil
+    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_service }) do
+      get admin_agent_runs_path(trace_response_id: "resp_provider")
+    end
+
+    assert_response :success
+    assert_equal "https://api.x.ai/v1/", captured_new_kwargs[:base_uri]
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
   end
 
   test "admin is blocked from agent runs dashboard" do

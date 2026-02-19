@@ -295,6 +295,82 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "resp_prev", captured[:previous_response_id]
   end
 
+  test "non-openai providers omit background argument even when requested" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_bg_xai")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.example.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      response = service.complete([ { role: "user", content: "Hello" } ], background: true)
+      assert_equal "resp_bg_xai", response["id"]
+    end
+
+    assert_nil captured[:background]
+  end
+
+  test "agent_run mode resolves provider, token, and model from app settings" do
+    AppSetting.first.update!(
+      openai_agent_supported_api_id: supported_apis(:openai).id,
+      openai_agent_model: "gpt-5.2"
+    )
+
+    captured_client_kwargs = nil
+    captured_request = nil
+    fake_client = build_responses_client do |params|
+      captured_request = params
+      response_payload("Done", id: "resp_agent")
+    end
+
+    OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        agent_run: true,
+        log_completion: false
+      )
+
+      result = service.complete([ { role: "user", content: "Hello" } ])
+      assert_equal "Done", result
+      assert_equal "https://api.openai.com/v1/", service.base_uri
+      assert_equal "gpt-5.2", service.model
+    end
+
+    assert_equal "openai-test-token", captured_client_kwargs[:api_key]
+    assert_equal "https://api.openai.com/v1/", captured_client_kwargs[:base_url]
+    assert_equal "gpt-5.2", captured_request[:model]
+  end
+
+  test "agent_run mode rejects unsupported provider overrides" do
+    AppSetting.first.update!(openai_agent_model: "gpt-5.2")
+
+    error = assert_raises(OpenAiError) do
+      OpenaiResponsesService.new(
+        current_user: @user,
+        base_uri: supported_apis(:example_api).api_base_uri,
+        agent_run: true,
+        log_completion: false
+      )
+    end
+
+    assert_includes error.message, "Background agent runs provider is not configured"
+  end
+
+  test "stateful provider helper accepts openai and xai hosts only" do
+    assert OpenaiResponsesService.stateful_supported_base_uri?("https://api.openai.com/v1/")
+    assert OpenaiResponsesService.stateful_supported_base_uri?("https://api.x.ai/v1/")
+    refute OpenaiResponsesService.stateful_supported_base_uri?("https://api.example.com/v1/")
+    refute OpenaiResponsesService.stateful_supported_base_uri?("https://openrouter.ai/api/v1/")
+  end
+
   test "complete with store false does not write response state to conversation for openai providers" do
     @conversation.update!(
       responses_previous_id: "resp_prev",
@@ -571,9 +647,10 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
         service = OpenaiResponsesService.new(
           current_user: @user,
           access_token: @access_token,
-          base_uri: @base_uri,
+          base_uri: supported_apis(:openai).api_base_uri,
           model: @model,
-          log_completion: false
+          log_completion: false,
+          agent_run: true
         )
 
         service.complete(
@@ -588,6 +665,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal 1, submitted_calls.size
     assert_equal "run_1", submitted_calls.first[:run_id]
     assert_equal "resp_bg", submitted_calls.first[:response_id]
+    assert_equal supported_apis(:openai).api_base_uri, submitted_calls.first[:provider_base_uri]
     assert_equal "propose_resources", submitted_calls.first[:source]
     assert_equal "Preview task", submitted_calls.first[:prompt]
 
@@ -639,9 +717,10 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
         service = OpenaiResponsesService.new(
           current_user: @user,
           access_token: @access_token,
-          base_uri: @base_uri,
+          base_uri: supported_apis(:openai).api_base_uri,
           model: @model,
-          log_completion: false
+          log_completion: false,
+          agent_run: true
         )
 
         first_submission = service.complete(
@@ -713,9 +792,10 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
         service = OpenaiResponsesService.new(
           current_user: @user,
           access_token: @access_token,
-          base_uri: @base_uri,
+          base_uri: supported_apis(:openai).api_base_uri,
           model: @model,
-          log_completion: false
+          log_completion: false,
+          agent_run: true
         )
 
         service.complete(
@@ -799,9 +879,10 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
           service = OpenaiResponsesService.new(
             current_user: @user,
             access_token: @access_token,
-            base_uri: @base_uri,
+            base_uri: supported_apis(:openai).api_base_uri,
             model: @model,
-            log_completion: false
+            log_completion: false,
+            agent_run: true
           )
 
           service.complete(

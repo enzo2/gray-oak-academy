@@ -29,22 +29,13 @@ module Admin
       tool_calls = normalize_tool_calls(run[:tool_calls])
       tool_call_summary = summarize_tool_calls(tool_calls)
       app_setting = AppSetting.settings
-      openai_api = app_setting&.openai_agent_supported_api
-      unless openai_api&.api_access_token.present?
-        return {
-          tool_calls: tool_calls,
-          tool_call_summary: tool_call_summary,
-          output_text: "",
-          response_json: "",
-          error: "OpenAI shared API token is not configured in App Settings."
-        }
-      end
 
       service = OpenaiResponsesService.new(
         current_user: current_user,
-        access_token: openai_api.api_access_token,
-        base_uri: openai_api.api_base_uri,
-        model: run[:model].presence || app_setting.openai_agent_model,
+        base_uri: run[:provider_base_uri].to_s.presence,
+        model: run[:model].presence || app_setting&.openai_agent_model,
+        agent_run: true,
+        agent_run_require_stateful: false,
         log_completion: false,
         store: false
       )

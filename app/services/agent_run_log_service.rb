@@ -22,7 +22,7 @@ class AgentRunLogService
     end
   end
 
-  def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:)
+  def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:, provider_base_uri: nil)
     upsert_run!(
       run_id: run_id,
       response_id: response_id,
@@ -30,6 +30,7 @@ class AgentRunLogService
       teacher_name: teacher.name,
       teacher_id: teacher.id,
       model: model.to_s,
+      provider_base_uri: provider_base_uri.to_s,
       source: source.to_s,
       task_preview: truncate_prompt(prompt),
       task_prompt: normalize_task_prompt(prompt),

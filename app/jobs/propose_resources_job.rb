@@ -34,7 +34,6 @@ class ProposeResourcesJob < ApplicationJob
     set_generation_state(lesson_plan, "proposing_resources", nil) if track_stage
     broadcast_refresh(current_user)
 
-    openai_config = openai_agent_config!
     prompt = build_prompt(lesson_plan, current_user)
     messages = [ { role: "user", content: prompt } ]
     Rails.logger.info(
@@ -44,13 +43,11 @@ class ProposeResourcesJob < ApplicationJob
     executor = ProposeResourcesToolExecutor.new(lesson_plan: lesson_plan, current_user: current_user)
     client = OpenaiResponsesService.new(
       current_user: current_user,
-      access_token: openai_config[:access_token],
-      base_uri: openai_config[:base_uri],
-      model: openai_config[:model],
       flow_tools: executor.tool_definitions,
       enable_tools: false,
       reasoning_model: true,
-      store: true
+      store: true,
+      agent_run: true
     )
 
     response_hash = complete_and_capture(
@@ -66,7 +63,7 @@ class ProposeResourcesJob < ApplicationJob
       }
     )
     max_tool_turns = AppSetting.openai_agent_max_tool_turns
-    raise OpenAiError, "OpenAI agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
+    raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
 
     loop do
       function_calls = Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
@@ -81,10 +78,11 @@ class ProposeResourcesJob < ApplicationJob
       total_tool_calls += function_calls.size
 
       outputs = function_calls.map { |fc| executor.execute(fc) }
+      run_model = client.respond_to?(:model) ? client.model : AppSetting.settings&.openai_agent_model
       high_tool_call_warning_notified = log_turn_diagnostics(
         lesson_plan: lesson_plan,
         teacher: current_user,
-        model: openai_config[:model],
+        model: run_model,
         response_id: response_hash["id"],
         turn: turns,
         function_calls: function_calls,
@@ -213,20 +211,6 @@ class ProposeResourcesJob < ApplicationJob
 
   def set_generation_state(lesson_plan, stage, error)
     lesson_plan.update!(generation_stage: stage, generation_error: error)
-  end
-
-  def openai_agent_config!
-    app_setting = AppSetting.settings
-    raise OpenAiError, "OpenAI Agent Runs is not configured. Ask a superuser to set the OpenAI Agent model and key in App Settings." unless app_setting&.openai_agent_enabled?
-
-    openai_api = app_setting.openai_agent_supported_api
-    raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
-
-    {
-      access_token: app_setting.openai_agent_access_token,
-      base_uri: openai_api.api_base_uri,
-      model: app_setting.openai_agent_model
-    }
   end
 
   def broadcast_refresh(current_user)

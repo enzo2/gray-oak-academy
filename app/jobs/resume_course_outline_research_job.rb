@@ -24,21 +24,18 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       return
     end
 
-    openai_config = openai_agent_config!
     executor = CourseResearchToolExecutor.new(course: course, current_user: current_user)
     client = OpenaiResponsesService.new(
       current_user: current_user,
-      access_token: openai_config[:access_token],
-      base_uri: openai_config[:base_uri],
-      model: openai_config[:model],
       flow_tools: executor.tool_definitions,
       enable_tools: false,
       reasoning_model: true,
-      store: true
+      store: true,
+      agent_run: true
     )
 
     max_tool_turns = AppSetting.openai_agent_max_tool_turns
-    raise OpenAiError, "OpenAI agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
+    raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
 
     response_hash = submit_initial_resume_prompt(
       client: client,
@@ -305,20 +302,6 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     if course.unanswered_research_question_ids.any?
       raise OpenAiError, "All research questions must be answered before resuming."
     end
-  end
-
-  def openai_agent_config!
-    app_setting = AppSetting.settings
-    raise OpenAiError, "OpenAI Agent Runs is not configured. Ask a superuser to set the OpenAI Agent model and key in App Settings." unless app_setting&.openai_agent_enabled?
-
-    openai_api = app_setting.openai_agent_supported_api
-    raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
-
-    {
-      access_token: app_setting.openai_agent_access_token,
-      base_uri: openai_api.api_base_uri,
-      model: app_setting.openai_agent_model
-    }
   end
 
   def broadcast_refresh(current_user)

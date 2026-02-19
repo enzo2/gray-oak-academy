@@ -347,7 +347,6 @@ class EnrichCourseOutlineJob < ApplicationJob
   end
 
   def generate_guidance_questions(course:, current_user:, run_id:, source:)
-    openai_config = openai_agent_config!
     prompt = Prompt.get_prompt(category: "analyze_course_outline_research", user: current_user)
       .gsub("{title}", course.title.to_s)
       .gsub("{summary}", course.summary.to_s)
@@ -357,12 +356,10 @@ class EnrichCourseOutlineJob < ApplicationJob
 
     client = OpenaiResponsesService.new(
       current_user: current_user,
-      access_token: openai_config[:access_token],
-      base_uri: openai_config[:base_uri],
-      model: openai_config[:model],
       reasoning_model: true,
       enable_tools: false,
-      store: true
+      store: true,
+      agent_run: true
     )
 
     submitted = client.complete(
@@ -483,20 +480,6 @@ class EnrichCourseOutlineJob < ApplicationJob
     JSON.parse(repaired)
   rescue JSON::ParserError, JSON::JSONRepairError => e
     raise OpenAiError, "Invalid JSON from outline research output: #{e.message}"
-  end
-
-  def openai_agent_config!
-    app_setting = AppSetting.settings
-    raise OpenAiError, "OpenAI Agent Runs is not configured. Ask a superuser to set the OpenAI Agent model and key in App Settings." unless app_setting&.openai_agent_enabled?
-
-    openai_api = app_setting.openai_agent_supported_api
-    raise OpenAiError, "OpenAI shared API is not configured for agent runs." unless openai_api
-
-    {
-      access_token: app_setting.openai_agent_access_token,
-      base_uri: openai_api.api_base_uri,
-      model: app_setting.openai_agent_model
-    }
   end
 
   def broadcast_refresh(current_user)

@@ -40,10 +40,11 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
       ENV["EXA_API_KEY"] = original_exa_key
     end
 
-    assert_equal supported_apis(:openai).api_base_uri, captured_new_kwargs[:base_uri]
-    assert_equal "gpt-5.2", captured_new_kwargs[:model]
-    assert_equal "sk-test", captured_new_kwargs[:access_token]
     assert_equal teacher, captured_new_kwargs[:current_user]
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_nil captured_new_kwargs[:base_uri]
+    assert_nil captured_new_kwargs[:access_token]
+    assert_nil captured_new_kwargs[:model]
     assert_equal [ { type: "web_search" } ], captured_new_kwargs[:provider_native_tools]
     assert_equal [], captured_new_kwargs[:flow_tools]
 
@@ -127,6 +128,10 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
     end
 
     assert_equal [], captured_new_kwargs[:provider_native_tools]
+    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_nil captured_new_kwargs[:base_uri]
+    assert_nil captured_new_kwargs[:access_token]
+    assert_nil captured_new_kwargs[:model]
     tool_names = captured_new_kwargs[:flow_tools].map { |tool| tool[:name] }
     assert_includes tool_names, "exa_websearch"
     assert_includes tool_names, "exa_answer"

@@ -20,6 +20,7 @@ class AppSetting < ApplicationRecord
                  :image_generation_two_pass,
                  :user_daily_budget,
                  :max_chat_cost,
+                 :openai_agent_supported_api_id,
                  :openai_agent_model,
                  :openai_agent_max_tool_turns,
                  :exa_api_key,
@@ -145,6 +146,11 @@ class AppSetting < ApplicationRecord
   end
 
   def openai_agent_supported_api
+    if openai_agent_supported_api_id.present?
+      selected_api = SupportedApi.responses_agent_selectable.find_by(id: openai_agent_supported_api_id.to_i)
+      return selected_api if selected_api.present?
+    end
+
     SupportedApi.openai_selectable
   end
 

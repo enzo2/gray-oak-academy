@@ -34,13 +34,16 @@
             </div>
 
             <div class="mt-1.5 sm:mt-2 flex w-full flex-col items-start space-y-2">
+              <%= render "layouts/admin/sidebar_link_tiny", label: "LLM Chat", path: conversations_path, icon: "chat-dots" %>
+
+              <div class="h-px w-6 bg-stone-200 dark:bg-stone-700 mx-auto"></div>
+
               <%= render "layouts/admin/sidebar_link_tiny", label: "Course Manager", path: admin_courses_path, icon: "collection" %>
               <%= render "layouts/admin/sidebar_link_tiny", label: "Resources", path: admin_resources_path, icon: "file-earmark" %>
               <%= render "layouts/admin/sidebar_link_tiny", label: "Students", path: admin_students_path, icon: "people" %>
 
               <div class="h-px w-6 bg-stone-200 dark:bg-stone-700 mx-auto"></div>
 
-              <%= render "layouts/admin/sidebar_link_tiny", label: "LLM Chat", path: conversations_path, icon: "chat-dots" %>
               <%= render "layouts/admin/sidebar_link_tiny", label: "Applets", path: applets_path, icon: "grid" %>
               <%= render "layouts/admin/sidebar_link_tiny", label: "My Lessons", path: admin_student_path(current_user, active_tab: :active_courses), icon: "book" %>
               
@@ -51,8 +54,8 @@
               <% if current_user.role_superuser? %>
                 <%= render "layouts/admin/sidebar_link_tiny", label: "LLMs", path: admin_llms_path, icon: "cpu" %>
                 <%= render "layouts/admin/sidebar_link_tiny", label: "App Settings", path: edit_admin_app_setting_path, icon: "gear" %>
-                <%= render "layouts/admin/sidebar_link_tiny", label: "Agent Runs", path: admin_agent_runs_path, icon: "activity" %>
-                <%= render "layouts/admin/sidebar_link_tiny", label: "Analytics", path: admin_analytics_events_path, icon: "bar-chart" %>
+                <%= render "layouts/admin/sidebar_link_tiny", label: "Agent Runs", path: admin_agent_runs_path, icon: "robot" %>
+                <%= render "layouts/admin/sidebar_link_tiny", label: "Analytics", path: admin_analytics_events_path, icon: "bar-chart-line" %>
               <% end %>
 
                <%= render "layouts/admin/sidebar_link_tiny", label: "Usage", path: admin_completions_path, icon: "graph-up" %>
