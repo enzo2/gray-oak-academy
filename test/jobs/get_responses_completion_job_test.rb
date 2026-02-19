@@ -17,6 +17,12 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
         "status" => "completed",
         "output" => [
           {
+            "type" => "reasoning",
+            "id" => "rs_1",
+            "summary" => [ { "type" => "summary_text", "text" => "Need tool lookup first." } ],
+            "encrypted_content" => "enc_turn_1"
+          },
+          {
             "type" => "function_call",
             "name" => "list_courses",
             "call_id" => "call_1",
@@ -76,13 +82,19 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
 
     assert_equal 2, calls.size
     assert_equal [ { role: "user", content: "Please help" } ], calls[0][:messages]
+    assert_equal({ summary: "auto" }, calls[0][:kwargs][:reasoning])
     assert_equal "resp_1", calls[1][:kwargs][:previous_response_id]
     assert_equal [ { type: "function_call_output", call_id: "call_1", output: "tool output" } ], calls[1][:kwargs][:input]
+    assert_equal({ summary: "auto" }, calls[1][:kwargs][:reasoning])
 
     assistant_messages = conversation.reload.messages.role_assistant
     assert_equal 2, assistant_messages.count
     assert assistant_messages.first.tool_calls.present?
+    assert_equal "rs_1", assistant_messages.first.reasoning_details[0]["id"]
+    assert_equal "enc_turn_1", assistant_messages.first.reasoning_details[0]["encrypted_content"]
+    assert_equal "Need tool lookup first.", assistant_messages.first.reasoning_details[0]["summary"][0]["text"]
     assert_equal "Final assistant reply", assistant_messages.last.content
+    assert_nil assistant_messages.last.reasoning_details
   end
 
   test "uses full history for stateless providers between tool turns" do
@@ -98,6 +110,12 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
         "id" => "resp_1",
         "status" => "completed",
         "output" => [
+          {
+            "type" => "reasoning",
+            "id" => "rs_1",
+            "summary" => [ { "type" => "summary_text", "text" => "Need lookup first." } ],
+            "encrypted_content" => "enc_turn_1"
+          },
           {
             "type" => "function_call",
             "id" => "fc_1",
@@ -157,17 +175,64 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
 
     assert_equal 2, calls.size
     assert_equal [ { role: "user", content: "Please help" } ], calls[0][:messages]
-    assert_equal({ input: nil, previous_response_id: nil }, calls[1][:kwargs])
+    assert_nil calls[0][:kwargs][:reasoning]
+    assert_equal({ input: nil, previous_response_id: nil, reasoning: nil }, calls[1][:kwargs])
     assert_nil calls[1][:kwargs][:previous_response_id]
     assert_nil calls[1][:kwargs][:input]
+    assert_nil calls[1][:kwargs][:reasoning]
 
     second_messages = calls[1][:messages]
     assert_equal "user", second_messages[0][:role]
     assert_equal "assistant", second_messages[1][:role]
     assert second_messages[1][:tool_calls].present?
+    assert_equal "enc_turn_1", second_messages[1][:reasoning_details][0]["encrypted_content"]
     assert_equal "tool", second_messages[2][:role]
     assert_equal "call_1", second_messages[2][:tool_call_id]
     assert_equal "tool output", second_messages[2][:content]
+  end
+
+  test "does not persist reasoning details when assistant turn has no tool calls" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Explain gravity")
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| nil }
+    fake_client.define_singleton_method(:last_response_hash) do
+      {
+        "id" => "resp_no_tools",
+        "status" => "completed",
+        "output" => [
+          {
+            "type" => "reasoning",
+            "id" => "rs_no_tools",
+            "summary" => [ { "type" => "summary_text", "text" => "Reasoning without tool." } ],
+            "encrypted_content" => "enc_no_tools"
+          },
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Gravity attracts masses." } ] }
+        ]
+      }
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "Gravity attracts masses." }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    assistant = conversation.reload.messages.role_assistant.order(:created_at).last
+    assert_equal "Gravity attracts masses.", assistant.content
+    assert_nil assistant.reasoning_details
+    assert assistant.tool_calls.blank?
   end
 
   test "does not delete latest user message on OpenAiError when a newer tool message exists" do

@@ -63,8 +63,7 @@
               prose-h4:text-base
               prose-ul:my-2 prose-li:my-0 
               prose-ul:marker:text-stone-800 dark:prose-ul:marker:text-stone-100
-              [&>:not(:first-child)]:mt-3
-              [&>:not(:last-child)]:mb-3
+              space-y-3
               prose-pre:leading-tight
               prose-pre:bg-(--rouge-bg)
               prose-pre:overflow-x-auto
@@ -120,31 +119,33 @@
         </div>
       <% end %>
 
-      <% if Rails.env.development? && message.reasoning_details.present? %>
-        <!--
-        <details class="mt-4 p-3 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-600 text-sm">
-          <summary class="cursor-pointer font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100">
-            🧠 Reasoning Details
+      <% reasoning_lines = reasoning_summary_lines(message.reasoning_details) %>
+      <% if message.role_assistant? && message.tool_calls.present? && reasoning_lines.present? %>
+        <details class="not-prose group/reasoning first:mt-0 mt-1 mb-1 last:mb-2">
+          <summary class="inline-flex cursor-pointer select-none list-none items-center gap-1.5 text-sm font-medium font-sans transition-colors text-stone-600 hover:text-stone-500 dark:text-stone-400 dark:hover:text-stone-300">
+            <svg class="h-3 w-3 shrink-0 transition-transform duration-150 group-open/reasoning:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+            </svg>
+            Reasoning
           </summary>
-          <div class="mt-2 space-y-2">
-            <% message.reasoning_details.each_with_index do |detail, idx| %>
-              <div class="pl-3 border-l-2 border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400">
-                <div class="text-xs font-mono text-stone-500 dark:text-stone-500"><%= detail["id"] %></div>
-                <div class="mt-1 whitespace-pre-wrap"><%= detail.dig("text") || detail.inspect %></div>
+          <div class="space-y-2 pl-4">
+            <% reasoning_lines.each do |line| %>
+              <div class="prose prose-stone max-w-none text-xs dark:prose-invert text-stone-600 dark:text-stone-400 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_*]:font-sans [&_*]:text-xs [&_*]:leading-relaxed">
+                <%= markdown(line) %>
               </div>
             <% end %>
           </div>
-        </details> -->
+        </details>
       <% end %>
 
       <%= markdown(message.content) if effectively_present_text?(message.content) && !message.role_tool? %>
 
-      <% if message.tool_calls.present? %> 
-        <span class="mt-2 font-sans text-stone-500 dark:text-stone-400">
-          Used <%= "tool".pluralize(message.tool_calls.count) %>:
-          <%= friendly_tool_name(message.tool_calls.map { |tool_call| tool_call.dig("function","name") }.
-              join(", ")) %>
-        </span>
+      <% if message.tool_calls.present? %>
+        <% tool_names = friendly_tool_name(message.tool_calls.map { |tool_call| tool_call.dig("function", "name") }.join(", ")) %>
+        <div class="not-prose first:mt-0 mt-1 mb-1 last:mb-2 flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 font-sans text-sm text-stone-600 dark:text-stone-400">
+          <span class="font-semibold ">Used <%= "tool".pluralize(message.tool_calls.count) %>:</span>
+          <span class="break-words"><%= tool_names %></span>
+        </div>
       <% end %>
     <% end %>
   </div>

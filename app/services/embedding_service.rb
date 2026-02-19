@@ -37,7 +37,7 @@ class EmbeddingService
       api_key: token,
       base_url: "https://openrouter.ai/api/v1/",
       max_retries: 2,
-      timeout: 60
+      timeout: OpenaiClientDefaults.timeout_seconds
     )
   end
 end

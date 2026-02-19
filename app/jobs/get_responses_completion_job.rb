@@ -44,7 +44,11 @@ class GetResponsesCompletionJob < ApplicationJob
     end
 
     start_stream_turn!(state: stream_state)
-    response_hash = complete_and_capture_response(client, messages: initial_messages)
+    response_hash = complete_and_capture_response(
+      client,
+      messages: initial_messages,
+      reasoning: reasoning_options_for(stateful_supported: stateful_supported)
+    )
     flush_stream_content!(conversation: conversation, state: stream_state, force: true)
     final_message_id = nil
     turns = 0
@@ -78,7 +82,8 @@ class GetResponsesCompletionJob < ApplicationJob
         response_hash = complete_and_capture_response(
           client,
           input: tool_outputs,
-          previous_response_id: response_hash["id"]
+          previous_response_id: response_hash["id"],
+          reasoning: reasoning_options_for(stateful_supported: stateful_supported)
         )
         flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       else
@@ -120,8 +125,8 @@ class GetResponsesCompletionJob < ApplicationJob
 
   private
 
-  def complete_and_capture_response(client, messages: nil, input: nil, previous_response_id: nil)
-    client.complete(messages, input: input, previous_response_id: previous_response_id)
+  def complete_and_capture_response(client, messages: nil, input: nil, previous_response_id: nil, reasoning: nil)
+    client.complete(messages, input: input, previous_response_id: previous_response_id, reasoning: reasoning)
     response_hash = client.last_response_hash
     raise OpenAiError, "Responses API did not return a valid response payload." if response_hash.blank?
     raise_on_response_refusal!(response_hash)
@@ -129,10 +134,17 @@ class GetResponsesCompletionJob < ApplicationJob
     response_hash
   end
 
+  def reasoning_options_for(stateful_supported:)
+    return nil unless stateful_supported
+
+    { summary: "auto" }
+  end
+
   def persist_assistant_message(conversation:, response_hash:, client:, function_call_adapter:, stream_message: nil)
     text = client.output_text(response_hash)
     function_calls = function_call_adapter.function_calls(response_hash)
     tool_calls = function_call_adapter.function_calls_as_chat_tool_calls(function_calls)
+    reasoning_details = extract_tool_call_reasoning_details(response_hash, tool_calls)
 
     content_blank = effectively_blank_text?(text)
     if stream_message.present?
@@ -143,6 +155,9 @@ class GetResponsesCompletionJob < ApplicationJob
       if tool_calls.present? && message.tool_calls != tool_calls
         message.update!(tool_calls: tool_calls)
       end
+      if message.reasoning_details != reasoning_details
+        message.update!(reasoning_details: reasoning_details)
+      end
 
       final_content_blank = effectively_blank_text?(message.content)
       final_tool_calls_blank = message.tool_calls.blank?
@@ -151,7 +166,8 @@ class GetResponsesCompletionJob < ApplicationJob
       payload = {
         role: "assistant",
         content: final_content_blank ? nil : message.content,
-        tool_calls: message.tool_calls.presence
+        tool_calls: message.tool_calls.presence,
+        reasoning_details: message.reasoning_details.presence
       }.compact
 
       return { message: message, payload: payload }
@@ -162,14 +178,16 @@ class GetResponsesCompletionJob < ApplicationJob
     payload = {
       role: "assistant",
       content: content_blank ? nil : text,
-      tool_calls: tool_calls.presence
+      tool_calls: tool_calls.presence,
+      reasoning_details: reasoning_details.presence
     }.compact
 
     message = Message.create!(
       conversation: conversation,
       role: "assistant",
       content: content_blank ? nil : text,
-      tool_calls: tool_calls.presence
+      tool_calls: tool_calls.presence,
+      reasoning_details: reasoning_details.presence
     )
 
     { message: message, payload: payload }
@@ -190,6 +208,67 @@ class GetResponsesCompletionJob < ApplicationJob
 
   def deep_dup_messages(messages)
     Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
+  end
+
+  # Persist reasoning items only for assistant turns that include tool calls.
+  # This mirrors Chat Completions policy and avoids storing hidden chain-of-thought
+  # on ordinary conversational replies.
+  def extract_tool_call_reasoning_details(response_hash, tool_calls)
+    return nil if tool_calls.blank?
+
+    details = Array(response_hash["output"]).filter_map do |item|
+      next unless item["type"].to_s == "reasoning"
+
+      normalize_reasoning_detail(item)
+    end
+
+    details.presence
+  end
+
+  def normalize_reasoning_detail(item)
+    encrypted_content = item["encrypted_content"].to_s
+    summary = normalize_reasoning_summary(item["summary"])
+    id = item["id"].to_s
+    status = item["status"].to_s
+
+    detail = {
+      "type" => "reasoning",
+      "id" => id.presence,
+      "status" => status.presence,
+      "summary" => summary.presence,
+      "encrypted_content" => encrypted_content.presence
+    }.compact
+
+    detail.except("type").present? ? detail : nil
+  end
+
+  def normalize_reasoning_summary(summary)
+    case summary
+    when String
+      text = summary.strip
+      return [] if text.blank?
+
+      [ { "type" => "summary_text", "text" => text } ]
+    when Array
+      summary.filter_map { |entry| normalize_reasoning_summary_entry(entry) }
+    when Hash
+      entry = normalize_reasoning_summary_entry(summary)
+      entry.present? ? [ entry ] : []
+    else
+      []
+    end
+  end
+
+  def normalize_reasoning_summary_entry(entry)
+    return nil unless entry.is_a?(Hash)
+
+    type = entry["type"].to_s.presence || "summary_text"
+    text = entry["text"].to_s
+    text = entry["summary_text"].to_s if text.blank?
+    text = text.strip
+    return nil if text.blank?
+
+    { "type" => type, "text" => text }
   end
 
   def raise_on_response_refusal!(response_hash)

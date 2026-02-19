@@ -99,7 +99,7 @@ class OpenaiResponsesService
   # - Call once with store: true (default) and no previous_response_id.
   # - Reuse the same instance and it will set previous_response_id automatically
   #   based on the last response id, allowing you to send only new inputs.
-  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil)
+  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil, reasoning: nil)
     agent_run_context = prepare_agent_run_context(
       background: background,
       metadata: metadata,
@@ -116,6 +116,7 @@ class OpenaiResponsesService
       state_params = build_state_params(store: store, previous_response_id: previous_response_id)
       @active_store = stateful_supported? ? state_params.fetch(:store, @store) : false
       chained_state = state_params[:previous_response_id].present?
+      include_fields = build_include_fields(include: include, state_params: state_params)
 
       if instructions.present?
         if chained_state
@@ -132,13 +133,14 @@ class OpenaiResponsesService
         temperature: temperature,
         **(instructions.present? ? { instructions: instructions } : {}),
         **(@tools.present? ? { tools: @tools } : {}),
-        **(include.present? ? { include: include } : {}),
+        **(include_fields.present? ? { include: include_fields } : {}),
         **(background ? { background: true } : {}),
         **(metadata.present? ? { metadata: metadata } : {}),
         **(max_output_tokens.present? ? { max_output_tokens: max_output_tokens } : {}),
         **(max_tool_calls.present? ? { max_tool_calls: max_tool_calls } : {}),
         **(parallel_tool_calls.present? ? { parallel_tool_calls: parallel_tool_calls } : {}),
         **(tool_choice.present? ? { tool_choice: tool_choice } : {}),
+        **(reasoning.present? ? { reasoning: reasoning } : {}),
         **build_text_params(response_format)
       }
 
@@ -146,7 +148,7 @@ class OpenaiResponsesService
 
       # Set thinking for OpenRouter
       if @reasoning_model_flag && @base_uri.include?("openrouter.ai")
-        request_params[:reasoning] = { effort: "high", exclude: false }
+        request_params[:reasoning] = (request_params[:reasoning] || {}).merge(effort: "high", exclude: false)
       end
 
       request_options = build_request_options
@@ -365,7 +367,7 @@ class OpenaiResponsesService
       api_key: @access_token,
       base_url: ensure_trailing_slash(@base_uri),
       max_retries: 2,
-      timeout: 60
+      timeout: OpenaiClientDefaults.timeout_seconds
     )
   end
 
@@ -459,6 +461,19 @@ class OpenaiResponsesService
     params
   end
 
+  def build_include_fields(include:, state_params:)
+    include_fields = Array(include).flatten.compact.map(&:to_s).reject(&:blank?)
+    include_fields << "reasoning.encrypted_content" if stateless_reasoning_include_required?(state_params: state_params)
+    include_fields.uniq.presence
+  end
+
+  # For stateless runs (including providers that do not support state chaining),
+  # request encrypted reasoning so it can be replayed on subsequent tool-call turns.
+  def stateless_reasoning_include_required?(state_params:)
+    effective_store = state_params.key?(:store) ? state_params[:store] : false
+    !effective_store
+  end
+
   # For non-chained requests, prepend a developer message so prompt context
   # is carried in input items rather than top-level instructions.
   def prepend_default_developer_input(input_items, messages:, chained_state:)
@@ -528,11 +543,65 @@ class OpenaiResponsesService
     items << { "role" => role, "content" => content } if content.present?
 
     tool_calls = hash_value(message, :tool_calls)
+    reasoning_items = build_reasoning_items(hash_value(message, :reasoning_details))
+    if role == "assistant" && tool_calls.present? && reasoning_items.present?
+      items.concat(reasoning_items)
+    end
+
     if role == "assistant" && tool_calls.present?
       items.concat(build_function_call_items(tool_calls))
     end
 
     items
+  end
+
+  def build_reasoning_items(reasoning_details)
+    Array(reasoning_details).filter_map do |detail|
+      next unless detail.is_a?(Hash)
+
+      encrypted_content = hash_value(detail, :encrypted_content).to_s
+      summary = normalize_reasoning_summary(hash_value(detail, :summary))
+      id = hash_value(detail, :id).to_s
+      status = hash_value(detail, :status).to_s
+      next if encrypted_content.blank? && summary.blank? && id.blank? && status.blank?
+
+      {
+        "type" => "reasoning",
+        "id" => id.presence,
+        "status" => status.presence,
+        "summary" => summary.presence,
+        "encrypted_content" => encrypted_content.presence
+      }.compact
+    end
+  end
+
+  def normalize_reasoning_summary(summary)
+    case summary
+    when String
+      text = summary.strip
+      return [] if text.blank?
+
+      [ { "type" => "summary_text", "text" => text } ]
+    when Array
+      summary.filter_map { |entry| normalize_reasoning_summary_entry(entry) }
+    when Hash
+      entry = normalize_reasoning_summary_entry(summary)
+      entry.present? ? [ entry ] : []
+    else
+      []
+    end
+  end
+
+  def normalize_reasoning_summary_entry(entry)
+    return nil unless entry.is_a?(Hash)
+
+    type = hash_value(entry, :type).to_s.presence || "summary_text"
+    text = hash_value(entry, :text).to_s
+    text = hash_value(entry, :summary_text).to_s if text.blank?
+    text = text.strip
+    return nil if text.blank?
+
+    { "type" => type, "text" => text }
   end
 
   # Convert multi-part message content into Responses input items:

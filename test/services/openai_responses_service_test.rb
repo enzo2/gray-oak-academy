@@ -17,6 +17,13 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       {
         "role" => "assistant",
         "content" => nil,
+        "reasoning_details" => [
+          {
+            "id" => "rs_1",
+            "summary" => [ { "type" => "summary_text", "text" => "Need lookup before answering." } ],
+            "encrypted_content" => "enc_blob_1"
+          }
+        ],
         "tool_calls" => [
           { "id" => "call_1", "function" => { "name" => "Lookup", "arguments" => "{\"query\":\"x\"}" } }
         ]
@@ -47,14 +54,19 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "Custom system prompt", captured[:input][0]["content"]
     assert_equal "user", captured[:input][1]["role"]
     assert_equal "Find answer", captured[:input][1]["content"]
-    assert_equal "function_call", captured[:input][2]["type"]
-    assert_equal "call_1", captured[:input][2]["id"]
-    assert_equal "call_1", captured[:input][2]["call_id"]
-    assert_equal "Lookup", captured[:input][2]["name"]
-    assert_equal "function_call_output", captured[:input][3]["type"]
-    assert captured[:input][3]["id"].to_s.start_with?("fco_")
+    assert_equal "reasoning", captured[:input][2]["type"]
+    assert_equal "rs_1", captured[:input][2]["id"]
+    assert_equal "enc_blob_1", captured[:input][2]["encrypted_content"]
+    assert_equal "summary_text", captured[:input][2]["summary"][0]["type"]
+    assert_equal "Need lookup before answering.", captured[:input][2]["summary"][0]["text"]
+    assert_equal "function_call", captured[:input][3]["type"]
+    assert_equal "call_1", captured[:input][3]["id"]
     assert_equal "call_1", captured[:input][3]["call_id"]
-    assert_equal "tool output", captured[:input][3]["output"]
+    assert_equal "Lookup", captured[:input][3]["name"]
+    assert_equal "function_call_output", captured[:input][4]["type"]
+    assert captured[:input][4]["id"].to_s.start_with?("fco_")
+    assert_equal "call_1", captured[:input][4]["call_id"]
+    assert_equal "tool output", captured[:input][4]["output"]
   end
 
   test "complete passes explicit instructions for non-chained requests" do
@@ -135,6 +147,32 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
     assert_nil captured[:store]
     assert_nil captured[:previous_response_id]
+    assert_equal [ "reasoning.encrypted_content" ], captured[:include]
+  end
+
+  test "complete merges stateless reasoning include with explicit include fields" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete(
+        [ { role: "user", content: "Hello" } ],
+        include: [ "output_text.logprobs", "reasoning.encrypted_content" ]
+      )
+    end
+
+    assert_equal [ "output_text.logprobs", "reasoning.encrypted_content" ], captured[:include]
   end
 
   test "xai requests support state chaining params" do

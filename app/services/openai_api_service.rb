@@ -249,7 +249,7 @@ class OpenaiApiService
       api_key: @access_token,
       base_url: ensure_trailing_slash(@base_uri),
       max_retries: 2,
-      timeout: 60
+      timeout: OpenaiClientDefaults.timeout_seconds
     )
   end
 

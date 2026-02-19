@@ -265,7 +265,7 @@ class SpeechService
       api_key: @speech_access_token,
       base_url: ensure_trailing_slash(@speech_base_uri),
       max_retries: 2,
-      timeout: 60
+      timeout: OpenaiClientDefaults.timeout_seconds
     )
   end
 
