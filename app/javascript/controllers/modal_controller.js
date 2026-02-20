@@ -13,6 +13,10 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["content"]
   static values = {
+    wrapperClass: {
+      type: String,
+      default: "relative z-50"
+    },
     panelClass: { 
       type: String, 
       default: "relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-stone-200 dark:border-stone-700" 
@@ -68,6 +72,7 @@ export default class extends Controller {
 
   close(event) {
     if (event && event.preventDefault) event.preventDefault()
+    const closeReason = event?.currentTarget?.dataset?.modalCloseReason || null
     
     if (this.modalWrapper) {
       // Remove manual event listeners
@@ -95,7 +100,10 @@ export default class extends Controller {
       window.removeEventListener("keydown", this.boundHandleKeydown)
     }
 
-    this.element.dispatchEvent(new CustomEvent("modal:close", { bubbles: true }))
+    this.element.dispatchEvent(new CustomEvent("modal:close", {
+      bubbles: true,
+      detail: { reason: closeReason }
+    }))
   }
 
   closeBackground(event) {
@@ -113,7 +121,7 @@ export default class extends Controller {
   buildModalStructure() {
     // 1. Outer wrapper (z-index, full screen)
     this.modalWrapper = document.createElement("div")
-    this.modalWrapper.className = "relative z-50"
+    this.modalWrapper.className = this.wrapperClassValue
     this.modalWrapper.setAttribute("aria-labelledby", "modal-title")
     this.modalWrapper.setAttribute("role", "dialog")
     this.modalWrapper.setAttribute("aria-modal", "true")

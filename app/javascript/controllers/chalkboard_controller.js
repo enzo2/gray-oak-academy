@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { isMobileDevice } from "controllers/utils/device_utils"
 
 export default class extends Controller {
   static targets = [
@@ -6,7 +7,9 @@ export default class extends Controller {
     "container",
     "host",
     "mobileOverlay",
-    "screenshotDialog",
+    "screenshotModal",
+    "screenshotDesktopCopy",
+    "screenshotMobileCopy",
     "screenSizeWarning",
     "fixedTabs",
     "dynamicTabList",
@@ -45,6 +48,7 @@ export default class extends Controller {
     this.registerCoreTabs()
     this.hydrateSeededApplets()
     this.sizeAppletSelectToOptions()
+    this.updateScreenshotInstructionCopy()
     this.updateTabUi()
 
     this._registerAppletHandler = (event) => this.registerApplet(event.detail || {})
@@ -59,9 +63,13 @@ export default class extends Controller {
         this.sizeAppletSelectToOptions()
       }
     }
+    this._boundScreenshotModalClose = (event) => this.handleScreenshotModalClose(event)
     window.addEventListener("chalkboard:register-applet", this._registerAppletHandler)
     window.addEventListener("chalkboard:open-push-tab", this._openPushTabHandler)
     window.addEventListener("resize", this._boundResizeHandler)
+    if (this.hasScreenshotModalTarget) {
+      this.screenshotModalTarget.addEventListener("modal:close", this._boundScreenshotModalClose)
+    }
   }
 
   disconnect() {
@@ -70,6 +78,9 @@ export default class extends Controller {
     window.removeEventListener("chalkboard:open-push-tab", this._openPushTabHandler)
     window.removeEventListener("resize", this._boundResizeHandler)
     window.removeEventListener("keydown", this._boundEscapeHandler)
+    if (this.hasScreenshotModalTarget) {
+      this.screenshotModalTarget.removeEventListener("modal:close", this._boundScreenshotModalClose)
+    }
     if (this.isMobileOpen()) {
       this.closeMobile()
     }
@@ -563,13 +574,24 @@ export default class extends Controller {
   }
 
   screenshotInstructions() {
-    // Just show the user instructions on taking a screenshot.
-    // This is better than using html-to-image which is hard to get to work, or Screen Capture API which is not meant for screenshots. 
-    if (this.hasScreenshotDialogTarget) {
-      this.screenshotDialogTarget.show()
+    if (this.hasScreenshotModalTarget) {
+      this.screenshotModalTarget.dispatchEvent(new CustomEvent("chalkboard:screenshot-modal-open", { bubbles: true }))
     } else {
-      console.warn("No screenshotDialog target found.")
+      console.warn("No screenshot modal target found.")
     }
+  }
+
+  handleScreenshotModalClose(event) {
+    if (event?.detail?.reason !== "browser-screenshot") return
+
+    this.dispatch("browser-screenshot-request", { bubbles: true })
+  }
+
+  updateScreenshotInstructionCopy() {
+    if (!this.hasScreenshotDesktopCopyTarget || !this.hasScreenshotMobileCopyTarget) return
+    const mobile = isMobileDevice()
+    this.screenshotDesktopCopyTarget.classList.toggle("hidden", mobile)
+    this.screenshotMobileCopyTarget.classList.toggle("hidden", !mobile)
   }
 
   openWhiteboard() {

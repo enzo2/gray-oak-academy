@@ -89,6 +89,26 @@ class MessageInputTest < ApplicationSystemTestCase
     JS
   end
 
+  def stub_screenshot_capture_hooks!
+    page.execute_script(<<~JS)
+      const form = document.querySelector("form[data-controller*='new-message']");
+      const controller = window.Stimulus?.getControllerForElementAndIdentifier(form, "new-message");
+      if (!controller) return;
+
+      controller.offerBrowserScreenshot = true;
+      if (controller.hasScreenshotMenuItemTarget) {
+        controller.screenshotMenuItemTarget.classList.remove("hidden");
+      }
+
+      controller.captureBrowserScreenshot = () => {
+        document.body.dataset.browserScreenshotRequested = "true";
+      };
+      controller.captureBrowserScreenshotUncropped = () => {
+        document.body.dataset.browserScreenshotMenuRequested = "true";
+      };
+    JS
+  end
+
   test "sending a text message" do
     visit conversation_path(@conversation)
     fill_message_content "Testing"
@@ -224,7 +244,7 @@ class MessageInputTest < ApplicationSystemTestCase
     assert_selector "#previewArea.hidden", visible: :all, wait: 2
   end
 
-  test "audio-only lessons show a dedicated camera button when available" do
+  test "audio-only lessons show camera action in image menu when available" do
     @conversation = conversations(:student_audio_only_conversation)
     visit conversation_path(@conversation)
 
@@ -234,11 +254,10 @@ class MessageInputTest < ApplicationSystemTestCase
       document.dispatchEvent(new CustomEvent('new-message:camera-check', { bubbles: true }));
     JS
 
-    assert_selector "sl-icon-button[data-new-message-target='cameraButton']:not(.hidden)", visible: :all, wait: 5
-    assert_selector "sl-menu-item[value='camera'].hidden", visible: :all, wait: 5
+    assert_selector "sl-menu-item[value='camera']:not(.hidden)", visible: :all, wait: 5
   end
 
-  test "audio-only lessons can capture a photo and attach it" do
+  test "audio-only lessons can capture a photo and attach it from image menu" do
     @conversation = conversations(:student_audio_only_conversation)
     visit conversation_path(@conversation)
 
@@ -248,8 +267,9 @@ class MessageInputTest < ApplicationSystemTestCase
       document.dispatchEvent(new CustomEvent('new-message:camera-check', { bubbles: true }));
     JS
 
-    assert_selector "sl-icon-button[data-new-message-target='cameraButton']:not(.hidden)", visible: :all, wait: 5
-    find("sl-icon-button[data-new-message-target='cameraButton']").click
+    assert_selector "sl-menu-item[value='camera']:not(.hidden)", visible: :all, wait: 5
+    find('sl-icon-button[name="images"]').click
+    find("sl-menu-item[value='camera']", visible: true, wait: 5).click
 
     assert_selector "sl-button[data-camera-target='captureButton']", wait: 5
     page.execute_script(<<~JS)
@@ -268,5 +288,26 @@ class MessageInputTest < ApplicationSystemTestCase
     find("sl-button[data-camera-target='useButton']").click
 
     assert_selector "#previewArea img", wait: 5
+  end
+
+  test "chalkboard screenshot instructions can trigger browser screenshot capture" do
+    visit conversation_path(@conversation)
+    stub_screenshot_capture_hooks!
+
+    find("#screenshotButton").click
+    assert_text "Chalkboard screenshot instructions", wait: 5
+
+    find("button[data-modal-close-reason='browser-screenshot']", visible: true, wait: 5).click
+    assert_selector "body[data-browser-screenshot-requested='true']", wait: 5
+  end
+
+  test "images menu screenshot action triggers uncropped browser screenshot capture" do
+    visit conversation_path(@conversation)
+    stub_screenshot_capture_hooks!
+
+    find('sl-icon-button[name="images"]').click
+    find("sl-menu-item[value='screenshot']", visible: true, wait: 5).click
+
+    assert_selector "body[data-browser-screenshot-menu-requested='true']", wait: 5
   end
 end

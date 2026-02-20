@@ -61,12 +61,37 @@
     </div>
   </div>
 
-  <sl-dialog label="Chalkboard screenshot instructions" data-chalkboard-target="screenshotDialog">
-    <p class="mb-2">The easiest way to take a screenshot and show it to the LLM is to use your computer's built-in screenshot tool.</p>
-    <p class="mb-2">You can paste images directly into the chat text box.</p>
-    <p class="mb-2"><b>Windows:</b> Press the 'PrtSc' (Print Screen) key (or 'Win ⊞ + Shift + S'), select the area, then click the chat text box and paste (Ctrl+V).</p>
-    <p class="mb-2"><b>Mac:</b> Press 'Cmd⌘ + Ctrl + Shift + 4', select the area, then click the chat text box and paste (Cmd⌘+V).</p>
-  </sl-dialog>
+  <div data-controller="modal"
+       data-chalkboard-target="screenshotModal"
+       data-action="chalkboard:screenshot-modal-open->modal#open"
+       data-modal-wrapper-class-value="relative z-[70]"
+       data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-stone-200 dark:border-stone-700">
+    <div data-modal-target="content" class="hidden p-4 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Chalkboard screenshot instructions</h2>
+        <button type="button" class="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200" data-action="modal#close">
+          <sl-icon name="x-lg" class="text-xl"></sl-icon>
+        </button>
+      </div>
+
+      <div class="hidden" data-chalkboard-target="screenshotDesktopCopy">
+        <p>For an automatic chalkboard screenshot, give approval via your browser:</p>
+        <button data-action="modal#close" data-modal-close-reason="browser-screenshot" class="btn-secondary mb-2">
+          Screenshot via my browser
+        </button>
+
+        <p class="my-2">The best way to screenshot is using your computer's built-in screenshot tool.</p>
+        <p class="mb-2">You can paste images directly into the chat text box.</p>
+        <p class="mb-2"><b>Windows:</b> Press the 'PrtSc' (Print Screen) key (or 'Win ⊞ + Shift + S'), select the area, then click the chat text box and paste (Ctrl+V).</p>
+        <p class="mb-2"><b>Mac:</b> Press 'Cmd⌘ + Ctrl + Shift + 4', select the area, then click the chat text box and paste (Cmd⌘+V).</p>
+      </div>
+
+      <div class="hidden" data-chalkboard-target="screenshotMobileCopy">
+        <p class="mb-2">Take a screenshot with your phone, then tap Upload Image in chat and choose it from Photos or Gallery.</p>
+        <p class="mb-2">If your keyboard/browser supports it, you can also paste screenshots directly into the chat box.</p>
+      </div>
+    </div>
+  </div>
 
   <sl-dialog label="Screen too narrow" data-chalkboard-target="screenSizeWarning">
     <p>Your screen is too narrow for the chalkboard. To see it, use a device with a larger screen or higher resolution.</p>

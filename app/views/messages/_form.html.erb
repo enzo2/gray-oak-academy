@@ -57,6 +57,7 @@
           keydown.enter->new-message#submit:prevent
           <%= if audio_setting == "only" then "paste@window->new-message#paste" else "paste->new-message#paste" end %>
           chalkboard:screenshot@window->new-message#addScreenshotFromEvent
+          chalkboard:browser-screenshot-request@window->new-message#captureBrowserScreenshot
           "
         <% if audio_setting == "only" %>
           disabled
@@ -75,14 +76,6 @@
     <div class="absolute right-[8px] <%= audio_setting == "only" ? "bottom-[6px]" : "" %> top-[6px] flex items-center">
       <%= form.file_field :images, multiple: true, class: "hidden", data: { new_message_target: "fileInput", action: "new-message#handleFiles" }, accept: "image/png, image/jpeg, image/webp" %>
 
-      <sl-icon-button
-        name="camera"
-        label="Take Photo"
-        class="hidden mr-1 text-xl"
-        data-new-message-target="cameraButton"
-        data-action="click->new-message#openCamera">
-      </sl-icon-button>
-
       <sl-dropdown placement="top-end">
         <sl-icon-button slot="trigger" name="images" class="text-xl" data-new-message-target="imagesMenuButton"></sl-icon-button>
         <sl-menu data-new-message-target="imagesMenu">
@@ -97,6 +90,10 @@
           <sl-menu-item value="url">
             Link to URL
             <sl-icon slot="suffix" name="link"></sl-icon>
+          </sl-menu-item>
+          <sl-menu-item value="screenshot" class="hidden" data-new-message-target="screenshotMenuItem">
+            Screenshot
+            <sl-icon slot="suffix" name="display"></sl-icon>
           </sl-menu-item>
         </sl-menu>
       </sl-dropdown>

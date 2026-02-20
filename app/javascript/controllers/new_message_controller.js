@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { isMobileDevice } from "controllers/utils/device_utils"
 
 // Handles the message form in LLM conversations
 // Enables image uploads, URL image previews, pasting images, shift+enter for new lines, and form submission
@@ -17,10 +18,11 @@ export default class extends Controller {
     "submitIcon",
     "helpText",
     "cameraMenuItem",
-    "cameraButton"
+    "screenshotMenuItem"
   ];
   static values = { audioSetting: String, conversationId: String };
   static MAX_IMAGES = 4;
+  static CAPTURE_START_DELAY_MS = 150;
 
   connect() {
     //console.log("New message controller connected")
@@ -34,11 +36,13 @@ export default class extends Controller {
     document.addEventListener("llm-completion-finished", this.boundHandleCompletionFinished)
     document.addEventListener("llm-completion-error", this.boundHandleCompletionError)
     this.element.addEventListener("turbo:submit-end", this.boundHandleSubmitEnd)
+    this.browserScreenshotSupported = Boolean(navigator.mediaDevices?.getDisplayMedia)
+    this.offerBrowserScreenshot = this.browserScreenshotSupported && !isMobileDevice()
     if (this.hasCameraMenuItemTarget) {
       this.cameraMenuItemTarget.classList.add("hidden")
     }
-    if (this.hasCameraButtonTarget) {
-      this.cameraButtonTarget.classList.add("hidden")
+    if (this.hasScreenshotMenuItemTarget) {
+      this.screenshotMenuItemTarget.classList.toggle("hidden", !this.offerBrowserScreenshot)
     }
 
     const initialBusy = this.currentBusyState() || this.detectBusyFromDom()
@@ -85,12 +89,243 @@ export default class extends Controller {
       this.urlDialogTarget.show()
     } else if (event.detail.item.value === 'camera') {
       this.openCamera()
+    } else if (event.detail.item.value === 'screenshot') {
+      if (!this.offerBrowserScreenshot) return
+      this.captureBrowserScreenshotUncropped()
     }
   }
 
   openCamera() {
     if (this.busy) return
     this.dispatch("camera-open", { bubbles: true })
+  }
+
+  async captureBrowserScreenshot() {
+    if (this.busy) return
+    if (!this.canAddMoreImages()) return
+
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      alert("Browser screenshot capture is not supported here. Use your system screenshot tool and paste into chat.")
+      return
+    }
+
+    let stream = null
+    try {
+      const cropHint = this.chalkboardCropHint()
+      stream = await this.openDisplayMediaStream({ preferCurrentTab: true })
+      await this.waitBeforeFrameCapture()
+      if (this.busy) return
+
+      const blob = await this.captureScreenshotBlob(stream, cropHint)
+      if (!blob) {
+        alert("Could not capture screenshot. Please try again.")
+        return
+      }
+
+      const file = new File([blob], "browser-screenshot.png", { type: blob.type || "image/png" })
+      this.addImage(file)
+    } catch (error) {
+      if (error?.name === "NotAllowedError" || error?.name === "AbortError") return
+      alert("Failed to capture screenshot. Try your system screenshot tool and paste into chat.")
+      console.error("Screen Capture API failed:", error)
+    } finally {
+      stream?.getTracks().forEach((track) => track.stop())
+    }
+  }
+
+  async captureBrowserScreenshotUncropped() {
+    if (this.busy) return
+    if (!this.canAddMoreImages()) return
+
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      alert("Browser screenshot capture is not supported here. Use your system screenshot tool and paste into chat.")
+      return
+    }
+
+    let stream = null
+    try {
+      stream = await this.openDisplayMediaStream()
+      await this.waitBeforeFrameCapture()
+      if (this.busy) return
+
+      const blob = await this.captureScreenshotBlob(stream)
+      if (!blob) {
+        alert("Could not capture screenshot. Please try again.")
+        return
+      }
+
+      const file = new File([blob], "browser-screenshot.png", { type: blob.type || "image/png" })
+      this.addImage(file)
+    } catch (error) {
+      if (error?.name === "NotAllowedError" || error?.name === "AbortError") return
+      alert("Failed to capture screenshot. Try your system screenshot tool and paste into chat.")
+      console.error("Screen Capture API failed:", error)
+    } finally {
+      stream?.getTracks().forEach((track) => track.stop())
+    }
+  }
+
+  async openDisplayMediaStream({ preferCurrentTab = false } = {}) {
+    const attempts = []
+    if (preferCurrentTab) {
+      attempts.push({
+        video: { cursor: "never" },
+        audio: false,
+        preferCurrentTab: true
+      })
+    }
+    attempts.push({
+      video: { cursor: "never" },
+      audio: false
+    })
+    attempts.push({
+      video: true,
+      audio: false
+    })
+
+    let lastError = null
+    for (const constraints of attempts) {
+      try {
+        return await navigator.mediaDevices.getDisplayMedia(constraints)
+      } catch (error) {
+        if (error?.name === "NotAllowedError" || error?.name === "AbortError") throw error
+        lastError = error
+      }
+    }
+
+    throw lastError || new Error("Failed to start display capture")
+  }
+
+  waitBeforeFrameCapture() {
+    return new Promise((resolve) => {
+      window.setTimeout(resolve, this.constructor.CAPTURE_START_DELAY_MS)
+    })
+  }
+
+  captureScreenshotBlob(stream, cropHint = null) {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video")
+      video.srcObject = stream
+      video.muted = true
+      video.playsInline = true
+
+      const cleanup = () => {
+        video.pause()
+        video.srcObject = null
+      }
+
+      video.onloadedmetadata = async () => {
+        try {
+          await video.play()
+          const frameWidth = video.videoWidth
+          const frameHeight = video.videoHeight
+          if (!frameWidth || !frameHeight) {
+            cleanup()
+            resolve(null)
+            return
+          }
+
+          const crop = this.cropRectFromHint(cropHint, frameWidth, frameHeight)
+          const canvas = document.createElement("canvas")
+          canvas.width = crop.width
+          canvas.height = crop.height
+          const context = canvas.getContext("2d")
+          if (!context) {
+            cleanup()
+            resolve(null)
+            return
+          }
+
+          context.drawImage(
+            video,
+            crop.x,
+            crop.y,
+            crop.width,
+            crop.height,
+            0,
+            0,
+            crop.width,
+            crop.height
+          )
+          canvas.toBlob((blob) => {
+            cleanup()
+            resolve(blob)
+          }, "image/png")
+        } catch (error) {
+          cleanup()
+          reject(error)
+        }
+      }
+
+      video.onerror = () => {
+        cleanup()
+        reject(new Error("Failed to read captured stream"))
+      }
+    })
+  }
+
+  chalkboardCropHint() {
+    const container = document.getElementById("chalkboard") || document.getElementById("chalkboard_container")
+    if (!container) return null
+
+    const rect = container.getBoundingClientRect()
+    if (rect.width <= 1 || rect.height <= 1) return null
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    if (!viewportWidth || !viewportHeight) return null
+
+    return {
+      xRatio: this.clamp01(rect.left / viewportWidth),
+      yRatio: this.clamp01(rect.top / viewportHeight),
+      widthRatio: this.clamp01(rect.width / viewportWidth),
+      heightRatio: this.clamp01(rect.height / viewportHeight),
+      viewportAspect: viewportWidth / viewportHeight
+    }
+  }
+
+  cropRectFromHint(cropHint, frameWidth, frameHeight) {
+    const fullFrame = { x: 0, y: 0, width: frameWidth, height: frameHeight }
+    if (!cropHint) return fullFrame
+
+    let contentX = 0
+    let contentY = 0
+    let contentWidth = frameWidth
+    let contentHeight = frameHeight
+
+    // Some browsers provide capture frames with letterboxing around the tab content.
+    // Fit a viewport-aspect content box first, then map ratio-based crop coordinates inside it.
+    const viewportAspect = cropHint.viewportAspect
+    if (Number.isFinite(viewportAspect) && viewportAspect > 0) {
+      const frameAspect = frameWidth / frameHeight
+      if (Number.isFinite(frameAspect) && frameAspect > 0) {
+        if (frameAspect > viewportAspect) {
+          contentHeight = frameHeight
+          contentWidth = Math.round(contentHeight * viewportAspect)
+          contentX = Math.round((frameWidth - contentWidth) / 2)
+        } else if (frameAspect < viewportAspect) {
+          contentWidth = frameWidth
+          contentHeight = Math.round(contentWidth / viewportAspect)
+          contentY = Math.round((frameHeight - contentHeight) / 2)
+        }
+      }
+    }
+
+    const x = Math.round(contentX + (cropHint.xRatio * contentWidth))
+    const y = Math.round(contentY + (cropHint.yRatio * contentHeight))
+    const width = Math.round(cropHint.widthRatio * contentWidth)
+    const height = Math.round(cropHint.heightRatio * contentHeight)
+
+    const safeX = Math.max(0, Math.min(x, frameWidth - 1))
+    const safeY = Math.max(0, Math.min(y, frameHeight - 1))
+    const safeWidth = Math.max(1, Math.min(width, frameWidth - safeX))
+    const safeHeight = Math.max(1, Math.min(height, frameHeight - safeY))
+
+    return { x: safeX, y: safeY, width: safeWidth, height: safeHeight }
+  }
+
+  clamp01(value) {
+    return Math.max(0, Math.min(1, value))
   }
   
   canAddMoreImages() {
@@ -191,7 +426,7 @@ export default class extends Controller {
   addScreenshotFromEvent(event) {
     if (this.busy) return
 
-    console.log("Adding screenshot from event", event);
+    //console.log("Adding screenshot from event", event);
     if (event && event.detail && event.detail.blob) {
       if (!this.canAddMoreImages()) return;
       const blob = event.detail.blob;
@@ -211,21 +446,8 @@ export default class extends Controller {
 
   setCameraAvailability(event) {
     const available = Boolean(event?.detail?.available)
-    if (this.audioSettingValue === "only") {
-      if (this.hasCameraMenuItemTarget) {
-        this.cameraMenuItemTarget.classList.add("hidden")
-      }
-      if (this.hasCameraButtonTarget) {
-        this.cameraButtonTarget.classList.toggle("hidden", !available)
-      }
-      return
-    }
-
     if (this.hasCameraMenuItemTarget) {
       this.cameraMenuItemTarget.classList.toggle("hidden", !available)
-    }
-    if (this.hasCameraButtonTarget) {
-      this.cameraButtonTarget.classList.add("hidden")
     }
   }
 
@@ -417,7 +639,6 @@ export default class extends Controller {
 
     if (this.hasSubmitButtonTarget) this.submitButtonTarget.disabled = this.busy
     if (this.hasImagesMenuButtonTarget) this.imagesMenuButtonTarget.disabled = this.busy
-    if (this.hasCameraButtonTarget) this.cameraButtonTarget.disabled = this.busy
 
     if (this.busy) {
       if (this.hasSubmitIconTarget) this.submitIconTarget.classList.add("hidden")
