@@ -8,14 +8,29 @@
      data-action="toggleAutoRead@window->tts-stream#toggleAutoRead">
 
   <!-- Conversation -->
-  <div class="grow overflow-y-auto overflow-x-hidden pr-4" 
+  <div class="grow overflow-y-auto overflow-x-hidden pr-4"
        id="<%= dom_id(conversation) %>"
        data-controller="conversation"
        data-conversation-target="messages"
+       data-conversation-welcome-messages-value="<%= conversation_welcome_messages.to_json %>"
        data-action="llm-completion-finished->tts-stream#handleNewAssistantMessageFinished">
-      <% conversation.messages.each do |message| %>
-        <%= render partial: "messages/message", locals: { message: message } %>
-      <% end %>
+    <% conversation.messages.each do |message| %>
+      <%= render partial: "messages/message", locals: { message: message } %>
+    <% end %>
+
+    <div class="pointer-events-none flex w-full justify-start py-2"
+         id="<%= dom_id(conversation) %>_accent"
+         data-conversation-target="accent"
+         aria-hidden="true">
+      <div class="inline-flex items-center gap-2 rounded-full bg-stone-100/80 px-3 py-1.5 backdrop-blur-sm dark:bg-stone-800/80">
+        <div data-conversation-target="accentIcon">
+          <%= image_tag "logo_icon.svg", size: "24", class: "opacity-80 dark:hidden", alt: "" %>
+          <%= image_tag "logo_icon_negative.svg", size: "24", class: "opacity-80 hidden dark:block", alt: "" %>
+        </div>
+        <span data-conversation-target="accentText"
+              class="text-sm font-sans text-stone-500 dark:text-stone-400 select-none"></span>
+      </div>
+    </div>
   </div>
 
   <div class="flex-none">

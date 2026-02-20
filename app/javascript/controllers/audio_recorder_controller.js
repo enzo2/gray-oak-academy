@@ -10,6 +10,13 @@ export default class extends Controller {
   }
 
   async connect() {
+    this.boundHandleBusyChange = this.handleBusyChange.bind(this)
+    this.boundHandleCompletionFinished = this.handleCompletionFinished.bind(this)
+    this.boundHandleCompletionError = this.handleCompletionError.bind(this)
+    document.addEventListener("new-message:busy-change", this.boundHandleBusyChange)
+    document.addEventListener("llm-completion-finished", this.boundHandleCompletionFinished)
+    document.addEventListener("llm-completion-error", this.boundHandleCompletionError)
+
     // By default, the recordButton is hidden. Check a series of requirements before initializing.
     if (!window.isSecureContext) {
       // If not secure, don't bother initializing, as MediaRecorder won't work.
@@ -50,10 +57,13 @@ export default class extends Controller {
       this.audioChunks = []
       this.recordingTimer = null
       this.MAX_RECORDING_TIME = 60000 // 60 seconds in milliseconds
+      this.applyBusyState(this.currentBusyState())
     }
   }
 
   async toggleRecording() {
+    if (this.currentBusyState()) return
+
     if (this.isRecording) {
       this.stopRecording()
     } else {
@@ -136,6 +146,10 @@ export default class extends Controller {
   }
 
   async uploadAudio(audioBlob) {
+    if (this.currentBusyState()) return
+
+    this.setBusyState(true)
+
     const formData = new FormData()
     // Determine file extension based on the blob's mime type
     let fileExtension = 'webm'; // Default
@@ -176,12 +190,14 @@ export default class extends Controller {
         body: formData
       })
       if (!response.ok) {
+        this.setBusyState(false)
         throw new Error(`Server responded with ${response.status}`)
       }
       const html = await response.text()
       Turbo.renderStreamMessage(html)
     } catch (error) {
       console.error('Error uploading audio:', error)
+      this.setBusyState(false)
     }
   }
 
@@ -191,5 +207,64 @@ export default class extends Controller {
       this.stopRecording()
     }
     clearTimeout(this.recordingTimer)
+    document.removeEventListener("new-message:busy-change", this.boundHandleBusyChange)
+    document.removeEventListener("llm-completion-finished", this.boundHandleCompletionFinished)
+    document.removeEventListener("llm-completion-error", this.boundHandleCompletionError)
+  }
+
+  handleBusyChange(event) {
+    const conversationId = event?.detail?.conversationId?.toString()
+    if (!conversationId || conversationId != this.conversationIdValue.toString()) return
+    this.applyBusyState(Boolean(event?.detail?.busy))
+  }
+
+  handleCompletionFinished(event) {
+    if (!this.eventMatchesConversation(event)) return
+
+    if (event.detail?.tool_call_pending) {
+      this.setBusyState(true)
+      return
+    }
+
+    this.setBusyState(false)
+  }
+
+  handleCompletionError(event) {
+    if (!this.eventMatchesConversation(event)) return
+    this.setBusyState(false)
+  }
+
+  eventMatchesConversation(event) {
+    const conversationId = this.conversationIdValue.toString()
+    const detailConversationId = event.detail?.conversation_id?.toString()
+    if (detailConversationId && detailConversationId === conversationId) return true
+
+    const targetId = event?.target?.id
+    return targetId === `conversation_${conversationId}`
+  }
+
+  busyRegistry() {
+    if (!window.__goaConversationBusyRegistry) {
+      window.__goaConversationBusyRegistry = new Map()
+    }
+    return window.__goaConversationBusyRegistry
+  }
+
+  currentBusyState() {
+    return this.busyRegistry().get(this.conversationIdValue.toString()) === true
+  }
+
+  setBusyState(busy) {
+    this.busyRegistry().set(this.conversationIdValue.toString(), Boolean(busy))
+    this.applyBusyState(busy)
+  }
+
+  applyBusyState(busy) {
+    if (!this.hasRecordButtonTarget) return
+
+    this.recordButtonTarget.disabled = Boolean(busy)
+    this.recordButtonTarget.classList.toggle("opacity-50", Boolean(busy))
+
+    if (busy && this.isRecording) this.stopRecording()
   }
 }

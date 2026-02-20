@@ -1,6 +1,24 @@
 module ApplicationHelper
   include ActiveSupport::NumberHelper
 
+  CONVERSATION_WELCOME_MESSAGES = [
+    "Some have secret sauce. I have secret moss.",
+    "Let's branch off into something new.",
+    "Dark mode? What is this, a school for naps?",
+    "Leaf your worries at the door.",
+    "I'm not stumped yet. Ask away.",
+    "Oak-ay, let's do this.",
+    "I've been rooting for you all day.",
+    "Acorn-y joke a day keeps boredom away.",
+    "I'm deeply rooted in the classics.",
+    "I'll tell it to you with the bark off."
+
+  ].freeze
+
+  def conversation_welcome_messages
+    CONVERSATION_WELCOME_MESSAGES
+  end
+
   def friendly_tool_name(tool_name)
     tool_name.gsub(/[_-]/, " ")
   end

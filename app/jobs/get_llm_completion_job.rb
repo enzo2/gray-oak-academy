@@ -174,7 +174,7 @@ class GetLlmCompletionJob < ApplicationJob
             final_tool_calls = tool_calls_buffer.sort_by { |idx, _tc| idx }.map { |_idx, tc| tc } # Order by the index
             message.update!(tool_calls: final_tool_calls) # Add tool calls to the message
             message_id = check_for_blank_response(message, conversation)
-            broadcast_completion_finished(conversation, message_id) # Broadcast completion now, since tool may take a while
+            broadcast_completion_finished(conversation, message_id, tool_call_pending: true) # Keep UI in busy state until follow-up turn completes
             Rails.logger.debug "Tool call streamed. Calling tool(s): #{final_tool_calls.inspect}"
             tool_handler = ToolHandlerService.new(conversation: conversation, message: message)
             tool_handler.execute_tool_calls(final_tool_calls)
@@ -282,6 +282,11 @@ class GetLlmCompletionJob < ApplicationJob
     )
     # Placeholder may have been added for the assistant reply. Remove it.
     Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
+    broadcast_dispatch_event(
+      conversation: conversation,
+      event_name: "llm-completion-error",
+      payload: { conversation_id: conversation.id }
+    )
   end
 
   def broadcast_warning(message, conversation)
@@ -293,23 +298,33 @@ class GetLlmCompletionJob < ApplicationJob
     )
   end
 
-  def broadcast_completion_finished(conversation, message_id)
-    return if message_id.blank?
-
+  def broadcast_completion_finished(conversation, message_id, tool_call_pending: false)
     # Send a final message update as workaround for Turbo::Streams::ActionBroadcastJob being processed out-of-order
     # Message.find_by(id: message_id)&.broadcast_updated
     # Rails.logger.debug "Sent final message update for # #{message_id}"
 
     # Send custom event to the client signalling end of stream (e.g. to trigger TTS)
     Rails.logger.debug("Broadcasting completion finished event to conversation: #{conversation.id}")
+    broadcast_dispatch_event(
+      conversation: conversation,
+      event_name: "llm-completion-finished",
+      payload: {
+        message_id: message_id,
+        conversation_id: conversation.id,
+        tool_call_pending: tool_call_pending
+      }
+    )
+  end
+
+  def broadcast_dispatch_event(conversation:, event_name:, payload:)
     Turbo::StreamsChannel.broadcast_action_to(
       "#{dom_id(conversation)}",
       action: :dispatch_event,
       attributes: {
-        "event-name": "llm-completion-finished",
+        "event-name": event_name,
         "target-selector": "##{dom_id(conversation)}"
       },
-      content: { message_id: message_id }.to_json
+      content: payload.to_json
     )
   end
 

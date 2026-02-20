@@ -1372,9 +1372,9 @@ class ToolExecutionService
   end
 
   def broadcast_lesson_completed
-    Turbo::StreamsChannel.broadcast_append_later_to(
+    Turbo::StreamsChannel.broadcast_before_later_to(
       "#{dom_id(@conversation)}",
-      target: "#{dom_id(@conversation)}",
+      target: "#{dom_id(@conversation)}_accent",
       partial: "student/lessons/lesson_completed"
     )
   end

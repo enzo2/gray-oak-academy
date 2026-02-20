@@ -1,14 +1,18 @@
-<div class="my-3" data-controller="code-executor" data-code-executor-render-target-value="<%= render_target %>" data-code-executor-auto-run-value="<%= auto_run %>" data-code-executor-hidden-value="<%= hidden %>">
-  <div class="highlighted-code-block prose-pre:my-0" data-code-executor-target="highlightedCode">
+<div class="my-4 rounded border border-stone-300 bg-stone-50/50 dark:border-stone-600 dark:bg-stone-800/30" data-controller="code-executor" data-code-executor-render-target-value="<%= render_target %>" data-code-executor-auto-run-value="<%= auto_run %>" data-code-executor-hidden-value="<%= hidden %>">
+  <div class="flex items-center gap-2 border-b border-stone-200 bg-stone-100/80 px-3 py-1.5 dark:border-stone-700 dark:bg-stone-800/60">
+    <sl-icon name="braces-asterisk" class="text-moss-600 dark:text-moss-400 text-sm"></sl-icon>
+    <span class="text-xs font-medium tracking-wide text-stone-500 dark:text-stone-400 uppercase">Applet</span>
+    <div class="code-actions ml-auto flex flex-wrap items-center gap-1.5" data-code-executor-target="actionsContainer"></div>
+  </div>
+  <div class="highlighted-code-block prose-pre:my-0 [&_.highlight]:rounded-none [&_.highlight_pre]:rounded-none [&_pre]:rounded-none" data-code-executor-target="highlightedCode">
 <%= raw "\n" %><!-- extra line ensures commonmark starts a new HTML block for pre-->
 <%== highlighted_html %>
   </div>
 <%= raw "\n" %><!-- extra line ensures commonmark starts a new HTML block for pre-->
   <pre class="hidden" data-code-executor-target="rawCode"><%= h(code) %></pre>
-  <div class="code-actions mb-2 mt-1" data-code-executor-target="actionsContainer"></div>
-  <% if render_target == "inline" %>
-    <div data-code-executor-target="inlineOutput" class="mt-2 p-2 bg-stone-100 dark:bg-stone-900 border border-stone-300 dark:border-stone-600" style="display: none;"></div>
-  <% end %>
+<% if render_target == "inline" %>
+<div data-code-executor-target="inlineOutput" class="border-t border-stone-200 bg-stone-50 p-2 dark:border-stone-700 dark:bg-stone-900" style="display: none;"></div>
+<% end %>
   <%= form_with url: applets_path, method: :post, scope: :applet, data: { code_executor_target: "saveForm" }, html: { class: "hidden" } do |form| %>
     <%= form.hidden_field :title, data: { code_executor_target: "titleInput" } %>
     <%= form.text_area :code, data: { code_executor_target: "codeInput" } %>

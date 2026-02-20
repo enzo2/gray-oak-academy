@@ -25,6 +25,13 @@ export default class extends Controller {
     //console.log("Code Executor connected", this.element);
     //console.log("Config:", this.renderTargetValue, this.autoRunValue, this.hiddenValue);
 
+    this.pendingAutoRun = false;
+    this.pendingAutoRunRawCode = null;
+    this.pendingAutoRunRenderTarget = null;
+    this.messageId = this.resolveMessageId();
+    this.boundHandleCompletionFinished ||= this.handleCompletionFinished.bind(this);
+    document.addEventListener("llm-completion-finished", this.boundHandleCompletionFinished);
+
     const rawCode = this.rawCodeTarget.textContent;
     const actionsContainer = this.actionsContainerTarget;
 
@@ -42,53 +49,80 @@ export default class extends Controller {
     // Handle initial state
     if (this.hiddenValue) {
       this.highlightedCodeTarget.style.display = 'none';
-      toggleBtn.textContent = "Show Code";
+      this.setButtonLabel(toggleBtn, "Show Code");
     } else {
       this.highlightedCodeTarget.style.display = 'block';
-      toggleBtn.textContent = "Hide Code";
+      this.setButtonLabel(toggleBtn, "Hide Code");
     }
 
-    if (this.autoRunValue) {
-      this.executeCode(rawCode, this.renderTargetValue, { manual: false, autoRun: true });
-    }
+    if (this.autoRunValue) this.scheduleAutoRun(rawCode, this.renderTargetValue);
   }
 
-  _createButton(text, className, onClick) {
-    const button = document.createElement("button");
-    button.textContent = text;
-    button.className = className;
-    button.addEventListener("click", onClick);
-    return button;
+  disconnect() {
+    document.removeEventListener("llm-completion-finished", this.boundHandleCompletionFinished);
+    this.clearPendingAutoRunTimer();
+  }
+
+  _createButton(text, className, onClick, iconName = null) {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = `inline-flex items-center gap-1.5 ${className}`
+
+    if (iconName) {
+      const icon = document.createElement("sl-icon")
+      icon.name = iconName
+      icon.className = "text-sm"
+      button.appendChild(icon)
+    }
+
+    const label = document.createElement("span")
+    label.textContent = text
+    button.appendChild(label)
+
+    button.addEventListener("click", onClick)
+    return button
+  }
+
+  setButtonLabel(button, text) {
+    const label = button.querySelector("span")
+    if (label) {
+      label.textContent = text
+    } else {
+      button.textContent = text
+    }
   }
 
   createToggleButton() {
     const btn = this._createButton(
       // Initial text is set in connect()
       "",
-      "px-3 py-1 text-sm font-sans text-gray-900 dark:text-gray-100 bg-sky-200 dark:bg-sky-800 border border-sky-300 dark:border-sky-600 hover:border-sky-500 dark:hover:border-sky-400 rounded",
+      "px-2 py-0.5 text-xs font-sans rounded-sm text-stone-600 dark:text-stone-300 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-600 hover:bg-stone-100 dark:hover:bg-stone-700",
       () => {
-        const isHidden = this.highlightedCodeTarget.style.display === 'none';
-        this.highlightedCodeTarget.style.display = isHidden ? 'block' : 'none';
-        btn.textContent = isHidden ? "Hide Code" : "Show Code";
-      }
-    );
-    return btn;
+        const isHidden = this.highlightedCodeTarget.style.display === 'none'
+        this.highlightedCodeTarget.style.display = isHidden ? 'block' : 'none'
+        this.setButtonLabel(btn, isHidden ? "Hide Code" : "Show Code")
+      },
+      "code-slash"
+    )
+    return btn
   }
 
   createRunButton(rawCode) {
     return this._createButton(
       "Run",
-      "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-green-200 dark:bg-green-800 border border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 rounded",
-      () => this.executeCode(rawCode, this.renderTargetValue, { manual: true, autoRun: false })
-    );
+      "px-2 py-0.5 text-xs font-sans rounded-sm text-success-700 dark:text-success-400 bg-white dark:bg-stone-800 border border-success-600 dark:border-success-500 hover:bg-success-50 dark:hover:bg-success-950",
+      () => this.executeCode(rawCode, this.renderTargetValue, { manual: true, autoRun: false }),
+      "play-fill"
+    )
   }
 
   createArchiveButton(rawCode) {
     return this._createButton(
       "Save",
-      "px-3 py-1 ml-2 text-sm font-sans text-gray-900 dark:text-gray-100 bg-stone-300 dark:bg-stone-700 border border-stone-400 dark:border-stone-500 hover:border-stone-600 dark:hover:border-stone-400 rounded",
-      () => this.archiveApplet(rawCode)
-    );
+      "px-2 py-0.5 text-xs font-sans rounded-sm text-stone-600 dark:text-stone-300 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-600 hover:bg-stone-100 dark:hover:bg-stone-700",
+      () => this.archiveApplet(rawCode),
+      "archive"
+    )
   }
 
   executeCode(rawCode, renderTarget, options = {}) {
@@ -110,10 +144,100 @@ export default class extends Controller {
     iframe.srcdoc = iframeContent;
   }
 
-  executeChalkboardCode(rawCode, _options = {}) {
+  scheduleAutoRun(rawCode, renderTarget) {
+    // If this block is in a streamed assistant message, defer until stream completion
+    // (or after a short idle fallback) to avoid repeated auto-runs on each content replace.
+    if (this.shouldDeferAutoRun()) {
+      this.pendingAutoRun = true;
+      this.pendingAutoRunRawCode = rawCode;
+      this.pendingAutoRunRenderTarget = renderTarget;
+      this.queueDeferredAutoRun();
+      return;
+    }
+
+    this.executeCode(rawCode, renderTarget, { manual: false, autoRun: true });
+  }
+
+  shouldDeferAutoRun() {
+    if (!this.messageId) return false;
+    if (this.messageCompletionRegistry().has(this.messageId)) return false;
+    if (!this.isLatestAssistantMessage(this.messageId)) return false;
+
+    return true;
+  }
+
+  queueDeferredAutoRun() {
+    this.clearPendingAutoRunTimer();
+    this.pendingAutoRunTimer = setTimeout(() => this.runPendingAutoRun(), 700);
+  }
+
+  clearPendingAutoRunTimer() {
+    if (this.pendingAutoRunTimer) {
+      clearTimeout(this.pendingAutoRunTimer);
+      this.pendingAutoRunTimer = null;
+    }
+  }
+
+  runPendingAutoRun() {
+    if (!this.pendingAutoRun || !this.pendingAutoRunRawCode || !this.pendingAutoRunRenderTarget) return;
+
+    this.pendingAutoRun = false;
+    const code = this.pendingAutoRunRawCode;
+    const renderTarget = this.pendingAutoRunRenderTarget;
+    this.pendingAutoRunRawCode = null;
+    this.pendingAutoRunRenderTarget = null;
+    this.executeCode(code, renderTarget, { manual: false, autoRun: true });
+  }
+
+  handleCompletionFinished(event) {
+    const completedMessageId = event.detail?.message_id?.toString();
+    if (!completedMessageId) return;
+
+    this.messageCompletionRegistry().add(completedMessageId);
+
+    if (this.messageId === completedMessageId) {
+      this.runPendingAutoRun();
+    }
+  }
+
+  messageCompletionRegistry() {
+    if (!window.__goaCompletedAssistantMessageIds) {
+      window.__goaCompletedAssistantMessageIds = new Set();
+    }
+    return window.__goaCompletedAssistantMessageIds;
+  }
+
+  resolveMessageId() {
+    const messageElement = this.element.closest("[data-message-id-param]");
+    return messageElement?.dataset.messageIdParam || null;
+  }
+
+  isLatestAssistantMessage(messageId) {
+    const messageElement = this.element.closest("[data-message-id-param]");
+    if (!messageElement) return false;
+
+    const conversationElement = messageElement.closest("[data-controller~='conversation']");
+    if (!conversationElement) return false;
+
+    const assistantMessages = conversationElement.querySelectorAll("[data-tts-stream-target='assistantMessage'][data-message-id-param]");
+    const latestAssistant = assistantMessages[assistantMessages.length - 1];
+    if (!latestAssistant) return false;
+
+    return latestAssistant.dataset.messageIdParam === messageId;
+  }
+
+  executeChalkboardCode(rawCode, options = {}) {
+    const autoRun = !!options.autoRun;
+    const appletKey = autoRun ? this.buildAutoRunAppletKey(rawCode) : `jit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // During streaming, message content is re-rendered repeatedly.
+    // Auto-run applets should register only once per message block + code payload.
+    if (autoRun && this.hasAutoRunExecuted(appletKey)) {
+      return;
+    }
+
     const iframeContent = this.prepareIframeContent(rawCode);
     const appletTitle = this.buildGeneratedAppletTitle();
-    const appletKey = `jit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     this.dispatchChalkboardAppletRegistration({
       event_type: "register_applet",
       source: "jit",
@@ -128,6 +252,10 @@ export default class extends Controller {
       focus: true,
       auto_open_in_board: true
     });
+
+    if (autoRun) {
+      this.markAutoRunExecuted(appletKey);
+    }
   }
 
   buildGeneratedAppletTitle() {
@@ -138,6 +266,48 @@ export default class extends Controller {
 
   dispatchChalkboardAppletRegistration(payload) {
     window.dispatchEvent(new CustomEvent("chalkboard:register-applet", { detail: payload }));
+  }
+
+  buildAutoRunAppletKey(rawCode) {
+    const messageElement = this.element.closest("[data-message-id-param]");
+    const messageId = messageElement?.dataset.messageIdParam || "standalone";
+    const blockIndex = this.blockIndexWithinMessage(messageElement);
+    const codeHash = this.hashString(rawCode);
+
+    return `jit_auto_${messageId}_${blockIndex}_${codeHash}`;
+  }
+
+  blockIndexWithinMessage(messageElement) {
+    if (!messageElement) return 0;
+
+    const executableBlocks = Array.from(messageElement.querySelectorAll("[data-controller~='code-executor']"));
+    const idx = executableBlocks.indexOf(this.element);
+    return idx >= 0 ? idx : 0;
+  }
+
+  autoRunRegistry() {
+    if (!window.__goaAutoRunAppletKeys) {
+      window.__goaAutoRunAppletKeys = new Set();
+    }
+    return window.__goaAutoRunAppletKeys;
+  }
+
+  hasAutoRunExecuted(appletKey) {
+    return this.autoRunRegistry().has(appletKey);
+  }
+
+  markAutoRunExecuted(appletKey) {
+    this.autoRunRegistry().add(appletKey);
+  }
+
+  hashString(value) {
+    // Simple stable 32-bit hash for deterministic applet keys.
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = ((hash << 5) - hash) + value.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
   }
 
   // Helper method to get the applet output element based on the render target

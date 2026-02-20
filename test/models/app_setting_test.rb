@@ -151,4 +151,34 @@ class AppSettingTest < ActiveSupport::TestCase
     @app.update!(openai_agent_max_tool_turns: "not-a-number")
     assert_nil AppSetting.openai_agent_max_tool_turns
   end
+
+  test "embedding model validation is skipped when embedding_model is unchanged" do
+    SupportedApi.create!(
+      api_base_uri: "https://openrouter.ai/api/v1/",
+      api_access_token: "openrouter-test-token",
+      enabled: true
+    )
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, [ "openai/text-embedding-3-small" ]) do
+      @app.update!(embedding_model: "openai/text-embedding-3-small")
+    end
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, -> { flunk("expected embedding model validation to be skipped") }) do
+      assert @app.update(exa_research_model: "exa-research-pro")
+    end
+  end
+
+  test "embedding model validation runs when embedding_model changes" do
+    SupportedApi.create!(
+      api_base_uri: "https://openrouter.ai/api/v1/",
+      api_access_token: "openrouter-test-token",
+      enabled: true
+    )
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, []) do
+      assert_not @app.update(embedding_model: "invalid-embedding-model")
+    end
+
+    assert_includes @app.errors[:embedding_model], "must be a valid OpenRouter embedding model"
+  end
 end

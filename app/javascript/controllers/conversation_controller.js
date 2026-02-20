@@ -1,7 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["messages", "userMessage", "assistantMessage", "assistantMessageContent"];
+  static targets = ["messages", "accent", "accentIcon", "accentText", "userMessage", "assistantMessage", "assistantMessageContent"];
+  static values = { welcomeMessages: Array };
 
   connect() {
     // Debounced KaTeX rendering function
@@ -9,10 +10,19 @@ export default class extends Controller {
 
     // Listen for Turbo Stream updates to re-render KaTeX
     document.addEventListener("turbo:after-stream-render", this.debouncedRenderKatex);
+
+    // Watch for placeholder (#new_message) being added/removed via Turbo Streams
+    this.messagesObserver = new MutationObserver(() => this.updateAccentState());
+    if (this.hasMessagesTarget) {
+      this.messagesObserver.observe(this.messagesTarget, { childList: true });
+    }
+
+    this.updateAccentState();
   }
 
   disconnect() {
     document.removeEventListener("turbo:after-stream-render", this.debouncedRenderKatex);
+    if (this.messagesObserver) this.messagesObserver.disconnect();
   }
 
   // Debounce utility
@@ -23,11 +33,56 @@ export default class extends Controller {
       timeout = setTimeout(() => func.apply(this, args), wait);
     };
   }
-  
+
+  updateAccentState() {
+    if (!this.hasAccentTarget) return;
+
+    const hasMessages = this.messagesTarget.querySelector("[data-message-id-param]") != null;
+    const hasPlaceholder = !!this.messagesTarget.querySelector("#new_message");
+
+    if (hasPlaceholder) {
+      this.setThinkingState();
+    } else if (!hasMessages) {
+      this.setWelcomeState();
+    } else {
+      this.setIdleState();
+    }
+  }
+
+  setWelcomeState() {
+    if (!this.hasAccentTextTarget || !this.hasAccentIconTarget) return;
+    // Only pick a new message if we're not already showing one
+    if (!this.welcomeMessage) {
+      const welcomeMessages = this.hasWelcomeMessagesValue ? this.welcomeMessagesValue : [];
+      this.welcomeMessage = welcomeMessages.length > 0 ? welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)] : "";
+    }
+    this.accentTextTarget.textContent = this.welcomeMessage;
+    this.accentIconTarget.classList.remove("animate-tree-breathe");
+  }
+
+  setThinkingState() {
+    if (!this.hasAccentTextTarget || !this.hasAccentIconTarget) return;
+    this.accentTextTarget.textContent = "Thinking\u2026";
+    this.accentIconTarget.classList.add("animate-tree-breathe");
+  }
+
+  setIdleState() {
+    if (!this.hasAccentTextTarget || !this.hasAccentIconTarget) return;
+    this.accentTextTarget.textContent = "";
+    this.accentIconTarget.classList.remove("animate-tree-breathe");
+  }
+
   scrollToBottom() {
     //console.log("scrolling to bottom")
-    if (this.messagesTarget.lastElementChild) {
-      this.messagesTarget.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const messageElements = this.messagesTarget.querySelectorAll("[data-message-id-param], #new_message");
+    const lastMessage = messageElements[messageElements.length - 1];
+    if (lastMessage) {
+      lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      return;
+    }
+
+    if (this.hasAccentTarget) {
+      this.accentTarget.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }
 
@@ -54,6 +109,7 @@ export default class extends Controller {
   // Scroll to new user messages
   userMessageTargetConnected(element) {
     this.scrollToBottom();
+    this.updateAccentState();
   }
   
   assistantMessageTargetConnected(element) {
@@ -62,6 +118,6 @@ export default class extends Controller {
     // Render KaTeX on page load for existing messages 
     // (For new messages, will fire but irrelevant since have to run again after turbo:after-stream-render)
     this.renderKatexInMessages();
+    this.updateAccentState();
   }
-
 }

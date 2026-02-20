@@ -1,5 +1,5 @@
 class AgentRunLogService
-  MAX_LOGS = 500
+  MAX_LOGS = 50
   MAX_TASK_PROMPT_CHARS = 50_000
 
   def initialize(app_setting: AppSetting.settings)

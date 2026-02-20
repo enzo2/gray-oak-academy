@@ -72,12 +72,6 @@
         <sl-icon-button name="layout-text-sidebar-reverse" class="block md:hidden mr-1" aria-label="Open chats" 
                         data-dispatch-event="sidebar:open-mobile"></sl-icon-button>
         
-        <%= link_to conversations_path,
-            data: { turbo_method: :post },
-            class: "hidden md:block" do %> <!-- Hidden on mobile since it's in the mobile sidebar now, but kept on desktop for "New Chat" shortcut if needed, or remove? The old one had it. -->
-          <sl-icon-button name="plus-square" label="New Chat"></sl-icon-button>
-        <% end %>
-        
         <%# Mobile chalkboard button - visible on smaller screens, hidden on xl+ %>
         <sl-icon-button
           name="easel"

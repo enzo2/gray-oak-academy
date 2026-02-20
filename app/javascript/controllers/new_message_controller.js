@@ -19,20 +19,35 @@ export default class extends Controller {
     "cameraMenuItem",
     "cameraButton"
   ];
-  static values = { audioSetting: String };
+  static values = { audioSetting: String, conversationId: String };
   static MAX_IMAGES = 4;
 
   connect() {
     //console.log("New message controller connected")
     this.images = []
+    this.busy = false
     this.boundHandleMenuSelect = this.handleMenuSelect.bind(this)
+    this.boundHandleCompletionFinished = this.handleCompletionFinished.bind(this)
+    this.boundHandleCompletionError = this.handleCompletionError.bind(this)
+    this.boundHandleSubmitEnd = this.handleSubmitEnd.bind(this)
     this.imagesMenuTarget.addEventListener('sl-select', this.boundHandleMenuSelect)
+    document.addEventListener("llm-completion-finished", this.boundHandleCompletionFinished)
+    document.addEventListener("llm-completion-error", this.boundHandleCompletionError)
+    this.element.addEventListener("turbo:submit-end", this.boundHandleSubmitEnd)
     if (this.hasCameraMenuItemTarget) {
       this.cameraMenuItemTarget.classList.add("hidden")
     }
     if (this.hasCameraButtonTarget) {
       this.cameraButtonTarget.classList.add("hidden")
     }
+
+    const initialBusy = this.currentBusyState() || this.detectBusyFromDom()
+    if (this.hasConversationIdValue) {
+      this.setBusyState(initialBusy)
+    } else {
+      this.applyBusyState(initialBusy)
+    }
+
     this.dispatch("camera-check", { bubbles: true })
   }
 
@@ -46,14 +61,19 @@ export default class extends Controller {
     
 
   toggleSubmitButton() {
+    if (this.busy) return
+
+    if (this.audioSettingValue === "only") {
+      this.helpTextTarget.classList.remove("hidden");
+      return;
+    }
+
     //console.log("toggleSubmitButton")
     const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0;
-    if (hasContent && this.audioSettingValue != 'only') { // Don't toggle if audio_only set, since the record button is always shown; there's no submit button
+    if (hasContent) {
       this.submitIconTarget.classList.remove("hidden");
-      this.helpTextTarget.classList.remove("hidden");
     } else {
       this.submitIconTarget.classList.add("hidden");
-      this.helpTextTarget.classList.add("hidden");
     }
   }
 
@@ -69,10 +89,13 @@ export default class extends Controller {
   }
 
   openCamera() {
+    if (this.busy) return
     this.dispatch("camera-open", { bubbles: true })
   }
   
   canAddMoreImages() {
+    if (this.busy) return false
+
     if (this.images.length >= this.constructor.MAX_IMAGES) {
       alert(`You can only add up to ${this.constructor.MAX_IMAGES} images per message.`)
       return false
@@ -96,6 +119,8 @@ export default class extends Controller {
   }
 
   async handleUrlInput() {
+    if (this.busy) return
+
     const url = this.urlInputTarget.value
     if (!this.canAddMoreImages()) return
     
@@ -164,6 +189,8 @@ export default class extends Controller {
 
   // Handles screenshot event from chalkboard_controller
   addScreenshotFromEvent(event) {
+    if (this.busy) return
+
     console.log("Adding screenshot from event", event);
     if (event && event.detail && event.detail.blob) {
       if (!this.canAddMoreImages()) return;
@@ -174,6 +201,8 @@ export default class extends Controller {
   }
 
   addCameraPhoto(event) {
+    if (this.busy) return
+
     const file = event?.detail?.file
     if (!file) return
     if (!this.canAddMoreImages()) return
@@ -269,17 +298,17 @@ export default class extends Controller {
 
   submit(e) {
     e.preventDefault();
+    if (this.busy) return
+
     if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
-      //console.log("Submitting form")
-      this.submitButtonTarget.disabled = true
       this.element.requestSubmit(); // Submit the form
-      this.submitIconTarget.classList.add("hidden")
-      this.submitSpinnerTarget.classList.remove("hidden")
-      this.imagesMenuButtonTarget.classList.add("hidden");
+      this.setBusyState(true)
     }
   }
 
   paste(event) {
+    if (this.busy) return
+
     //console.log("Pasting image")
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (const item of items) {
@@ -300,5 +329,105 @@ export default class extends Controller {
     if (this.imagesMenuTarget && this.boundHandleMenuSelect) {
       this.imagesMenuTarget.removeEventListener('sl-select', this.boundHandleMenuSelect)
     }
+    document.removeEventListener("llm-completion-finished", this.boundHandleCompletionFinished)
+    document.removeEventListener("llm-completion-error", this.boundHandleCompletionError)
+    this.element.removeEventListener("turbo:submit-end", this.boundHandleSubmitEnd)
+  }
+
+  handleSubmitEnd(event) {
+    if (event.detail?.success === false) this.setBusyState(false)
+  }
+
+  handleCompletionFinished(event) {
+    if (!this.eventMatchesConversation(event)) return
+
+    if (event.detail?.tool_call_pending) {
+      this.setBusyState(true)
+      return
+    }
+
+    this.setBusyState(false)
+  }
+
+  handleCompletionError(event) {
+    if (!this.eventMatchesConversation(event)) return
+    this.setBusyState(false)
+  }
+
+  eventMatchesConversation(event) {
+    if (!this.hasConversationIdValue) return true
+
+    const conversationId = this.conversationIdValue.toString()
+    const detailConversationId = event.detail?.conversation_id?.toString()
+    if (detailConversationId && detailConversationId === conversationId) return true
+
+    const targetId = event?.target?.id
+    return targetId === this.conversationDomId()
+  }
+
+  conversationDomId() {
+    return `conversation_${this.conversationIdValue}`
+  }
+
+  detectBusyFromDom() {
+    if (!this.hasConversationIdValue) return false
+
+    const conversationElement = document.getElementById(this.conversationDomId())
+    return conversationElement?.querySelector("#new_message") != null
+  }
+
+  busyRegistry() {
+    if (!window.__goaConversationBusyRegistry) {
+      window.__goaConversationBusyRegistry = new Map()
+    }
+    return window.__goaConversationBusyRegistry
+  }
+
+  currentBusyState() {
+    if (!this.hasConversationIdValue) return false
+    return this.busyRegistry().get(this.conversationIdValue.toString()) === true
+  }
+
+  setBusyState(busy) {
+    const nextState = Boolean(busy)
+    this.busy = nextState
+
+    if (this.hasConversationIdValue) {
+      this.busyRegistry().set(this.conversationIdValue.toString(), nextState)
+      this.dispatch("busy-change", {
+        bubbles: true,
+        detail: {
+          busy: nextState,
+          conversationId: this.conversationIdValue.toString()
+        }
+      })
+    }
+
+    this.applyBusyState(nextState)
+  }
+
+  applyBusyState(isBusy) {
+    this.busy = Boolean(isBusy)
+
+    if (this.hasContentFieldTarget) {
+      const audioOnly = this.audioSettingValue === "only"
+      this.contentFieldTarget.disabled = audioOnly
+      this.contentFieldTarget.readOnly = !audioOnly && this.busy
+    }
+
+    if (this.hasSubmitButtonTarget) this.submitButtonTarget.disabled = this.busy
+    if (this.hasImagesMenuButtonTarget) this.imagesMenuButtonTarget.disabled = this.busy
+    if (this.hasCameraButtonTarget) this.cameraButtonTarget.disabled = this.busy
+
+    if (this.busy) {
+      if (this.hasSubmitIconTarget) this.submitIconTarget.classList.add("hidden")
+      if (this.hasSubmitSpinnerTarget) this.submitSpinnerTarget.classList.remove("hidden")
+      if (this.hasImagesMenuButtonTarget) this.imagesMenuButtonTarget.classList.add("hidden")
+      return
+    }
+
+    if (this.hasSubmitSpinnerTarget) this.submitSpinnerTarget.classList.add("hidden")
+    if (this.hasImagesMenuButtonTarget) this.imagesMenuButtonTarget.classList.remove("hidden")
+    this.toggleSubmitButton()
   }
 }

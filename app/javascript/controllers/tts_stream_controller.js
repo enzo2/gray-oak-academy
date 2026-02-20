@@ -474,7 +474,6 @@ export default class extends Controller {
 
     const messageIdFromEvent = event.detail?.message_id;
     if (!messageIdFromEvent) {
-      console.error("llm-completion-finished event missing message_id in detail:", event);
       return;
     }
     //console.log(`handleNewAssistantMessageFinished: Received event for message ID: ${messageIdFromEvent}`);

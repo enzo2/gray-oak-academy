@@ -52,7 +52,7 @@ class AppSetting < ApplicationRecord
   validates :singleton, inclusion: { in: [ true, false ] }
   before_validation :normalize_secret_fields
   validate :llms_not_archived, on: :update
-  validate :embedding_model_validity, on: :update
+  validate :embedding_model_validity, on: :update, if: :embedding_model_changed_in_settings?
 
   after_save :clear_embeddings_if_model_changed
 
@@ -243,14 +243,25 @@ class AppSetting < ApplicationRecord
     end
   end
 
+  def embedding_model_changed_in_settings?
+    settings_change = changes_to_save["settings"]
+    return false unless settings_change.present?
+
+    previous_settings, current_settings = settings_change
+    previous_embedding_model = previous_settings.to_h.with_indifferent_access[:embedding_model]
+    current_embedding_model = current_settings.to_h.with_indifferent_access[:embedding_model]
+
+    previous_embedding_model != current_embedding_model
+  end
+
   def clear_embeddings_if_model_changed
     return unless saved_change_to_settings?
 
     # Check if embedding_model actually changed in the JSON settings
     previous_settings = saved_changes["settings"]&.first || {}
     current_settings = saved_changes["settings"]&.last || {}
-    Rails.logger.debug "Previous settings: #{previous_settings.inspect}"
-    Rails.logger.debug "Current settings: #{current_settings.inspect}"
+    # Rails.logger.debug "Previous settings: #{previous_settings.inspect}"
+    # Rails.logger.debug "Current settings: #{current_settings.inspect}"
 
     if previous_settings["embedding_model"] != current_settings["embedding_model"]
       Rails.logger.info("Embedding model changed from #{previous_settings['embedding_model']} to #{current_settings['embedding_model']}. Clearing all memory embeddings.")

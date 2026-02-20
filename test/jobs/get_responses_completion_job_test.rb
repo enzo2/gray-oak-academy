@@ -596,7 +596,7 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert remove_calls.any? { |call| call.dig(:kwargs, :target) == "new_message" }
   end
 
-  test "blank terminal turn after tool calls shows warning instead of completion event" do
+  test "blank terminal turn after tool calls shows warning and completion event" do
     conversation = conversations(:teacher_generic_conversation)
     conversation.messages.delete_all
     conversation.messages.create!(role: :user, content: "Please help")
@@ -672,6 +672,114 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal 1, conversation.reload.messages.role_assistant.count
     assert warning_calls.any? { |call| call.dig(:kwargs, :target) == "flash_bar" }
     assert remove_calls.any? { |call| call.dig(:kwargs, :target) == "new_message" }
-    assert dispatch_calls.none? { |call| call.dig(:kwargs, :action) == :dispatch_event }
+
+    completion_event = dispatch_calls.find do |call|
+      payload = call[:kwargs].presence || call[:args].last || {}
+      action = payload[:action] || payload["action"]
+      attributes = payload[:attributes] || payload["attributes"] || {}
+      event_name = attributes["event-name"] || attributes[:"event-name"]
+
+      action.to_s == "dispatch_event" && event_name == "llm-completion-finished"
+    end
+
+    assert_not_nil completion_event, "Expected llm-completion-finished dispatch event"
+    completion_payload = completion_event[:kwargs].presence || completion_event[:args].last || {}
+    payload = JSON.parse(completion_payload[:content].to_s)
+    assert_equal conversation.id, payload["conversation_id"]
+    assert_equal false, payload["tool_call_pending"]
+    assert_nil payload["message_id"]
+  end
+
+  test "broadcasts completion event payload with tool_call_pending false" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Hi")
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| nil }
+    fake_client.define_singleton_method(:last_response_hash) do
+      {
+        "id" => "resp_done",
+        "status" => "completed",
+        "output" => [
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Done." } ] }
+        ]
+      }
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "Done." }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    dispatch_calls = []
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    completion_event = dispatch_calls.find do |call|
+      payload = call[:kwargs].presence || call[:args].last || {}
+      action = payload[:action] || payload["action"]
+      attributes = payload[:attributes] || payload["attributes"] || {}
+      event_name = attributes["event-name"] || attributes[:"event-name"]
+
+      action.to_s == "dispatch_event" && event_name == "llm-completion-finished"
+    end
+
+    assert_not_nil completion_event, "Expected llm-completion-finished dispatch event"
+    completion_payload = completion_event[:kwargs].presence || completion_event[:args].last || {}
+    payload = JSON.parse(completion_payload[:content].to_s)
+    assert_equal conversation.id, payload["conversation_id"]
+    assert_equal false, payload["tool_call_pending"]
+    assert payload["message_id"].present?
+  end
+
+  test "broadcasts completion error event on OpenAiError" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Hi")
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| raise OpenAiError, "boom" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+
+    dispatch_calls = []
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
+            Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
+              assert_raises(OpenAiError) do
+                GetResponsesCompletionJob.perform_now(conversation: conversation)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    error_event = dispatch_calls.find do |call|
+      payload = call[:kwargs].presence || call[:args].last || {}
+      action = payload[:action] || payload["action"]
+      attributes = payload[:attributes] || payload["attributes"] || {}
+      event_name = attributes["event-name"] || attributes[:"event-name"]
+
+      action.to_s == "dispatch_event" && event_name == "llm-completion-error"
+    end
+
+    assert_not_nil error_event, "Expected llm-completion-error dispatch event"
+    error_payload = error_event[:kwargs].presence || error_event[:args].last || {}
+    payload = JSON.parse(error_payload[:content].to_s)
+    assert_equal conversation.id, payload["conversation_id"]
   end
 end

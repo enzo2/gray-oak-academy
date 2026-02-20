@@ -103,6 +103,7 @@ class GetResponsesCompletionJob < ApplicationJob
     else
       broadcast_warning("LLM returned an empty response.", conversation)
       Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
+      broadcast_completion_finished(conversation, nil)
     end
 
     if include_images == false && conversation.messages.role_user.count == 1
@@ -381,6 +382,11 @@ class GetResponsesCompletionJob < ApplicationJob
       locals: { flash: { error: message } }
     )
     Turbo::StreamsChannel.broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
+    broadcast_dispatch_event(
+      conversation: conversation,
+      event_name: "llm-completion-error",
+      payload: { conversation_id: conversation.id }
+    )
   end
 
   def broadcast_warning(message, conversation)
@@ -393,17 +399,27 @@ class GetResponsesCompletionJob < ApplicationJob
   end
 
   def broadcast_completion_finished(conversation, message_id)
-    return if message_id.blank?
-
     Rails.logger.debug("Broadcasting completion finished event to conversation: #{conversation.id}")
+    broadcast_dispatch_event(
+      conversation: conversation,
+      event_name: "llm-completion-finished",
+      payload: {
+        message_id: message_id,
+        conversation_id: conversation.id,
+        tool_call_pending: false
+      }
+    )
+  end
+
+  def broadcast_dispatch_event(conversation:, event_name:, payload:)
     Turbo::StreamsChannel.broadcast_action_to(
       "#{dom_id(conversation)}",
       action: :dispatch_event,
       attributes: {
-        "event-name": "llm-completion-finished",
+        "event-name": event_name,
         "target-selector": "##{dom_id(conversation)}"
       },
-      content: { message_id: message_id }.to_json
+      content: payload.to_json
     )
   end
 end

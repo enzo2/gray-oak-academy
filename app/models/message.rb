@@ -36,10 +36,10 @@ class Message < ApplicationRecord
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message") if role_assistant?
 
     # broadcast_append_later_to seems to work without misordering messages, but keep it synchronous
-    broadcast_append_to(
+    broadcast_before_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
-      target: "#{dom_id(conversation)}",
+      target: "#{dom_id(conversation)}_accent",
       locals: { message: self }
     )
 
@@ -204,10 +204,10 @@ class Message < ApplicationRecord
     # Ensure we only ever have one placeholder in the DOM.
     broadcast_remove_to("#{dom_id(conversation)}", target: "new_message")
 
-    broadcast_append_to(
+    broadcast_before_to(
       "#{dom_id(conversation)}",
       partial: "messages/message",
-      target: "#{dom_id(conversation)}",
+      target: "#{dom_id(conversation)}_accent",
       locals: { message: Message.new(role: :assistant) }
     )
   end

@@ -166,10 +166,11 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_equal "trace_1", assistant_msg.tool_calls.first.dig("extra_content", "google", "trace_id")
   end
 
-  test "blank response broadcasts warning and does not create assistant message" do
+  test "blank response broadcasts warning, completion event, and no assistant message" do
     @conversation.messages.create!(role: :user, content: "Hello?")
     assistant_count_before = @conversation.messages.role_assistant.count
     warning_message = nil
+    dispatch_calls = []
 
     OpenaiApiService.stub(:new, ->(**kwargs) {
       handler = kwargs[:stream_handler]
@@ -184,13 +185,31 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
       Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*_args, **kwargs) {
         warning_message = kwargs.dig(:locals, :flash, :warning)
       }) do
-        GetLlmCompletionJob.perform_now(conversation: @conversation)
+        Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
+          GetLlmCompletionJob.perform_now(conversation: @conversation)
+        end
       end
     end
 
     assistant_msgs = @conversation.reload.messages.role_assistant
     assert_equal assistant_count_before, assistant_msgs.count
     assert_equal "LLM returned an empty response.", warning_message
+
+    completion_event = dispatch_calls.find do |call|
+      payload = call[:kwargs].presence || call[:args].last || {}
+      action = payload[:action] || payload["action"]
+      attributes = payload[:attributes] || payload["attributes"] || {}
+      event_name = attributes["event-name"] || attributes[:"event-name"]
+
+      action.to_s == "dispatch_event" && event_name == "llm-completion-finished"
+    end
+
+    assert_not_nil completion_event, "Expected llm-completion-finished dispatch event"
+    completion_payload = completion_event[:kwargs].presence || completion_event[:args].last || {}
+    payload = JSON.parse(completion_payload[:content].to_s)
+    assert_equal @conversation.id, payload["conversation_id"]
+    assert_equal false, payload["tool_call_pending"]
+    assert_nil payload["message_id"]
   end
 
   test "blank response does not warn after tool message" do
@@ -413,5 +432,93 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     end
 
     assert Message.exists?(id: user_message.id), "User message should not be deleted when a newer tool message exists"
+  end
+
+  test "broadcasts completion event with tool_call_pending flag for tool-call turns" do
+    @conversation.messages.create!(role: :user, content: "Run a tool")
+
+    dispatch_calls = []
+
+    OpenaiApiService.stub(:new, ->(**kwargs) {
+      handler = kwargs[:stream_handler]
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |*_args|
+          handler.call({
+            "delta" => {
+              "tool_calls" => [ {
+                "index" => 0,
+                "id" => "call_123",
+                "type" => "function",
+                "function" => { "name" => "Show_On_Chalkboard", "arguments" => "{}" }
+              } ]
+            }
+          })
+          handler.call({ "finish_reason" => "tool_calls" })
+          ""
+        end
+      end
+    }) do
+      ToolHandlerService.stub(:new, ->(**_kwargs) {
+        Object.new.tap { |o| o.define_singleton_method(:execute_tool_calls) { |_tool_calls| } }
+      }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
+          GetLlmCompletionJob.perform_now(conversation: @conversation)
+        end
+      end
+    end
+
+    completion_event = dispatch_calls.find do |call|
+      payload = call[:kwargs].presence || call[:args].last || {}
+      action = payload[:action] || payload["action"]
+      attributes = payload[:attributes] || payload["attributes"] || {}
+      event_name = attributes["event-name"] || attributes[:"event-name"]
+
+      action.to_s == "dispatch_event" && event_name == "llm-completion-finished"
+    end
+
+    assert_not_nil completion_event, "Expected llm-completion-finished dispatch event"
+
+    completion_payload = completion_event[:kwargs].presence || completion_event[:args].last || {}
+    payload = JSON.parse(completion_payload[:content].to_s)
+    assert_equal @conversation.id, payload["conversation_id"]
+    assert_equal true, payload["tool_call_pending"]
+    assert payload["message_id"].present?
+  end
+
+  test "broadcasts completion error event on OpenAiError" do
+    @conversation.messages.create!(role: :user, content: "Hello")
+    dispatch_calls = []
+
+    OpenaiApiService.stub(:new, ->(**_kwargs) {
+      Object.new.tap do |o|
+        o.define_singleton_method(:complete) do |_messages|
+          raise OpenAiError, "boom"
+        end
+      end
+    }) do
+      Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+        Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
+            assert_raises(OpenAiError) do
+              GetLlmCompletionJob.perform_now(conversation: @conversation)
+            end
+          end
+        end
+      end
+    end
+
+    error_event = dispatch_calls.find do |call|
+      payload = call[:kwargs].presence || call[:args].last || {}
+      action = payload[:action] || payload["action"]
+      attributes = payload[:attributes] || payload["attributes"] || {}
+      event_name = attributes["event-name"] || attributes[:"event-name"]
+
+      action.to_s == "dispatch_event" && event_name == "llm-completion-error"
+    end
+
+    assert_not_nil error_event, "Expected llm-completion-error dispatch event"
+    error_payload = error_event[:kwargs].presence || error_event[:args].last || {}
+    payload = JSON.parse(error_payload[:content].to_s)
+    assert_equal @conversation.id, payload["conversation_id"]
   end
 end
