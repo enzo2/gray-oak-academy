@@ -9,7 +9,7 @@
     <% disable_research_button = course.outline_research_in_progress? || course.outline_research_restart_blocked? %>
     <% if show_research_button %>
       <%= form_with url: start_outline_research_admin_course_path(course), method: :post do %>
-        <button type="submit" class="btn-primary gap-2" <%= "disabled" if disable_research_button %>>
+        <button type="submit" class="btn-success inline-flex items-center justify-center gap-2" <%= "disabled" if disable_research_button %>>
           <% if course.outline_research_in_progress? %>
             <sl-spinner></sl-spinner>
             Research In Progress
@@ -196,7 +196,7 @@
       </p>
       <%= link_to "Review Outline Research",
                   outline_research_input_admin_course_path(course),
-                  class: "btn-primary" %>
+                  class: "btn-secondary" %>
     </div>
   <% end %>
 </div>

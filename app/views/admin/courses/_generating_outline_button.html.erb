@@ -1,4 +1,7 @@
-<button disabled id="generate-outline-button-<%= course.id %>" class="btn-table-action btn-table-action-success justify-center gap-2 opacity-70 cursor-not-allowed">
+<% button_class = local_assigns[:button_class].presence || "btn-table-action btn-table-action-success justify-center gap-2" %>
+<% label_classes = local_assigns[:label_classes].to_s %>
+
+<button disabled id="generate-outline-button-<%= course.id %>" class="<%= "#{button_class} opacity-70 cursor-not-allowed" %>">
   <sl-spinner></sl-spinner>
-  <span class="md:hidden lg:inline">Generating...</span>
+  <span <%= label_classes.present? ? %( class="#{label_classes}") : "" %>>Generating...</span>
 </button>

@@ -1,5 +1,6 @@
 class GenerateCourseLessonsJob < ApplicationJob
   queue_as :default
+  limits_concurrency to: 1, key: ->(course, *, **) { "generate-course-lessons-#{course.id}" }, duration: 10.minutes
 
   LESSONS_SCHEMA = {
     strict: true,

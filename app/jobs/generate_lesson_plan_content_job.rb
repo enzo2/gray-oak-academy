@@ -1,5 +1,6 @@
 class GenerateLessonPlanContentJob < ApplicationJob
   queue_as :default
+  limits_concurrency to: 1, key: ->(lesson_plan, *, **) { "lesson-plan-content-#{lesson_plan.id}" }, duration: 10.minutes
 
   CONTENT_SCHEMA = {
     strict: true,

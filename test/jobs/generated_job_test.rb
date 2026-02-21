@@ -61,6 +61,15 @@ class GetLlmCompletionJobTest < ActiveSupport::TestCase
 end
 
 class GenerateLessonPlanContentJobTest < ActiveSupport::TestCase
+  test "job limits concurrency per lesson plan" do
+    lesson_plan = Struct.new(:id).new(11)
+    user = Struct.new(:id).new(2)
+
+    assert_equal 1, GenerateLessonPlanContentJob.concurrency_limit
+    assert_equal 10.minutes, GenerateLessonPlanContentJob.concurrency_duration
+    assert_equal "lesson-plan-content-11", GenerateLessonPlanContentJob.concurrency_key.call(lesson_plan, user)
+  end
+
   test "job calls LLM and updates lesson_plan content and suggested_resources" do
     teacher = users(:admin)
     lesson = lessons(:one) || Lesson.first

@@ -1,5 +1,6 @@
 class GenerateCourseOutlineJob < ApplicationJob
   queue_as :default
+  limits_concurrency to: 1, key: ->(course, *) { "generate-course-outline-#{course.id}" }, duration: 10.minutes
   include Rails.application.routes.url_helpers
 
   OUTLINE_SCHEMA = {

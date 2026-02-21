@@ -329,13 +329,13 @@ export default class extends Controller {
     const safeDescription = this.escapeHtml(toast.description);
 
     const typeColors = {
-      success: "text-green-500 dark:text-green-400",
-      error: "text-red-500 dark:text-red-400",
-      info: "text-blue-500 dark:text-blue-400",
-      warning: "text-orange-400 dark:text-orange-300",
-      danger: "text-red-500 dark:text-red-400",
-      loading: "text-neutral-500 dark:text-neutral-400",
-      default: "text-neutral-800 dark:text-neutral-200",
+      success: "text-success-600 dark:text-success-500",
+      error: "text-red-600 dark:text-red-400",
+      info: "text-moss-600 dark:text-moss-400",
+      warning: "text-amber-600 dark:text-amber-400",
+      danger: "text-red-600 dark:text-red-400",
+      loading: "text-stone-500 dark:text-stone-400",
+      default: "text-stone-800 dark:text-stone-200",
     };
 
     const color = typeColors[toast.type] || typeColors.default;

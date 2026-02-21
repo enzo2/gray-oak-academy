@@ -16,6 +16,8 @@ module Admin
 
       assert_response :success
       assert_includes response.body, "Generate Outline"
+      assert_select "form[action='/admin/courses/#{course.id}/generate_outline?source=edit'][data-controller='button-loading']"
+      assert_select "#generate-outline-button-#{course.id}", text: /Generate Outline/
       assert_not_includes response.body, "Outline Research"
     end
 

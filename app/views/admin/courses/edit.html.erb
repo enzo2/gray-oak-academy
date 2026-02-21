@@ -13,8 +13,16 @@
       <p class="text-sm mb-3">
         This course does not have an outline yet. You can generate one now from this page.
       </p>
-      <%= form_with url: generate_outline_admin_course_path(@course), method: :post, local: true do %>
-        <button type="submit" class="btn-primary">Generate Outline</button>
+      <%= form_with url: generate_outline_admin_course_path(@course, source: "edit"), method: :post,
+        data: {
+          turbo_confirm: "This will call the LLM to generate an outline. You may want to set a thinking LLM. Proceed?",
+          controller: "button-loading"
+        },
+        class: "inline-flex" do %>
+        <button type="submit" id="generate-outline-button-<%= @course.id %>" class="btn-success inline-flex items-center justify-center gap-2">
+          <sl-icon name="lightbulb"></sl-icon>
+          <span>Generate Outline</span>
+        </button>
       <% end %>
     </div>
   <% end %>

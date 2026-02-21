@@ -1,4 +1,10 @@
+<% button_locals =
+  if params[:source] == "edit"
+    { course: @course, button_class: "btn-success inline-flex items-center justify-center gap-2", label_classes: nil }
+  else
+    { course: @course, button_class: "btn-table-action btn-table-action-success justify-center gap-2", label_classes: "md:hidden lg:inline" }
+  end %>
 <%= turbo_stream.replace("generate-outline-button-#{@course.id}",
   partial: "admin/courses/generating_outline_button",
-  locals: { course: @course }
+  locals: button_locals
 ) %>
