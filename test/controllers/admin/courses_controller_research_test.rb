@@ -195,12 +195,12 @@ module Admin
       assert_response :success
       assert_includes response.body, "Outline Research Input"
       assert_includes response.body, "Raw Research Findings"
-      assert_includes response.body, "Question Responses"
+      assert_includes response.body, "Questions"
       assert_includes response.body, "Back to course editor"
       assert_not_includes response.body, "Back to lessons"
       assert_not_includes response.body, "Save Progress"
 
-      question_index = response.body.index("Question Responses")
+      question_index = response.body.index("Questions")
       report_index = response.body.index("Guidance Report")
       findings_index = response.body.index("Raw Research Findings")
       assert_operator question_index, :<, report_index

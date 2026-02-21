@@ -33,9 +33,12 @@ export default class extends Controller {
         break;
       default:
         // This handles the `input` event (user typing) and `connect`.
-        // In these cases, we only have the visible display text, which may include the emoji.
+        // In these cases, we only have the visible display text, which may include marker glyphs.
         // We must clean it to get a valid URI.
-        apiUri = (event.target.value || "").replace(/✅$/, '').trim();
+        apiUri = (event.target.value || "")
+          .replace(/^[✓✅]\s*/, "")
+          .replace(/\s*[✓✅]$/, "")
+          .trim();
         break;
     }
 

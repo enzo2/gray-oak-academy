@@ -101,6 +101,32 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "propose resources is not blocked by generate-content cooldown" do
+    with_memory_cache do
+      service = LessonPlanAsyncGenerationService.new(
+        lesson_plan: @lesson_plan,
+        current_user: @teacher,
+        source: "lesson_plan_button"
+      )
+
+      AppSetting.stub(:openai_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
+            result = service.enqueue_generate_content(propose_resources: false)
+            assert_equal true, result[:ok]
+          end
+
+          @lesson_plan.update!(generation_stage: "completed")
+          assert_enqueued_jobs 1, only: ProposeResourcesJob do
+            result = service.enqueue_propose_resources
+            assert_equal true, result[:ok]
+            assert_equal "proposing_resources", result[:stage]
+          end
+        end
+      end
+    end
+  end
+
   private
 
   def with_memory_cache

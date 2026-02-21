@@ -48,12 +48,12 @@ class Llm < ApplicationRecord
   end
 
   # Options for the LLM API Base URI combobox with a visual marker for supported providers.
-  # Returns an array of [display, value] pairs, e.g. ["https://openrouter.ai/api/v1/ ✅", "https://openrouter.ai/api/v1/"]
+  # Returns an array of [display, value] pairs, e.g. ["✓ https://openrouter.ai/api/v1/", "https://openrouter.ai/api/v1/"]
   def self.list_api_base_uri_options
     uris = list_api_base_uris
     supported = SupportedApi.selectable_uris
     uris.map do |uri|
-      display = supported.include?(uri) ? "✅ #{uri}" : uri
+      display = supported.include?(uri) ? "✓ #{uri}" : uri
       [ display, uri ]
     end
   end

@@ -304,15 +304,11 @@ class SpeechService
     AudioConverter.convert_to_base64_wav(input_path)
   end
 
-  # STT via the Speech API (legacy / OpenAI Speech API-compatible route)
+  # STT via the Speech API (OpenAI Speech API-compatible route)
   def transcribe_via_speech_api(audio_file)
     begin
       upload_file = normalize_stt_upload_file(audio_file)
-      response = @client.audio.transcriptions.create(
-        model: @stt_model,
-        file: upload_file, # No need to transcode first, API should handle webm or mp4.
-        response_format: "text"
-      )
+      response = create_speech_transcription_response(upload_file: upload_file)
       text = extract_transcription_text(response)
       if text.blank?
         raise SpeechServiceError, "Empty transcription result from Speech API."
@@ -358,6 +354,26 @@ class SpeechService
     end
   end
 
+  def create_speech_transcription_response(upload_file:)
+    @client.audio.transcriptions.create(
+      model: @stt_model,
+      file: upload_file, # No need to transcode first, API should handle webm or mp4.
+      response_format: "text"
+    )
+  rescue TypeError, OpenAI::Errors::ConversionError => e
+    Rails.logger.warn "Speech API transcription response parse failed in SDK (#{e.class}): #{e.message}. Falling back to raw response."
+    @client.request(
+      method: :post,
+      path: "audio/transcriptions",
+      headers: { "content-type" => "multipart/form-data" },
+      body: {
+        model: @stt_model,
+        file: upload_file,
+        response_format: "text"
+      }
+    )
+  end
+
   # OpenAI SDK treats String file inputs as in-memory text payloads, not filesystem paths.
   # Normalize inputs to a true file upload type so multipart `file` is always a file part.
   def normalize_stt_upload_file(audio_file)
@@ -386,6 +402,14 @@ class SpeechService
 
   def extract_transcription_text(response)
     return response if response.is_a?(String)
+
+    if response.respond_to?(:read)
+      response.rewind if response.respond_to?(:rewind)
+      text = response.read.to_s
+      response.rewind if response.respond_to?(:rewind)
+      return text
+    end
+
     return response.text if response.respond_to?(:text)
 
     response_hash = normalize_response_hash(response)

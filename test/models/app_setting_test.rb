@@ -133,6 +133,20 @@ class AppSettingTest < ActiveSupport::TestCase
     assert AppSetting.exa_enabled?
   end
 
+  test "outline research stub toggle is development-only" do
+    @app.update!(course_outline_research_stub_enabled: "1")
+
+    Rails.env.stub(:development?, true) do
+      assert @app.course_outline_research_stub_enabled?
+      assert AppSetting.course_outline_research_stub_enabled?
+    end
+
+    Rails.env.stub(:development?, false) do
+      assert_not @app.course_outline_research_stub_enabled?
+      assert_not AppSetting.course_outline_research_stub_enabled?
+    end
+  end
+
   test "openai_agent_max_tool_turns uses seeded setting value" do
     assert_equal 20, @app.openai_agent_max_tool_turns
     assert_equal 20, AppSetting.openai_agent_max_tool_turns

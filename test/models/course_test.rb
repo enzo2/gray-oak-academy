@@ -106,6 +106,14 @@ class CourseTest < ActiveSupport::TestCase
     assert_equal true, @course.outline_research_review_page_available?
   end
 
+  test "normalizes escaped markdown newlines in guidance report" do
+    escaped_report = "# Guidance\\n\\n## Applied Preferences\\n- Keep structure\\n- Add cases"
+
+    @course.update!(outline_guidance_report_md: escaped_report)
+
+    assert_equal "# Guidance\n\n## Applied Preferences\n- Keep structure\n- Add cases", @course.reload.outline_guidance_report_md
+  end
+
   test "outline research restart and resume predicates reflect failed run state" do
     @course.update!(
       outline_research_stage: "failed",

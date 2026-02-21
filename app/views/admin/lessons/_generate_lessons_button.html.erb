@@ -1,7 +1,5 @@
 <%= form_with url: generate_lessons_admin_course_lessons_path(course), method: :post, 
-  data: { 
-    turbo_confirm: "This will call the LLM to generate lessons based on the course outline. Thinking LLM will be used if set. Proceed?",
-    controller: "button-loading" }, 
+  data: { controller: "button-loading" }, 
   class: "inline-flex" do |form| %>
   <button type="submit" id="generate-lessons-button" class="btn-success gap-2">
     <sl-icon name="lightbulb"></sl-icon>

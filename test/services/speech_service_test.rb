@@ -67,6 +67,32 @@ class SpeechServiceTest < ActiveSupport::TestCase
     assert_predicate captured[:file].to_s, :present?
   end
 
+  test "transcribe falls back to raw request when sdk response coercion fails" do
+    captured = {}
+    fake_client = build_speech_client do |_params|
+      raise TypeError, "wrong element type String (expected array)"
+    end
+    fake_client.define_singleton_method(:request) do |**params|
+      captured[:request] = params
+      "Recovered transcript"
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = SpeechService.new(current_user: @user, conversation: @conversation)
+
+      Tempfile.create([ "audio", ".wav" ]) do |file|
+        file.write("abc")
+        file.rewind
+        assert_equal "Recovered transcript", service.transcribe(file)
+      end
+    end
+
+    assert_equal :post, captured.dig(:request, :method)
+    assert_equal "audio/transcriptions", captured.dig(:request, :path)
+    assert_equal "text", captured.dig(:request, :body, :response_format)
+    assert_instance_of Pathname, captured.dig(:request, :body, :file)
+  end
+
   test "tts_stream surfaces unauthorized error when provider returns 401 without body" do
     AppSetting.settings.update!(tts_model: "tts-1", tts_voice: "alloy")
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|

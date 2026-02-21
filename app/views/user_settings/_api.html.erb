@@ -58,8 +58,9 @@
             (<span class="font-mono"><%= settings.llm_api_access_token.first(4) %>...<%= settings.llm_api_access_token.last(2) %></span>)
           <% end %>.
         </span>
-        <span data-llm-settings-target="statusShared" class="hidden">
-          ✅Using the shared access token for this provider.
+        <span data-llm-settings-target="statusShared" class="hidden inline-flex items-center">
+          <span class="mr-1 font-semibold text-moss-700 dark:text-moss-300" aria-hidden="true">✓</span>
+          Using the shared access token for this provider.
         </span>
         <span data-llm-settings-target="statusEnv" class="hidden">
           Default application token will be used if configured. Enter a token to override.

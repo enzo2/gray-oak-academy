@@ -10,7 +10,7 @@ class LessonPlanAsyncGenerationService
   def enqueue_generate_content(propose_resources: false)
     run_with_lock do
       return failure("Generation is already in progress for this lesson plan.") if @lesson_plan.generation_in_progress?
-      return failure(cooldown_message) if cooldown_active?
+      return failure(cooldown_message(action: :generate_content)) if cooldown_active?(action: :generate_content)
 
       if propose_resources && !resource_proposal_enabled?
         return failure("Configure OpenAI Agent Runs and Exa API before proposing resources.")
@@ -23,7 +23,7 @@ class LessonPlanAsyncGenerationService
         propose_resources: propose_resources,
         source: @source
       )
-      mark_cooldown!
+      mark_cooldown!(action: :generate_content)
 
       success(
         stage: "generating_content",
@@ -36,12 +36,12 @@ class LessonPlanAsyncGenerationService
     run_with_lock do
       return failure("Configure OpenAI Agent Runs and Exa API before proposing resources.") unless resource_proposal_enabled?
       return failure("Generation is already in progress for this lesson plan.") if @lesson_plan.generation_in_progress?
-      return failure(cooldown_message) if cooldown_active?
+      return failure(cooldown_message(action: :propose_resources)) if cooldown_active?(action: :propose_resources)
       return failure("Generate the lesson plan once before proposing resources.") unless @lesson_plan.initial_generation_completed?
 
       @lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
       ProposeResourcesJob.perform_later(@lesson_plan, @current_user, source: @source)
-      mark_cooldown!
+      mark_cooldown!(action: :propose_resources)
 
       success(stage: "proposing_resources", message: "Queued resource proposal.")
     end
@@ -61,8 +61,8 @@ class LessonPlanAsyncGenerationService
     AppSetting.openai_agent_enabled? && AppSetting.exa_enabled?
   end
 
-  def cooldown_active?
-    queued_at = Rails.cache.read(cooldown_cache_key)
+  def cooldown_active?(action:)
+    queued_at = Rails.cache.read(cooldown_cache_key(action: action))
     return false if queued_at.blank?
 
     # Keep cooldown wall-clock based so duplicate clicks/tool calls are rejected
@@ -75,16 +75,17 @@ class LessonPlanAsyncGenerationService
     true
   end
 
-  def mark_cooldown!
-    Rails.cache.write(cooldown_cache_key, Time.current.to_i, expires_in: COOLDOWN_SECONDS.seconds)
+  def mark_cooldown!(action:)
+    Rails.cache.write(cooldown_cache_key(action: action), Time.current.to_i, expires_in: COOLDOWN_SECONDS.seconds)
   end
 
-  def cooldown_cache_key
-    "lesson_plan_async_generation:#{@lesson_plan.id}:cooldown"
+  def cooldown_cache_key(action:)
+    "lesson_plan_async_generation:#{@lesson_plan.id}:#{action}:cooldown"
   end
 
-  def cooldown_message
-    "A generation request was just queued. Please wait #{@cooldown_remaining || COOLDOWN_SECONDS} seconds before retrying."
+  def cooldown_message(action:)
+    action_label = action == :propose_resources ? "resource proposal" : "generation"
+    "A #{action_label} request was just queued. Please wait #{@cooldown_remaining || COOLDOWN_SECONDS} seconds before retrying."
   end
 
   def success(stage:, message:)

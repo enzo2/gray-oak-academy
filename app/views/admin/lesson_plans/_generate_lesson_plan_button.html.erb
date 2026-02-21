@@ -4,10 +4,7 @@
   <%= form_with(
     url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
     method: :post,
-    data: {
-      turbo_confirm: "This will call the LLM to generate lesson plan content. Proceed?",
-      controller: "button-loading"
-    }
+    data: { controller: "button-loading" }
   ) do |form| %>
     <div class="flex flex-col gap-2">
       <% if resource_proposal_enabled %>

@@ -37,9 +37,7 @@
       <% if course.status_active? %>
         <% if course.outline.empty? %>
           <%= form_with url: generate_outline_admin_course_path(course), method: :post,
-            data: {
-              turbo_confirm: "This will call the LLM to generate an outline. You may want to set a thinking LLM. Proceed?",
-              controller: "button-loading" },
+            data: { controller: "button-loading" },
             class: "inline-flex" do |form| %>
             <button type="submit" id="generate-outline-button-<%= course.id %>" class="btn-table-action btn-table-action-success justify-center gap-2">
               <sl-icon name="lightbulb"></sl-icon>

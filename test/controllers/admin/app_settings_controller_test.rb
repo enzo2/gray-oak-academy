@@ -93,4 +93,34 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "xai-model-alpha"
     assert_not_includes response.body, "openai-model-beta"
   end
+
+  test "outline research stub flag is ignored outside development" do
+    app_setting = AppSetting.first
+    sign_in users(:super_user)
+
+    patch admin_app_setting_path, params: {
+      app_setting: {
+        course_outline_research_stub_enabled: "1"
+      }
+    }
+
+    assert_redirected_to edit_admin_app_setting_path
+    assert_nil app_setting.reload.settings["course_outline_research_stub_enabled"]
+  end
+
+  test "outline research stub flag can be updated in development" do
+    app_setting = AppSetting.first
+    sign_in users(:super_user)
+
+    Rails.env.stub(:development?, true) do
+      patch admin_app_setting_path, params: {
+        app_setting: {
+          course_outline_research_stub_enabled: "1"
+        }
+      }
+    end
+
+    assert_redirected_to edit_admin_app_setting_path
+    assert_equal true, app_setting.reload.course_outline_research_stub_enabled
+  end
 end

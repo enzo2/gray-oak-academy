@@ -27,6 +27,7 @@ class OpenaiResponsesService
   BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
   METADATA_RESPONSES_HOSTS = %w[api.openai.com openrouter.ai].freeze
   AGENT_RUN_SYNC_TIMEOUT_SECONDS = 900
+  RESPONSES_METADATA_MAX_STRING_LENGTH = 512
 
   def self.base_uri_host(base_uri)
     URI.parse(base_uri.to_s).host.to_s.downcase.presence
@@ -148,9 +149,10 @@ class OpenaiResponsesService
   # - Reuse the same instance and it will set previous_response_id automatically
   #   based on the last response id, allowing you to send only new inputs.
   def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil, reasoning: nil)
+    sanitized_metadata = sanitize_responses_metadata(metadata)
     agent_run_context = prepare_agent_run_context(
       background: background,
-      metadata: metadata,
+      metadata: sanitized_metadata,
       messages: messages,
       input: input
     )
@@ -179,7 +181,7 @@ class OpenaiResponsesService
 
       sync_background_fallback = agent_run_synchronous_background?(background: background)
       request_background = background && !sync_background_fallback && background_supported?
-      request_metadata = metadata_supported? ? metadata : nil
+      request_metadata = metadata_supported? ? sanitized_metadata : nil
       if sync_background_fallback
         Rails.logger.info(
           "Responses background mode requested for agent run; using synchronous execution for provider #{@base_uri}."
@@ -1163,6 +1165,29 @@ class OpenaiResponsesService
   def hash_value(hash, key)
     return nil unless hash.respond_to?(:[])
     hash[key] || hash[key.to_s]
+  end
+
+  def sanitize_responses_metadata(metadata)
+    return metadata unless metadata.is_a?(Hash)
+
+    metadata.each_with_object({}) do |(key, value), sanitized|
+      sanitized[key] = sanitize_responses_metadata_value(value)
+    end
+  end
+
+  def sanitize_responses_metadata_value(value)
+    case value
+    when Hash
+      value.each_with_object({}) do |(key, nested_value), sanitized|
+        sanitized[key] = sanitize_responses_metadata_value(nested_value)
+      end
+    when Array
+      value.map { |entry| sanitize_responses_metadata_value(entry) }
+    when String
+      value.length > RESPONSES_METADATA_MAX_STRING_LENGTH ? value[0, RESPONSES_METADATA_MAX_STRING_LENGTH] : value
+    else
+      value
+    end
   end
 
   def normalize_function_call_output(content)

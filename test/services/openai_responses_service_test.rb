@@ -394,6 +394,43 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "test", captured.dig(:metadata, :source)
   end
 
+  test "openai truncates metadata string values to provider limit" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_meta_openai")
+    end
+
+    metadata = {
+      run_id: "run_meta_openai",
+      task_full: "a" * 600,
+      nested: { note: "b" * 700 }
+    }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      result = service.complete(
+        [ { role: "user", content: "Hello" } ],
+        metadata: metadata
+      )
+      assert_equal "Done", result
+    end
+
+    assert_equal 600, metadata[:task_full].length
+    assert_equal 700, metadata.dig(:nested, :note).length
+    assert_equal 512, captured.dig(:metadata, :task_full).length
+    assert_equal "a" * 512, captured.dig(:metadata, :task_full)
+    assert_equal 512, captured.dig(:metadata, :nested, :note).length
+    assert_equal "b" * 512, captured.dig(:metadata, :nested, :note)
+  end
+
   test "agent_run mode resolves provider, token, and model from app settings" do
     AppSetting.first.update!(
       openai_agent_supported_api_id: supported_apis(:xai).id,

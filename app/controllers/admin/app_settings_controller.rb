@@ -43,7 +43,7 @@ module Admin
     end
 
     def app_setting_params
-      permitted = params.require(:app_setting).permit(
+      permitted_attributes = [
         :provider_supported_api_id,
         :stt_method,
         :stt_model,
@@ -62,7 +62,10 @@ module Admin
         :openai_agent_max_tool_turns,
         :exa_api_key,
         :exa_research_model
-      )
+      ]
+      permitted_attributes << :course_outline_research_stub_enabled if Rails.env.development?
+
+      permitted = params.require(:app_setting).permit(*permitted_attributes)
       scrub_masked_secret_params!(permitted)
       permitted
     end

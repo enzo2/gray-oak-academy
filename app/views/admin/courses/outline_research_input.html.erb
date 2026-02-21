@@ -18,22 +18,18 @@
 <% outline_complete_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-moss-600 to-moss-700 text-[0.9rem] font-bold text-white ring-2 ring-moss-500/25" %>
 <% outline_complete_report_classes = "prose mt-3 max-w-none rounded border border-stone-300 bg-white/90 px-[0.85rem] py-3 text-sm dark:border-stone-700 dark:bg-stone-900/90 dark:prose-invert" %>
 <% outline_findings_classes = "rounded border border-stone-300 bg-stone-50/90 px-[0.95rem] py-[0.85rem] dark:border-stone-700 dark:bg-stone-900/90" %>
-<% stepper_shell_classes = "rounded border border-stone-300 bg-gradient-to-b from-stone-50 to-stone-100 p-3 min-[769px]:p-[0.85rem] min-[900px]:p-[1.1rem] dark:border-stone-700 dark:from-stone-900 dark:to-stone-800" %>
-<% research_progress_classes = "relative mb-6 grid grid-cols-3 gap-[0.4rem] pt-[0.1rem] before:pointer-events-none before:absolute before:left-[calc(100%/6)] before:right-[calc(100%/6)] before:top-[1.1rem] before:z-0 before:h-[2px] before:bg-stone-400/70 before:content-[''] dark:before:bg-stone-600/75 min-[900px]:before:top-[1.12rem]" %>
-<% research_progress_step_classes = "group relative z-10 flex min-h-[2.45rem] min-[900px]:min-h-[5.1rem] flex-col items-center justify-start gap-[0.4rem] min-[900px]:gap-[0.6rem] border-0 bg-transparent px-[0.2rem] py-[0.1rem] text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 dark:text-stone-200" %>
-<% research_progress_dot_classes = "inline-flex h-8 w-8 min-[900px]:h-[2.05rem] min-[900px]:w-[2.05rem] items-center justify-center rounded-full border border-stone-400 bg-stone-100/80 text-[0.88rem] min-[900px]:text-[0.92rem] font-bold text-stone-800 dark:border-stone-600 dark:bg-stone-900/90 dark:text-stone-300 group-data-[state=active]:border-moss-600 group-data-[state=active]:bg-moss-600 group-data-[state=active]:text-white group-data-[state=complete]:border-moss-500 group-data-[state=complete]:bg-moss-200 group-data-[state=complete]:text-stone-900 dark:group-data-[state=complete]:border-moss-600 dark:group-data-[state=complete]:bg-moss-800 dark:group-data-[state=complete]:text-stone-100" %>
-<% research_progress_label_classes = "hidden text-center text-[0.85rem] font-semibold leading-tight min-[900px]:block" %>
-<% research_progress_meta_classes = "hidden text-center text-[0.72rem] leading-tight opacity-80 min-[900px]:block" %>
-<% step_panel_classes = "rounded border border-stone-200 bg-stone-50/90 p-4 dark:border-stone-700 dark:bg-stone-900/90" %>
-<% stepper_nested_classes = "rounded border border-stone-200 bg-stone-50/90 p-[0.85rem] dark:border-stone-700 dark:bg-stone-900/90" %>
-<% nested_stepper_nav_classes = "mb-4 flex flex-wrap gap-[0.4rem] overflow-visible pb-0" %>
-<% nested_step_indicator_classes = "group flex items-center justify-center rounded-none border-0 bg-transparent p-0 text-stone-700 transition-transform duration-150 ease-in-out hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 dark:text-stone-200 data-[state=active]:text-stone-900 dark:data-[state=active]:text-stone-100" %>
-<% nested_step_indicator_dot_classes = "inline-flex h-[1.7rem] w-[1.7rem] items-center justify-center rounded-full border border-stone-400 bg-transparent text-[0.82rem] font-bold text-inherit group-data-[state=active]:border-moss-600 group-data-[state=active]:bg-moss-600 group-data-[state=active]:text-white" %>
+<%# Tab navigation classes %>
+<% tab_nav_classes = "flex gap-0 border-b border-stone-300 dark:border-stone-600 mb-6" %>
+<% tab_button_classes = "group relative border-0 bg-transparent px-4 py-2.5 text-sm font-medium text-stone-500 transition-colors hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 dark:text-stone-400 dark:hover:text-stone-200 data-[state=active]:text-stone-900 dark:data-[state=active]:text-stone-100" %>
+<% tab_underline_classes = "absolute inset-x-0 -bottom-px h-[2px] bg-transparent group-data-[state=active]:bg-moss-600 dark:group-data-[state=active]:bg-moss-500" %>
+<% tab_meta_classes = "ml-1.5 text-xs font-normal opacity-70" %>
+<%# Question card %>
 <% question_nav_arrow_classes = "btn-secondary h-8 w-8 p-0 [&>sl-icon]:text-[0.95rem]" %>
+<% radio_card_classes = "flex items-start gap-2.5 rounded-md border border-stone-200 bg-white/60 px-3.5 py-2.5 text-sm cursor-pointer transition-colors hover:bg-stone-50 has-[:checked]:border-moss-500 has-[:checked]:bg-moss-50/50 dark:border-stone-700 dark:bg-stone-900/40 dark:hover:bg-stone-800/60 dark:has-[:checked]:border-moss-600 dark:has-[:checked]:bg-moss-950/30" %>
 <% autosave_status_base_classes = "text-xs transition-colors duration-150" %>
 <% report_and_findings = capture do %>
   <% if @course.outline_guidance_report_md.present? %>
-    <div id="guidance-report" class="mb-6 border border-stone-200 dark:border-stone-700 rounded p-4 bg-stone-50/60 dark:bg-stone-900/40">
+    <div id="guidance-report" class="mt-2 mb-6 border border-stone-200 dark:border-stone-700 rounded p-4 bg-stone-50/60 dark:bg-stone-900/40">
       <h3 class="font-semibold mb-2">Guidance Report</h3>
       <div class="prose dark:prose-invert max-w-none">
         <%= markdown(@course.outline_guidance_report_md) %>
@@ -212,7 +208,6 @@
   <% else %>
     <%= form_with url: submit_outline_research_inputs_admin_course_path(@course),
                   method: :patch,
-                  class: stepper_shell_classes,
                   data: {
                     controller: "stepper outline-research-autosave",
                     action: "stepper:change->outline-research-autosave#handleStepperChange",
@@ -222,64 +217,54 @@
                   } do %>
       <%= hidden_field_tag :from_outline_research_input, "1" %>
 
-      <nav class="<%= research_progress_classes %>" aria-label="Research workflow steps">
+      <%# ── Tab navigation ── %>
+      <nav class="<%= tab_nav_classes %>" aria-label="Research workflow steps">
         <button type="button"
-                class="<%= research_progress_step_classes %>"
+                class="<%= tab_button_classes %>"
                 data-stepper-target="indicator"
                 data-step-index="0"
                 data-state="active"
                 aria-current="step"
                 data-action="stepper#go">
-          <span class="<%= research_progress_dot_classes %>">1</span>
-          <span class="<%= research_progress_label_classes %>">Question Responses</span>
-          <span class="<%= research_progress_meta_classes %>"><span data-outline-research-autosave-target="unansweredCount"><%= unanswered %></span> unanswered</span>
+          Questions<span class="<%= tab_meta_classes %>">(<span data-outline-research-autosave-target="unansweredCount"><%= unanswered %></span> left)</span>
+          <span class="<%= tab_underline_classes %>"></span>
         </button>
 
         <button type="button"
-                class="<%= research_progress_step_classes %>"
+                class="<%= tab_button_classes %>"
                 data-stepper-target="indicator"
                 data-step-index="1"
                 data-state="upcoming"
                 data-action="stepper#go">
-          <span class="<%= research_progress_dot_classes %>">2</span>
-          <span class="<%= research_progress_label_classes %>">Additional Comments</span>
-          <span class="<%= research_progress_meta_classes %>">Optional context</span>
+          Comments
+          <span class="<%= tab_underline_classes %>"></span>
         </button>
 
         <button type="button"
-                class="<%= research_progress_step_classes %>"
+                class="<%= tab_button_classes %>"
                 data-stepper-target="indicator"
                 data-step-index="2"
                 data-state="upcoming"
                 data-action="stepper#go">
-          <span class="<%= research_progress_dot_classes %>">3</span>
-          <span class="<%= research_progress_label_classes %>">Resume Agent</span>
-          <span class="<%= research_progress_meta_classes %>" data-outline-research-autosave-target="resumeReadinessMeta"><%= ready_to_resume ? "Ready" : "Blocked" %></span>
+          Resume<span class="<%= tab_meta_classes %>" data-outline-research-autosave-target="resumeReadinessMeta"><%= ready_to_resume ? "Ready" : "Blocked" %></span>
+          <span class="<%= tab_underline_classes %>"></span>
         </button>
       </nav>
 
-      <section class="<%= step_panel_classes %>" data-stepper-target="step">
-        <h3 class="text-xl font-semibold mb-2">Question Responses</h3>
-        <p class="text-sm mb-4">Answer each question by selecting an option, or choose Other.</p>
+      <%# ── Step 1: Question Responses ── %>
+      <section data-stepper-target="step">
+        <p class="text-sm text-stone-500 dark:text-stone-400 mb-5">Answer each question by selecting an option, or choose Other.</p>
 
         <% if questions.any? %>
-          <div data-controller="stepper" data-stepper-variant-value="nested" class="<%= stepper_nested_classes %>">
-            <nav class="<%= nested_stepper_nav_classes %>" aria-label="Guidance questions">
+          <div data-controller="stepper" data-stepper-variant-value="nested">
+            <%# Hidden indicators so the nested stepper tracks state without visible dots %>
+            <div class="hidden" aria-hidden="true">
               <% questions.each_with_index do |question, idx| %>
-                <% question_id = question["id"].to_s %>
-                <% answered = !@course.unanswered_research_question_ids.include?(question_id) %>
-                <button type="button"
-                        class="<%= nested_step_indicator_classes %>"
-                        data-stepper-target="indicator"
-                        data-step-index="<%= idx %>"
-                        data-state="<%= idx.zero? ? "active" : "upcoming" %>"
-                        aria-current="<%= "step" if idx.zero? %>"
-                        data-action="stepper#go"
-                        aria-label="Question <%= idx + 1 %> <%= answered ? "completed" : "pending" %>">
-                  <span class="<%= nested_step_indicator_dot_classes %>"><%= idx + 1 %></span>
-                </button>
+                <span data-stepper-target="indicator"
+                      data-step-index="<%= idx %>"
+                      data-state="<%= idx.zero? ? "active" : "upcoming" %>"></span>
               <% end %>
-            </nav>
+            </div>
 
             <% questions.each_with_index do |question, idx| %>
               <% question_hash = question.is_a?(Hash) ? question : {} %>
@@ -289,30 +274,29 @@
               <% option_b = outline_question_choice_label(question_hash, "B") %>
               <% option_c = outline_question_choice_label(question_hash, "C") %>
 
-              <div class="rounded border border-stone-200 dark:border-stone-700 p-4 bg-white/70 dark:bg-stone-900/50 <%= "hidden" unless idx.zero? %>" data-stepper-target="step">
-                <p class="font-semibold mb-3"><%= question_hash["question"] %></p>
+              <div class="<%= "hidden" unless idx.zero? %>" data-stepper-target="step">
+                <p class="text-base font-semibold mb-4"><%= question_hash["question"] %></p>
 
-                <div class="space-y-2 text-sm">
-                  <label class="block">
-                    <%= radio_button_tag "question_choices[#{question_id}]", "A", parsed_answer["choice"] == "A" %>
-                    <span class="ml-1"><%= option_a %></span>
+                <div class="space-y-2.5">
+                  <label class="<%= radio_card_classes %>">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "A", parsed_answer["choice"] == "A", class: "mt-0.5 accent-moss-600" %>
+                    <span><%= option_a %></span>
                   </label>
-                  <label class="block">
-                    <%= radio_button_tag "question_choices[#{question_id}]", "B", parsed_answer["choice"] == "B" %>
-                    <span class="ml-1"><%= option_b %></span>
+                  <label class="<%= radio_card_classes %>">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "B", parsed_answer["choice"] == "B", class: "mt-0.5 accent-moss-600" %>
+                    <span><%= option_b %></span>
                   </label>
-                  <label class="block">
-                    <%= radio_button_tag "question_choices[#{question_id}]", "C", parsed_answer["choice"] == "C" %>
-                    <span class="ml-1"><%= option_c %></span>
+                  <label class="<%= radio_card_classes %>">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "C", parsed_answer["choice"] == "C", class: "mt-0.5 accent-moss-600" %>
+                    <span><%= option_c %></span>
                   </label>
-                  <label class="block">
-                    <%= radio_button_tag "question_choices[#{question_id}]", "OTHER", parsed_answer["choice"] == "OTHER" %>
-                    <span class="ml-1">Other</span>
+                  <label class="<%= radio_card_classes %>">
+                    <%= radio_button_tag "question_choices[#{question_id}]", "OTHER", parsed_answer["choice"] == "OTHER", class: "mt-0.5 accent-moss-600" %>
+                    <span>Other</span>
                   </label>
                 </div>
 
                 <div class="mt-3">
-                  <label class="form-label" for="question_other_text_<%= question_id %>">Other response text</label>
                   <%= text_area_tag "question_other_text[#{question_id}]",
                                     parsed_answer["other_text"],
                                     id: "question_other_text_#{question_id}",
@@ -323,7 +307,8 @@
               </div>
             <% end %>
 
-            <div class="mt-4 flex items-center gap-2">
+            <%# Question card navigation %>
+            <div class="mt-5 flex items-center gap-3">
               <button type="button"
                       class="<%= question_nav_arrow_classes %>"
                       data-stepper-target="prevButton"
@@ -331,8 +316,11 @@
                       aria-label="Previous question"
                       title="Previous question">
                 <sl-icon name="arrow-left" aria-hidden="true"></sl-icon>
-                <span class="sr-only">Previous question</span>
               </button>
+              <span class="text-sm text-stone-500 dark:text-stone-400 select-none"
+                    data-stepper-target="statusText">
+                Question 1 of <%= questions.size %>
+              </span>
               <button type="button"
                       class="<%= question_nav_arrow_classes %>"
                       data-stepper-target="nextButton"
@@ -340,7 +328,6 @@
                       aria-label="Next question"
                       title="Next question">
                 <sl-icon name="arrow-right" aria-hidden="true"></sl-icon>
-                <span class="sr-only">Next question</span>
               </button>
             </div>
           </div>
@@ -349,9 +336,10 @@
         <% end %>
       </section>
 
-      <section class="<%= step_panel_classes %> hidden" data-stepper-target="step">
-        <h3 class="text-xl font-semibold mb-2">Additional Comments</h3>
-        <p class="text-sm mb-4">Optional: share any final guidance for the agent before apply.</p>
+      <%# ── Step 2: Additional Comments ── %>
+      <section class="hidden" data-stepper-target="step">
+        <h3 class="text-lg font-semibold mb-1">Additional Comments</h3>
+        <p class="text-sm text-stone-500 dark:text-stone-400 mb-4">Optional: share any final guidance for the agent before apply.</p>
 
         <label class="form-label" for="additional_comments">Teacher comments</label>
         <%= text_area_tag :additional_comments,
@@ -362,18 +350,19 @@
                           placeholder: "Constraints, priorities, concerns, or style guidance for the updates." %>
       </section>
 
-      <section class="<%= step_panel_classes %> hidden" data-stepper-target="step">
-        <h3 class="text-xl font-semibold mb-2">Resume Agent Apply Phase</h3>
+      <%# ── Step 3: Resume Agent ── %>
+      <section class="hidden" data-stepper-target="step">
+        <h3 class="text-lg font-semibold mb-1">Resume Agent Apply Phase</h3>
         <% if !resumable_run %>
           <p class="text-sm mb-3">
             This failed run cannot be resumed because no previous response id is available. Start a new outline research run from the course editor.
           </p>
         <% elsif ready_to_resume %>
-          <p class="text-sm mb-3">
+          <p class="text-sm text-stone-500 dark:text-stone-400 mb-4">
             All required teacher inputs are complete. You can resume the run and allow the agent to apply updates.
           </p>
         <% else %>
-          <p class="text-sm mb-3">
+          <p class="text-sm text-stone-500 dark:text-stone-400 mb-4">
             Resume will unlock after all required inputs are complete.
           </p>
         <% end %>
@@ -402,15 +391,9 @@
         <% end %>
       </section>
 
-      <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4 dark:border-stone-700">
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn-secondary" data-stepper-target="prevButton" data-action="stepper#prev">Previous Section</button>
-          <button type="button" class="btn-primary" data-stepper-target="nextButton" data-action="stepper#next">Next Section</button>
-        </div>
-        <p class="<%= autosave_status_base_classes %> text-stone-600 dark:text-stone-300" aria-live="polite" data-outline-research-autosave-target="status">
-          Progress saves automatically when you move between questions or sections.
-        </p>
-      </div>
+      <p class="<%= autosave_status_base_classes %> mt-8 text-stone-500 dark:text-stone-400" aria-live="polite" data-outline-research-autosave-target="status">
+        Progress saves automatically when you switch tabs.
+      </p>
     <% end %>
 
     <%= report_and_findings %>

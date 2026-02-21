@@ -31,7 +31,7 @@
 
   <div>
     <%= f.label :token_override, "Speech API token (override)", class: "form-label" %>
-    <%= f.password_field :token_override, value: (@setting.token_override.present? ? AppSetting::MASKED_SECRET_VALUE : nil), class: "input-primary", autocomplete: "off", placeholder: "Paste token here (optional)" %>
+    <%= f.password_field :token_override, value: (@setting.token_override.present? ? AppSetting::MASKED_SECRET_VALUE : nil), class: "input-primary", autocomplete: "new-password", placeholder: "Paste token here (optional)" %>
     <p class="text-xs text-dim mt-1">
       When present, this token will be used instead of the provider's shared token for TTS/STT calls. Stored encrypted.
       <% if @setting.provider_supported_api&.api_access_token.present? %>
@@ -263,6 +263,20 @@
       <% end %>
     </p>
   </div>
+
+  <% if Rails.env.development? %>
+    <div>
+      <%= f.label :course_outline_research_stub_enabled, class: "flex items-start cursor-pointer" do %>
+        <%= f.check_box :course_outline_research_stub_enabled, class: "checkbox-primary mt-1 mr-2" %>
+        <div>
+          <span class="font-medium text-gray-700 dark:text-gray-300">Enable outline research stub mode (development only)</span>
+          <p class="text-xs text-dim mt-0.5">
+            Bypasses real Exa and Responses calls for course outline research runs and uses deterministic stub data.
+          </p>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
   <div class="mt-6">
     <%= f.submit "Save App Settings", class: "btn-primary" %>

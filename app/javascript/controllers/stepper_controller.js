@@ -15,7 +15,7 @@ import { Controller } from "@hotwired/stimulus"
 // - The parent workflow and child steppers (for per-item navigation) do not
 //   interfere with each other because Stimulus target resolution is local.
 export default class extends Controller {
-  static targets = ["step", "indicator", "prevButton", "nextButton"]
+  static targets = ["step", "indicator", "prevButton", "nextButton", "statusText"]
   static values = {
     start: Number,
     variant: String
@@ -90,6 +90,10 @@ export default class extends Controller {
 
     this.nextButtonTargets.forEach((button) => {
       button.disabled = this.currentIndex >= total - 1
+    })
+
+    this.statusTextTargets.forEach((el) => {
+      el.textContent = `Question ${this.currentIndex + 1} of ${total}`
     })
 
     this.dispatch("change", { detail: { index: this.currentIndex, total: total, initial: initial } })

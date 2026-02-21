@@ -24,7 +24,8 @@ class AppSetting < ApplicationRecord
                  :openai_agent_model,
                  :openai_agent_max_tool_turns,
                  :exa_api_key,
-                 :exa_research_model
+                 :exa_research_model,
+                 :course_outline_research_stub_enabled
 
   # Custom accessor to handle boolean casting and default value
   def image_generation_two_pass
@@ -47,6 +48,16 @@ class AppSetting < ApplicationRecord
 
   def exa_research_model
     super.presence || ExaApiService::DEFAULT_RESEARCH_MODEL
+  end
+
+  def course_outline_research_stub_enabled
+    val = super
+    return false if val.nil?
+    ActiveModel::Type::Boolean.new.cast(val)
+  end
+
+  def course_outline_research_stub_enabled?
+    Rails.env.development? && course_outline_research_stub_enabled
   end
 
   validates :singleton, inclusion: { in: [ true, false ] }
@@ -180,6 +191,12 @@ class AppSetting < ApplicationRecord
 
   def self.openai_agent_max_tool_turns
     settings&.openai_agent_max_tool_turns
+  end
+
+  def self.course_outline_research_stub_enabled?
+    return false unless Rails.env.development?
+
+    settings&.course_outline_research_stub_enabled? || false
   end
 
   # Fetch and cache OpenRouter embedding models

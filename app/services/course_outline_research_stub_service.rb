@@ -3,6 +3,10 @@ class CourseOutlineResearchStubService
 
   class << self
     def enabled?
+      return false unless Rails.env.development?
+
+      return true if AppSetting.course_outline_research_stub_enabled?
+
       configured = ENV[ENV_KEY]
       return false if configured.blank?
 

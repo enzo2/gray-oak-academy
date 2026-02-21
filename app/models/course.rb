@@ -32,6 +32,7 @@ class Course < ApplicationRecord
   validates :outline_research_stage, inclusion: { in: OUTLINE_RESEARCH_STAGES }
   validate :validate_outline_format
   validate :validate_outline_guidance_questions_limit
+  before_validation :normalize_outline_guidance_report_md_line_breaks
 
   def enrolled_in?(student)
     enrollments.exists?(student: student)
@@ -194,5 +195,16 @@ class Course < ApplicationRecord
     end
   rescue JSON::ParserError
     {}
+  end
+
+  def normalize_outline_guidance_report_md_line_breaks
+    report = outline_guidance_report_md
+    return unless report.is_a?(String)
+    return if report.include?("\n")
+
+    escaped_newline_count = report.scan(/\\n/).size
+    return if escaped_newline_count < 2
+
+    self.outline_guidance_report_md = report.gsub("\\r\\n", "\n").gsub("\\n", "\n")
   end
 end
