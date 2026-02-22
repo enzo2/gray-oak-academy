@@ -428,6 +428,7 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     assert_match(/Latest student profile report/, msg.content)
     assert_match(/\*\*1 pending observations\*\*/i, msg.content)
     assert_match(/Approved observation/, msg.content)
+    assert_match(/\(weight: \d+%\)\s+Approved observation/, msg.content)
     refute_match(/PENDING SECRET/, msg.content)
   end
 
@@ -467,7 +468,7 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     AppSetting.stub :embeddings_configured?, true do
       EmbeddingService.stub :get, [ 0.1, 0.2, 0.3 ] do
         Memory.stub :nearest_neighbors, Memory.all do
-          Observation.stub :nearest_neighbors, Observation.all do
+          Observation.stub :nearest_neighbors, Observation.order(created_at: :asc) do
             assert_difference "Message.count", 1 do
               ToolHandlerService.new(conversation: conversations(:teacher_generic_conversation), message: nil).execute_tool_calls(
                 [ { id: "tc-prof-2", function: { name: "get_student_profile", arguments: { student_id: student.id, focus: "anxiety" }.to_json } } ]
@@ -481,5 +482,6 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     msg = Message.last
     assert_match(/## Focus: anxiety/i, msg.content)
     assert_match(/Mode: embeddings/i, msg.content)
+    assert_match(/### Most relevant observations.*\(weight: \d+%\)/m, msg.content)
   end
 end

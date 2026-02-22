@@ -64,7 +64,16 @@ class LessonProgress < ApplicationRecord
       #{Memory.for_prompt(user: student)}
 
       Key observations about the student (Verified):
-      #{student.observations.for_context.limit(10).pluck(:content).map { |o| "- #{o}" }.join("\n")}
+      #{student.observations.for_context.limit(10).map { |o|
+          weight_label = if o.effective_weight >= 0.7
+            "high"
+          elsif o.effective_weight >= 0.3
+            "moderate"
+          else
+            "low"
+          end
+          "- [#{weight_label} confidence] #{o.content}"
+        }.join("\n")}
     LESSON_INFO
     # Student feedback not yet included in the lesson prompt. Would potentially be distracting or irrelevant.
 

@@ -68,7 +68,7 @@
     <div class="journal-wrapper" data-controller="journal-filter" data-journal-filter-infinite-scroll-outlet=".journal-timeline-container">
       <%= render "shared/journal_toolbar", url: journal_admin_student_path(@student) %>
 
-      <div id="pending_observations" class="space-y-4 mb-6">
+      <div id="pending_observations" class="space-y-2 md:space-y-4 mb-6">
         <% if @pending_observations.present? %>
           <div class="flex items-center gap-2 mb-2">
             <sl-icon name="hourglass-split" class="text-amber-500"></sl-icon>

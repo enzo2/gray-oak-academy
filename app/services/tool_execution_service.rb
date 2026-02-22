@@ -489,7 +489,7 @@ class ToolExecutionService
                             .first
 
     memories_recent = student.memories.order(created_at: :desc).limit(8)
-    observations_recent = student.observations.approved.order(created_at: :desc).limit(12)
+    observations_recent = student.observations.for_context.limit(12)
     feedback_recent = student.student_feedbacks.includes(:lesson_progress).order(created_at: :desc).limit(5)
 
     # Courses snapshot (in-progress only)

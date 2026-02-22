@@ -1,6 +1,6 @@
 module Admin
   class ObservationsController < Admin::BaseController
-    before_action :set_observation, only: [ :show, :edit, :update, :destroy ]
+    before_action :set_observation, only: [ :show, :edit, :update, :revalidate, :destroy ]
 
     include ActionView::RecordIdentifier
 
@@ -81,6 +81,36 @@ module Admin
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to admin_student_path(@observation.student, active_tab: :journal) }
+      end
+    end
+
+    def revalidate
+      # Authorization
+      unless @observation.student.teacher == current_user || current_user.role_superuser?
+        head :forbidden
+        return
+      end
+
+      unless @observation.status_approved?
+        respond_to do |format|
+          format.turbo_stream { head :unprocessable_content }
+          format.html { redirect_to admin_student_path(@observation.student, active_tab: :journal), alert: "Only approved observations can be re-validated." }
+        end
+        return
+      end
+
+      @observation.last_validated_at = Time.current
+
+      if @observation.save
+        respond_to do |format|
+          format.turbo_stream do
+            flash.now[:notice] = "Observation re-validated."
+            render :update
+          end
+          format.html { redirect_to admin_student_path(@observation.student, active_tab: :journal), notice: "Observation re-validated." }
+        end
+      else
+        head :unprocessable_content
       end
     end
 

@@ -63,7 +63,10 @@
     </div>
 
     <div id="journal" role="tabpanel" data-tabs-target="panel">
-      <%= render "shared/journal_timeline", url: student_journal_path, teacher_mode: false %>
+      <div class="journal-wrapper" data-controller="journal-filter" data-journal-filter-infinite-scroll-outlet=".journal-timeline-container">
+        <%= render "shared/journal_toolbar", show_new_observation_button: false %>
+        <%= render "shared/journal_timeline", url: student_journal_path, teacher_mode: false %>
+      </div>
     </div>
 
     <div id="past_courses" role="tabpanel" data-tabs-target="panel">

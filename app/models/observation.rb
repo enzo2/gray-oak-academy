@@ -1,4 +1,6 @@
 class Observation < ApplicationRecord
+  HALF_LIFE_DAYS = 90.0
+
   belongs_to :student, class_name: "User"
   belongs_to :author, class_name: "User", optional: true
   belongs_to :source, polymorphic: true, optional: true
@@ -16,9 +18,34 @@ class Observation < ApplicationRecord
   scope :rejected, -> { where(status: :rejected) }
   scope :archived, -> { where(status: :archived) }
 
-  # For the LLM context, we typically want approved observations,
-  # possibly weighted by relevance in the future.
-  scope :for_context, -> { approved.order(created_at: :desc) }
+  scope :for_context, lambda {
+    as_of = Time.current
+    quoted_as_of = connection.quote(as_of)
+
+    decay_sql = <<~SQL.squish
+      observations.relevance_weight * POWER(
+        0.5,
+        GREATEST(
+          0,
+          EXTRACT(EPOCH FROM (#{quoted_as_of} - COALESCE(observations.last_validated_at, observations.created_at)))
+        ) / (#{HALF_LIFE_DAYS} * 86400.0)
+      )
+    SQL
+
+    approved
+      .select("observations.*, #{decay_sql} AS effective_weight")
+      .order(Arel.sql("effective_weight DESC"))
+  }
+
+  def effective_weight
+    return self[:effective_weight].to_f if has_attribute?("effective_weight") && !self[:effective_weight].nil?
+
+    anchor = last_validated_at || created_at
+    return relevance_weight.to_f unless anchor
+
+    days_stale = [ (Time.current - anchor) / 1.day, 0.0 ].max
+    relevance_weight.to_f * (0.5 ** (days_stale / HALF_LIFE_DAYS))
+  end
 
   def embedding_text
     content

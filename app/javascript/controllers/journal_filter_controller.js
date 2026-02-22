@@ -33,7 +33,6 @@ export default class extends Controller {
   }
 
   filter() {
-    console.log("filter");
     if (!this.hasFormTarget || !this.hasInfiniteScrollOutlet) return
 
     const formData = new FormData(this.formTarget)
@@ -42,9 +41,6 @@ export default class extends Controller {
     if (activeTypes.length === 0) {
         activeTypes = formData.getAll("types[]")
     }
-
-    // Console log for debugging
-    console.log("Filtering:", { activeTypes })
 
     const container = this.infiniteScrollOutlet.entriesTarget
     const items = container.querySelectorAll(".journal-entry")
@@ -68,6 +64,22 @@ export default class extends Controller {
        } else {
            item.classList.add("hidden")
        }
+    })
+
+    this.reflowTimelineSides(container)
+  }
+
+  reflowTimelineSides(container) {
+    const visibleItems = Array.from(container.querySelectorAll(".journal-entry")).filter((item) => !item.classList.contains("hidden"))
+
+    visibleItems.forEach((item, index) => {
+      const icon = item.querySelector(".journal-entry-icon")
+      if (!icon) return
+
+      const reverse = index % 2 === 1
+      item.classList.toggle("md:flex-row-reverse", reverse)
+      icon.classList.toggle("md:-translate-x-1/2", reverse)
+      icon.classList.toggle("md:translate-x-1/2", !reverse)
     })
   }
 }

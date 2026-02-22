@@ -139,7 +139,9 @@ Rails.application.routes.draw do
       patch "archive", on: :member
       patch "unarchive", on: :member
     end
-    resources :observations, only: [ :create, :show, :edit, :update, :destroy ]
+    resources :observations, only: [ :create, :show, :edit, :update, :destroy ] do
+      patch :revalidate, on: :member
+    end
   end
 
   namespace :student do

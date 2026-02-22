@@ -1,13 +1,17 @@
+<% show_new_observation_button = local_assigns.fetch(:show_new_observation_button, true) %>
+
 <div class="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
   
   <div class="flex items-center gap-4">
-    <!-- New Observation Button -->
-    <button class="btn-primary text-sm flex flex-row items-center py-2 px-2" data-show-dialog="new-observation-dialog">
-      <sl-icon slot="prefix" name="plus-circle"></sl-icon> &nbsp;
-      New Observation
-    </button>
-    
-    <%= render "observations/new_modal" %>
+    <% if show_new_observation_button %>
+      <!-- New Observation Button -->
+      <button class="btn-primary text-sm flex flex-row items-center py-2 px-2" data-show-dialog="new-observation-dialog">
+        <sl-icon slot="prefix" name="plus-circle"></sl-icon> &nbsp;
+        New Observation
+      </button>
+
+      <%= render "observations/new_modal" %>
+    <% end %>
   </div>
 
   <!-- Filters -->

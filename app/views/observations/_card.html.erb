@@ -9,10 +9,21 @@
        when "rejected" then "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800"
        else "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
        end %>
-    
-    <span class="px-2 py-0.5 rounded border <%= status_classes %>">
-      <%= observation.status.humanize %>
-    </span>
+    <div class="flex items-center gap-1.5">
+      <span class="px-2 py-0.5 rounded border <%= status_classes %>">
+        <%= observation.status.humanize %>
+      </span>
+      <% if observation.status_approved? %>
+        <div
+          class="inline-flex"
+          data-controller="railsblocks--tooltip"
+          data-tooltip-content="Weight. Over time, observations decay from 100% to 0%. You can re-validate to reset.">
+          <span class="px-2 py-0.5 rounded border bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-700">
+            <%= (observation.effective_weight.to_f * 100).round %>%
+          </span>
+        </div>
+      <% end %>
+    </div>
     
     <% if local_assigns[:teacher_mode] %>
       <div class="flex gap-2">
@@ -26,6 +37,16 @@
                 params: { observation: { status: :rejected } }, 
               class: "text-red-600 hover:text-red-800 hover:cursor-pointer", 
               form: { class: "inline", data: { turbo_stream: true } } %>
+          <span class="text-stone-300">|</span>
+        <% elsif observation.status_approved? %>
+          <div
+            class="inline-flex"
+            data-controller="railsblocks--tooltip"
+            data-tooltip-content="Observations decay over time. Re-validate if it still applies.">
+            <%= button_to "Re-validate", revalidate_admin_observation_path(observation), method: :patch,
+                  class: "text-emerald-600 hover:text-emerald-800 font-medium hover:cursor-pointer",
+                  form: { class: "inline", data: { turbo_stream: true } } %>
+          </div>
           <span class="text-stone-300">|</span>
         <% end %>
 

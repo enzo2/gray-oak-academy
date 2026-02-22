@@ -1,3 +1,11 @@
+<% if flash.any? %>
+  <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
+<% end %>
+
+<%= turbo_stream.replace "#{dom_id(@observation)}_card" do %>
+  <%= render "observations/card", observation: @observation, teacher_mode: true %>
+<% end %>
+
 <% if @observation.saved_change_to_status? && @observation.status_before_last_save == "pending" %>
   <%# Move from Pending list to Timeline %>
   <%= turbo_stream.remove "#{dom_id(@observation)}_card_container" %>

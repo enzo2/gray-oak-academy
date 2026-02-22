@@ -106,8 +106,8 @@ class MessageModelTest < ActiveSupport::TestCase
     # Prepare an LLM with a context length so threshold check will run
     llm = Llm.create!(model: "big-model", api_provider: "https://api.limit.test/", context_length: 100_000)
 
-    # Create a completion that will be counted as last_prompt_tokens > threshold (threshold = context_length - 64_000)
-    Completion.create!(model: llm.model, api_provider: llm.api_provider, prompt_tokens: 50_000, llm: llm, conversation: @conversation)
+    # Create a completion that exceeds the adaptive threshold (max(context_length - 64_000, 80% of context_length))
+    Completion.create!(model: llm.model, api_provider: llm.api_provider, prompt_tokens: 90_000, llm: llm, conversation: @conversation)
 
     # Point the conversation to use that llm via the user's settings
     user = @conversation.user
@@ -123,6 +123,26 @@ class MessageModelTest < ActiveSupport::TestCase
     # Creating the message should enqueue at least one job (mailer or broadcast)
     assert_operator enqueued_jobs.size, :>=, 1
   end
+
+  test "check_context_limit does not notify for small-context models below 80 percent" do
+    llm = Llm.new(model: "small-model", api_provider: "https://api.limit.test/", context_length: 8_192)
+    @conversation.define_singleton_method(:llm_in_use) { llm }
+    @conversation.define_singleton_method(:last_prompt_tokens) { 6_000 } # below 80% (6_553.6)
+
+    message = Message.new(conversation: @conversation, role: :user, content: "hi")
+    assert_operator @conversation.last_prompt_tokens, :<, (llm.context_length * 0.8)
+
+    fake_event_reporter = Object.new
+    fake_event_reporter.define_singleton_method(:notify) do |_event|
+      flunk "Expected no context warning notification below adaptive threshold"
+    end
+
+    Rails.stub(:event, fake_event_reporter) do
+      Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*) { flunk "Expected no flash broadcast below adaptive threshold" }) do
+        assert_nil message.send(:check_context_limit)
+      end
+    end
+  end
 end
 
 class LessonProgressModelTest < ActiveSupport::TestCase
@@ -132,14 +152,43 @@ class LessonProgressModelTest < ActiveSupport::TestCase
     lesson = lessons(:one) rescue Lesson.first
     lp = LessonProgress.create!(student: student, lesson: lesson) rescue lesson.lesson_progresses.first || LessonProgress.first
 
-    prompt = lp.build_task_system_prompt
-    assert_includes prompt, "Course:"
-    assert_includes prompt, lesson.course.title
-    assert_includes prompt, "Lesson Title: #{lesson.title}"
-    assert_includes prompt, "Student's name: #{student.name}"
-    assert_includes prompt, lesson.lesson_plan.content.to_s
-    # resources formatting should appear (format_collection returns JSON)
-    assert_includes prompt, "Resources marked as available:"
+    travel_to Time.zone.parse("2026-01-01 12:00:00 UTC") do
+      Observation.create!(
+        student: student,
+        content: "Strong recent mastery",
+        status: :approved,
+        relevance_weight: 1.0,
+        last_validated_at: Time.current
+      )
+      Observation.create!(
+        student: student,
+        content: "Useful but moderate confidence",
+        status: :approved,
+        relevance_weight: 0.5,
+        last_validated_at: Time.current
+      )
+      Observation.create!(
+        student: student,
+        content: "Old note to de-emphasize",
+        status: :approved,
+        relevance_weight: 0.4,
+        created_at: 220.days.ago
+      )
+
+      prompt = lp.build_task_system_prompt
+      assert_includes prompt, "Course:"
+      assert_includes prompt, lesson.course.title
+      assert_includes prompt, "Lesson Title: #{lesson.title}"
+      assert_includes prompt, "Student's name: #{student.name}"
+      assert_includes prompt, lesson.lesson_plan.content.to_s
+      # resources formatting should appear (format_collection returns JSON)
+      assert_includes prompt, "Resources marked as available:"
+      assert_includes prompt, "[high confidence] Strong recent mastery"
+      assert_includes prompt, "[moderate confidence] Useful but moderate confidence"
+      assert_includes prompt, "[low confidence] Old note to de-emphasize"
+      assert_operator prompt.index("Strong recent mastery"), :<, prompt.index("Useful but moderate confidence")
+      assert_operator prompt.index("Useful but moderate confidence"), :<, prompt.index("Old note to de-emphasize")
+    end
   end
 end
 

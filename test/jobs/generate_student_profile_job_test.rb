@@ -103,6 +103,58 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
     assert prompt_checked, "Prompt should include previous profile date"
   end
 
+  test "formats observations in prompt with decayed weights and weighted ordering" do
+    travel_to Time.zone.parse("2026-01-01 12:00:00 UTC") do
+      Observation.create!(
+        student: @student,
+        content: "Older but important",
+        status: :approved,
+        relevance_weight: 1.0,
+        created_at: 30.days.ago,
+        last_validated_at: 20.days.ago
+      )
+      Observation.create!(
+        student: @student,
+        content: "Newer but low importance",
+        status: :approved,
+        relevance_weight: 0.2,
+        created_at: 1.day.ago
+      )
+      Observation.create!(
+        student: @student,
+        content: "Pending observation should not appear",
+        status: :pending,
+        relevance_weight: 1.0
+      )
+
+      mock_service = Minitest::Mock.new
+      response = {
+        "current_snapshot" => "Snapshot",
+        "learning_patterns" => [],
+        "current_strengths" => [],
+        "areas_for_focus" => [],
+        "effective_approaches" => [],
+        "approaches_to_avoid" => [],
+        "recommendations" => []
+      }
+
+      captured_prompt = nil
+      mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
+        captured_prompt = messages.first[:content]
+        true
+      end
+
+      OpenaiApiService.stub :new, ->(*, **) { mock_service } do
+        GenerateStudentProfileJob.perform_now(@student)
+      end
+
+      assert_match(/\(weight: \d+%\) Older but important/, captured_prompt)
+      assert_match(/\(weight: \d+%\) Newer but low importance/, captured_prompt)
+      refute_match(/Pending observation should not appear/, captured_prompt)
+      assert_operator captured_prompt.index("Older but important"), :<, captured_prompt.index("Newer but low importance")
+    end
+  end
+
   test "profile_reports scope returns only User reportable types" do
     # Create a profile report
     profile_report = StudentReport.create!(

@@ -91,7 +91,8 @@ None.
     ""
   end
 %>
-- [<%= obs.created_at.strftime("%B %d, %Y") %>] <%= obs.content %><%= source_str %>
+<% weight_percent = (obs.effective_weight.to_f * 100).round %>
+- [<%= obs.created_at.strftime("%B %d, %Y") %>] (weight: <%= weight_percent %>%) <%= obs.content %><%= source_str %>
 <% end %>
 <% else %>
 - None
@@ -133,10 +134,10 @@ Mode: <%= focus_mode || "none" %>
 ### Most relevant observations
 <% if focus_observations.any? %>
 <% focus_observations.each do |obs| %>
-- [<%= obs.created_at.strftime("%B %d, %Y") %>] <%= obs.content %>
+<% weight_percent = (obs.effective_weight.to_f * 100).round %>
+- [<%= obs.created_at.strftime("%B %d, %Y") %>] (weight: <%= weight_percent %>%) <%= obs.content %>
 <% end %>
 <% else %>
 - None found.
 <% end %>
 <% end %>
-

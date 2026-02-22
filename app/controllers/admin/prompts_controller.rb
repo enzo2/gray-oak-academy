@@ -58,11 +58,13 @@ module Admin
       unless current_user.role_superuser? || @prompt.teacher == current_user
         flash[:warning] = "You are not authorized to edit this prompt."
         redirect_to admin_prompts_path
+        return
       end
       # Protect system prompts from deletion
       if @prompt.teacher.nil? && params[:action] == "destroy"
         flash[:warning] = "You cannot delete the default prompts."
         redirect_to admin_prompts_path
+        nil
       end
     end
 

@@ -123,12 +123,12 @@ class GenerateStudentProfileJob < ApplicationJob
 
   def format_observations(student)
     observations = student.observations
-                          .approved
-                          .order(created_at: :desc)
+                          .for_context
                           .limit(30)
 
     observations.map do |obs|
-      "- [#{obs.created_at.strftime("%B %d, %Y")}] #{obs.content}"
+      weight_percent = (obs.effective_weight.to_f * 100).round
+      "- [#{obs.created_at.strftime("%B %d, %Y")}] (weight: #{weight_percent}%) #{obs.content}"
     end.join("\n")
   end
 

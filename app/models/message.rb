@@ -133,8 +133,8 @@ class Message < ApplicationRecord
     context_limit = llm.context_length
     return unless context_limit # Skip if context limit is not set
 
-    # Check the threshold (model's context limit - 64,000)
-    threshold = context_limit - 64000
+    # Warn when the remaining context is low, but avoid negative thresholds for small models.
+    threshold = [ context_limit - 64_000, context_limit * 0.8 ].max
 
     if conversation.last_prompt_tokens > threshold
       Rails.logger.warn("Conversation #{conversation.id} is approaching the context limit: #{conversation.last_prompt_tokens} / #{threshold}")
