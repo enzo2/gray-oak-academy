@@ -25,6 +25,7 @@ class ProposeResourcesJob < ApplicationJob
   }.freeze
 
   def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false, source: "propose_resources")
+    run_id = SecureRandom.uuid
     turns = 0
     total_tool_calls = 0
     high_tool_call_warning_notified = false
@@ -56,11 +57,11 @@ class ProposeResourcesJob < ApplicationJob
       client,
       messages: messages,
       metadata: run_metadata(
+        run_id: run_id,
         current_user: current_user,
         lesson_plan: lesson_plan,
         source: source,
-        task_preview: "Propose resources for lesson plan #{lesson_plan.id}: #{lesson_plan.lesson.title}",
-        task_full: prompt
+        phase: "submitted"
       )
     )
     max_tool_turns = AppSetting.openai_agent_max_tool_turns
@@ -76,9 +77,11 @@ class ProposeResourcesJob < ApplicationJob
             messages: [ { role: "user", content: build_tool_error_retry_prompt(pending_retryable_tool_errors) } ],
             previous_response_id: response_hash["id"],
             metadata: run_metadata(
+              run_id: run_id,
               current_user: current_user,
               lesson_plan: lesson_plan,
               source: source,
+              phase: "retry",
               retry_reason: "tool_error"
             )
           )
@@ -116,7 +119,13 @@ class ProposeResourcesJob < ApplicationJob
         client,
         input: outputs,
         previous_response_id: response_hash["id"],
-        metadata: run_metadata(current_user: current_user, lesson_plan: lesson_plan, source: source)
+        metadata: run_metadata(
+          run_id: run_id,
+          current_user: current_user,
+          lesson_plan: lesson_plan,
+          source: source,
+          phase: "tool_turn"
+        )
       )
     end
 
@@ -184,16 +193,16 @@ class ProposeResourcesJob < ApplicationJob
     error["message"].presence || error["code"].presence || "Unknown error"
   end
 
-  def run_metadata(current_user:, lesson_plan:, source:, task_preview: nil, task_full: nil, retry_reason: nil)
-    {
+  def run_metadata(run_id:, current_user:, lesson_plan:, source:, phase: "submitted", retry_reason: nil)
+    AgentRunMetadata.build(
+      run_id: run_id,
       run_type: "propose_resources",
-      teacher_id: current_user.id.to_s,
-      lesson_plan_id: lesson_plan.id.to_s,
+      teacher_id: current_user.id,
+      lesson_plan_id: lesson_plan.id,
       source: source,
-      task_preview: task_preview,
-      task_full: task_full,
+      phase: phase,
       retry_reason: retry_reason
-    }.compact
+    )
   end
 
   def extract_retryable_tool_errors(outputs)

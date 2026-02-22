@@ -1,28 +1,22 @@
 class AgentRunLogService
-  MAX_LOGS = 50
   MAX_TASK_PROMPT_CHARS = 50_000
+  UPSERT_MAX_RETRIES = 2
 
-  def initialize(app_setting: AppSetting.settings)
-    @app_setting = app_setting
+  def initialize
   end
 
   def list(limit: 300)
-    read_logs.first(limit)
+    AgentRun
+      .order(Arel.sql("COALESCE(submitted_at, finished_at) DESC"), id: :desc)
+      .limit(limit)
+      .map { |run| serialize_run(run) }
   end
 
   def clear!
-    return unless @app_setting
-
-    @app_setting.with_lock do
-      log = (@app_setting.log || {}).deep_dup
-      log["agent_run_logs"] = []
-      settings = @app_setting.settings.deep_dup
-      settings.delete("agent_run_logs")
-      @app_setting.update!(log: log, settings: settings)
-    end
+    AgentRun.delete_all
   end
 
-  def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:, provider_base_uri: nil)
+  def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:, provider_base_uri: nil, metadata_version: nil, phase: nil)
     upsert_run!(
       run_id: run_id,
       response_id: response_id,
@@ -34,6 +28,8 @@ class AgentRunLogService
       source: source.to_s,
       task_preview: truncate_prompt(prompt),
       task_prompt: normalize_task_prompt(prompt),
+      metadata_version: metadata_version.to_s.presence,
+      phase: phase.to_s.presence || "submitted",
       submitted_at: Time.current.iso8601
     )
   end
@@ -51,7 +47,8 @@ class AgentRunLogService
       tool_turn_count: metrics[:tool_turn_count],
       reasoning_item_count: metrics[:reasoning_item_count],
       output_item_count: metrics[:output_item_count],
-      tool_calls: normalize_tool_calls(tool_calls)
+      tool_calls: normalize_tool_calls(tool_calls),
+      phase: "completed"
     )
   end
 
@@ -69,45 +66,69 @@ class AgentRunLogService
       reasoning_item_count: metrics[:reasoning_item_count],
       output_item_count: metrics[:output_item_count],
       tool_calls: normalize_tool_calls(tool_calls),
-      error_message: error_message.to_s.truncate(500)
+      error_message: error_message.to_s.truncate(500),
+      phase: "failed"
     )
   end
 
   private
 
   def upsert_run!(attrs)
-    return unless @app_setting
+    run_id = attrs[:run_id].to_s
+    return if run_id.blank?
 
-    @app_setting.with_lock do
-      log = (@app_setting.log || {}).deep_dup
-      logs = Array(log["agent_run_logs"])
-      run_id = attrs[:run_id].to_s
+    attrs_hash = attrs.deep_stringify_keys
+    retries = 0
 
-      index = logs.index { |entry| entry["run_id"].to_s == run_id }
-      if index
-        logs[index] = logs[index].merge(attrs.deep_stringify_keys)
-      else
-        logs.unshift(attrs.deep_stringify_keys)
+    begin
+      AgentRun.transaction do
+        run = AgentRun.lock.find_by(run_id: run_id)
+        run ||= AgentRun.new(run_id: run_id)
+        run.assign_attributes(attrs_hash.except("run_id"))
+        run.events = append_run_event(run.events, attrs_hash)
+        run.save!
       end
-
-      logs = logs.first(MAX_LOGS)
-      settings = @app_setting.settings.deep_dup
-      settings.delete("agent_run_logs")
-      @app_setting.update!(log: log.merge("agent_run_logs" => logs), settings: settings)
+    rescue ActiveRecord::RecordNotUnique
+      retries += 1
+      retry if retries <= UPSERT_MAX_RETRIES
+      raise
     end
   end
 
-  def read_logs
-    return [] unless @app_setting
-    Array((@app_setting.log || {})["agent_run_logs"]).map(&:deep_symbolize_keys)
+  def serialize_run(run)
+    run.attributes.deep_symbolize_keys
   end
 
   def truncate_prompt(prompt)
-    prompt.to_s.squish.truncate(220)
+    redact_prompt(prompt).squish.truncate(220)
   end
 
   def normalize_task_prompt(prompt)
-    prompt.to_s.first(MAX_TASK_PROMPT_CHARS)
+    redact_prompt(prompt).first(MAX_TASK_PROMPT_CHARS)
+  end
+
+  def append_run_event(existing_events, attrs_hash)
+    events = Array(existing_events).map { |event| event.is_a?(Hash) ? event.deep_dup : nil }.compact
+    event = {
+      "at" => Time.current.iso8601,
+      "status" => attrs_hash["status"].to_s.presence,
+      "phase" => attrs_hash["phase"].to_s.presence,
+      "response_id" => attrs_hash["response_id"].to_s.presence
+    }.compact
+
+    last = events.last
+    signature = event.slice("status", "phase", "response_id")
+    last_signature = last.is_a?(Hash) ? last.slice("status", "phase", "response_id") : {}
+    events << event if signature.present? && signature != last_signature
+
+    events.last(50)
+  end
+
+  def redact_prompt(prompt)
+    redacted = prompt.to_s.dup
+    redacted.gsub!(/sk-[A-Za-z0-9\-_]{20,}/, "[REDACTED_TOKEN]")
+    redacted.gsub!(/((?:api[_-]?key|access[_-]?token|authorization)\s*[:=]\s*)([^\s,;]+)/i, "\\1[REDACTED]")
+    redacted
   end
 
   def output_metrics(response_hash)

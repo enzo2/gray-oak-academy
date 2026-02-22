@@ -2,9 +2,8 @@ require "test_helper"
 
 class AgentRunLogServiceTest < ActiveSupport::TestCase
   def setup
-    @app_setting = AppSetting.first
-    @app_setting.update!(log: @app_setting.log.merge("agent_run_logs" => []))
-    @service = AgentRunLogService.new(app_setting: @app_setting)
+    AgentRun.delete_all
+    @service = AgentRunLogService.new
     @teacher = users(:admin)
   end
 
@@ -45,6 +44,9 @@ class AgentRunLogServiceTest < ActiveSupport::TestCase
     assert_equal 1, run[:reasoning_item_count]
     assert_equal 3, run[:output_item_count]
     assert run[:duration_seconds].to_f >= 0
+    assert_equal 2, run[:events].size
+    assert_equal "submitted", run[:events].first[:status]
+    assert_equal "completed", run[:events].second[:status]
   end
 
   test "records failed run with error message" do

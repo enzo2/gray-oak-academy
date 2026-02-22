@@ -4,7 +4,7 @@ module Admin
 
     def index
       @runs = AgentRunLogService.new.list(limit: 500)
-      @runs = @runs.sort_by { |run| run[:submitted_at].presence || run[:finished_at].presence || "" }.reverse.first(300)
+      @runs = @runs.sort_by { |run| run_sort_timestamp(run) }.reverse.first(300)
       load_run_trace
     end
 
@@ -81,7 +81,7 @@ module Admin
     end
 
   def resolved_task_prompt(run:, response:)
-    run[:task_prompt].to_s.presence || response_metadata_value(response, "task_full", "task_prompt")
+    run[:task_prompt].to_s.presence || response_metadata_value(response, "task_prompt", "task_full")
   end
 
   def resolved_task_preview(run:, response:)
@@ -98,6 +98,16 @@ module Admin
     end
 
     ""
+  end
+
+  def run_sort_timestamp(run)
+    value = run[:submitted_at].presence || run[:finished_at].presence
+    return 0 if value.blank?
+    return value.to_time.to_f if value.respond_to?(:to_time)
+
+    Time.zone.parse(value.to_s).to_f
+  rescue ArgumentError, TypeError
+    0
   end
 
   def extract_output_text(response)

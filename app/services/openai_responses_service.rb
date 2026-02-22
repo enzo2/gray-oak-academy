@@ -27,6 +27,8 @@ class OpenaiResponsesService
   BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
   METADATA_RESPONSES_HOSTS = %w[api.openai.com openrouter.ai].freeze
   AGENT_RUN_SYNC_TIMEOUT_SECONDS = 900
+  RESPONSES_METADATA_MAX_KEYS = 16
+  RESPONSES_METADATA_MAX_KEY_LENGTH = 64
   RESPONSES_METADATA_MAX_STRING_LENGTH = 512
 
   def self.base_uri_host(base_uri)
@@ -122,8 +124,9 @@ class OpenaiResponsesService
     @store = store.nil? ? true : store
     @active_store = @store
     @previous_response_id = resolve_previous_response_id(previous_response_id)
-    @agent_run_context = nil
-    @agent_run_terminal_logged = false
+    @agent_run_contexts_by_run_id = {}
+    @agent_run_context_by_response_id = {}
+    @agent_run_active_run_id = nil
     @response_overview_log_state = {}
     @response_summary_log_state = {}
 
@@ -1171,23 +1174,41 @@ class OpenaiResponsesService
     return metadata unless metadata.is_a?(Hash)
 
     metadata.each_with_object({}) do |(key, value), sanitized|
-      sanitized[key] = sanitize_responses_metadata_value(value)
+      next if sanitized.size >= RESPONSES_METADATA_MAX_KEYS
+
+      sanitized_key = key.to_s.first(RESPONSES_METADATA_MAX_KEY_LENGTH)
+      next if sanitized_key.blank?
+
+      sanitized_value = sanitize_responses_metadata_value(value)
+      next if sanitized_value.nil?
+
+      sanitized[sanitized_key] = sanitized_value
     end
   end
 
   def sanitize_responses_metadata_value(value)
     case value
-    when Hash
-      value.each_with_object({}) do |(key, nested_value), sanitized|
-        sanitized[key] = sanitize_responses_metadata_value(nested_value)
-      end
-    when Array
-      value.map { |entry| sanitize_responses_metadata_value(entry) }
+    when nil
+      nil
     when String
-      value.length > RESPONSES_METADATA_MAX_STRING_LENGTH ? value[0, RESPONSES_METADATA_MAX_STRING_LENGTH] : value
+      truncate_metadata_string(value)
     else
-      value
+      serialized =
+        begin
+          value.is_a?(Hash) || value.is_a?(Array) ? JSON.generate(value) : value.to_s
+        rescue StandardError
+          value.to_s
+        end
+
+      truncate_metadata_string(serialized)
     end
+  end
+
+  def truncate_metadata_string(value)
+    string_value = value.to_s
+    return string_value if string_value.length <= RESPONSES_METADATA_MAX_STRING_LENGTH
+
+    string_value[0, RESPONSES_METADATA_MAX_STRING_LENGTH]
   end
 
   def normalize_function_call_output(content)
@@ -1233,20 +1254,43 @@ class OpenaiResponsesService
     return nil unless agent_run_logging_enabled?(background: background)
 
     meta = metadata.is_a?(Hash) ? metadata.deep_stringify_keys : {}
-    existing = @agent_run_context || {}
-    run_id = meta["run_id"].presence || existing[:run_id] || SecureRandom.uuid
-    prompt = meta["task_full"].presence || meta["task_preview"].presence || existing[:prompt] || derive_prompt_preview(messages: messages, input: input)
+    explicit_run_id = meta["run_id"].to_s.presence
+    existing = current_agent_run_context
+    existing = @agent_run_contexts_by_run_id[explicit_run_id] || existing if explicit_run_id.present?
+    run_id = explicit_run_id || existing[:run_id] || SecureRandom.uuid
 
-    @agent_run_terminal_logged = false if existing[:run_id] != run_id
+    existing_for_run = @agent_run_contexts_by_run_id[run_id] || existing
+    derived_prompt = derive_prompt_from_request(messages: messages, input: input)
+    same_run = existing_for_run[:run_id].to_s == run_id.to_s
+    prompt = if same_run
+      existing_for_run[:prompt].presence ||
+        derived_prompt.presence ||
+        meta["task_prompt"].presence ||
+        meta["task_full"].presence ||
+        meta["task_preview"].presence ||
+        "Background Responses run"
+    else
+      derived_prompt.presence ||
+        meta["task_prompt"].presence ||
+        meta["task_full"].presence ||
+        meta["task_preview"].presence ||
+        "Background Responses run"
+    end
 
-    @agent_run_context = {
+    context = {
       run_id: run_id,
-      source: meta["source"].presence || meta["run_type"].presence || existing[:source] || "background",
+      source: meta["source"].presence || meta["run_type"].presence || existing_for_run[:source] || "background",
       prompt: prompt,
-      started_at: existing[:started_at] || Time.current,
-      tool_calls: existing[:run_id] == run_id ? Array(existing[:tool_calls]).dup : [],
-      response_metrics: existing[:run_id] == run_id ? (existing[:response_metrics] || {}).deep_dup : {}
+      started_at: existing_for_run[:started_at] || Time.current,
+      tool_calls: same_run ? Array(existing_for_run[:tool_calls]).dup : [],
+      response_metrics: same_run ? (existing_for_run[:response_metrics] || {}).deep_dup : {},
+      terminal_logged: same_run ? existing_for_run[:terminal_logged] : false,
+      metadata_version: meta["metadata_version"].presence || existing_for_run[:metadata_version],
+      phase: meta["phase"].presence || existing_for_run[:phase]
     }
+
+    persist_agent_run_context(context)
+    context
   end
 
   def agent_run_logging_enabled?(background:)
@@ -1254,7 +1298,35 @@ class OpenaiResponsesService
   end
 
   def agent_run_log_service
-    @agent_run_log_service ||= AgentRunLogService.new(app_setting: AppSetting.settings)
+    @agent_run_log_service ||= AgentRunLogService.new
+  end
+
+  def current_agent_run_context
+    return {} if @agent_run_active_run_id.to_s.blank?
+
+    @agent_run_contexts_by_run_id[@agent_run_active_run_id] || {}
+  end
+
+  def persist_agent_run_context(context)
+    return unless context.is_a?(Hash)
+
+    run_id = context[:run_id].to_s
+    return if run_id.blank?
+
+    @agent_run_contexts_by_run_id[run_id] = context
+    @agent_run_active_run_id = run_id
+  end
+
+  def agent_run_context_for_response(response_hash)
+    response_id = response_hash.is_a?(Hash) ? response_hash["id"].to_s : ""
+    if response_id.present?
+      run_id = @agent_run_context_by_response_id[response_id].to_s
+      context = @agent_run_contexts_by_run_id[run_id]
+      return context if context.present?
+    end
+
+    context = current_agent_run_context
+    context.present? ? context : nil
   end
 
   def record_agent_run_submitted(response_hash:, context:)
@@ -1264,6 +1336,10 @@ class OpenaiResponsesService
     return if response_id.blank?
 
     context[:response_id] = response_id
+    context[:phase] = "submitted"
+    context[:terminal_logged] = false
+    persist_agent_run_context(context)
+    @agent_run_context_by_response_id[response_id] = context[:run_id].to_s
     agent_run_log_service.record_submitted(
       run_id: context[:run_id],
       response_id: response_id,
@@ -1271,7 +1347,9 @@ class OpenaiResponsesService
       model: resolved_model_name(response_hash),
       provider_base_uri: @base_uri,
       source: context[:source],
-      prompt: context[:prompt]
+      prompt: context[:prompt],
+      metadata_version: context[:metadata_version],
+      phase: context[:phase]
     )
   rescue StandardError => e
     Rails.logger.error "Failed to record submitted agent run #{context[:run_id]}: #{e.message}"
@@ -1283,9 +1361,9 @@ class OpenaiResponsesService
   end
 
   def maybe_record_agent_run_terminal(response_hash)
-    context = @agent_run_context
+    context = agent_run_context_for_response(response_hash)
     return unless context.present?
-    return if @agent_run_terminal_logged
+    return if context[:terminal_logged]
 
     status = response_hash["status"].to_s
     case status
@@ -1301,7 +1379,9 @@ class OpenaiResponsesService
         tool_calls: context[:tool_calls]
       )
       log_tool_call_sequence(context)
-      @agent_run_terminal_logged = true
+      context[:phase] = "completed"
+      context[:terminal_logged] = true
+      persist_agent_run_context(context)
     when "failed", "cancelled", "canceled", "incomplete"
       record_agent_run_failed(
         error_message: "Run status: #{status}. #{extract_agent_run_error(response_hash)}",
@@ -1313,9 +1393,9 @@ class OpenaiResponsesService
   end
 
   def record_agent_run_failed(error_message:, response_hash: nil)
-    context = @agent_run_context
+    context = response_hash.present? ? agent_run_context_for_response(response_hash) : current_agent_run_context
     return unless context.present?
-    return if @agent_run_terminal_logged
+    return if context[:terminal_logged]
 
     agent_run_log_service.record_failed(
       run_id: context[:run_id],
@@ -1327,13 +1407,15 @@ class OpenaiResponsesService
       tool_calls: context[:tool_calls]
     )
     log_tool_call_sequence(context)
-    @agent_run_terminal_logged = true
+    context[:phase] = "failed"
+    context[:terminal_logged] = true
+    persist_agent_run_context(context)
   rescue StandardError => e
     Rails.logger.error "Failed to record failed agent run #{context[:run_id]}: #{e.message}"
   end
 
   def log_response_overview(response_hash, phase:)
-    context = @agent_run_context
+    context = agent_run_context_for_response(response_hash)
     return unless context.present?
 
     response_id = response_hash["id"].to_s
@@ -1368,6 +1450,8 @@ class OpenaiResponsesService
   end
 
   def log_request_summary(request_params:, request_options:, streaming:)
+    run_context = current_agent_run_context
+    run_id_log = run_context.is_a?(Hash) ? run_context[:run_id].to_s.presence : nil
     input_items = Array(request_params[:input])
     tools = Array(request_params[:tools])
     input_type_counts = input_items.each_with_object(Hash.new(0)) do |item, memo|
@@ -1378,7 +1462,7 @@ class OpenaiResponsesService
     tool_summary = "#{tool_summary}, ...(+#{tools.size - 8} more)" if tools.size > 8
 
     Rails.logger.debug(
-      "Responses request model=#{@model} provider=#{@base_uri} streaming=#{streaming} " \
+      "Responses request run_id=#{run_id_log || 'none'} model=#{@model} provider=#{@base_uri} streaming=#{streaming} " \
       "store=#{request_params[:store].inspect} previous_response_id=#{request_params[:previous_response_id].presence || 'none'} " \
       "input_items=#{input_items.size} input_types=#{input_summary.presence || 'none'} " \
       "tools=#{tools.size} tool_names=#{tool_summary.presence || 'none'} " \
@@ -1392,6 +1476,8 @@ class OpenaiResponsesService
   def log_response_summary(response_hash, phase:)
     response_id = response_hash["id"].to_s.presence || "unknown"
     status = response_hash["status"].to_s.presence || "unknown"
+    run_context = agent_run_context_for_response(response_hash)
+    run_id_log = run_context.is_a?(Hash) ? run_context[:run_id].to_s.presence : nil
     output_items = Array(response_hash["output"])
     output_counts = output_items.each_with_object(Hash.new(0)) { |item, memo| memo[item["type"].to_s] += 1 }
     tool_calls = output_counts.fetch("function_call", 0)
@@ -1412,7 +1498,7 @@ class OpenaiResponsesService
     output_summary = output_counts.map { |type, count| "#{type}=#{count}" }.join(", ")
 
     Rails.logger.debug(
-      "Responses response phase=#{phase} response_id=#{response_id} status=#{status} " \
+      "Responses response phase=#{phase} run_id=#{run_id_log || 'none'} response_id=#{response_id} status=#{status} " \
       "output_items=#{output_items.size} output_types=#{output_summary.presence || 'none'} " \
       "function_calls=#{tool_calls} input_tokens=#{usage['input_tokens']} " \
       "output_tokens=#{usage['output_tokens']} total_tokens=#{usage['total_tokens']}"
@@ -1595,14 +1681,14 @@ class OpenaiResponsesService
     error["message"].presence || error["code"].presence || "Unknown error"
   end
 
-  def derive_prompt_preview(messages:, input:)
+  def derive_prompt_from_request(messages:, input:)
     messages_preview = extract_text_from_items(Array(messages))
     return messages_preview if messages_preview.present?
 
     input_preview = extract_text_from_items(Array(input))
     return input_preview if input_preview.present?
 
-    "Background Responses run"
+    nil
   end
 
   def extract_text_from_items(items)

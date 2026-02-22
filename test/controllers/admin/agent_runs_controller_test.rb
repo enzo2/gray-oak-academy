@@ -2,8 +2,8 @@ require "test_helper"
 
 class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
   def seed_agent_run_logs(logs)
-    app = AppSetting.first
-    app.update!(log: app.log.merge("agent_run_logs" => logs))
+    AgentRun.delete_all
+    logs.each { |attrs| AgentRun.create!(attrs) }
   end
 
   test "superuser can view agent runs dashboard" do
@@ -162,14 +162,13 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
   test "superuser can clear agent run logs" do
     superuser = users(:super_user)
     sign_in superuser
-    app = AppSetting.first
-    app.update!(log: app.log.merge("agent_run_logs" => [ { "run_id" => "run_1" } ]))
+    AgentRun.create!(run_id: "run_1")
 
     delete clear_admin_agent_runs_path
 
     assert_redirected_to admin_agent_runs_path
     assert_equal "Agent run logs cleared.", flash[:notice]
-    assert_equal [], Array(app.reload.log["agent_run_logs"])
+    assert_equal 0, AgentRun.count
   end
 
   test "admin cannot clear agent run logs" do

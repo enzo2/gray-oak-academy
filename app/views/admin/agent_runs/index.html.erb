@@ -7,6 +7,16 @@
       class: "btn-secondary text-red-700 dark:text-red-300" %>
 </div>
 <p class="mb-4 text-sm text-dim">OpenAI Responses background runs.</p>
+<%
+  format_run_time = lambda do |value|
+    next "" if value.blank?
+
+    timestamp = value.respond_to?(:in_time_zone) ? value.in_time_zone : Time.zone.parse(value.to_s)
+    timestamp.strftime("%Y-%m-%d %H:%M:%S")
+  rescue ArgumentError, TypeError
+    value.to_s
+  end
+%>
 
 <% if @runs.any? %>
   <div class="overflow-x-auto">
@@ -51,8 +61,8 @@
             </td>
             <td class="font-mono text-xs"><%= run[:model] %></td>
             <td><%= run[:source] %></td>
-            <td><%= run[:submitted_at].present? ? Time.zone.parse(run[:submitted_at]).strftime("%Y-%m-%d %H:%M:%S") : "" %></td>
-            <td><%= run[:finished_at].present? ? Time.zone.parse(run[:finished_at]).strftime("%Y-%m-%d %H:%M:%S") : "" %></td>
+            <td><%= format_run_time.call(run[:submitted_at]) %></td>
+            <td><%= format_run_time.call(run[:finished_at]) %></td>
             <td><%= run[:duration_seconds] %></td>
             <td><%= run[:tool_turn_count].to_i %></td>
             <td><%= run[:tool_call_count] %></td>

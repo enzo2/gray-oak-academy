@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_102000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_22_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -54,6 +54,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_102000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agent_runs", force: :cascade do |t|
+    t.integer "assistant_turns"
+    t.datetime "created_at", null: false
+    t.decimal "duration_seconds", precision: 10, scale: 1
+    t.text "error_message"
+    t.jsonb "events", default: [], null: false
+    t.datetime "finished_at"
+    t.string "metadata_version"
+    t.string "model"
+    t.integer "output_item_count"
+    t.string "phase"
+    t.string "provider_base_uri"
+    t.integer "reasoning_item_count"
+    t.string "response_id"
+    t.string "run_id", null: false
+    t.string "source"
+    t.string "status"
+    t.datetime "submitted_at"
+    t.string "task_preview"
+    t.text "task_prompt"
+    t.bigint "teacher_id"
+    t.string "teacher_name"
+    t.integer "tool_call_count"
+    t.jsonb "tool_calls", default: [], null: false
+    t.integer "tool_turn_count"
+    t.datetime "updated_at", null: false
+    t.index ["response_id"], name: "index_agent_runs_on_response_id"
+    t.index ["run_id"], name: "index_agent_runs_on_run_id", unique: true
+    t.index ["submitted_at"], name: "index_agent_runs_on_submitted_at"
   end
 
   create_table "app_settings", force: :cascade do |t|

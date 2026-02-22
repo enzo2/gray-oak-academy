@@ -390,22 +390,27 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       assert_equal "Done", response
     end
 
-    assert_equal "run_meta_or", captured.dig(:metadata, :run_id)
-    assert_equal "test", captured.dig(:metadata, :source)
+    assert_equal "run_meta_or", captured.dig(:metadata, "run_id")
+    assert_equal "test", captured.dig(:metadata, "source")
   end
 
-  test "openai truncates metadata string values to provider limit" do
+  test "openai metadata is constrained to provider key/value limits" do
     captured = nil
     fake_client = build_responses_client do |params|
       captured = params
       response_payload("Done", id: "resp_meta_openai")
     end
 
+    long_key = "k" * 80
     metadata = {
       run_id: "run_meta_openai",
       task_full: "a" * 600,
-      nested: { note: "b" * 700 }
+      nested: { note: "b" * 700 },
+      long_key => "value"
     }
+    20.times do |idx|
+      metadata["extra_#{idx}"] = idx
+    end
 
     OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
       service = OpenaiResponsesService.new(
@@ -425,10 +430,19 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
     assert_equal 600, metadata[:task_full].length
     assert_equal 700, metadata.dig(:nested, :note).length
-    assert_equal 512, captured.dig(:metadata, :task_full).length
-    assert_equal "a" * 512, captured.dig(:metadata, :task_full)
-    assert_equal 512, captured.dig(:metadata, :nested, :note).length
-    assert_equal "b" * 512, captured.dig(:metadata, :nested, :note)
+    task_full_value = captured.dig(:metadata, "task_full") || captured.dig(:metadata, :task_full)
+    nested_value = captured.dig(:metadata, "nested") || captured.dig(:metadata, :nested)
+    assert task_full_value.present?, "Expected task_full metadata key, got #{captured[:metadata].inspect}"
+    assert nested_value.present?, "Expected nested metadata key, got #{captured[:metadata].inspect}"
+    assert_equal 512, task_full_value.length
+    assert_equal "a" * 512, task_full_value
+    assert_equal 512, nested_value.length
+    assert_includes nested_value, "\"note\""
+    assert_instance_of String, nested_value
+    assert captured[:metadata].keys.all? { |key| key.to_s.length <= 64 }
+    assert_operator captured[:metadata].size, :<=, 16
+    truncated_key = "k" * 64
+    assert_equal "value", captured[:metadata][truncated_key] || captured[:metadata][truncated_key.to_sym]
   end
 
   test "agent_run mode resolves provider, token, and model from app settings" do
@@ -753,8 +767,8 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
 
     assert_equal true, captured_request[:background]
-    assert_equal "run_openai_bg", captured_request.dig(:metadata, :run_id)
-    assert_equal "propose_resources", captured_request.dig(:metadata, :run_type)
+    assert_equal "run_openai_bg", captured_request.dig(:metadata, "run_id")
+    assert_equal "propose_resources", captured_request.dig(:metadata, "run_type")
   end
 
   test "complete includes provider-native responses tools without enabling app function tools" do
@@ -857,12 +871,61 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "resp_bg", submitted_calls.first[:response_id]
     assert_equal supported_apis(:openai).api_base_uri, submitted_calls.first[:provider_base_uri]
     assert_equal "propose_resources", submitted_calls.first[:source]
-    assert_equal "Preview task", submitted_calls.first[:prompt]
+    assert_equal "Run long task", submitted_calls.first[:prompt]
 
     assert_equal 1, completed_calls.size
     assert_equal "run_1", completed_calls.first[:run_id]
     assert_equal "resp_bg", completed_calls.first[:response_id]
     assert_equal 0, failed_calls.size
+  end
+
+  test "background agent run prompt resets for a new run_id" do
+    create_count = 0
+    fake_client = build_responses_client do |_params|
+      create_count += 1
+      {
+        "id" => "resp_#{create_count}",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    submitted_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**kwargs| submitted_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| nil }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| nil }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: supported_apis(:openai).api_base_uri,
+          model: @model,
+          log_completion: false,
+          agent_run: true
+        )
+
+        service.complete(
+          [ { role: "user", content: "First run prompt" } ],
+          background: true,
+          metadata: { run_id: "run_1", run_type: "propose_resources", source: "propose_resources", task_preview: "Preview 1" }
+        )
+        service.complete(
+          [ { role: "user", content: "Second run prompt" } ],
+          background: true,
+          metadata: { run_id: "run_2", run_type: "propose_resources", source: "propose_resources", task_preview: "Preview 2" }
+        )
+      end
+    end
+
+    assert_equal 2, submitted_calls.size
+    assert_equal "run_1", submitted_calls.first[:run_id]
+    assert_equal "First run prompt", submitted_calls.first[:prompt]
+    assert_equal "run_2", submitted_calls.second[:run_id]
+    assert_equal "Second run prompt", submitted_calls.second[:prompt]
   end
 
   test "background run completion logs aggregate metrics across tool-call turns" do

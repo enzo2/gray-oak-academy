@@ -124,8 +124,11 @@ LLM APIs are configured per-user in `Setting`:
 
 ## Key Principles
 
-1. **No hard-coded prompts** - All prompts use the `Prompt` model with defaults in seeds.rb
-2. **Teacher control** - Teachers define curriculum, prompts, and values; LLM executes
-3. **Fat models, thin controllers** - Business logic in models, controllers stay light
-4. **Self-hostable** - Works with any OpenAI-compatible API including local LLMs
-5. **Test with different LLMs** - The app is demanding; verify changes work across models
+- **No hard-coded prompts** - All prompts use the `Prompt` model with defaults in seeds.rb
+- **Teacher control** - Teachers define curriculum, prompts, and values; LLM executes
+- **Self-hostable** - Works with any OpenAI-compatible API including local LLMs
+
+## Coding styles
+
+- Fat models, thin controllers - Business logic in models, controllers stay light
+- Avoid adding low-value tests that have no bearing on app functionality, are unlikely to break in the future, or are one-off checks

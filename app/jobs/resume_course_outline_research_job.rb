@@ -167,13 +167,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       [ { role: "user", content: prompt } ],
       previous_response_id: previous_response_id,
       background: true,
-      metadata: {
+      metadata: run_metadata(
         run_id: run_id,
-        run_type: "outline_research_apply",
-        teacher_id: course.teacher_id.to_s,
-        course_id: course.id.to_s,
-        source: source.to_s
-      }
+        source: source,
+        course: course,
+        teacher_id: course.teacher_id,
+        phase: "submitted"
+      )
     )
 
     response_id = submitted["id"].to_s
@@ -188,13 +188,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       input: input,
       previous_response_id: previous_response_id,
       background: true,
-      metadata: {
+      metadata: run_metadata(
         run_id: run_id,
-        run_type: "outline_research_apply",
-        teacher_id: current_user.id.to_s,
-        course_id: course.id.to_s,
-        source: source.to_s
-      }
+        source: source,
+        course: course,
+        teacher_id: current_user.id,
+        phase: "tool_turn"
+      )
     )
     response_id = submitted["id"].to_s
     raise OpenAiError, "Responses API did not return a response id while continuing outline research apply run." if response_id.blank?
@@ -248,6 +248,17 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       .gsub("{outline_research}", course.outline_research.to_json)
       .gsub("{additional_comments}", course.outline_guidance_additional_comments.presence || "None.")
       .gsub("{teacher_answers}", question_text)
+  end
+
+  def run_metadata(run_id:, source:, course:, teacher_id:, phase:)
+    AgentRunMetadata.build(
+      run_id: run_id,
+      run_type: "outline_research_apply",
+      teacher_id: teacher_id,
+      course_id: course.id,
+      source: source.to_s,
+      phase: phase
+    )
   end
 
   def formatted_teacher_answer(question_hash:, raw_answer:)

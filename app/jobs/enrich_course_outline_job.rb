@@ -369,13 +369,14 @@ class EnrichCourseOutlineJob < ApplicationJob
         json_schema: PHASE1_SCHEMA.slice(:name, :schema, :strict)
       },
       background: true,
-      metadata: {
+      metadata: AgentRunMetadata.build(
         run_id: run_id,
         run_type: "outline_research_guidance",
-        teacher_id: current_user.id.to_s,
-        course_id: course.id.to_s,
-        source: source.to_s
-      }
+        teacher_id: current_user.id,
+        course_id: course.id,
+        source: source.to_s,
+        phase: "submitted"
+      )
     )
     response_id = submitted["id"].to_s
     raise OpenAiError, "Responses API did not return a response id for outline research guidance." if response_id.blank?

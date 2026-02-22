@@ -46,12 +46,12 @@ class DelegateToFrontierLlmJob < ApplicationJob
       submitted = client.complete(
         messages,
         background: true,
-        metadata: {
+        metadata: run_metadata(
+          teacher: teacher,
           run_id: run_id,
-          run_type: "delegate_to_frontier_llm",
-          teacher_id: teacher.id.to_s,
-          source: source.to_s
-        }
+          source: source,
+          phase: "submitted"
+        )
       )
 
       response_id = submitted["id"]
@@ -83,12 +83,12 @@ class DelegateToFrontierLlmJob < ApplicationJob
           input: tool_outputs,
           previous_response_id: final_response["id"],
           background: true,
-          metadata: {
+          metadata: run_metadata(
+            teacher: teacher,
             run_id: run_id,
-            run_type: "delegate_to_frontier_llm",
-            teacher_id: teacher.id.to_s,
-            source: source.to_s
-          }
+            source: source,
+            phase: "tool_turn"
+          )
         )
         response_id = continued["id"]
         final_response = client.wait_for_response(
@@ -187,5 +187,15 @@ class DelegateToFrontierLlmJob < ApplicationJob
 
   def truncate_prompt(prompt)
     prompt.to_s.squish.truncate(220)
+  end
+
+  def run_metadata(teacher:, run_id:, source:, phase:)
+    AgentRunMetadata.build(
+      run_id: run_id,
+      run_type: "delegate_to_frontier_llm",
+      teacher_id: teacher.id,
+      source: source.to_s,
+      phase: phase
+    )
   end
 end

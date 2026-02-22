@@ -63,8 +63,8 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal teacher.id.to_s, complete_calls.first.dig(:kwargs, :metadata, :teacher_id)
     assert_equal lesson_plan.id.to_s, complete_calls.first.dig(:kwargs, :metadata, :lesson_plan_id)
     assert_equal "teacher_chat_tool", complete_calls.first.dig(:kwargs, :metadata, :source)
-    assert_includes complete_calls.first.dig(:kwargs, :metadata, :task_full), "Given this lesson, refine and propose resources."
-    assert_includes complete_calls.first.dig(:kwargs, :metadata, :task_full), "Lesson title: #{lesson_plan.lesson.position}. #{lesson_plan.lesson.title}"
+    assert_nil complete_calls.first.dig(:kwargs, :metadata, :task_preview)
+    assert_nil complete_calls.first.dig(:kwargs, :metadata, :task_full)
     assert_equal "resp_1", wait_calls.first[:response_id]
   end
 
