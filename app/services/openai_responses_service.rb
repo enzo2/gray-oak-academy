@@ -155,7 +155,7 @@ class OpenaiResponsesService
     sanitized_metadata = sanitize_responses_metadata(metadata)
     agent_run_context = prepare_agent_run_context(
       background: background,
-      metadata: sanitized_metadata,
+      metadata: metadata,
       messages: messages,
       input: input
     )
@@ -1265,15 +1265,9 @@ class OpenaiResponsesService
     prompt = if same_run
       existing_for_run[:prompt].presence ||
         derived_prompt.presence ||
-        meta["task_prompt"].presence ||
-        meta["task_full"].presence ||
-        meta["task_preview"].presence ||
         "Background Responses run"
     else
       derived_prompt.presence ||
-        meta["task_prompt"].presence ||
-        meta["task_full"].presence ||
-        meta["task_preview"].presence ||
         "Background Responses run"
     end
 
@@ -1336,7 +1330,7 @@ class OpenaiResponsesService
     return if response_id.blank?
 
     context[:response_id] = response_id
-    context[:phase] = "submitted"
+    context[:phase] = context[:phase].presence || "submitted"
     context[:terminal_logged] = false
     persist_agent_run_context(context)
     @agent_run_context_by_response_id[response_id] = context[:run_id].to_s

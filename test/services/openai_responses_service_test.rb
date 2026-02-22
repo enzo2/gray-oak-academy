@@ -928,6 +928,95 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "Second run prompt", submitted_calls.second[:prompt]
   end
 
+  test "background agent run preserves submitted phase from metadata" do
+    fake_client = build_responses_client do |_params|
+      {
+        "id" => "resp_phase",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    submitted_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**kwargs| submitted_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| nil }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| nil }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: supported_apis(:openai).api_base_uri,
+          model: @model,
+          log_completion: false,
+          agent_run: true
+        )
+
+        service.complete(
+          [ { role: "user", content: "Retry turn" } ],
+          background: true,
+          metadata: {
+            run_id: "run_phase",
+            run_type: "propose_resources",
+            source: "propose_resources",
+            phase: "retry"
+          }
+        )
+      end
+    end
+
+    assert_equal 1, submitted_calls.size
+    assert_equal "retry", submitted_calls.first[:phase]
+  end
+
+  test "background agent run prompt does not fall back to metadata task fields" do
+    fake_client = build_responses_client do |_params|
+      {
+        "id" => "resp_no_prompt",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    submitted_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**kwargs| submitted_calls << kwargs }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| nil }
+    fake_run_log.define_singleton_method(:record_failed) { |**_kwargs| nil }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: supported_apis(:openai).api_base_uri,
+          model: @model,
+          log_completion: false,
+          agent_run: true
+        )
+
+        service.complete(
+          nil,
+          input: [ { type: "function_call_output", call_id: "call_1", output: "{\"ok\":true}" } ],
+          background: true,
+          metadata: {
+            run_id: "run_no_prompt",
+            run_type: "propose_resources",
+            source: "propose_resources",
+            task_prompt: "This should never be used for agent run logging"
+          }
+        )
+      end
+    end
+
+    assert_equal 1, submitted_calls.size
+    assert_equal "Background Responses run", submitted_calls.first[:prompt]
+  end
+
   test "background run completion logs aggregate metrics across tool-call turns" do
     create_count = 0
     fake_client = build_responses_client(
