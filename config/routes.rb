@@ -52,6 +52,7 @@ Rails.application.routes.draw do
 
   namespace :admin do
     get "dashboard", as: :root, to: "dashboard#dashboard"
+    get "help", to: "help#index"
 
     resources :courses do
       post "generate_outline", on: :member

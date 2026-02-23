@@ -1,0 +1,215 @@
+<div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-stone-900 dark:text-stone-100 mb-2">Teacher Guide</h1>
+    <p class="text-lg ">
+      <%= ENV.fetch("APP_NAME", "Gray Oak Academy") %> is a <b>teacher‑directed, LLM‑conducted</b> tutoring platform.
+      You define the curriculum, select the resources, and supervise progress; the AI conducts lessons.
+    </p>
+  </div>
+
+  <div class="space-y-6">
+    <section class="bg-white dark:bg-stone-900 rounded-lg border border-stone-200 dark:border-stone-700 overflow-hidden shadow-sm">
+      <div class="border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 p-4">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <sl-icon name="rocket" class="text-moss-600 dark:text-moss-400"></sl-icon>
+          Getting Started
+        </h2>
+      </div>
+      <div class="p-4 sm:p-6">
+        <ol class="relative border-stone-200 dark:border-stone-700 ml-3 space-y-6">
+          <li class="mb-6 ml-6">
+            <span class="absolute flex items-center justify-center w-8 h-8 bg-moss-100 rounded-full -left-4 ring-4 ring-white dark:ring-stone-900 dark:bg-moss-900 text-moss-700 dark:text-moss-300 font-bold text-sm">1</span>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Configure your LLM</h3>
+            <p class="mt-1 text-sm text-dim">Visit <%= link_to "User Settings", edit_user_registration_path(active_tab: "api"), class: "underline text-moss-700 dark:text-moss-400" %> and set up your API and models. You'll want a fast, but highly capable, multimodal model for chat/lessons, and a large reasoning model for curriculum generation tasks. Verify everything is working with a quick test in <%= link_to "LLM Chat", conversations_path, class: "underline text-moss-700 dark:text-moss-400" %>.</p>
+          </li>
+          <li class="mb-6 ml-6">
+            <span class="absolute flex items-center justify-center w-8 h-8 bg-moss-100 rounded-full -left-4 ring-4 ring-white dark:ring-stone-900 dark:bg-moss-900 text-moss-700 dark:text-moss-300 font-bold text-sm">2</span>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Build a Course</h3>
+            <p class="mt-1 text-sm text-dim">Go to the <%= link_to "Course Manager", admin_courses_path, class: "underline text-moss-700 dark:text-moss-400" %> and create a course. A descriptive summary and grade level are key — they drive outline and lesson generation. Generate an outline, and optionally run agentic <b>Outline Research</b> (if configured) to deepen and refine it. Review and edit, then generate lessons.</p>
+          </li>
+          <li class="mb-6 ml-6">
+            <span class="absolute flex items-center justify-center w-8 h-8 bg-moss-100 rounded-full -left-4 ring-4 ring-white dark:ring-stone-900 dark:bg-moss-900 text-moss-700 dark:text-moss-300 font-bold text-sm">3</span>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Create & Publish Lesson Plans</h3>
+            <p class="mt-1 text-sm text-dim">For your first lesson, create a lesson plan and hit <b>Generate Lesson Plan</b>. Optionally run <b>Propose Resources</b> to have an agent locate relevant web resources and write custom applets. Review and edit, then set the plan to <b>published</b>.</p>
+          </li>
+          <li class="ml-6">
+            <span class="absolute flex items-center justify-center w-8 h-8 bg-moss-100 rounded-full -left-4 ring-4 ring-white dark:ring-stone-900 dark:bg-moss-900 text-moss-700 dark:text-moss-300 font-bold text-sm">4</span>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Add Students & Enroll</h3>
+            <p class="mt-1 text-sm text-dim">Go to <%= link_to "Students", admin_students_path, class: "underline text-moss-700 dark:text-moss-400" %> to create student accounts. Open the student and use <b>Add Course</b> to enroll them. Add some <b>Memories</b> so the tutor will know more about the student.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="bg-white dark:bg-stone-900 rounded-lg border border-stone-200 dark:border-stone-700 overflow-hidden shadow-sm">
+      <div class="border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 p-4">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <sl-icon name="map" class="text-blue-600 dark:text-blue-400"></sl-icon>
+          AI-Assisted Curriculum Design
+        </h2>
+      </div>
+      <div class="p-2 sm:p-4">
+        <div class="w-full">
+          <details class="group border-b border-stone-200 pb-2 dark:border-stone-700">
+            <summary class="mt-2 flex cursor-pointer list-none items-center justify-between px-2 py-2 text-left text-base font-medium transition-all hover:underline focus:outline-stone-700 focus:outline-offset-2 dark:focus:outline-white [&::-webkit-details-marker]:hidden">
+              <span class="font-semibold">Outline Research</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 transition-transform duration-300 group-open:rotate-180" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><path d="M8.99999 13.5C8.80799 13.5 8.61599 13.4271 8.46999 13.2801L2.21999 7.03005C1.92699 6.73705 1.92699 6.26202 2.21999 5.96902C2.51299 5.67602 2.98799 5.67602 3.28099 5.96902L9.00099 11.689L14.721 5.96902C15.014 5.67602 15.489 5.67602 15.782 5.96902C16.075 6.26202 16.075 6.73705 15.782 7.03005L9.53199 13.2801C9.38599 13.4261 9.19399 13.5 9.00199 13.5H8.99999Z"></path></g></svg>
+            </summary>
+            <div class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out group-open:grid-rows-[1fr]">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 space-y-2 px-2 text-sm text-stone-700 opacity-0 transition-opacity duration-300 group-open:opacity-100 dark:text-stone-300">
+                  <p>
+                    After generating an outline, you can run <b>Outline Research</b> to have a background agent conduct a deep research pass on your course topic. It
+                    surfaces content gaps, alternative approaches, and pedagogical considerations in a detailed guidance report, with steering questions to keep you in control.
+                  </p>
+                  <p>
+                    After you respond to the questions, the agent resumes and revises the outline and guidance report.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="group border-b border-stone-200 pb-2 dark:border-stone-700">
+            <summary class="mt-2 flex cursor-pointer list-none items-center justify-between px-2 py-2 text-left text-base font-medium transition-all hover:underline focus:outline-stone-700 focus:outline-offset-2 dark:focus:outline-white [&::-webkit-details-marker]:hidden">
+              <span class="font-semibold">Building Applets</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 transition-transform duration-300 group-open:rotate-180" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><path d="M8.99999 13.5C8.80799 13.5 8.61599 13.4271 8.46999 13.2801L2.21999 7.03005C1.92699 6.73705 1.92699 6.26202 2.21999 5.96902C2.51299 5.67602 2.98799 5.67602 3.28099 5.96902L9.00099 11.689L14.721 5.96902C15.014 5.67602 15.489 5.67602 15.782 5.96902C16.075 6.26202 16.075 6.73705 15.782 7.03005L9.53199 13.2801C9.38599 13.4261 9.19399 13.5 9.00199 13.5H8.99999Z"></path></g></svg>
+            </summary>
+            <div class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out group-open:grid-rows-[1fr]">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 space-y-2 px-2 text-sm text-stone-700 opacity-0 transition-opacity duration-300 group-open:opacity-100 dark:text-stone-300">
+                  <p>
+                    <b>Applets</b> are mini JavaScript apps — simulations, games, problem sets, calculators, visualizations — that run in-chat or on the Chalkboard during a lesson. They give the LLM tutor superhuman abilities to teach effectively and keep students engaged. The tutor can generate them on the fly, but you can also build and save them in advance. Practically any kind of lesson, not just STEM, can benefit from applets.
+                  </p>
+                  <p>
+                    In <%= link_to "LLM Chat", conversations_path, class: "underline text-blue-600 dark:text-blue-400" %>, ask the assistant to make an applet (e.g. "make an applet demonstrating refraction"). When drafting a lesson plan, <b>Propose Resources</b> will automatically write and save applets for a lesson plan. For a just-in-time applet, simply specify the idea as lesson plan content (e.g. "Applet: Pigment Mixing Lab with Bob Ross's favorite paints"). 
+                  </p>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="group border-b border-stone-200 pb-2 dark:border-stone-700">
+            <summary class="mt-2 flex cursor-pointer list-none items-center justify-between px-2 py-2 text-left text-base font-medium transition-all hover:underline focus:outline-stone-700 focus:outline-offset-2 dark:focus:outline-white [&::-webkit-details-marker]:hidden">
+              <span class="font-semibold">Proposing & Approving Resources</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 transition-transform duration-300 group-open:rotate-180" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><path d="M8.99999 13.5C8.80799 13.5 8.61599 13.4271 8.46999 13.2801L2.21999 7.03005C1.92699 6.73705 1.92699 6.26202 2.21999 5.96902C2.51299 5.67602 2.98799 5.67602 3.28099 5.96902L9.00099 11.689L14.721 5.96902C15.014 5.67602 15.489 5.67602 15.782 5.96902C16.075 6.26202 16.075 6.73705 15.782 7.03005L9.53199 13.2801C9.38599 13.4261 9.19399 13.5 9.00199 13.5H8.99999Z"></path></g></svg>
+            </summary>
+            <div class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out group-open:grid-rows-[1fr]">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 space-y-2 px-2 text-sm text-stone-700 opacity-0 transition-opacity duration-300 group-open:opacity-100 dark:text-stone-300">
+                  <p>
+                    On any Lesson Plan, click <b>Propose Resources</b> to have a background agent search the web for relevant videos, articles, PDFs, and images. They will be evaluated and linked to the plan. It can also autonomously design and save Applets. 
+                  </p>
+                  <p>
+                    All AI-linked resources require your approval before they're available during lessons. You can also add resources manually at any time. You should always consider adding real-world resources for a well-rounded lesson.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white dark:bg-stone-900 rounded-lg border border-stone-200 dark:border-stone-700 overflow-hidden shadow-sm">
+      <div class="border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 p-4">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <sl-icon name="journal-bookmark" class="text-purple-600 dark:text-purple-400"></sl-icon>
+          Tracking Student Progress
+        </h2>
+      </div>
+      <div class="p-2 sm:p-4">
+        <div class="w-full">
+          <details class="group border-b border-stone-200 pb-2 dark:border-stone-700">
+            <summary class="mt-2 flex cursor-pointer list-none items-center justify-between px-2 py-2 text-left text-base font-medium transition-all hover:underline focus:outline-stone-700 focus:outline-offset-2 dark:focus:outline-white [&::-webkit-details-marker]:hidden">
+              <span class="font-semibold">The Student Journal</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 transition-transform duration-300 group-open:rotate-180" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><path d="M8.99999 13.5C8.80799 13.5 8.61599 13.4271 8.46999 13.2801L2.21999 7.03005C1.92699 6.73705 1.92699 6.26202 2.21999 5.96902C2.51299 5.67602 2.98799 5.67602 3.28099 5.96902L9.00099 11.689L14.721 5.96902C15.014 5.67602 15.489 5.67602 15.782 5.96902C16.075 6.26202 16.075 6.73705 15.782 7.03005L9.53199 13.2801C9.38599 13.4261 9.19399 13.5 9.00199 13.5H8.99999Z"></path></g></svg>
+            </summary>
+            <div class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out group-open:grid-rows-[1fr]">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 space-y-2 px-2 text-sm text-stone-700 opacity-0 transition-opacity duration-300 group-open:opacity-100 dark:text-stone-300">
+                  <p>
+                    Each student has a Journal: a chronological view of reports, observations, memories, and student feedback. It's the primary place to review how a
+                    student is progressing over time.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="group border-b border-stone-200 pb-2 dark:border-stone-700">
+            <summary class="mt-2 flex cursor-pointer list-none items-center justify-between px-2 py-2 text-left text-base font-medium transition-all hover:underline focus:outline-stone-700 focus:outline-offset-2 dark:focus:outline-white [&::-webkit-details-marker]:hidden">
+              <span class="font-semibold">Memories vs. Observations</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 transition-transform duration-300 group-open:rotate-180" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><path d="M8.99999 13.5C8.80799 13.5 8.61599 13.4271 8.46999 13.2801L2.21999 7.03005C1.92699 6.73705 1.92699 6.26202 2.21999 5.96902C2.51299 5.67602 2.98799 5.67602 3.28099 5.96902L9.00099 11.689L14.721 5.96902C15.014 5.67602 15.489 5.67602 15.782 5.96902C16.075 6.26202 16.075 6.73705 15.782 7.03005L9.53199 13.2801C9.38599 13.4261 9.19399 13.5 9.00199 13.5H8.99999Z"></path></g></svg>
+            </summary>
+            <div class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out group-open:grid-rows-[1fr]">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 space-y-2 px-2 text-sm text-stone-700 opacity-0 transition-opacity duration-300 group-open:opacity-100 dark:text-stone-300">
+                  <ul class="list-disc space-y-2 pl-5">
+                    <li>
+                      <b>Memories (🧠):</b> Personal details about the student — interests, background, family, unique considerations. The tutor uses these to build rapport and personalize lessons. Sensitive memories can be hidden from the student's own view.
+                    </li>
+                    <li>
+                      <b>Observations (🎥):</b> Learning-focused insights the tutor generates after each lesson, like "retention improves with physical analogies"
+                      or "participation improves when practical relevance is clear". <i>Pending observations must be approved by you before they feed forward into subsequent lessons.</i> Older observations will decay in confidence over time unless you re-validate them, allowing for growth and change. You can always edit or delete observations.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="group border-b border-stone-200 pb-2 dark:border-stone-700">
+            <summary class="mt-2 flex cursor-pointer list-none items-center justify-between px-2 py-2 text-left text-base font-medium transition-all hover:underline focus:outline-stone-700 focus:outline-offset-2 dark:focus:outline-white [&::-webkit-details-marker]:hidden">
+              <span class="font-semibold">Student Profiles</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0 transition-transform duration-300 group-open:rotate-180" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><path d="M8.99999 13.5C8.80799 13.5 8.61599 13.4271 8.46999 13.2801L2.21999 7.03005C1.92699 6.73705 1.92699 6.26202 2.21999 5.96902C2.51299 5.67602 2.98799 5.67602 3.28099 5.96902L9.00099 11.689L14.721 5.96902C15.014 5.67602 15.489 5.67602 15.782 5.96902C16.075 6.26202 16.075 6.73705 15.782 7.03005L9.53199 13.2801C9.38599 13.4261 9.19399 13.5 9.00199 13.5H8.99999Z"></path></g></svg>
+            </summary>
+            <div class="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out group-open:grid-rows-[1fr]">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 space-y-2 px-2 text-sm text-stone-700 opacity-0 transition-opacity duration-300 group-open:opacity-100 dark:text-stone-300">
+                  <p>
+                    A Student Profile is a comprehensive report drawing on recent lessons, approved observations, memories, and feedback. They are automatically generated weekly, and you can request one at any time by asking the teacher assistant. 
+                  </p>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white dark:bg-stone-900 rounded-lg border border-stone-200 dark:border-stone-700 overflow-hidden shadow-sm">
+      <div class="border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 p-4">
+        <h2 class="text-xl font-semibold flex items-center gap-2">
+          <sl-icon name="lightbulb" class="text-amber-500"></sl-icon>
+          Teaching Tips
+        </h2>
+      </div>
+      <div class="p-4 sm:p-6 space-y-4">
+        <div class="flex gap-3">
+          <sl-icon name="headphones" class="shrink-0 text-2xl text-stone-400 mt-1"></sl-icon>
+          <div>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Audio-Only Lessons</h3>
+            <p class="text-sm  mt-1">Set a lesson plan to <b>Audio Only</b> to disable the keyboard and require speech input. This can be used for mobile phone-based lessons to minimize screen time, such as a "walk and talk" discussion, workshop, or lab. </p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <sl-icon name="tree-fill" class="shrink-0 text-2xl text-stone-400 mt-1"></sl-icon>
+          <div>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Offline & Reflection Lessons</h3>
+            <p class="text-sm  mt-1">Lessons don't have to be screen-based at all, as long as there is a chance to debrief and/or confirm completion. Include an <b>Offline Activity</b> in the lesson plan (e.g., "Observe five plant species outdoors and sketch them") and the tutor will give the student the task and wait. When the student returns, the tutor debriefs or simply concludes. This is ideal for workshops, creative exercises, human-conducted lessons, or anything better achieved away from a screen.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <sl-icon name="robot" class="shrink-0 text-2xl text-stone-400 mt-1"></sl-icon>
+          <div>
+            <h3 class="font-semibold text-stone-900 dark:text-stone-100">Teacher chat as a planning tool</h3>
+            <p class="text-sm  mt-1"><%= link_to "LLM Chat", conversations_path, class: "underline" %> is a teacher assistant; it has access to your courses, lessons, and student data, so you can ask things like: <i>"Let's keep building lesson plans for my Ancient Greek course"</i> or <i>"Let's discuss Liam's progress"</i>. However, it's best to keep it focused and not tackle too much in one chat. The Course Manager also offers more direct control.</p> 
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

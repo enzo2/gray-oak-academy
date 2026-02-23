@@ -46,7 +46,11 @@
 
               <%= render "layouts/admin/sidebar_link_tiny", label: "Applets", path: applets_path, icon: "grid" %>
               <%= render "layouts/admin/sidebar_link_tiny", label: "My Lessons", path: admin_student_path(current_user, active_tab: :active_courses), icon: "book" %>
-              
+
+              <div class="h-px w-6 bg-stone-200 dark:bg-stone-700 mx-auto"></div>
+
+              <%= render "layouts/admin/sidebar_link_tiny", label: "Guide", path: admin_help_path, icon: "question-circle" %>
+
               <div class="h-px w-6 bg-stone-200 dark:bg-stone-700 mx-auto"></div>
 
               <%= render "layouts/admin/sidebar_link_tiny", label: "LLM APIs", path: admin_supported_apis_path, icon: "plug" %>

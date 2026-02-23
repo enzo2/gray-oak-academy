@@ -109,6 +109,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 - Enroll the student in the course. The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
+- Compaction
 - Additional agentic flows for curriculum planning 
 - Address resource explosion (Resource archive & auto-organization)
 - Improve student analytics
