@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus";
 
-// Connects to data-controller="railsblocks--toast"
+// Connects to data-controller="toast"
 export default class extends Controller {
   static targets = ["container"];
   static values = {

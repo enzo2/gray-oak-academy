@@ -1,4 +1,4 @@
 <%# locals: (path:, label:, icon:) %>
-<%= link_to path, aria: { label: label }, data: { controller: "railsblocks--tooltip", tooltip_content: label, railsblocks__tooltip_placement_value: "right" }, class: "flex h-8 w-8.5 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" do %>
+<%= link_to path, aria: { label: label }, data: { controller: "tooltip", tooltip_content: label, tooltip_placement_value: "right" }, class: "flex h-8 w-8.5 items-center justify-center rounded-lg text-stone-700 hover:bg-stone-100 focus:outline-none focus-visible:bg-stone-100 disabled:opacity-50 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-100 dark:hover:bg-stone-800 focus-visible:dark:bg-stone-800" do %>
   <sl-icon name="<%= icon %>" class="text-lg"></sl-icon>
 <% end %>

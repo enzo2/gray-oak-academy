@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Generic tab controller — mirrors the railsblocks navbar_controller data-content-id
+// Generic tab controller — mirrors the navbar_controller data-content-id
 // pattern so triggers and panels are linked by id.
 //
 // Usage:
@@ -38,7 +38,7 @@ import { Controller } from "@hotwired/stimulus"
 // data-tabs-active-tab-value — id of the initially active panel (falls back to first tab's panel).
 //
 // Note: uses data-tabs-panel (not data-content-id) so it can coexist with the
-// railsblocks--navbar controller on the same element without attribute conflicts.
+// navbar controller on the same element without attribute conflicts.
 //
 // CSS hooks:
 //   [data-state="open"]   — active tab button

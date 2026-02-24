@@ -15,39 +15,39 @@
             data-action="click->tabs#show keydown->tabs#handleTabKeydown">Journal</button>
 
     <%# Courses tab — a pill tab that also opens a dropdown via the navbar controller %>
-    <div class="relative" data-controller="railsblocks--navbar">
+    <div class="relative" data-controller="navbar">
       <button role="tab" type="button" class="<%= "#{tab_button_classes} inline-flex items-center gap-1" %>"
               data-tabs-target="tab"
               data-tabs-panel="active_courses"
               data-tabs-group="active_courses past_courses enroll"
               data-tabs-menu-trigger="true"
-              data-railsblocks--navbar-target="trigger"
+              data-navbar-target="trigger"
               data-content-id="courses-dropdown"
               data-action="click->tabs#show
-                           click->railsblocks--navbar#toggleMenu
+                           click->navbar#toggleMenu
                            keydown->tabs#handleTabKeydown
-                           keydown->railsblocks--navbar#handleTriggerKeydown">
+                           keydown->navbar#handleTriggerKeydown">
         Courses
         <sl-icon name="chevron-down" class="text-xs opacity-70"></sl-icon>
       </button>
 
-      <div data-railsblocks--navbar-target="viewport"
+      <div data-navbar-target="viewport"
            data-state="closed"
            class="<%= tab_dropdown_viewport_classes %>">
-        <div data-railsblocks--navbar-target="background" class="<%= tab_dropdown_bg_classes %>">
-          <div id="courses-dropdown" data-railsblocks--navbar-target="content" class="hidden">
+        <div data-navbar-target="background" class="<%= tab_dropdown_bg_classes %>">
+          <div id="courses-dropdown" data-navbar-target="content" class="hidden">
             <button type="button" class="<%= tab_dropdown_item_classes %>"
                     data-tabs-panel="active_courses"
-                    data-railsblocks--navbar-preserve-trigger-state-param="true"
-                    data-action="click->tabs#show click->railsblocks--navbar#close">Active Courses</button>
+                    data-navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->navbar#close">Active Courses</button>
             <button type="button" class="<%= tab_dropdown_item_classes %>"
                     data-tabs-panel="past_courses"
-                    data-railsblocks--navbar-preserve-trigger-state-param="true"
-                    data-action="click->tabs#show click->railsblocks--navbar#close">Past Courses</button>
+                    data-navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->navbar#close">Past Courses</button>
             <button type="button" class="<%= tab_dropdown_item_classes %>"
                     data-tabs-panel="enroll"
-                    data-railsblocks--navbar-preserve-trigger-state-param="true"
-                    data-action="click->tabs#show click->railsblocks--navbar#close">Add Course</button>
+                    data-navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->navbar#close">Add Course</button>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@
             <button type="button" class="btn-danger text-sm mt-2 block" data-action="modal#open">DELETE STUDENT ACCOUNT</button>
 
             <div data-modal-target="content" class="hidden">
-              <%= form_with url: admin_student_path(@student), method: :delete, class: "p-6", data: { controller: "railsblocks--confirmation", railsblocks__confirmation_confirm_text_value: "DELETE" } do |f| %>
+              <%= form_with url: admin_student_path(@student), method: :delete, class: "p-6", data: { controller: "confirmation", confirmation_confirm_text_value: "DELETE" } do |f| %>
                 <div class="mb-4">
                   <h3 class="text-base font-semibold leading-6 text-stone-900 dark:text-stone-100" id="modal-title">Delete Student Account</h3>
                   <div class="mt-2">
@@ -195,11 +195,11 @@
 
                 <div class="mb-4">
                   <label class="block text-sm font-medium leading-6 text-stone-900 dark:text-stone-100 mb-2">Type DELETE to confirm</label>
-                  <input type="text" class="input-primary w-full" data-railsblocks--confirmation-target="input" placeholder="DELETE" autocomplete="off">
+                  <input type="text" class="input-primary w-full" data-confirmation-target="input" placeholder="DELETE" autocomplete="off">
                 </div>
 
                 <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                  <button type="submit" class="btn-danger w-full sm:col-start-2 opacity-50 cursor-not-allowed" disabled data-railsblocks--confirmation-target="confirmButton">Delete Student</button>
+                  <button type="submit" class="btn-danger w-full sm:col-start-2 opacity-50 cursor-not-allowed" disabled data-confirmation-target="confirmButton">Delete Student</button>
                   <button type="button" class="mt-3 inline-flex w-full justify-center rounded-sm bg-white dark:bg-stone-800 px-3 py-2 text-sm font-semibold text-stone-900 dark:text-stone-100 shadow-sm ring-1 ring-inset ring-stone-300 dark:ring-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 sm:col-start-1 sm:mt-0" data-action="modal#close">Cancel</button>
                 </div>
               <% end %>

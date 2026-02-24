@@ -16,7 +16,7 @@
       <% if observation.status_approved? %>
         <div
           class="inline-flex"
-          data-controller="railsblocks--tooltip"
+          data-controller="tooltip"
           data-tooltip-content="Weight. Over time, observations decay from 100% to 0%. You can re-validate to reset.">
           <span class="px-2 py-0.5 rounded border bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-700">
             <%= (observation.effective_weight.to_f * 100).round %>%
@@ -41,7 +41,7 @@
         <% elsif observation.status_approved? %>
           <div
             class="inline-flex"
-            data-controller="railsblocks--tooltip"
+            data-controller="tooltip"
             data-tooltip-content="Observations decay over time. Re-validate if it still applies.">
             <%= button_to "Re-validate", revalidate_admin_observation_path(observation), method: :patch,
                   class: "text-emerald-600 hover:text-emerald-800 font-medium hover:cursor-pointer",

@@ -12,35 +12,35 @@
     <% tab_dropdown_item_classes = "flex w-full items-center rounded border-0 bg-transparent px-3 py-[0.4rem] text-left text-sm font-medium whitespace-nowrap text-stone-700 transition-colors duration-100 hover:bg-stone-100 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss-500 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-stone-100" %>
     <div role="tablist" class="<%= tab_nav_classes %>">
       <%# Courses tab — grouped with current + past courses via dropdown %>
-      <div class="relative" data-controller="railsblocks--navbar">
+      <div class="relative" data-controller="navbar">
         <button role="tab" type="button" class="<%= "#{tab_button_classes} inline-flex items-center gap-1" %>"
                 data-tabs-target="tab"
                 data-tabs-panel="courses"
                 data-tabs-group="courses past_courses"
                 data-tabs-menu-trigger="true"
-                data-railsblocks--navbar-target="trigger"
+                data-navbar-target="trigger"
                 data-content-id="courses-dropdown"
                 data-action="click->tabs#show
-                             click->railsblocks--navbar#toggleMenu
+                             click->navbar#toggleMenu
                              keydown->tabs#handleTabKeydown
-                             keydown->railsblocks--navbar#handleTriggerKeydown">
+                             keydown->navbar#handleTriggerKeydown">
           Courses
           <sl-icon name="chevron-down" class="text-xs opacity-70"></sl-icon>
         </button>
 
-        <div data-railsblocks--navbar-target="viewport"
+        <div data-navbar-target="viewport"
              data-state="closed"
              class="<%= tab_dropdown_viewport_classes %>">
-          <div data-railsblocks--navbar-target="background" class="<%= tab_dropdown_bg_classes %>">
-            <div id="courses-dropdown" data-railsblocks--navbar-target="content" class="hidden">
+          <div data-navbar-target="background" class="<%= tab_dropdown_bg_classes %>">
+            <div id="courses-dropdown" data-navbar-target="content" class="hidden">
               <button type="button" class="<%= tab_dropdown_item_classes %>"
                       data-tabs-panel="courses"
-                      data-railsblocks--navbar-preserve-trigger-state-param="true"
-                      data-action="click->tabs#show click->railsblocks--navbar#close">My Courses</button>
+                      data-navbar-preserve-trigger-state-param="true"
+                      data-action="click->tabs#show click->navbar#close">My Courses</button>
               <button type="button" class="<%= tab_dropdown_item_classes %>"
                       data-tabs-panel="past_courses"
-                      data-railsblocks--navbar-preserve-trigger-state-param="true"
-                      data-action="click->tabs#show click->railsblocks--navbar#close">Past Courses</button>
+                      data-navbar-preserve-trigger-state-param="true"
+                      data-action="click->tabs#show click->navbar#close">Past Courses</button>
             </div>
           </div>
         </div>

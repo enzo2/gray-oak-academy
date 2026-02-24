@@ -40,11 +40,11 @@
 
   <%# Height is left to the main content, eg. max-h-[calc(100dvh-2.5rem)] %>
   <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
-    <div data-controller="railsblocks--toast">
+    <div data-controller="toast">
       <ol
         class="fixed z-[1000] w-[calc(100vw-2rem)] max-w-sm pointer-events-none"
-        data-railsblocks--toast-target="container"
-        data-action="mouseenter->railsblocks--toast#handleMouseEnter mouseleave->railsblocks--toast#handleMouseLeave"
+        data-toast-target="container"
+        data-action="mouseenter->toast#handleMouseEnter mouseleave->toast#handleMouseLeave"
         aria-live="polite"
         aria-atomic="false"
         role="status">
@@ -92,9 +92,9 @@
             </div>
           <% end %>
           <div class="text-2xl md:pr-4" id="dark_mode_switch"
-               data-controller="railsblocks--tooltip"
+               data-controller="tooltip"
                data-tooltip-content="Toggle Light Mode"
-               data-railsblocks--tooltip-placement-value="bottom">
+               data-tooltip-placement-value="bottom">
             <sl-icon-button name="sun" class="dark-mode-toggle"></sl-icon-button>
           </div>
         </div>
