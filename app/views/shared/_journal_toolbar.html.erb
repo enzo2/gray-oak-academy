@@ -17,24 +17,51 @@
   <!-- Filters -->
   <form data-journal-filter-target="form" data-action="change->journal-filter#filter" class="flex flex-wrap items-center gap-4">
       <div class="flex items-center gap-3">
-        <span class="text-sm font-semibold text-dim">Show:</span>
-        
-        <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-          <input type="checkbox" name="types" value="Observation" checked class="checkbox-primary">
-          Observations
-        </label>
-         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-          <input type="checkbox" name="types" value="StudentFeedback" checked class="checkbox-primary">
-          Feedback
-        </label>
-         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-          <input type="checkbox" name="types" value="StudentReport" checked class="checkbox-primary">
-          Reports
-        </label>
-         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
-          <input type="checkbox" name="types" value="Memory" checked class="checkbox-primary">
-          Memories
-        </label>
+        <div class="relative" data-controller="checkbox-dropdown">
+          <button type="button"
+                  class="inline-flex items-center gap-1 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1 text-sm hover:bg-stone-50 dark:hover:bg-stone-800"
+                  data-checkbox-dropdown-target="trigger"
+                  data-action="click->checkbox-dropdown#toggle"
+                  aria-haspopup="menu"
+                  aria-expanded="false">
+            Filters
+            <sl-icon name="chevron-down" class="text-xs opacity-70"></sl-icon>
+          </button>
+
+          <div class="absolute right-0 top-full z-20 mt-1 hidden min-w-52 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-2 shadow-lg"
+               data-checkbox-dropdown-target="menu"
+               role="menu">
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="types" value="Observation" checked class="checkbox-primary">
+                <span>Observations</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="types" value="StudentFeedback" checked class="checkbox-primary">
+                <span>Feedback</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="types" value="Memory" checked class="checkbox-primary">
+                <span>Memories</span>
+              </label>
+
+              <hr class="border-stone-200 dark:border-stone-700">
+
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="report_groups" value="lesson_reports" checked class="checkbox-primary">
+                <span>Lesson Reports</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="report_groups" value="course_reports" checked class="checkbox-primary">
+                <span>Course Reports</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="report_groups" value="profiles" checked class="checkbox-primary">
+                <span>Profiles</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
       
   </form>

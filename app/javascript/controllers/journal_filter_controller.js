@@ -41,12 +41,17 @@ export default class extends Controller {
     if (activeTypes.length === 0) {
         activeTypes = formData.getAll("types[]")
     }
+    let activeReportGroups = formData.getAll("report_groups")
+    if (activeReportGroups.length === 0) {
+      activeReportGroups = formData.getAll("report_groups[]")
+    }
 
     const container = this.infiniteScrollOutlet.entriesTarget
     const items = container.querySelectorAll(".journal-entry")
     
     items.forEach(item => {
        const type = item.dataset.journalType
+       const reportGroup = item.dataset.journalReportGroup
        
        let visible = true
        
@@ -55,8 +60,15 @@ export default class extends Controller {
        // UI has checkboxes. If uncheck all, activeTypes is empty array.
        // If activeTypes is empty, we should hide everything that has a type.
        
-       if (!activeTypes.includes(type)) {
-           visible = false
+       if (type === "StudentReport") {
+         // If the toolbar does not include report subtype filters, preserve previous behavior.
+         if (activeReportGroups.length > 0) {
+           visible = activeReportGroups.includes(reportGroup)
+         } else {
+           visible = activeTypes.includes(type)
+         }
+       } else if (!activeTypes.includes(type)) {
+         visible = false
        }
        
        if (visible) {

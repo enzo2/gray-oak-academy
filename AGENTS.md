@@ -132,3 +132,8 @@ LLM APIs are configured per-user in `Setting`:
 
 - Fat models, thin controllers - Business logic in models, controllers stay light
 - Avoid adding low-value tests that have no bearing on app functionality, are unlikely to break in the future, or are one-off checks
+
+## Alignment
+
+- If user intent is not clear, ask before implementing. 
+- Avoid unnecessary backward compatibility when actively working on new features that haven't been committed yet.
