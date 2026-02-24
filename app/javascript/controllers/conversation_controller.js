@@ -57,19 +57,19 @@ export default class extends Controller {
       this.welcomeMessage = welcomeMessages.length > 0 ? welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)] : "";
     }
     this.accentTextTarget.textContent = this.welcomeMessage;
-    this.accentIconTarget.classList.remove("animate-tree-breathe");
+    this.accentIconTarget.classList.remove("animate-tree-shine");
   }
 
   setThinkingState() {
     if (!this.hasAccentTextTarget || !this.hasAccentIconTarget) return;
     this.accentTextTarget.textContent = "Thinking\u2026";
-    this.accentIconTarget.classList.add("animate-tree-breathe");
+    this.accentIconTarget.classList.add("animate-tree-shine");
   }
 
   setIdleState() {
     if (!this.hasAccentTextTarget || !this.hasAccentIconTarget) return;
     this.accentTextTarget.textContent = "";
-    this.accentIconTarget.classList.remove("animate-tree-breathe");
+    this.accentIconTarget.classList.remove("animate-tree-shine");
   }
 
   scrollToBottom() {
@@ -120,4 +120,5 @@ export default class extends Controller {
     this.renderKatexInMessages();
     this.updateAccentState();
   }
+
 }

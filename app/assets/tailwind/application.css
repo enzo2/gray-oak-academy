@@ -57,13 +57,90 @@
   40% { opacity: 1; transform: scale(1); }
 }
 
-@keyframes tree-breathe {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.12); }
+@keyframes tree-shine {
+  0%, 100% {
+    opacity: 0;
+    filter: brightness(1.05) saturate(1);
+    -webkit-mask-position: 0 -120%;
+    mask-position: 0 -120%;
+  }
+  20% {
+    opacity: 0;
+    filter: brightness(1.05) saturate(1);
+    -webkit-mask-position: 0 -55%;
+    mask-position: 0 -55%;
+  }
+  45% {
+    opacity: 0.45;
+    filter: brightness(1.18) saturate(1.05);
+    -webkit-mask-position: 0 -5%;
+    mask-position: 0 -5%;
+  }
+  62% {
+    opacity: 0.65;
+    filter: brightness(1.22) saturate(1.08);
+    -webkit-mask-position: 0 40%;
+    mask-position: 0 40%;
+  }
+  78% {
+    opacity: 0.35;
+    filter: brightness(1.12) saturate(1.02);
+    -webkit-mask-position: 0 95%;
+    mask-position: 0 95%;
+  }
+  100% {
+    opacity: 0;
+    filter: brightness(1.05) saturate(1);
+    -webkit-mask-position: 0 140%;
+    mask-position: 0 140%;
+  }
 }
 
-@utility animate-tree-breathe {
-  animation: tree-breathe 2s ease-in-out infinite;
+.tree-accent-icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  will-change: filter, opacity;
+}
+
+.tree-accent-icon > * {
+  grid-area: 1 / 1;
+}
+
+.tree-accent-icon__shine {
+  opacity: 0;
+  filter: brightness(1.18) saturate(1.06);
+  -webkit-mask-image: linear-gradient(
+    to top,
+    transparent 0%,
+    transparent 22%,
+    rgb(0 0 0 / 0.2) 38%,
+    rgb(0 0 0 / 0.95) 50%,
+    rgb(0 0 0 / 0.2) 62%,
+    transparent 78%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    transparent 0%,
+    transparent 22%,
+    rgb(0 0 0 / 0.2) 38%,
+    rgb(0 0 0 / 0.95) 50%,
+    rgb(0 0 0 / 0.2) 62%,
+    transparent 78%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 220%;
+  mask-size: 100% 220%;
+  -webkit-mask-position: 0 -120%;
+  mask-position: 0 -120%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  will-change: opacity, filter, -webkit-mask-position, mask-position;
+}
+
+.tree-accent-icon.animate-tree-shine .tree-accent-icon__shine {
+  animation: tree-shine 1.55s ease-in-out infinite;
 }
 
 

@@ -23,9 +23,11 @@
          data-conversation-target="accent"
          aria-hidden="true">
       <div class="inline-flex items-center gap-2 rounded-full bg-stone-100/80 px-3 py-1.5 backdrop-blur-sm dark:bg-stone-800/80">
-        <div data-conversation-target="accentIcon">
-          <%= image_tag "logo_icon.svg", size: "24", class: "opacity-80 dark:hidden", alt: "" %>
-          <%= image_tag "logo_icon_negative.svg", size: "24", class: "opacity-80 hidden dark:block", alt: "" %>
+        <div data-conversation-target="accentIcon" class="tree-accent-icon">
+          <%= image_tag "logo_icon.svg", size: "24", class: "tree-accent-icon__base opacity-80 dark:hidden", alt: "" %>
+          <%= image_tag "logo_icon_negative.svg", size: "24", class: "tree-accent-icon__base opacity-80 hidden dark:block", alt: "" %>
+          <%= image_tag "logo_icon.svg", size: "24", class: "tree-accent-icon__shine pointer-events-none absolute inset-0 dark:hidden", alt: "" %>
+          <%= image_tag "logo_icon_negative.svg", size: "24", class: "tree-accent-icon__shine pointer-events-none absolute inset-0 hidden dark:block", alt: "" %>
         </div>
         <span data-conversation-target="accentText"
               class="text-sm font-sans text-stone-500 dark:text-stone-400 select-none"></span>
