@@ -71,15 +71,11 @@ class OpenaiApiService
         # Request usage stats when streaming
         **(@stream_handler && !@base_uri.include?("openrouter.ai") ? { stream_options: { include_usage: true } } : {}),
 
-        # By default, OpenAI sets thinking budget to medium, and doesn't include the summary
-
-        # Set thinking for OpenRouter
-        **(@reasoning_model_flag && @base_uri.include?("openrouter.ai") ? {
-          reasoning: {
-            effort: "high",
-            exclude: false
-          }
-        } : {}),
+        # Standard-first reasoning controls:
+        # - default Chat Completions: reasoning_effort (high for reasoning model, low otherwise)
+        # - OpenRouter correction: use reasoning object (+exclude toggle when reasoning model)
+        # - xAI correction: omit effort (all-or-nothing reasoning behavior)
+        **build_reasoning_params,
 
         # Set image generation for OpenRouter
         **(@image_generation_flag && @base_uri.include?("openrouter.ai") ? { modalities: [ "image", "text" ] } : {})
@@ -348,6 +344,27 @@ class OpenaiApiService
     host.present? && !PREFILL_UNSUPPORTED_HOSTS.include?(host)
   rescue URI::InvalidURIError
     false
+  end
+
+  def build_reasoning_params
+    host = base_uri_host
+    effort = (@reasoning_model_flag ? "high" : "low")
+    return {} if host == "api.x.ai"
+
+    if host == "openrouter.ai"
+      options = { effort: effort }
+      # OpenRouter hides reasoning by default; expose it for reasoning-model calls.
+      options[:exclude] = false if @reasoning_model_flag
+      return { reasoning: options }
+    end
+
+    { reasoning_effort: effort }
+  end
+
+  def base_uri_host
+    URI.parse(@base_uri.to_s).host&.downcase
+  rescue URI::InvalidURIError
+    nil
   end
 
   def extract_balanced_json_fragment(text)

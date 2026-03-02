@@ -42,7 +42,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 ### Cool tech stuff
 - Self-hostable with docker
 - All system prompts can be customized (opinionated defaults included)
-- Works with any OpenAI-compatible API (including local)
+- Works with any OpenAI-compatible API (including local). OpenAI, OpenRouter, and xAI use Responses API. 
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API + token management: Preload multiple LLM APIs for teachers to choose from
 - Background agent runs via Responses API 

@@ -151,6 +151,115 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "complete sets low reasoning effort for OpenAI chat calls" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal "low", captured[:reasoning_effort]
+    assert_nil captured[:reasoning]
+  end
+
+  test "complete sets high reasoning effort for OpenAI reasoning-model calls" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        reasoning_model: true
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal "high", captured[:reasoning_effort]
+    assert_nil captured[:reasoning]
+  end
+
+  test "complete sets high effort and visible reasoning for OpenRouter reasoning-model calls" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        reasoning_model: true
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal({ effort: "high", exclude: false }, captured[:reasoning])
+    assert_nil captured[:reasoning_effort]
+  end
+
+  test "complete omits reasoning effort for xAI reasoning-model calls" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        reasoning_model: true
+      )
+      service.complete(@messages)
+    end
+
+    assert_nil captured[:reasoning_effort]
+    assert_nil captured[:reasoning]
+  end
+
+  test "complete uses standard reasoning_effort for unknown providers" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: @base_uri,
+        model: @model,
+        reasoning_model: true
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal "high", captured[:reasoning_effort]
+    assert_nil captured[:reasoning]
+  end
+
   test "complete raises OpenAiError on OpenAI::Errors::APITimeoutError" do
     fake_client = build_chat_client do |_params|
       raise OpenAI::Errors::APITimeoutError.new("timeout")
