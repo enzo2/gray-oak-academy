@@ -84,4 +84,38 @@ class ObservationTest < ActiveSupport::TestCase
       assert_operator results.first.effective_weight, :>, results.second.effective_weight
     end
   end
+
+  test "normalize_management_sort defaults invalid values to chron_desc" do
+    assert_equal "chron_desc", Observation.normalize_management_sort(nil)
+    assert_equal "chron_desc", Observation.normalize_management_sort("invalid")
+    assert_equal "weight_desc", Observation.normalize_management_sort("weight_desc")
+  end
+
+  test "for_management_timeline sorts by selected strategy" do
+    travel_to Time.zone.parse("2026-01-01 12:00:00 UTC") do
+      student = users(:student)
+      oldest = Observation.create!(
+        student: student,
+        content: "Oldest",
+        status: :approved,
+        relevance_weight: 1.0,
+        created_at: 10.days.ago
+      )
+      latest = Observation.create!(
+        student: student,
+        content: "Latest",
+        status: :approved,
+        relevance_weight: 0.1,
+        created_at: 1.day.ago
+      )
+
+      chron_desc = Observation.for_management_timeline(student: student, sort: "chron_desc").limit(2).to_a
+      chron_asc = Observation.for_management_timeline(student: student, sort: "chron_asc").limit(2).to_a
+      weight_desc = Observation.for_management_timeline(student: student, sort: "weight_desc").limit(2).to_a
+
+      assert_equal [ latest.id, oldest.id ], chron_desc.map(&:id)
+      assert_equal [ oldest.id, latest.id ], chron_asc.map(&:id)
+      assert_equal [ oldest.id, latest.id ], weight_desc.map(&:id)
+    end
+  end
 end

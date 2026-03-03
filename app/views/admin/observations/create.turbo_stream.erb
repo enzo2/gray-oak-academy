@@ -1,3 +1,10 @@
 <%= turbo_stream.prepend "journal_entries", partial: "shared/journal_entry", locals: { item: @observation, teacher_mode: true } %>
+<%= turbo_stream.update "journal_observations" do %>
+  <%= render "admin/students/observations_dashboard",
+             student: @student,
+             observations: @observation_timeline,
+             observation_sort_options: @observation_sort_options,
+             observation_sort: @observation_sort %>
+<% end %>
 <%= turbo_stream.replace "new-observation-dialog", partial: "observations/new_modal" %>
 <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>

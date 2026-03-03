@@ -15,7 +15,7 @@
       <% dashboard[:students_with_pending_observations].each do |summary| %>
         <li data-testid="pending-observation-student" class="rounded-sm border border-stone-200 p-3 dark:border-stone-700">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <%= link_to summary[:student_name], admin_student_path(summary[:student_id], active_tab: "journal", anchor: "pending_observations"), class: "text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-2 hover:decoration-stone-500 dark:text-stone-100 dark:decoration-stone-600" %>
+            <%= link_to summary[:student_name], admin_student_path(summary[:student_id], active_tab: "journal_timeline", anchor: "pending_observations"), class: "text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-2 hover:decoration-stone-500 dark:text-stone-100 dark:decoration-stone-600" %>
             <span class="text-xs font-medium text-amber-700 dark:text-amber-300"><%= pluralize(summary[:pending_count], "pending observation") %></span>
           </div>
           <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">

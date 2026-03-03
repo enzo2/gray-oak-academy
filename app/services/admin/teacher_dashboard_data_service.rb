@@ -199,7 +199,7 @@ module Admin
 
     def student_journal_path(student, report_id: nil)
       anchor = report_id.present? ? "student_report_#{report_id}" : nil
-      Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal", anchor: anchor)
+      Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal_timeline", anchor: anchor)
     end
   end
 end

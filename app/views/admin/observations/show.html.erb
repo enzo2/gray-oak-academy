@@ -1,1 +1,5 @@
-<%= render "observations/card", observation: @observation, teacher_mode: true %>
+<%= render "observations/card",
+           observation: @observation,
+           teacher_mode: true,
+           frame_id_prefix: @frame_id_prefix,
+           entry_dom_id_prefix: @entry_dom_id_prefix %>

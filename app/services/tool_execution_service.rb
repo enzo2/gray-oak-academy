@@ -462,7 +462,7 @@ class ToolExecutionService
 
     teacher = current_teacher
     today_str = Time.current.strftime("%B %d, %Y")
-    journal_link = Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal")
+    journal_link = Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal_timeline")
 
     pending_observation_count = student.observations.pending.count
 

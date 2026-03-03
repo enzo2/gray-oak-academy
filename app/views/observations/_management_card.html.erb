@@ -1,0 +1,16 @@
+<% frame_id_prefix = local_assigns.fetch(:frame_id_prefix, "obs_mgmt") %>
+<% entry_dom_id_prefix = local_assigns.fetch(:entry_dom_id_prefix, "obs_mgmt") %>
+<% teacher_mode = local_assigns.fetch(:teacher_mode, true) %>
+<% card_container_id = observation_card_container_id(observation, entry_dom_id_prefix) %>
+
+<div id="<%= card_container_id %>"
+     class="w-full rounded border border-slate-200 bg-white p-4 shadow dark:border-stone-700 dark:bg-stone-900">
+  <div class="mb-2 text-sm font-semibold text-slate-900 dark:text-white">
+    <%= observation.created_at.strftime("%b %d, %Y at %l:%M %p") %>
+  </div>
+  <%= render "observations/card",
+             observation: observation,
+             teacher_mode: teacher_mode,
+             frame_id_prefix: frame_id_prefix,
+             entry_dom_id_prefix: entry_dom_id_prefix %>
+</div>

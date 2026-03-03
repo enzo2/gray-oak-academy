@@ -1,10 +1,15 @@
-<%= turbo_frame_tag "#{dom_id(@observation)}_card" do %>
+<% card_frame_id = observation_card_frame_id(@observation, @frame_id_prefix) %>
+<% card_context_params = observation_card_context_params(frame_id_prefix: @frame_id_prefix, entry_dom_id_prefix: @entry_dom_id_prefix) %>
+<%= turbo_frame_tag card_frame_id do %>
   <%= form_with model: [:admin, @observation], data: { turbo_stream: true }, class: "space-y-2" do |f| %>
+    <%= hidden_field_tag :frame_id_prefix, @frame_id_prefix if @frame_id_prefix.present? %>
+    <%= hidden_field_tag :entry_dom_id_prefix, @entry_dom_id_prefix if @entry_dom_id_prefix.present? %>
     <%= f.text_area :content, rows: 3, class: "input-primary w-full text-sm", required: true %>
     
     <div class="flex justify-end items-center gap-2 text-xs">
       <%= f.submit "Save", class: "btn-primary text-sm py-1 px-2" %>
-      <%= link_to "Cancel", admin_observation_path(@observation), class: "text-stone-500 hover:text-stone-800 dark:hover:text-stone-200" %>
+      <%= link_to "Cancel", admin_observation_path(@observation, card_context_params),
+                  class: "text-stone-500 hover:text-stone-800 dark:hover:text-stone-200" %>
     </div>
   <% end %>
 <% end %>

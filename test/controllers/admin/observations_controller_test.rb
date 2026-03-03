@@ -8,6 +8,28 @@ class Admin::ObservationsControllerTest < ActionDispatch::IntegrationTest
     sign_in @teacher
   end
 
+  test "create turbo stream updates timeline and observations dashboard" do
+    assert_difference("Observation.count", 1) do
+      post admin_observations_path,
+        params: {
+          observation: {
+            student_id: @student.id,
+            content: "Needs explicit vocabulary scaffolding before independent writing tasks."
+          },
+          observation_sort: "weight_asc"
+        },
+        as: :turbo_stream
+    end
+
+    created_observation = Observation.order(:id).last
+
+    assert_response :success
+    assert_includes @response.body, %(target="journal_entries")
+    assert_includes @response.body, %(target="journal_observations")
+    assert_includes @response.body, %(id="obs_mgmt_observation_#{created_observation.id}_card_container")
+    assert_match(/name="observation_sort"[^>]*value="weight_asc"/, @response.body)
+  end
+
   test "revalidate resets last_validated_at for approved observation" do
     observation = Observation.create!(
       student: @student,
@@ -21,7 +43,7 @@ class Admin::ObservationsControllerTest < ActionDispatch::IntegrationTest
 
     travel_to Time.zone.parse("2026-02-22 12:00:00 UTC") do
       patch revalidate_admin_observation_path(observation)
-      assert_redirected_to admin_student_path(@student, active_tab: :journal)
+      assert_redirected_to admin_student_path(@student, active_tab: :journal_timeline)
 
       observation.reload
       assert_in_delta Time.current.to_f, observation.last_validated_at.to_f, 1.0
@@ -45,6 +67,7 @@ class Admin::ObservationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "flash_bar"
     assert_includes @response.body, "Observation re-validated."
     assert_includes @response.body, %(target="observation_#{observation.id}_card")
+    assert_includes @response.body, %(target="obs_mgmt_observation_#{observation.id}_card_container")
   end
 
   test "revalidate returns forbidden for another teachers student" do
@@ -80,7 +103,7 @@ class Admin::ObservationsControllerTest < ActionDispatch::IntegrationTest
 
     patch revalidate_admin_observation_path(observation)
 
-    assert_redirected_to admin_student_path(@student, active_tab: :journal)
+    assert_redirected_to admin_student_path(@student, active_tab: :journal_timeline)
     assert_equal "Only approved observations can be re-validated.", flash[:alert]
     assert_equal original_validated_at.to_i, observation.reload.last_validated_at.to_i
   end
@@ -110,5 +133,58 @@ class Admin::ObservationsControllerTest < ActionDispatch::IntegrationTest
     get admin_observation_path(pending_observation)
     assert_response :success
     refute_includes @response.body, "Re-validate"
+  end
+
+  test "prefixed revalidate turbo stream updates both dashboard and journal cards" do
+    observation = Observation.create!(
+      student: @student,
+      author: @teacher,
+      content: "Prefixed turbo revalidate",
+      status: :approved,
+      relevance_weight: 1.0,
+      last_validated_at: 2.months.ago
+    )
+
+    patch revalidate_admin_observation_path(observation),
+      params: { frame_id_prefix: "obs_mgmt", entry_dom_id_prefix: "obs_mgmt" },
+      as: :turbo_stream
+
+    assert_response :success
+    assert_includes @response.body, %(target="obs_mgmt_observation_#{observation.id}_card_container")
+    assert_includes @response.body, %(target="observation_#{observation.id}_card_container")
+  end
+
+  test "prefixed destroy turbo stream removes both dashboard and journal cards" do
+    observation = Observation.create!(
+      student: @student,
+      author: @teacher,
+      content: "Prefixed destroy",
+      status: :approved,
+      relevance_weight: 1.0
+    )
+
+    delete admin_observation_path(observation),
+      params: { frame_id_prefix: "obs_mgmt", entry_dom_id_prefix: "obs_mgmt" },
+      as: :turbo_stream
+
+    assert_response :success
+    assert_includes @response.body, %(target="obs_mgmt_observation_#{observation.id}_card_container")
+    assert_includes @response.body, %(target="observation_#{observation.id}_card_container")
+  end
+
+  test "non-prefixed destroy turbo stream removes dashboard and journal cards" do
+    observation = Observation.create!(
+      student: @student,
+      author: @teacher,
+      content: "Non-prefixed destroy",
+      status: :approved,
+      relevance_weight: 1.0
+    )
+
+    delete admin_observation_path(observation), as: :turbo_stream
+
+    assert_response :success
+    assert_includes @response.body, %(target="obs_mgmt_observation_#{observation.id}_card_container")
+    assert_includes @response.body, %(target="observation_#{observation.id}_card_container")
   end
 end

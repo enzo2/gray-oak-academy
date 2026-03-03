@@ -4,6 +4,7 @@
         data: { turbo_stream: true }, 
         class: "pt-0 px-8 pb-6 space-y-4" do |f| %>
     <%= f.hidden_field :student_id %>
+    <%= hidden_field_tag :observation_sort, @observation_sort %>
 
     <h2 class="text-lg">New Observation</h2>
 

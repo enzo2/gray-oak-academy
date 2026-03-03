@@ -78,7 +78,7 @@ class GenerateObservationsJob < ApplicationJob
         count = new_observations.count
         Rails.event.notify(Events::ObservationGenerated.new(
           recipient_ids: [ teacher.id ],
-          link: Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal"),
+          link: Rails.application.routes.url_helpers.admin_student_path(student, active_tab: "journal_timeline"),
           student_name: student.name,
           lesson_title: lesson_progress.lesson.title,
           quantity_str: "#{count} new pending #{"observation".pluralize(count)}",

@@ -1,0 +1,41 @@
+<% observation_sort_options = local_assigns[:observation_sort_options] || Observation.management_sort_options %>
+<section data-testid="observations-management" class="space-y-4">
+  <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div>
+      <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Observations Timeline</h3>
+      <p class="text-sm text-stone-600 dark:text-stone-400">
+        Review all observation statuses and sort by date or weight.
+      </p>
+    </div>
+
+    <%= form_with url: admin_student_path(student), method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
+      <%= hidden_field_tag :active_tab, "journal_observations" %>
+      <div>
+        <%= form.label :observation_sort, "Sort by", class: "form-label text-xs mb-1" %>
+        <%= form.select :observation_sort,
+                        options_for_select(observation_sort_options, observation_sort),
+                        {},
+                        class: "form-select-primary text-sm py-1.5" %>
+      </div>
+      <%= form.submit "Apply", class: "btn-secondary text-sm px-3 py-1.5" %>
+    <% end %>
+  </div>
+
+  <p class="text-xs text-stone-500 dark:text-stone-400">
+    <%= pluralize(observations.size, "observation") %> shown.
+  </p>
+
+  <% if observations.any? %>
+    <div class="space-y-3">
+      <% observations.each do |observation| %>
+        <%= render "observations/management_card",
+                   observation: observation,
+                   frame_id_prefix: "obs_mgmt",
+                   entry_dom_id_prefix: "obs_mgmt",
+                   teacher_mode: true %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-sm text-stone-600 dark:text-stone-400">No observations yet.</p>
+  <% end %>
+</section>

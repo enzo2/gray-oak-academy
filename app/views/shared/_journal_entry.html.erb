@@ -1,5 +1,7 @@
 <% pending_view = local_assigns[:pending_view] %>
-<div id="<%= dom_id(item) %>_card_container" 
+<% entry_dom_id_prefix = local_assigns[:entry_dom_id_prefix].to_s %>
+<% entry_dom_id = observation_card_container_id(item, entry_dom_id_prefix) %>
+<div id="<%= entry_dom_id %>" 
      class="relative flex items-center justify-between <%= pending_view ? 'gap-4' : 'md:justify-normal' %> group is-active journal-entry"
      data-journal-type="<%= item.class.name %>"
      data-journal-reportable-type="<%= item.is_a?(StudentReport) ? item.reportable_type : '' %>"
@@ -38,7 +40,11 @@
     
     <% case item %>
     <% when Observation %>
-      <%= render "observations/card", observation: item, teacher_mode: local_assigns[:teacher_mode] %>
+      <%= render "observations/card",
+                 observation: item,
+                 teacher_mode: local_assigns[:teacher_mode],
+                 frame_id_prefix: local_assigns[:observation_card_frame_prefix],
+                 entry_dom_id_prefix: local_assigns[:entry_dom_id_prefix] %>
     <% when StudentFeedback %>
       <%= render "student_feedbacks/card", feedback: item %>
     <% when StudentReport %>

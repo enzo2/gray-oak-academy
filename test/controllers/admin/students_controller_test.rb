@@ -1,6 +1,86 @@
 require "test_helper"
 
 class Admin::StudentsControllerTest < ActionDispatch::IntegrationTest
+  test "journal observations sub-tab sorts chronologically oldest first" do
+    teacher = users(:admin)
+    student = users(:student)
+    sign_in teacher
+
+    older = Observation.create!(
+      student: student,
+      author: teacher,
+      content: "Older timeline observation",
+      status: :approved,
+      relevance_weight: 1.0,
+      created_at: 10.days.ago
+    )
+    newer = Observation.create!(
+      student: student,
+      author: teacher,
+      content: "Newer timeline observation",
+      status: :approved,
+      relevance_weight: 1.0,
+      created_at: 1.day.ago
+    )
+
+    get admin_student_path(
+      student,
+      active_tab: :journal_observations,
+      observation_sort: "chron_asc"
+    )
+
+    assert_response :success
+    assert_select "[data-testid='observations-management']"
+    assert_select "option[value='chron_asc'][selected='selected']"
+
+    older_index = @response.body.index("id=\"obs_mgmt_observation_#{older.id}_card_container\"")
+    newer_index = @response.body.index("id=\"obs_mgmt_observation_#{newer.id}_card_container\"")
+
+    assert_not_nil older_index
+    assert_not_nil newer_index
+    assert_operator older_index, :<, newer_index
+  end
+
+  test "journal observations sub-tab sorts by weight high to low" do
+    teacher = users(:admin)
+    student = users(:student)
+    sign_in teacher
+
+    low_confidence = Observation.create!(
+      student: student,
+      author: teacher,
+      content: "Low confidence observation",
+      status: :approved,
+      relevance_weight: 0.2,
+      created_at: 1.day.ago
+    )
+    high_confidence = Observation.create!(
+      student: student,
+      author: teacher,
+      content: "High confidence observation",
+      status: :approved,
+      relevance_weight: 1.0,
+      last_validated_at: Time.current,
+      created_at: 1.day.ago
+    )
+
+    get admin_student_path(
+      student,
+      active_tab: :journal_observations,
+      observation_sort: "weight_desc"
+    )
+
+    assert_response :success
+    assert_select "option[value='weight_desc'][selected='selected']"
+
+    high_index = @response.body.index("id=\"obs_mgmt_observation_#{high_confidence.id}_card_container\"")
+    low_index = @response.body.index("id=\"obs_mgmt_observation_#{low_confidence.id}_card_container\"")
+
+    assert_not_nil high_index
+    assert_not_nil low_index
+    assert_operator high_index, :<, low_index
+  end
+
   test "adopt sets flash error when attempting to adopt self (validate_not_own_teacher)" do
     admin = users(:admin)
     sign_in admin

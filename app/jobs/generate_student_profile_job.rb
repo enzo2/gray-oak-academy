@@ -66,7 +66,7 @@ class GenerateStudentProfileJob < ApplicationJob
 
       link = Rails.application.routes.url_helpers.admin_student_path(
         student,
-        active_tab: "journal",
+        active_tab: "journal_timeline",
         anchor: "student_report_#{report.id}"
       )
       current_snapshot = parsed_content.is_a?(Hash) ? parsed_content["current_snapshot"].to_s.squish.truncate(2000) : ""

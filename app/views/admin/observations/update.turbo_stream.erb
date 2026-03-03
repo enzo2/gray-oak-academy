@@ -2,13 +2,61 @@
   <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
 <% end %>
 
-<%= turbo_stream.replace "#{dom_id(@observation)}_card" do %>
-  <%= render "observations/card", observation: @observation, teacher_mode: true %>
+<% card_frame_id = observation_card_frame_id(@observation, @frame_id_prefix) %>
+<% card_container_id = observation_card_container_id(@observation, @entry_dom_id_prefix) %>
+<% management_frame_id_prefix = "obs_mgmt" %>
+<% management_entry_dom_id_prefix = "obs_mgmt" %>
+<% management_card_container_id = observation_card_container_id(@observation, management_entry_dom_id_prefix) %>
+
+<%= turbo_stream.replace card_frame_id do %>
+  <%= render "observations/card",
+             observation: @observation,
+             teacher_mode: true,
+             frame_id_prefix: @frame_id_prefix,
+             entry_dom_id_prefix: @entry_dom_id_prefix %>
 <% end %>
 
-<% if @observation.saved_change_to_status? && @observation.status_before_last_save == "pending" %>
+<% if @entry_dom_id_prefix.present? %>
+  <%= turbo_stream.replace card_container_id do %>
+    <%= render "observations/management_card",
+               observation: @observation,
+               frame_id_prefix: @frame_id_prefix,
+               entry_dom_id_prefix: @entry_dom_id_prefix,
+               teacher_mode: true %>
+  <% end %>
+<% end %>
+
+<% unless @entry_dom_id_prefix == management_entry_dom_id_prefix %>
+  <%= turbo_stream.replace management_card_container_id do %>
+    <%= render "observations/management_card",
+               observation: @observation,
+               frame_id_prefix: management_frame_id_prefix,
+               entry_dom_id_prefix: management_entry_dom_id_prefix,
+               teacher_mode: true %>
+  <% end %>
+<% end %>
+
+<% if @entry_dom_id_prefix.present? %>
+  <% if @observation.saved_change_to_status? && @observation.status_before_last_save == "pending" %>
+    <%= turbo_stream.remove observation_card_container_id(@observation) %>
+    <%= turbo_stream.prepend "journal_entries" do %>
+      <%= render "shared/journal_entry", item: @observation, teacher_mode: true %>
+    <% end %>
+
+    <% if @observation.student.observations.pending.empty? %>
+      <%= turbo_stream.update "pending_observations", "" %>
+    <% end %>
+  <% else %>
+    <%= turbo_stream.replace "#{dom_id(@observation)}_card_container" do %>
+      <%= render "shared/journal_entry",
+                 item: @observation,
+                 teacher_mode: true,
+                 pending_view: @observation.status_pending? %>
+    <% end %>
+  <% end %>
+<% elsif @observation.saved_change_to_status? && @observation.status_before_last_save == "pending" %>
   <%# Move from Pending list to Timeline %>
-  <%= turbo_stream.remove "#{dom_id(@observation)}_card_container" %>
+  <%= turbo_stream.remove observation_card_container_id(@observation) %>
   <%= turbo_stream.prepend "journal_entries" do %>
     <%= render "shared/journal_entry", item: @observation, teacher_mode: true %>
   <% end %>
@@ -18,7 +66,7 @@
   <% end %>
 <% else %>
   <%# Update in place %>
-  <%= turbo_stream.replace "#{dom_id(@observation)}_card_container" do %>
+  <%= turbo_stream.replace observation_card_container_id(@observation) do %>
     <%= render "shared/journal_entry", item: @observation, teacher_mode: true, pending_view: @observation.status_pending? %>
   <% end %>
 <% end %>

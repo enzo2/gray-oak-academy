@@ -1,4 +1,8 @@
-<%= turbo_stream.remove "#{dom_id(@observation)}_card_container" %>
+<% card_container_id = observation_card_container_id(@observation, @entry_dom_id_prefix) %>
+<% management_card_container_id = observation_card_container_id(@observation, "obs_mgmt") %>
+<%= turbo_stream.remove card_container_id %>
+<%= turbo_stream.remove observation_card_container_id(@observation) if @entry_dom_id_prefix.present? %>
+<%= turbo_stream.remove management_card_container_id unless card_container_id == management_card_container_id %>
 
 <% if @observation.status_pending? && @observation.student.observations.pending.empty? %>
   <%= turbo_stream.update "pending_observations", "" %>

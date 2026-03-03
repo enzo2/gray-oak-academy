@@ -57,9 +57,18 @@ module Admin
     end
 
     def show
-      @active_tab = params[:active_tab]&.to_sym || :journal
+      raw_active_tab = params[:active_tab].to_s.presence || "journal_timeline"
+      @observation_sort = Observation.normalize_management_sort(params[:observation_sort])
+      @observation_sort_options = Observation.management_sort_options
+      resolved_active_tab = raw_active_tab == "journal" ? "journal_timeline" : raw_active_tab
+      @active_tab = resolved_active_tab.to_sym
       @memories = @student.memories.includes(:author).order(created_at: :desc)
       @pending_observations = @student.observations.pending.order(created_at: :desc)
+      @observation_timeline = Observation.for_management_timeline(
+        student: @student,
+        sort: @observation_sort,
+        as_of: Time.current
+      )
 
       # Trigger verification that the course reports were generated, in case the job failed originally
       @active_enrollments.each do |enrollment|
@@ -135,5 +144,6 @@ module Admin
       @completed_enrollments = @student.enrollments.completed
       @orphaned_reports = @student.student_reports.orphaned.order(created_at: :desc)
     end
+
   end
 end

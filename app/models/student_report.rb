@@ -116,7 +116,7 @@ class StudentReport < ApplicationRecord
     lesson = reportable&.lesson
     link = Rails.application.routes.url_helpers.admin_student_path(
       student,
-      active_tab: "journal",
+      active_tab: "journal_timeline",
       anchor: "student_report_#{id}"
     )
 
