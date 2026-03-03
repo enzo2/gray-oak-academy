@@ -11,6 +11,28 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     Message.delete_all
   end
 
+  test "execute_tool_calls normalizes function payload and enqueues follow-up completion" do
+    captured_tool_call = nil
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:execute_tool_call) do |tool_call|
+      captured_tool_call = tool_call
+    end
+
+    enqueued_conversation = nil
+    ToolExecutionService.stub(:new, fake_executor) do
+      GetLlmCompletionJob.stub(:perform_later, ->(conversation:) { enqueued_conversation = conversation }) do
+        ToolHandlerService.new(conversation: @conversation, message: nil).execute_tool_calls(
+          [ { id: "call-1", function: { name: "Show_On_Chalkboard", arguments: { url: "https://example.com" }.to_json } } ]
+        )
+      end
+    end
+
+    assert_equal "call-1", captured_tool_call[:id]
+    assert_equal "Show_On_Chalkboard", captured_tool_call[:name]
+    assert_equal({ url: "https://example.com" }.to_json, captured_tool_call[:arguments])
+    assert_equal @conversation, enqueued_conversation
+  end
+
   test "generate_course_outline runs job and creates a tool message with course.for_llm" do
     tool_calls = [ {
       id: "tc-1",

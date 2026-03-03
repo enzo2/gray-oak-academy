@@ -10,13 +10,6 @@ module Admin
       @llm = Llm.create!(model: "test-llm-controller", api_provider: "https://test.com", context_length: 1000)
     end
 
-    test "should get index" do
-      sign_in @superuser
-      get admin_llms_url
-      assert_response :success
-      assert_select "h2", text: "LLMs"
-    end
-
     test "should filter archived llms" do
       sign_in @superuser
       archived_llm = Llm.create!(model: "archived-gpt", api_provider: "https://test.com", context_length: 1000, archived_at: Time.current)

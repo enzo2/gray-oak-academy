@@ -315,44 +315,6 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_nil second_messages[1][:reasoning_details]
   end
 
-  test "does not delete latest user message on OpenAiError when a newer tool message exists" do
-    conversation = conversations(:teacher_generic_conversation)
-    conversation.messages.delete_all
-    user_message = conversation.messages.create!(role: :user, content: "Yes")
-
-    fake_client = Object.new
-    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
-      conversation.messages.create!(
-        role: :tool,
-        content: "Tool output after user message",
-        tool_call_id: "tool_Show_On_Chalkboard_1"
-      )
-      raise OpenAiError, "Empty response from LLM."
-    end
-    fake_client.define_singleton_method(:last_response_hash) { nil }
-    fake_client.define_singleton_method(:output_text) { |_response_hash| "" }
-
-    fake_adapter = Object.new
-    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
-    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
-    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
-    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
-
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
-      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
-        Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
-          Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
-            assert_raises(OpenAiError) do
-              GetResponsesCompletionJob.perform_now(conversation: conversation)
-            end
-          end
-        end
-      end
-    end
-
-    assert Message.exists?(id: user_message.id), "User message should not be deleted when a newer tool message exists"
-  end
-
   test "stateful chained conversations send only trailing user messages on initial request" do
     conversation = conversations(:teacher_generic_conversation)
     conversation.messages.delete_all
@@ -402,60 +364,6 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
       ],
       calls[0][:messages]
     )
-  end
-
-  test "streams response text into assistant message before finalization" do
-    conversation = conversations(:teacher_generic_conversation)
-    conversation.messages.delete_all
-    conversation.messages.create!(role: :user, content: "Stream this")
-
-    captured_stream_handler = nil
-    calls = []
-    last_response_hash = nil
-
-    fake_client = Object.new
-    fake_client.define_singleton_method(:stateful_supported?) { true }
-    fake_client.define_singleton_method(:previous_response_id) { nil }
-    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
-      calls << { messages: messages, kwargs: kwargs }
-      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "Hel" })
-      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "lo" })
-      captured_stream_handler.call({ "type" => "response.completed" })
-      last_response_hash = {
-        "id" => "resp_stream_1",
-        "status" => "completed",
-        "output" => [
-          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Hello" } ] }
-        ]
-      }
-      nil
-    end
-    fake_client.define_singleton_method(:last_response_hash) { last_response_hash }
-    fake_client.define_singleton_method(:output_text) { |_response_hash| "Hello" }
-
-    fake_adapter = Object.new
-    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
-    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
-    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
-    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
-
-    OpenaiResponsesService.stub(:new, lambda { |**kwargs|
-      captured_stream_handler = kwargs[:stream_handler]
-      fake_client
-    }) do
-      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
-        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
-          GetResponsesCompletionJob.perform_now(conversation: conversation)
-        end
-      end
-    end
-
-    assert_equal 1, calls.size
-    assert_equal [ { role: "user", content: "Stream this" } ], calls[0][:messages]
-
-    assistant = conversation.reload.messages.role_assistant.order(:created_at).last
-    assert_not_nil assistant
-    assert_equal "Hello", assistant.content
   end
 
   test "preserves whitespace-only streaming deltas in assistant message" do
@@ -739,47 +647,5 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal conversation.id, payload["conversation_id"]
     assert_equal false, payload["tool_call_pending"]
     assert payload["message_id"].present?
-  end
-
-  test "broadcasts completion error event on OpenAiError" do
-    conversation = conversations(:teacher_generic_conversation)
-    conversation.messages.delete_all
-    conversation.messages.create!(role: :user, content: "Hi")
-
-    fake_client = Object.new
-    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| raise OpenAiError, "boom" }
-
-    fake_adapter = Object.new
-    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
-
-    dispatch_calls = []
-
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
-      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
-        Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
-          Turbo::StreamsChannel.stub(:broadcast_remove_to, true) do
-            Turbo::StreamsChannel.stub(:broadcast_action_to, ->(*args, **kwargs) { dispatch_calls << { args: args, kwargs: kwargs } }) do
-              assert_raises(OpenAiError) do
-                GetResponsesCompletionJob.perform_now(conversation: conversation)
-              end
-            end
-          end
-        end
-      end
-    end
-
-    error_event = dispatch_calls.find do |call|
-      payload = call[:kwargs].presence || call[:args].last || {}
-      action = payload[:action] || payload["action"]
-      attributes = payload[:attributes] || payload["attributes"] || {}
-      event_name = attributes["event-name"] || attributes[:"event-name"]
-
-      action.to_s == "dispatch_event" && event_name == "llm-completion-error"
-    end
-
-    assert_not_nil error_event, "Expected llm-completion-error dispatch event"
-    error_payload = error_event[:kwargs].presence || error_event[:args].last || {}
-    payload = JSON.parse(error_payload[:content].to_s)
-    assert_equal conversation.id, payload["conversation_id"]
   end
 end

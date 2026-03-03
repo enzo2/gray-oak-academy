@@ -8,6 +8,13 @@ class MessagesTtsStreamTest < ActionDispatch::IntegrationTest
     sign_in @user
   end
 
+  test "GET /messages/:id/tts_stream returns not_implemented when speech is not configured" do
+    AppSetting.stub(:speech_configured?, false) do
+      get tts_stream_message_path(@message)
+      assert_response :not_implemented
+    end
+  end
+
   test "GET /messages/:id/tts_stream returns audio/webm when TTS configured" do
     # Ensure AppSetting is configured for speech TTS using fixture supported api
     app = AppSetting.first

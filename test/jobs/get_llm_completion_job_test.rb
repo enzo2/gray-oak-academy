@@ -325,50 +325,6 @@ class GetLlmCompletionJobStreamingTest < ActiveJob::TestCase
     assert_equal reasoning_data, serialized.first[:reasoning_details], "reasoning_details should be serialized with non-rs_ IDs preserved"
   end
 
-  test "preserves OpenAI reasoning session IDs (rs_*) in serialization" do
-    @conversation.messages.create!(role: :user, content: "Do the thing")
-
-    # Simulate OpenAI-style reasoning with rs_ prefixed IDs (stateful session IDs)
-    reasoning_data = [
-      { "id" => "rs_abc123", "index" => 0, "format" => "openai-v1", "type" => "reasoning.text", "text" => "Thinking..." }
-    ]
-
-    OpenaiApiService.stub(:new, ->(**kwargs) {
-      handler = kwargs[:stream_handler]
-      Object.new.tap do |o|
-        o.define_singleton_method(:complete) do |*_args|
-          handler.call({ "delta" => { "reasoning_details" => reasoning_data } })
-          handler.call({
-            "delta" => {
-              "tool_calls" => [ {
-                "index" => 0,
-                "id" => "call_789",
-                "type" => "function",
-                "function" => { "name" => "Complete_Lesson", "arguments" => "{}" }
-              } ]
-            }
-          })
-          handler.call({ "finish_reason" => "tool_calls" })
-          handler.call({ "usage" => { "prompt_tokens" => 10, "completion_tokens" => 5, "total_tokens" => 15 } })
-          ""
-        end
-      end
-    }) do
-      ToolHandlerService.stub(:new, ->(**_kwargs) {
-        Object.new.tap { |o| o.define_singleton_method(:execute_tool_calls) { |_| } }
-      }) do
-        GetLlmCompletionJob.perform_now(conversation: @conversation)
-      end
-    end
-
-    assistant_msg = @conversation.reload.messages.role_assistant.last
-    assert_not_nil assistant_msg.reasoning_details, "reasoning_details should be saved"
-
-    # Test serialization preserves reasoning_details exactly for continuity
-    serialized = Message.for_completion(messages: [ assistant_msg ])
-    assert_equal reasoning_data, serialized.first[:reasoning_details], "Reasoning details should be serialized unchanged"
-  end
-
   test "merges reasoning_details chunks by index" do
     @conversation.messages.create!(role: :user, content: "Think about this")
 

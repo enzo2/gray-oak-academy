@@ -1,6 +1,12 @@
 require "test_helper"
 
 class LlmTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  setup do
+    ActiveJob::Base.queue_adapter = :test
+  end
+
   test "ensure_api_provider_trailing_slash adds trailing slash when missing" do
     llm = Llm.create!(model: "m1", api_provider: "https://example.com", context_length: 1000)
     assert llm.api_provider.end_with?("/"), "api_provider should have trailing slash"
@@ -96,5 +102,13 @@ class LlmTest < ActiveSupport::TestCase
     refute llm.archived?
 
     app_setting.update!(stt_model_id: nil)
+  end
+
+  test "creating openrouter llm enqueues metadata update job" do
+    assert_enqueued_jobs 0, only: UpdateOpenrouterModelMetadataJob
+
+    assert_enqueued_jobs 1, only: UpdateOpenrouterModelMetadataJob do
+      Llm.create!(model: "openrouter/model-v1", api_provider: "https://openrouter.ai/api/v1/")
+    end
   end
 end

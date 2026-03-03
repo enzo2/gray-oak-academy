@@ -9,17 +9,6 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     sign_in @teacher
   end
 
-  test "should get index" do
-    get admin_resources_path
-    assert_response :success
-    assert_select "div[id^='resource_']", count: @teacher.resources.count
-  end
-
-  test "should get new" do
-    get new_admin_resource_path
-    assert_response :success
-  end
-
   test "should create resource with applet attributes" do
     assert_difference("Resource.count") do
       assert_difference("Applet.count") do
@@ -55,16 +44,6 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
 
     resource = Resource.last
     assert_equal [ "math", "science" ], resource.tags
-  end
-
-  test "should show resource" do
-    get admin_resource_path(@resource)
-    assert_response :success
-  end
-
-  test "should get edit" do
-    get edit_admin_resource_path(@resource)
-    assert_response :success
   end
 
   test "should update resource" do

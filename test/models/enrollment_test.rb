@@ -7,32 +7,12 @@ class EnrollmentTest < ActiveSupport::TestCase
     @course = courses(:one)
   end
 
-  test "should be valid with valid attributes" do
-    assert @enrollment.valid?
-  end
-
-  test "completed_lessons returns correct lessons" do
-    # No completed lessons in fixture, so should be empty
+  test "progress helper methods reflect enrollment with no completed lessons" do
     assert_equal [], @enrollment.completed_lessons
-  end
-
-  test "incomplete_lessons returns all lessons if none completed" do
     assert_equal @course.lessons.sort_by(&:position), @enrollment.incomplete_lessons.sort_by(&:position)
-  end
-
-  test "progress_percentage is 0 if no lessons completed" do
-    assert_equal 0, @enrollment.progress_percentage
-  end
-
-  test "total_lessons_count returns correct count" do
     assert_equal @course.lessons.count, @enrollment.total_lessons_count
-  end
-
-  test "completed? returns false if not all lessons completed" do
+    assert_equal 0, @enrollment.progress_percentage
     assert_not @enrollment.completed?
-  end
-
-  test "next_incomplete_lesson_position returns the first incomplete lesson position" do
     assert_equal 1, @enrollment.next_incomplete_lesson_position
   end
 
@@ -113,10 +93,6 @@ class EnrollmentTest < ActiveSupport::TestCase
 
     assert_equal lesson_without_plan.id, enrollment.next_incomplete_lesson.id
     assert_nil enrollment.next_available_lesson
-  end
-
-  test "not_ahead_of_progress? allows the next incomplete lesson position" do
-    assert @enrollment.not_ahead_of_progress?(1)
   end
 
   test "not_ahead_of_progress? permits next lesson or earlier and blocks later lessons" do

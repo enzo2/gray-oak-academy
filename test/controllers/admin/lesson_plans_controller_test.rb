@@ -268,6 +268,24 @@ module Admin
       assert_includes @response.body, "Configure OpenAI Agent Runs and Exa API before proposing resources."
     end
 
+    test "propose_resources enqueues job when generation is completed and features are enabled" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "completed")
+
+      AppSetting.stub(:openai_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          assert_enqueued_jobs 1, only: ProposeResourcesJob do
+            post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+          end
+        end
+      end
+
+      assert_response :success
+      assert_equal "proposing_resources", lesson_plan.reload.generation_stage
+    end
+
     test "cannot propose resources for another teacher lesson" do
       sign_in(users(:admin2))
       lesson = lessons(:one)

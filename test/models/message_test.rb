@@ -52,4 +52,45 @@ class MessageTest < ActiveSupport::TestCase
       message.update!(content: "Transcribed text")
     end
   end
+
+  test "for_completion serializes text, image URL, and input audio content" do
+    conversation = conversations(:student_generic_conversation)
+    message = Message.create!(conversation: conversation, role: :user, content: "Hello world")
+    image = Image.create!(message: message, uri: "http://example.com/img.png", content_type: "image/png")
+    audio = Audio.create!(message: message, content_type: "audio/wav")
+    message.reload
+
+    audio.define_singleton_method(:base64_for_LLM) { { data: "BASE64DATA", format: "wav" } }
+    message.define_singleton_method(:images) { [ image ] }
+    message.define_singleton_method(:audios) { [ audio ] }
+
+    payload = Message.for_completion(messages: [ message ], audio: true)
+    assert_equal 1, payload.length
+    assert_equal "user", payload.first[:role]
+
+    json = payload.to_json
+    assert_includes json, "Hello world"
+    assert_includes json, image.uri
+    assert_includes json, "BASE64DATA"
+  end
+
+  test "check_context_limit does not notify below adaptive threshold for small models" do
+    conversation = conversations(:student_generic_conversation)
+    llm = Llm.new(model: "small-model", api_provider: "https://api.limit.test/", context_length: 8_192)
+    conversation.define_singleton_method(:llm_in_use) { llm }
+    conversation.define_singleton_method(:last_prompt_tokens) { 6_000 } # below 80% (6_553.6)
+
+    message = Message.new(conversation: conversation, role: :user, content: "hi")
+
+    fake_event_reporter = Object.new
+    fake_event_reporter.define_singleton_method(:notify) do |_event|
+      flunk "Expected no context warning notification below threshold"
+    end
+
+    Rails.stub(:event, fake_event_reporter) do
+      Turbo::StreamsChannel.stub(:broadcast_update_to, ->(*) { flunk "Expected no flash broadcast below threshold" }) do
+        assert_nil message.send(:check_context_limit)
+      end
+    end
+  end
 end
