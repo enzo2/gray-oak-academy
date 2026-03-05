@@ -11,8 +11,14 @@ class VerifySupportedApiModelsJob < ApplicationJob
     user = User.find(enqueued_by_user_id)
     return unless user.role_superuser?
     supported_api = SupportedApi.find(supported_api_id)
+    failed_models = []
+
     unless supported_api.api_access_token.present?
       Rails.logger.info "SupportedApi #{supported_api.api_base_uri} cannot be verified because it has no api_access_token"
+      broadcast_failure(
+        user_id: enqueued_by_user_id,
+        message: "Model verification failed: missing API token for #{supported_api.api_base_uri}"
+      )
       return
     end
 
@@ -56,8 +62,30 @@ class VerifySupportedApiModelsJob < ApplicationJob
         end
 
         Rails.logger.error "Failed to verify model '#{model}' for SupportedApi #{supported_api.api_base_uri}: #{e.message}"
+        failed_models << model
         # Continue verifying remaining models
       end
     end
+
+    return if failed_models.empty?
+
+    broadcast_failure(
+      user_id: enqueued_by_user_id,
+      message: "Model verification failed for #{failed_models.size} model(s): #{failed_models.join(', ')}"
+    )
+  end
+
+  private
+
+  def broadcast_failure(user_id:, message:)
+    stream_name = "teacher_#{user_id}-dashboard"
+    Turbo::StreamsChannel.broadcast_update_to(
+      stream_name,
+      target: "flash_bar",
+      partial: "shared/flash",
+      locals: { flash: { error: message } }
+    )
+  rescue StandardError => e
+    Rails.logger.error "Failed to broadcast verification failure flash for user #{user_id}: #{e.message}"
   end
 end
