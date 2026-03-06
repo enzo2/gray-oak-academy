@@ -1,28 +1,110 @@
 <div id="lesson-plan-generation-controls" class="mb-4">
   <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
 
-  <%= form_with(
-    url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
-    method: :post,
-    data: { controller: "button-loading" }
-  ) do |form| %>
-    <div class="flex flex-col gap-2">
-      <% if resource_proposal_enabled %>
-        <label class="inline-flex items-center gap-2 text-sm">
-          <%= check_box_tag :propose_resources, "1", false, class: "checkbox-primary" %>
-          Also propose and link resources (takes >5 minutes)
-        </label>
+  <div data-controller="modal"
+       data-modal-wrapper-class-value="relative z-[70]"
+       data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-stone-200 dark:border-stone-700">
+    <button type="button"
+            id="generate-lesson-plan-button"
+            class="btn-success gap-2 w-fit"
+            data-action="modal#open"
+            <%= "disabled" if lesson_plan.generation_in_progress? %>>
+      <% if lesson_plan.generation_in_progress? %>
+        <sl-spinner></sl-spinner>
+      <% else %>
+        <sl-icon name="lightbulb"></sl-icon>
       <% end %>
-      <button type="submit" id="generate-lesson-plan-button" class="btn-success gap-2 w-fit" <%= "disabled" if lesson_plan.generation_in_progress? %>>
-        <% if lesson_plan.generation_in_progress? %>
-          <sl-spinner></sl-spinner>
-        <% else %>
-          <sl-icon name="lightbulb"></sl-icon>
+      Generate Lesson Plan
+    </button>
+
+    <div data-modal-target="content" class="hidden p-5 sm:p-6">
+      <div data-controller="lesson-plan-steering"
+           data-action="turbo:submit-end->lesson-plan-steering#submitEnd">
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100" id="modal-title">Generate Lesson Plan</h3>
+            <p class="mt-1 text-sm text-dim">Choose how much to steer generation before the background run starts.</p>
+          </div>
+          <button type="button"
+                  class="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                  data-action="modal#close"
+                  data-lesson-plan-steering-target="closeButton">
+            <sl-icon name="x-lg" class="text-lg"></sl-icon>
+          </button>
+        </div>
+
+        <%= form_with(
+          url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+          method: :post,
+          data: { controller: "button-loading" },
+          class: "space-y-5"
+        ) do |form| %>
+          <div>
+            <label class="form-label">Preset</label>
+            <div class="mt-2 space-y-3">
+              <% presets = [
+                   ["llm_decides", "LLM decides", "Let the generator infer the best format from lesson goals and context."],
+                   ["speech_mobile", "Speech / Mobile style", "Bias toward walk-and-talk, narrow-screen, or speech-first tutoring."],
+                   ["offline_debrief", "Offline/Debrief style", "Bias toward an offline activity with a concise return-and-debrief structure."],
+                   ["other", "Other", "Provide custom guidance for this lesson plan run."]
+                 ] %>
+              <% presets.each do |value, label, description| %>
+                <label class="flex items-start gap-3 rounded-lg border border-stone-200 p-3 dark:border-stone-700">
+                  <%= radio_button_tag :preset, value, value == "llm_decides",
+                        class: "radio-primary mt-1",
+                        data: { action: "change->lesson-plan-steering#presetChanged" } %>
+                  <span class="flex-1">
+                    <span class="block text-sm font-medium text-stone-800 dark:text-stone-100"><%= label %></span>
+                    <span class="block text-sm text-dim"><%= description %></span>
+                  </span>
+                </label>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="hidden" data-lesson-plan-steering-target="customGuidanceSection">
+            <%= label_tag :guidance, "Lesson plan guidance", class: "form-label" %>
+            <%= text_area_tag :guidance, nil,
+                  rows: 5,
+                  class: "input-primary w-full",
+                  placeholder: "Example: Keep this highly conversational, avoid chalkboard-heavy activities, and end with a short oral recap.",
+                  data: { lesson_plan_steering_target: "customGuidanceInput" } %>
+          </div>
+
+          <% if resource_proposal_enabled %>
+            <label class="group block cursor-pointer rounded-xl border-1 border-stone-300 bg-stone-50/80 p-4 shadow-sm transition hover:border-moss-500 hover:bg-moss-50/70 active:scale-[0.99] active:border-moss-600 dark:border-stone-700 dark:bg-stone-800/80 dark:hover:border-moss-400 dark:hover:bg-stone-800">
+              <div class="flex items-start gap-3">
+                <%= check_box_tag :propose_resources, "1", false, class: "checkbox-primary mt-1 h-5 w-5" %>
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    Propose and link resources
+                  </div>
+                  <p class="mt-1 text-sm text-dim">
+                    Run agent to locate and attach relevant resources after plan generation. Can takes more than 5 minutes.
+                  </p>
+                </div>
+              </div>
+            </label>
+          <% else %>
+            <div class="rounded-xl border border-dashed border-stone-300 bg-stone-50/60 p-4 text-sm text-dim dark:border-stone-700 dark:bg-stone-800/60">
+              <div class="font-medium text-stone-700 dark:text-stone-200">Propose and link resources</div>
+              <p class="mt-1">Unavailable until OpenAI Agent Runs and Exa API are configured.</p>
+            </div>
+          <% end %>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button"
+                    class="btn-secondary"
+                    data-action="modal#close"
+                    data-lesson-plan-steering-target="closeButton">
+              Cancel
+            </button>
+            <button type="submit" class="btn-success">Start Generation</button>
+          </div>
         <% end %>
-        Generate Lesson Plan
-      </button>
+      </div>
     </div>
-  <% end %>
+  </div>
 
   <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
 </div>

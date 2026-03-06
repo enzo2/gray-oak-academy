@@ -81,15 +81,29 @@ module Admin
     end
 
     def generate_content
-      # Persist the lesson plan before generating content, since it may be new
-      @lesson_plan.save!
       propose_resources = ActiveModel::Type::Boolean.new.cast(params[:propose_resources])
+      steering = normalize_generation_steering
+
+      if steering[:error]
+        flash.now[:warning] = steering[:error]
+        set_generation_submit_header(queued: false)
+        render :generate_content
+        return
+      end
+
+      # Persist the lesson plan before generating content, since it may be new.
+      @lesson_plan.save!
+
       result = LessonPlanAsyncGenerationService.new(
         lesson_plan: @lesson_plan,
         current_user: current_user,
         source: "lesson_plan_button"
-      ).enqueue_generate_content(propose_resources: propose_resources)
+      ).enqueue_generate_content(
+        propose_resources: propose_resources,
+        steering_guidance: steering[:guidance]
+      )
       flash.now[:warning] = result[:message] unless result[:ok]
+      set_generation_submit_header(queued: result[:ok])
 
       respond_to do |format|
         format.turbo_stream
@@ -161,6 +175,32 @@ module Admin
       return Resource.all if current_user.role_superuser?
 
       Resource.where(teacher_id: [ current_user.id, nil ])
+    end
+
+    def normalize_generation_steering
+      preset = params[:preset].to_s.presence || "llm_decides"
+      custom_guidance = params[:guidance].to_s.strip
+
+      guidance = case preset
+      when "llm_decides"
+        nil
+      when "speech_mobile"
+        "Prefer a speech/mobile-style lesson. Keep it suitable for a narrow-screen or walk-and-talk format, and favor conversational delivery over chalkboard-heavy structure unless clearly warranted."
+      when "offline_debrief"
+        "Prefer an offline/debrief lesson structure. Include a clear away-from-device activity, concise completion criteria or work product expectations, and a brief return-and-debrief or return-and-confirm phase."
+      when "other"
+        return { error: "Enter lesson plan guidance when using the Other preset." } if custom_guidance.blank?
+
+        custom_guidance
+      else
+        return { error: "Invalid lesson plan preset." }
+      end
+
+      { guidance: guidance }
+    end
+
+    def set_generation_submit_header(queued:)
+      response.set_header("X-Lesson-Plan-Generation-Queued", queued ? "true" : "false")
     end
 
     def can_destroy_resource?(resource)

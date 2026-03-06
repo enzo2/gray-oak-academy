@@ -2,11 +2,11 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
   queue_as :default
   limits_concurrency to: 1, key: ->(lesson_plan_id:, **) { "lesson-plan-pipeline-#{lesson_plan_id}" }, duration: 10.minutes
 
-  def perform(lesson_plan_id:, user_id:, propose_resources: false, source: "lesson_plan_pipeline")
+  def perform(lesson_plan_id:, user_id:, propose_resources: false, steering_guidance: nil, source: "lesson_plan_pipeline")
     current_user = User.find(user_id)
     lesson_plan = LessonPlan.find(lesson_plan_id)
     Rails.logger.info(
-      "GenerateLessonPlanPipelineJob start source=#{source} lesson_plan=#{lesson_plan_id} propose_resources=#{propose_resources}"
+      "GenerateLessonPlanPipelineJob start source=#{source} lesson_plan=#{lesson_plan_id} propose_resources=#{propose_resources} steering=#{steering_guidance.present?}"
     )
 
     lesson_plan.update!(generation_stage: "generating_content", generation_error: nil)
@@ -15,6 +15,7 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
     GenerateLessonPlanContentJob.perform_now(
       lesson_plan,
       current_user,
+      steering_guidance: steering_guidance,
       track_stage: false,
       raise_on_error: true
     )

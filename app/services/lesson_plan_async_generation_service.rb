@@ -7,7 +7,7 @@ class LessonPlanAsyncGenerationService
     @source = source.to_s.presence || "unknown"
   end
 
-  def enqueue_generate_content(propose_resources: false)
+  def enqueue_generate_content(propose_resources: false, steering_guidance: nil)
     run_with_lock do
       return failure("Generation is already in progress for this lesson plan.") if @lesson_plan.generation_in_progress?
       return failure(cooldown_message(action: :generate_content)) if cooldown_active?(action: :generate_content)
@@ -21,6 +21,7 @@ class LessonPlanAsyncGenerationService
         lesson_plan_id: @lesson_plan.id,
         user_id: @current_user.id,
         propose_resources: propose_resources,
+        steering_guidance: steering_guidance,
         source: @source
       )
       mark_cooldown!(action: :generate_content)

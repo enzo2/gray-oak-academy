@@ -76,6 +76,28 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "generate content forwards steering guidance to pipeline job" do
+    with_memory_cache do
+      service = LessonPlanAsyncGenerationService.new(
+        lesson_plan: @lesson_plan,
+        current_user: @teacher,
+        source: "lesson_plan_button"
+      )
+
+      captured_kwargs = nil
+      GenerateLessonPlanPipelineJob.stub(:perform_later, ->(**kwargs) { captured_kwargs = kwargs }) do
+        result = service.enqueue_generate_content(
+          propose_resources: false,
+          steering_guidance: "Prefer an oral recap at the end."
+        )
+        assert_equal true, result[:ok]
+      end
+
+      assert_equal "Prefer an oral recap at the end.", captured_kwargs[:steering_guidance]
+      assert_equal false, captured_kwargs[:propose_resources]
+    end
+  end
+
   test "propose resources forwards source and sets stage" do
     with_memory_cache do
       @lesson_plan.update!(generation_stage: "completed")

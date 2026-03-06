@@ -84,7 +84,7 @@ class TurboStreamEventsTest < ApplicationSystemTestCase
     JS
 
     assert_eventually do
-      page.has_css?("[data-connection-status-target='indicator'].text-red-600")
+      page.has_css?("[data-connection-status-target='indicator'].text-danger-600")
     end
 
     tooltip_content = page.find("[data-connection-status-target='tooltip']")["data-tooltip-content"]

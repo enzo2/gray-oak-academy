@@ -219,6 +219,20 @@ module Admin
       assert_response :not_found
     end
 
+    test "generate_content marks queued responses in header" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "idle")
+
+      assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
+        post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal "true", response.headers["X-Lesson-Plan-Generation-Queued"]
+    end
+
     test "generate_content does not enqueue when generation already in progress" do
       sign_in(users(:admin))
       lesson = lessons(:one)
@@ -230,6 +244,7 @@ module Admin
       end
 
       assert_response :success
+      assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
       assert_includes @response.body, "Generation is already in progress for this lesson plan."
     end
 
@@ -253,6 +268,7 @@ module Admin
         end
 
         assert_response :success
+        assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
         assert_includes @response.body, "A generation request was just queued."
       end
     end
@@ -274,7 +290,52 @@ module Admin
       end
 
       assert_response :success
+      assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
       assert_includes @response.body, "Configure OpenAI Agent Runs and Exa API before proposing resources."
+    end
+
+    test "generate_content requires custom guidance when preset is other" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "idle")
+
+      assert_enqueued_jobs 0, only: GenerateLessonPlanPipelineJob do
+        post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+             params: { preset: "other", guidance: "" },
+             as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_includes @response.body, "Enter lesson plan guidance when using the Other preset."
+    end
+
+    test "generate_content with blank other guidance does not persist a new lesson plan" do
+      sign_in(users(:admin))
+      course = courses(:one)
+      lesson = Lesson.create!(
+        title: "Guidance Validation Lesson",
+        goals: "Verify failed steering validation does not persist a lesson plan.",
+        approx_duration_min: 30,
+        course: course,
+        position: 102
+      )
+
+      assert_nil lesson.lesson_plan
+
+      assert_no_difference("LessonPlan.count") do
+        assert_enqueued_jobs 0, only: GenerateLessonPlanPipelineJob do
+          post generate_content_admin_course_lesson_lesson_plan_path(course, lesson),
+               params: { preset: "other", guidance: "" },
+               as: :turbo_stream
+        end
+      end
+
+      assert_response :success
+      assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_nil lesson.reload.lesson_plan
+      assert_includes @response.body, "Enter lesson plan guidance when using the Other preset."
     end
 
     test "propose_resources enqueues job when generation is completed and features are enabled" do

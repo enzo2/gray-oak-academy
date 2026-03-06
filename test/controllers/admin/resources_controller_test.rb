@@ -164,7 +164,7 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_operator pending_index, :<, approved_index
 
     pending_row_open_tag = @response.body.match(/<div id="resource_#{pending_resource.id}"[^>]*>/)&.to_s
-    assert_includes pending_row_open_tag, "bg-amber-50/80"
+    assert_includes pending_row_open_tag, "bg-warning-50/80"
     assert_includes @response.body, "action=\"#{approve_admin_resource_path(pending_resource)}\""
     assert_includes @response.body, "Approve"
   end

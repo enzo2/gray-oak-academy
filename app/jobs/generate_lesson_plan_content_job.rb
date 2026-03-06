@@ -9,7 +9,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
     schema: LlmSchemas::LessonPlanSchema.to_json_schema.deep_stringify_keys
   }
 
-  def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false)
+  def perform(lesson_plan, current_user, steering_guidance: nil, track_stage: true, raise_on_error: false)
     lesson = lesson_plan.lesson
     course = lesson.course
     set_generation_state(lesson_plan, "generating_content", nil) if track_stage
@@ -22,6 +22,14 @@ class GenerateLessonPlanContentJob < ApplicationJob
       .gsub("{course_title}", course.title)
       .gsub("{linked_resources}", lesson.lesson_plan.resources.format_collection)
       .gsub("{other_lessons}", lesson.course.lessons.where.not(id: lesson.id).map { |l| "#{l.position}. #{l.title}" }.join(", "))
+
+    if steering_guidance.present?
+      customized_prompt += <<~PROMPT
+
+        Additional steering from the supervising teacher for this run:
+        #{steering_guidance}
+      PROMPT
+    end
 
     # Prepare messages for the LLM
     messages = [ { role: "user", content: customized_prompt } ]
