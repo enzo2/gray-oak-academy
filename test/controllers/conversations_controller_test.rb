@@ -150,6 +150,7 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "button[data-new-message-target='submitButton'][aria-label='Send message'][title='Send message']"
+    assert_select "button[aria-label='Close screenshot instructions'][title='Close screenshot instructions']"
   end
 
   private

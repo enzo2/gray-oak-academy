@@ -49,4 +49,14 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
   ensure
     ENV["ALLOW_SIGNUPS"] = nil
   end
+
+  test "settings memories tab renders labeled memory action buttons" do
+    sign_in(@student)
+
+    get edit_user_registration_path(active_tab: :memories)
+
+    assert_response :success
+    assert_select "button[aria-label='Edit memory'][title='Edit memory']", count: 2
+    assert_select "button[aria-label='Delete memory'][title='Delete memory']", count: 2
+  end
 end

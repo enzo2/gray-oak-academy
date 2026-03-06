@@ -18,7 +18,7 @@
                   data: { action: "click->modal#open" }) %>
             
             <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
-               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" aria-label="Close image preview" title="Close image preview" data-action="modal#close">
                   <sl-icon name="x-lg" class="text-2xl"></sl-icon>
                </button>
                <%= image_tag(image.uri, 
@@ -34,7 +34,7 @@
                           data: { action: "click->modal#open" }) %>
             
             <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
-               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" aria-label="Close image preview" title="Close image preview" data-action="modal#close">
                   <sl-icon name="x-lg" class="text-2xl"></sl-icon>
                </button>
                <%= image_tag(rails_representation_path(variant_large),
@@ -92,7 +92,7 @@
                           data: { action: "click->modal#open" }) %>
 
             <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
-               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" aria-label="Close image preview" title="Close image preview" data-action="modal#close">
                   <sl-icon name="x-lg" class="text-2xl"></sl-icon>
                </button>
                <%= image_tag(image.uri,
@@ -108,7 +108,7 @@
                           data: { action: "click->modal#open" }) %>
 
             <div data-modal-target="content" class="hidden relative flex justify-center items-center bg-stone-100 dark:bg-stone-900 p-0">
-               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" data-action="modal#close">
+               <button type="button" class="absolute top-0 right-0 p-3 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 z-10" aria-label="Close image preview" title="Close image preview" data-action="modal#close">
                   <sl-icon name="x-lg" class="text-2xl"></sl-icon>
                </button>
                <%= image_tag(rails_representation_path(large_variant),
