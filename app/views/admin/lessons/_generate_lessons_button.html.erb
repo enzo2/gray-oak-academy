@@ -1,8 +1,18 @@
-<%= form_with url: generate_lessons_admin_course_lessons_path(course), method: :post, 
-  data: { controller: "button-loading" }, 
-  class: "inline-flex" do |form| %>
-  <button type="submit" id="generate-lessons-button" class="btn-success gap-2">
-    <sl-icon name="lightbulb"></sl-icon>
-    Generate Lessons
-  </button>
+<% if course.lessons.size > 5 %>
+  <%= link_to conversations_path(starter_template: "course_lesson_discussion", course_id: course.id),
+      id: "generate-lessons-button",
+      data: { turbo_method: :post },
+      class: "btn-secondary gap-2" do %>
+    <sl-icon name="chat-dots"></sl-icon>
+    Discuss Lessons with LLM
+  <% end %>
+<% else %>
+  <%= form_with url: generate_lessons_admin_course_lessons_path(course), method: :post,
+    data: { controller: "button-loading" },
+    class: "inline-flex" do |form| %>
+    <button type="submit" id="generate-lessons-button" class="btn-success gap-2">
+      <sl-icon name="lightbulb"></sl-icon>
+      Generate Lessons
+    </button>
+  <% end %>
 <% end %>

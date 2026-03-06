@@ -57,6 +57,54 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "teacher can create course lesson discussion starter chat with auto-sent context" do
+    teacher = users(:admin)
+    course = courses(:one)
+    sign_in(teacher)
+
+    with_prompt_stubs do
+      assert_enqueued_jobs 1, only: GetLlmCompletionJob do
+        post conversations_path, params: {
+          starter_template: "course_lesson_discussion",
+          course_id: course.id
+        }
+      end
+    end
+
+    conversation = Conversation.order(:created_at).last
+    assert_redirected_to conversation_path(conversation)
+    assert_equal teacher.id, conversation.user_id
+    assert_equal 1, conversation.messages.count
+
+    starter = conversation.messages.last
+    assert_equal "user", starter.role
+    assert_includes starter.content, "\"course_id\": #{course.id}"
+    assert_includes starter.content, "\"course_title\": \"#{course.title}\""
+    assert_includes starter.content, "Get_Course_Details"
+    assert_includes starter.content, "Edit_Course_Lessons"
+    assert_includes starter.content, "Generate_Course_Lessons"
+  end
+
+  test "invalid course lesson discussion context falls back to plain new chat with warning" do
+    teacher = users(:admin)
+    sign_in(teacher)
+
+    with_prompt_stubs do
+      assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+        post conversations_path, params: {
+          starter_template: "course_lesson_discussion",
+          course_id: courses(:two).id
+        }
+      end
+    end
+
+    conversation = Conversation.order(:created_at).last
+    assert_redirected_to conversation_path(conversation)
+    assert_equal teacher.id, conversation.user_id
+    assert_equal 0, conversation.messages.count
+    assert_includes flash[:warning], "without starter context"
+  end
+
   test "invalid applet revision context falls back to plain new chat with warning" do
     teacher = users(:admin)
     other_teacher = users(:admin2)

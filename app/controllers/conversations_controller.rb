@@ -26,7 +26,7 @@ class ConversationsController < ApplicationController
       title: generate_unique_chat_title,
       task_system_prompt: get_task_system_prompt
     )
-    maybe_seed_applet_revision_chat(@conversation)
+    maybe_seed_starter_chat(@conversation)
     redirect_to conversation_path(@conversation) # Show the new conversation.
   end
 
@@ -95,10 +95,18 @@ class ConversationsController < ApplicationController
     params.require(:conversation).permit(:title)
   end
 
-  def maybe_seed_applet_revision_chat(conversation)
+  def maybe_seed_starter_chat(conversation)
     return unless current_user.role_teacher?
-    return unless params[:starter_template].to_s == "applet_revision"
 
+    case params[:starter_template].to_s
+    when "applet_revision"
+      seed_applet_revision_chat(conversation)
+    when "course_lesson_discussion"
+      seed_course_lesson_discussion_chat(conversation)
+    end
+  end
+
+  def seed_applet_revision_chat(conversation)
     applet = applet_scope_for_teacher.find_by(id: params[:applet_id].to_i)
     unless applet
       flash[:warning] = "Couldn't load the selected applet for revision. The chat was created without starter context."
@@ -111,7 +119,6 @@ class ConversationsController < ApplicationController
     context_lesson = resolve_context_lesson
     return if context_lesson == :invalid
 
-    # Seed an explicit first user turn so the assistant has durable, tool-usable context.
     conversation.messages.create!(
       role: "user",
       content: applet_revision_starter_prompt(applet: applet, resource: context_resource, lesson: context_lesson)
@@ -119,6 +126,20 @@ class ConversationsController < ApplicationController
     enqueue_llm_completion(conversation: conversation)
   rescue StandardError => e
     Rails.logger.error("Failed to seed applet revision starter chat: #{e.message}")
+    flash[:warning] = "The chat was created, but the starter context could not be prepared."
+  end
+
+  def seed_course_lesson_discussion_chat(conversation)
+    course = resolve_context_course
+    return if course == :invalid
+
+    conversation.messages.create!(
+      role: "user",
+      content: course_lesson_discussion_starter_prompt(course: course)
+    )
+    enqueue_llm_completion(conversation: conversation)
+  rescue StandardError => e
+    Rails.logger.error("Failed to seed course lesson discussion starter chat: #{e.message}")
     flash[:warning] = "The chat was created, but the starter context could not be prepared."
   end
 
@@ -156,6 +177,20 @@ class ConversationsController < ApplicationController
     :invalid
   end
 
+  def resolve_context_course
+    course_id = params[:course_id].presence
+    unless course_id
+      flash[:warning] = "Couldn't load the selected course for starter context. The chat was created without starter context."
+      return :invalid
+    end
+
+    course = Course.where(teacher_id: current_user.id).find_by(id: course_id.to_i)
+    return course if course
+
+    flash[:warning] = "Couldn't load the selected course for starter context. The chat was created without starter context."
+    :invalid
+  end
+
   def applet_revision_starter_prompt(applet:, resource:, lesson:)
     context = {
       applet_id: applet.id,
@@ -173,6 +208,23 @@ class ConversationsController < ApplicationController
       #{JSON.pretty_generate(context)}
 
       Please help me revise this applet. First, retrieve the current code using Manage_Applets with action "get" and this applet_id. Then ask concise clarifying questions if needed, propose improvements, and use Manage_Applets with action "upsert" and this applet_id once I confirm changes. If I ask to attach it to lesson resources, use Manage_Applets action "save_as_resource" with the appropriate lesson_id.
+    PROMPT
+  end
+
+  def course_lesson_discussion_starter_prompt(course:)
+    context = {
+      course_id: course.id,
+      course_title: course.title,
+      lesson_count: course.lessons.count
+    }
+
+    <<~PROMPT
+      I want to discuss and refine the lesson list for this course.
+
+      Context:
+      #{JSON.pretty_generate(context)}
+
+      Please first call Get_Course_Details with this course_id so you can review the current summary, outline, and lessons. Then help me evaluate the lesson sequence, scope, pacing, gaps, redundancies, and possible revisions. Ask concise clarifying questions when needed. If I request concrete changes, use Edit_Course_Lessons and/or Generate_Course_Lessons as appropriate.
     PROMPT
   end
 end
