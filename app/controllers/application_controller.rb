@@ -95,6 +95,7 @@ class ApplicationController < ActionController::Base
     base_uri = settings.effective_llm_api_base_uri
     return false if base_uri.blank?
     return false if settings.llm_api_access_token.present?
+    return false if settings.openai_oauth_usable_for_base_uri?(base_uri)
 
     shared_api = SupportedApi.selectable_for_teachers.exists?(api_base_uri: base_uri)
     env_base = ensure_trailing_slash(ENV["OPENAI_API_BASE_URL"])

@@ -213,22 +213,22 @@ class BackfillMemoriesFromLessonReportJobTest < ActiveJob::TestCase
     expected_prompt = nil
     expected_system_prompt = nil
 
-    OpenaiApiService.stub(:new, ->(current_user:, task_system_prompt:, reasoning_model:) {
+    LlmServiceRouting.stub(:build_completion_client, ->(current_user:, task_system_prompt:, reasoning_model:, **_kwargs) {
       expected_system_prompt = task_system_prompt
       assert_equal @student, current_user
       assert_equal true, reasoning_model
-
-      Object.new.tap do |service|
-        service.define_singleton_method(:complete) do |messages, **options|
-          expected_prompt = messages.first[:content]
-          assert messages.first[:content].include?("Existing memories")
-          assert messages.first[:content].include?("New candidate memories")
-          assert_equal "json_schema", options[:response_format][:type]
-          { "new_memories" => [ "Test memory" ], "replacement_ids" => [] }
-        end
-      end
+      assert_equal false, _kwargs[:store]
+      Object.new
     }) do
-      BackfillMemoriesFromLessonReportJob.perform_now(@report)
+      LlmServiceRouting.stub(:complete_structured_output, lambda { |client:, messages:, response_format:, schema:, prefill:|
+        expected_prompt = messages.first[:content]
+        assert messages.first[:content].include?("Existing memories")
+        assert messages.first[:content].include?("New candidate memories")
+        assert_equal "json_schema", response_format[:type]
+        { "new_memories" => [ "Test memory" ], "replacement_ids" => [] }
+      }) do
+        BackfillMemoriesFromLessonReportJob.perform_now(@report)
+      end
     end
 
     assert_not_nil expected_prompt
@@ -250,46 +250,34 @@ class BackfillMemoriesFromLessonReportJobTest < ActiveJob::TestCase
   end
 
   test "gracefully handles invalid LLM response format" do
-    OpenaiApiService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |service|
-        service.define_singleton_method(:complete) do |*_args|
-          "invalid string response"
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { Object.new }) do
+      LlmServiceRouting.stub(:complete_structured_output, "invalid string response") do
+        # Should log error but not raise
+        assert_nothing_raised do
+          BackfillMemoriesFromLessonReportJob.perform_now(@report)
         end
-      end
-    }) do
-      # Should log error but not raise
-      assert_nothing_raised do
-        BackfillMemoriesFromLessonReportJob.perform_now(@report)
       end
     end
   end
 
   test "gracefully handles LLM response without new_memories array" do
-    OpenaiApiService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |service|
-        service.define_singleton_method(:complete) do |*_args|
-          { "replacement_ids" => [] }
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { Object.new }) do
+      LlmServiceRouting.stub(:complete_structured_output, { "replacement_ids" => [] }) do
+        # Should log error but not raise
+        assert_nothing_raised do
+          BackfillMemoriesFromLessonReportJob.perform_now(@report)
         end
-      end
-    }) do
-      # Should log error but not raise
-      assert_nothing_raised do
-        BackfillMemoriesFromLessonReportJob.perform_now(@report)
       end
     end
   end
 
   test "logs error when LLM call fails" do
-    OpenaiApiService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |service|
-        service.define_singleton_method(:complete) do |*_args|
-          raise StandardError, "API error"
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { Object.new }) do
+      LlmServiceRouting.stub(:complete_structured_output, ->(**_kwargs) { raise StandardError, "API error" }) do
+        # Should log error but not raise
+        assert_nothing_raised do
+          BackfillMemoriesFromLessonReportJob.perform_now(@report)
         end
-      end
-    }) do
-      # Should log error but not raise
-      assert_nothing_raised do
-        BackfillMemoriesFromLessonReportJob.perform_now(@report)
       end
     end
   end
@@ -329,24 +317,20 @@ class BackfillMemoriesFromLessonReportJobTest < ActiveJob::TestCase
     memory_to_delete = @student.memories.first
 
     # Stub to return invalid data that will cause validation failure
-    OpenaiApiService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |service|
-        service.define_singleton_method(:complete) do |*_args|
-          {
-            "new_memories" => [ "x" * 6000 ], # Exceeds max length validation
-            "replacement_ids" => [ memory_to_delete.id ]
-          }
-        end
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { Object.new }) do
+      LlmServiceRouting.stub(:complete_structured_output, {
+        "new_memories" => [ "x" * 6000 ],
+        "replacement_ids" => [ memory_to_delete.id ]
+      }) do
+        initial_count = @student.memories.count
+
+        BackfillMemoriesFromLessonReportJob.perform_now(@report)
+
+        # Transaction should rollback, memory count unchanged
+        assert_equal initial_count, @student.memories.reload.count
+        # Memory to delete should still exist
+        assert_not_nil Memory.find_by(id: memory_to_delete.id)
       end
-    }) do
-      initial_count = @student.memories.count
-
-      BackfillMemoriesFromLessonReportJob.perform_now(@report)
-
-      # Transaction should rollback, memory count unchanged
-      assert_equal initial_count, @student.memories.reload.count
-      # Memory to delete should still exist
-      assert_not_nil Memory.find_by(id: memory_to_delete.id)
     end
   end
 
@@ -377,14 +361,10 @@ class BackfillMemoriesFromLessonReportJobTest < ActiveJob::TestCase
     response = { "new_memories" => new_memories }
     response["replacement_ids"] = replacement_ids if replacement_ids
 
-    OpenaiApiService.stub(:new, ->(**_kwargs) {
-      Object.new.tap do |service|
-        service.define_singleton_method(:complete) do |*_args|
-          response
-        end
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { Object.new }) do
+      LlmServiceRouting.stub(:complete_structured_output, response) do
+        yield if block_given?
       end
-    }) do
-      yield if block_given?
     end
   end
 end

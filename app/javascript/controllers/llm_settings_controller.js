@@ -1,14 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { modelsPath: String, supportedUris: Array, hasUserToken: Boolean, envBaseUri: String, envKeyPresent: Boolean }
-  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint", "tokenStatus", "statusPersonal", "statusShared", "statusEnv", "statusRequired", "tokenOverrideBtn", "useSharedTokenBtn", "tokenInputWrapper", "tokenInput" ]
+  static values = { modelsPath: String, supportedUris: Array, hasUserToken: Boolean, envBaseUri: String, envKeyPresent: Boolean, codexBaseUri: String }
+  static targets = [ "modelCombobox", "reasoningModelCombobox", "sharedTokenHint", "tokenStatus", "statusPersonal", "statusShared", "statusEnv", "statusRequired", "statusOauth", "tokenOverrideBtn", "useSharedTokenBtn", "tokenInputWrapper", "tokenInput", "oauthSection" ]
 
   connect() {
     //console.log("LLM Settings controller connected");
     const hidden = document.getElementById("setting_llm_api_base_uri-hw-hidden-field");
     const initialUri = (hidden && typeof hidden.value === "string") ? hidden.value : "";
     this.updateTokenStatus(initialUri || "");
+    this.updateOauthVisibility(initialUri || "");
   }
 
   /**
@@ -45,6 +46,7 @@ export default class extends Controller {
     const newUrl = `${this.modelsPathValue}?api_uri=${encodeURIComponent(apiUri)}`;
     this.toggleSharedTokenHint(apiUri);
     this.updateTokenStatus(apiUri);
+    this.updateOauthVisibility(apiUri);
 
     const shouldClear = event.type !== 'initial';
 
@@ -102,13 +104,12 @@ export default class extends Controller {
   toggleSharedTokenHint(apiUri) {
     if (!this.hasSharedTokenHintTarget) return;
 
-    const normalized = (apiUri || "").trim();
-    // Ensure trailing slash for comparison consistency
-    const normalizedWithSlash = normalized.length > 0 && !normalized.endsWith("/") ? `${normalized}/` : normalized;
-
+    const normalizedWithSlash = this.normalizeBaseUri(apiUri || "");
+    const codexBaseNormalized = this.normalizeBaseUri(this.codexBaseUriValue || "");
     const supported = (this.supportedUrisValue || []).includes(normalizedWithSlash);
+    const showSharedHint = supported && normalizedWithSlash !== codexBaseNormalized;
 
-    if (supported) {
+    if (showSharedHint) {
       this.sharedTokenHintTarget.classList.remove("hidden");
     } else {
       this.sharedTokenHintTarget.classList.add("hidden");
@@ -126,9 +127,11 @@ export default class extends Controller {
   updateTokenStatus(apiUri) {
     const hasPersonal = !!this.hasUserTokenValue;
 
-    const normalized = (apiUri || "").trim();
-    const normalizedWithSlash = normalized.length > 0 && !normalized.endsWith("/") ? `${normalized}/` : normalized;
+    const normalizedWithSlash = this.normalizeBaseUri(apiUri || "");
     const hasSharedForProvider = (this.supportedUrisValue || []).includes(normalizedWithSlash);
+    const codexBaseNormalized = this.normalizeBaseUri(this.codexBaseUriValue || "");
+    const usingCodexProvider = normalizedWithSlash === codexBaseNormalized;
+    const hasSharedTokenProvider = hasSharedForProvider && !usingCodexProvider;
 
     // ENV provider applicability:
     const envBaseRaw = (this.envBaseUriValue || "").trim();
@@ -137,10 +140,11 @@ export default class extends Controller {
 
     // Status visibility
     if (this.hasStatusPersonalTarget) this.setHidden(this.statusPersonalTarget, !(hasPersonal));
-    if (this.hasStatusSharedTarget) this.setHidden(this.statusSharedTarget, !( !hasPersonal && hasSharedForProvider ));
-    if (this.hasStatusEnvTarget) this.setHidden(this.statusEnvTarget, !( !hasPersonal && !hasSharedForProvider && usingEnvProvider ));
-    if (this.hasStatusRequiredTarget) this.setHidden(this.statusRequiredTarget, !( !hasPersonal && !hasSharedForProvider && !usingEnvProvider ));
-    if (this.hasUseSharedTokenBtnTarget) this.setHidden(this.useSharedTokenBtnTarget, !(hasPersonal && hasSharedForProvider));
+    if (this.hasStatusSharedTarget) this.setHidden(this.statusSharedTarget, !( !hasPersonal && hasSharedTokenProvider ));
+    if (this.hasStatusEnvTarget) this.setHidden(this.statusEnvTarget, !( !hasPersonal && !usingCodexProvider && !hasSharedTokenProvider && usingEnvProvider ));
+    if (this.hasStatusRequiredTarget) this.setHidden(this.statusRequiredTarget, !( !hasPersonal && !usingCodexProvider && !hasSharedTokenProvider && !usingEnvProvider ));
+    if (this.hasStatusOauthTarget) this.setHidden(this.statusOauthTarget, !( !hasPersonal && usingCodexProvider ));
+    if (this.hasUseSharedTokenBtnTarget) this.setHidden(this.useSharedTokenBtnTarget, !(hasPersonal && hasSharedTokenProvider));
 
     // Reset input hidden/disabled by default
     if (this.hasTokenInputWrapperTarget) {
@@ -155,7 +159,7 @@ export default class extends Controller {
     }
 
     // Auto-show input when a token is required (no personal, no shared, and not using ENV provider)
-    const required = (!hasPersonal && !hasSharedForProvider && !usingEnvProvider);
+    const required = (!hasPersonal && !usingCodexProvider && !hasSharedTokenProvider && !usingEnvProvider);
     if (required && this.hasTokenInputWrapperTarget && this.hasTokenInputTarget && this.hasTokenOverrideBtnTarget) {
       this.tokenInputWrapperTarget.classList.remove("hidden");
       this.tokenInputTarget.disabled = false;
@@ -205,6 +209,19 @@ export default class extends Controller {
     } else {
       el.classList.remove("hidden");
     }
+  }
+
+  updateOauthVisibility(apiUri) {
+    if (!this.hasOauthSectionTarget) return;
+
+    const selected = this.normalizeBaseUri(apiUri || "");
+    const codexBase = this.normalizeBaseUri(this.codexBaseUriValue || "");
+    this.setHidden(this.oauthSectionTarget, selected !== codexBase);
+  }
+
+  normalizeBaseUri(apiUri) {
+    const normalized = (apiUri || "").trim();
+    return normalized.length > 0 && !normalized.endsWith("/") ? `${normalized}/` : normalized;
   }
 
 }

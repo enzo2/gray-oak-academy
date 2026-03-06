@@ -37,7 +37,8 @@ class Llm < ApplicationRecord
 
   DEFAULT_API_BASE_URLS = [
     "https://openrouter.ai/api/v1/",
-    "https://api.openai.com/v1/"
+    "https://api.openai.com/v1/",
+    SupportedApi::OPENAI_CODEX_BASE_URI
   ].freeze
 
   # Returns the full list of API base URIs, including the defaults, and any others that have been used

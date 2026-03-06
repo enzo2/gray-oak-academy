@@ -40,7 +40,38 @@ class SettingInheritanceTest < ActiveSupport::TestCase
     assert_equal @teacher_setting.reasoning_model_name, @student_setting.reasoning_model_name
   end
 
+  test "student inherits OpenAI OAuth credential fields from teacher" do
+    @teacher_setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      openai_oauth_access_token: "teacher-oauth-token",
+      openai_oauth_refresh_token: "teacher-oauth-refresh",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601,
+      openai_oauth_email: "teacher@example.com"
+    )
+
+    inherited = @student.reload.settings
+    assert_equal "teacher-oauth-token", inherited.openai_oauth_access_token
+    assert_equal "teacher-oauth-refresh", inherited.openai_oauth_refresh_token
+    assert_equal "teacher@example.com", inherited.openai_oauth_email
+    assert inherited.openai_oauth_expires_at.present?
+  end
+
   test "llm_configured? returns true if teacher's settings are configured" do
+    assert @teacher_setting.llm_configured?
+    assert @student_setting.llm_configured?
+  end
+
+  test "llm_configured? returns true via inherited OpenAI OAuth when API key is unset" do
+    @teacher_setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: "teacher-model",
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "teacher-oauth-token",
+      openai_oauth_refresh_token: "teacher-oauth-refresh",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+    @student_setting.update!(llm_api_access_token: nil)
+
     assert @teacher_setting.llm_configured?
     assert @student_setting.llm_configured?
   end

@@ -42,13 +42,15 @@ class GenerateObservationsJob < ApplicationJob
     messages = [ { role: "user", content: prompt } ]
 
     begin
-      client = OpenaiApiService.new(
+      client = LlmServiceRouting.build_completion_client(
         current_user: teacher,
-        reasoning_model: true
+        reasoning_model: true,
+        store: false
       )
 
-      response = client.complete(
-        messages,
+      response = LlmServiceRouting.complete_structured_output(
+        client: client,
+        messages: messages,
         response_format: {
           type: "json_schema",
           json_schema: OBSERVATIONS_SCHEMA.slice(:name, :schema, :strict)

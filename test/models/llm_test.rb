@@ -23,6 +23,7 @@ class LlmTest < ActiveSupport::TestCase
     options = Llm.list_api_base_uri_options
     assert options.is_a?(Array)
     assert options.any? { |display, uri| uri.to_s.include?("https://openrouter.ai") }, "Should include default OpenRouter URI"
+    assert options.any? { |_display, uri| uri.to_s == SupportedApi::OPENAI_CODEX_BASE_URI }, "Should include ChatGPT Codex Responses URI"
   end
 
   test "archive sets archived_at" do

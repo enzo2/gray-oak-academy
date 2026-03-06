@@ -1,4 +1,11 @@
 <%= form_with(model: settings, url: user_settings_path, method: :patch, id: "llm-settings-form") do |f| %>
+  <% oauth_enabled = OpenaiOauthService.configured? %>
+  <% oauth_uses_device_flow = true %>
+  <% oauth_connected = settings.openai_oauth_connected? %>
+  <% oauth_identity = settings.openai_oauth_email.presence || settings.openai_oauth_sub.presence %>
+  <% codex_base_uri = SupportedApi::OPENAI_CODEX_BASE_URI %>
+  <% selected_api_base_uri = settings.llm_api_base_uri.to_s.presence || settings.effective_llm_api_base_uri.to_s %>
+  <% show_oauth_for_selected_base = selected_api_base_uri == codex_base_uri %>
   <% if settings.errors.any? %>
     <div class="mb-4 text-red-950 dark:text-red-300">
       <%= pluralize(settings.errors.count, "error") %> prevented the settings from being saved.
@@ -16,10 +23,46 @@
        data-llm-settings-has-user-token-value="<%= settings.llm_api_access_token.present? %>" 
        data-llm-settings-env-base-uri-value="<%= ensure_trailing_slash(ENV['OPENAI_API_BASE_URL']) %>"
        data-llm-settings-env-key-present-value="<%= ENV['OPENAI_API_KEY'].present? %>"
+       data-llm-settings-codex-base-uri-value="<%= codex_base_uri %>"
   >
     <p class="mb-4 text-sm text-dim">
         <i>Note: If you leave any of these blank, the default settings will be used, if available.</i>
     </p>
+
+    <div data-llm-settings-target="oauthSection" class="mb-4 rounded-md border border-stone-300/80 bg-stone-100/60 p-3 dark:border-stone-700 dark:bg-stone-900/40 <%= show_oauth_for_selected_base ? '' : 'hidden' %>">
+      <p class="form-label mb-1">OpenAI OAuth</p>
+      <p class="text-sm text-dim mb-1">
+        If you have ChatGPT Plus, connect your OpenAI account to use ChatGPT Codex for chat.
+      </p>
+      <% if oauth_enabled %>
+        <p class="text-sm mb-2">
+          <% if oauth_connected %>
+            <span class="font-semibold text-moss-700 dark:text-moss-300">Connected</span>
+            <% if oauth_identity.present? %>
+              as <span class="font-mono"><%= oauth_identity %></span>
+            <% end %>.
+          <% else %>
+            <span class="text-dim">Not connected.</span>
+          <% end %>
+        </p>
+
+        <% if oauth_connected %>
+          <%= link_to "Disconnect OpenAI",
+                      user_settings_openai_oauth_disconnect_path,
+                      class: "btn-secondary text-sm py-1 px-2",
+                      data: { turbo_method: :delete, turbo_confirm: "Disconnect your OpenAI account from this app?" } %>
+        <% else %>
+          <%= link_to "Connect OpenAI",
+                      user_settings_openai_oauth_connect_path,
+                      class: "btn-secondary text-sm py-1 px-2",
+                      data: { turbo: false } %>
+        <% end %>
+      <% else %>
+        <p class="text-sm text-amber-700 dark:text-amber-300">
+          OpenAI OAuth is unavailable on this server.
+        </p>
+      <% end %>
+    </div>
 
     <div class="mb-1"> 
       <%= f.label :llm_api_base_uri, "LLM API base URI", class: "form-label" %>
@@ -58,7 +101,7 @@
             (<span class="font-mono"><%= settings.llm_api_access_token.first(4) %>...<%= settings.llm_api_access_token.last(2) %></span>)
           <% end %>.
         </span>
-        <span data-llm-settings-target="statusShared" class="hidden inline-flex items-center">
+        <span data-llm-settings-target="statusShared" class="hidden">
           <span class="mr-1 font-semibold text-moss-700 dark:text-moss-300" aria-hidden="true">✓</span>
           Using the shared access token for this provider.
         </span>
@@ -67,6 +110,9 @@
         </span>
         <span data-llm-settings-target="statusRequired" class="hidden">
           This provider has no shared token. Enter your access token to use it.
+        </span>
+        <span data-llm-settings-target="statusOauth" class="hidden">
+          This provider uses your connected OpenAI OAuth credential.
         </span>
       </p>
       <div class="mt-2 flex flex-wrap items-center gap-2">

@@ -33,6 +33,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     [
       [ "https://openrouter.ai/api/v1/", GetResponsesCompletionJob ],
       [ "https://api.openai.com/v1/", GetResponsesCompletionJob ],
+      [ "https://chatgpt.com/backend-api/codex/", GetResponsesCompletionJob ],
       [ "https://api.x.ai/v1/", GetResponsesCompletionJob ],
       [ "https://api.compatible.local/v1/", GetLlmCompletionJob ]
     ].each do |base_uri, expected_job|
@@ -52,6 +53,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "audio_messages routes completion job by provider host and creates user audio message" do
     [
       [ "https://openrouter.ai/api/v1/", GetResponsesCompletionJob ],
+      [ "https://chatgpt.com/backend-api/codex/", GetResponsesCompletionJob ],
       [ "https://api.compatible.local/v1/", GetLlmCompletionJob ]
     ].each do |base_uri, expected_job|
       clear_enqueued_jobs
@@ -83,6 +85,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
   test "transcribed_messages routes completion job by provider host and persists transcription" do
     [
       [ "https://openrouter.ai/api/v1/", GetResponsesCompletionJob ],
+      [ "https://chatgpt.com/backend-api/codex/", GetResponsesCompletionJob ],
       [ "https://api.compatible.local/v1/", GetLlmCompletionJob ]
     ].each do |base_uri, expected_job|
       clear_enqueued_jobs

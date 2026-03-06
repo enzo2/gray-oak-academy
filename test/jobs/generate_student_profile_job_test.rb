@@ -10,7 +10,7 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
   end
 
   test "generates student profile from LLM response" do
-    mock_service = Minitest::Mock.new
+    fake_client = Object.new
     response = {
       "current_snapshot" => "Student shows strong progress in recent lessons.",
       "learning_patterns" => [ "Visual learner", "Benefits from hands-on activities" ],
@@ -21,15 +21,13 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
       "recommendations" => [ "Continue with visual aids", "Incorporate more reading exercises" ]
     }
 
-    mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
-      true
-    end
-
-    OpenaiApiService.stub :new, ->(*, **) { mock_service } do
+    LlmServiceRouting.stub(:build_completion_client, ->(*, **) { fake_client }) do
+      LlmServiceRouting.stub(:complete_structured_output, response) do
       assert_difference("StudentReport.count", 1) do
         assert_difference("Notification.count", 1) do
           GenerateStudentProfileJob.perform_now(@student)
         end
+      end
       end
     end
 
@@ -77,7 +75,7 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
       created_at: 1.week.ago
     )
 
-    mock_service = Minitest::Mock.new
+    fake_client = Object.new
     response = {
       "current_snapshot" => "Updated snapshot",
       "learning_patterns" => [],
@@ -89,15 +87,17 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
     }
 
     prompt_checked = false
-    mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
+    complete_stub = lambda do |client:, messages:, response_format:, schema:, prefill:|
       # Verify prompt contains previous profile date
       prompt_checked = messages.first[:content].include?(previous_report.created_at.strftime("%B %d, %Y"))
-      true
+      response
     end
 
-    OpenaiApiService.stub :new, ->(*, **) { mock_service } do
-      @student.reload
-      GenerateStudentProfileJob.perform_now(@student)
+    LlmServiceRouting.stub(:build_completion_client, ->(*, **) { fake_client }) do
+      LlmServiceRouting.stub(:complete_structured_output, complete_stub) do
+        @student.reload
+        GenerateStudentProfileJob.perform_now(@student)
+      end
     end
 
     assert prompt_checked, "Prompt should include previous profile date"
@@ -127,7 +127,7 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
         relevance_weight: 1.0
       )
 
-      mock_service = Minitest::Mock.new
+      fake_client = Object.new
       response = {
         "current_snapshot" => "Snapshot",
         "learning_patterns" => [],
@@ -139,13 +139,15 @@ class GenerateStudentProfileJobTest < ActiveJob::TestCase
       }
 
       captured_prompt = nil
-      mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
+      complete_stub = lambda do |client:, messages:, response_format:, schema:, prefill:|
         captured_prompt = messages.first[:content]
-        true
+        response
       end
 
-      OpenaiApiService.stub :new, ->(*, **) { mock_service } do
-        GenerateStudentProfileJob.perform_now(@student)
+      LlmServiceRouting.stub(:build_completion_client, ->(*, **) { fake_client }) do
+        LlmServiceRouting.stub(:complete_structured_output, complete_stub) do
+          GenerateStudentProfileJob.perform_now(@student)
+        end
       end
 
       assert_match(/\(weight: \d+%\) Older but important/, captured_prompt)

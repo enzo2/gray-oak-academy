@@ -23,9 +23,14 @@ class AutoNameConversationJob < ApplicationJob
     customized_prompt = Prompt.get_prompt(category: "auto_name_conversation", user: user)
       .gsub("{conversation_excerpt}", excerpt)
 
-    client = OpenaiApiService.new(current_user: user, conversation: conversation)
-    parsed = client.complete(
-      [ { role: "user", content: customized_prompt } ],
+    client = LlmServiceRouting.build_completion_client(
+      current_user: user,
+      conversation: conversation,
+      store: false
+    )
+    parsed = LlmServiceRouting.complete_structured_output(
+      client: client,
+      messages: [ { role: "user", content: customized_prompt } ],
       response_format: {
         type: "json_schema",
         json_schema: TITLE_SCHEMA.slice(:name, :schema, :strict)

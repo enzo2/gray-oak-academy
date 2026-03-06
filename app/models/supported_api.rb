@@ -1,5 +1,6 @@
 class SupportedApi < ApplicationRecord
   OPENAI_BASE_URI = "https://api.openai.com/v1/".freeze
+  OPENAI_CODEX_BASE_URI = "https://chatgpt.com/backend-api/codex/".freeze
   XAI_BASE_URI = "https://api.x.ai/v1/".freeze
   RESPONSES_AGENT_BASE_URIS = [ OPENAI_BASE_URI, XAI_BASE_URI ].freeze
 

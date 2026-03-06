@@ -146,10 +146,11 @@ class DelegateToFrontierLlmJob < ApplicationJob
       raise "No reasoning LLM configured. Please configure a reasoning model in settings before using this tool."
     end
 
-    client = OpenaiApiService.new(
+    client = LlmServiceRouting.build_completion_client(
       current_user: teacher,
       reasoning_model: true,
-      task_system_prompt: task_system_prompt
+      task_system_prompt: task_system_prompt,
+      store: false
     )
     client.complete(messages)
   end

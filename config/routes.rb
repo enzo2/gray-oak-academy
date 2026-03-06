@@ -22,6 +22,10 @@ Rails.application.routes.draw do
 
   patch "user_settings", to: "user_settings#update"
   get "user_settings/llm_models", to: "user_settings#llm_models"
+  get "user_settings/openai_oauth/connect", to: "user_settings/openai_oauth#connect", as: :user_settings_openai_oauth_connect
+  get "user_settings/openai_oauth/device", to: "user_settings/openai_oauth#device", as: :user_settings_openai_oauth_device
+  post "user_settings/openai_oauth/device_poll", to: "user_settings/openai_oauth#device_poll", as: :user_settings_openai_oauth_device_poll
+  delete "user_settings/openai_oauth/disconnect", to: "user_settings/openai_oauth#disconnect", as: :user_settings_openai_oauth_disconnect
 
   resources :notifications, only: [ :index, :update, :destroy ] do
     post :mark_all_read, on: :collection

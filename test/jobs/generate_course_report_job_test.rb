@@ -5,22 +5,22 @@ class GenerateCourseReportJobTest < ActiveJob::TestCase
     enrollment = enrollments(:one)
 
     fake_service = Object.new
-    fake_service.define_singleton_method(:complete) do |_messages, **_kwargs|
-      {
-        "summary" => "Great student",
-        "strengths" => [ "math" ],
-        "areas_for_review" => [],
-        "teaching_methods" => [ "examples" ]
-      }
-    end
+    response = {
+      "summary" => "Great student",
+      "strengths" => [ "math" ],
+      "areas_for_review" => [],
+      "teaching_methods" => [ "examples" ]
+    }
 
     fake_event_reporter = Object.new
     fake_event_reporter.define_singleton_method(:notify) { |_event| true }
 
-    OpenaiApiService.stub(:new, ->(**_kwargs) { fake_service }) do
-      Rails.stub(:event, fake_event_reporter) do
-        assert_difference "StudentReport.count", 1 do
-          GenerateCourseReportJob.perform_now(enrollment)
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { fake_service }) do
+      LlmServiceRouting.stub(:complete_structured_output, response) do
+        Rails.stub(:event, fake_event_reporter) do
+          assert_difference "StudentReport.count", 1 do
+            GenerateCourseReportJob.perform_now(enrollment)
+          end
         end
       end
     end

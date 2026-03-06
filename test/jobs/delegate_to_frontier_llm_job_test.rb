@@ -242,7 +242,7 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
     end
 
     Prompt.stub(:get_prompt, ->(category:, user:) { "#{category}-prompt-for-#{user.id}" }) do
-      OpenaiApiService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
+      LlmServiceRouting.stub(:build_completion_client, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
         result = DelegateToFrontierLlmJob.perform_now(teacher, "Analyze this", source: "test")
         assert_equal "Legacy result", result
       end
@@ -250,6 +250,7 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
 
     assert_equal teacher, captured_new_kwargs[:current_user]
     assert_equal true, captured_new_kwargs[:reasoning_model]
+    assert_equal false, captured_new_kwargs[:store]
     assert_includes captured_new_kwargs[:task_system_prompt], "delegate_to_frontier_llm-prompt-for-#{teacher.id}"
     assert_equal [ { role: "user", content: "Analyze this" } ], captured_messages
   end

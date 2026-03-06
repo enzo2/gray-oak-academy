@@ -24,17 +24,13 @@ class GenerateObservationsJobTest < ActiveJob::TestCase
   end
 
   test "generates pending observations from LLM response" do
-    # Stub OpenaiApiService to return observations
-    mock_service = Minitest::Mock.new
     response = { "observations" => [ "Obs 1", "Obs 2" ] }
 
-    mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
-      true # Accepting any args for simplicity, or check schema if needed
-    end
-
-    OpenaiApiService.stub :new, mock_service do
+    LlmServiceRouting.stub(:build_completion_client, Object.new) do
+      LlmServiceRouting.stub(:complete_structured_output, response) do
       assert_difference("Observation.count", 2) do
         GenerateObservationsJob.perform_now(@report)
+      end
       end
     end
 
@@ -66,16 +62,13 @@ class GenerateObservationsJobTest < ActiveJob::TestCase
   end
 
   test "fires notification on observation generation" do
-    mock_service = Minitest::Mock.new
     response = { "observations" => [ "Obs 1" ] }
 
-    mock_service.expect :complete, response do |messages, response_format:, schema:, prefill:|
-      true
-    end
-
-    OpenaiApiService.stub :new, mock_service do
+    LlmServiceRouting.stub(:build_completion_client, Object.new) do
+      LlmServiceRouting.stub(:complete_structured_output, response) do
       assert_difference -> { Notification.count }, 1 do
         GenerateObservationsJob.perform_now(@report)
+      end
       end
     end
 

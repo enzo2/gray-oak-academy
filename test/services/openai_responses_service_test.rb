@@ -9,6 +9,308 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     @model = "m1"
   end
 
+  test "codex base uri routes through the dedicated codex responses service" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+
+    assert_instance_of OpenaiCodexResponsesService, service
+  end
+
+  test "initialize prefers OpenAI OAuth token over shared/API key for OpenAI provider" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-openai-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+
+    captured_client_kwargs = nil
+    fake_client = build_responses_client do |_params|
+      response_payload("Done", id: "resp_oauth_priority")
+    end
+
+    OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+      OpenaiResponsesService.new(
+        current_user: @user,
+        log_completion: false
+      )
+    end
+
+    assert_equal "oauth-openai-token", captured_client_kwargs[:api_key]
+    assert_equal OpenaiOauthService::CODEX_RESPONSES_BASE_URI, captured_client_kwargs[:base_url]
+  end
+
+  test "initialize refreshes expired OpenAI OAuth token before creating client" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-expired-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 5.minutes.ago.iso8601
+    )
+
+    assert_equal "oauth-expired-token", @user.setting.openai_oauth_access_token
+    assert @user.setting.openai_oauth_expired?
+
+    refresh_called = false
+    captured_refresh_token = nil
+    fake_oauth = Object.new
+    fake_oauth.define_singleton_method(:refresh_access_token) do |refresh_token:|
+      refresh_called = true
+      captured_refresh_token = refresh_token
+      {
+        "access_token" => "oauth-refreshed-token",
+        "refresh_token" => "oauth-refreshed-refresh-token",
+        "expires_in" => 3600
+      }
+    end
+
+    captured_client_kwargs = nil
+    fake_client = build_responses_client do |_params|
+      response_payload("Done", id: "resp_oauth_refresh")
+    end
+
+    OpenaiOauthService.stub(:new, -> { fake_oauth }) do
+      OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+        OpenaiResponsesService.new(
+          current_user: @user,
+          log_completion: false
+        )
+      end
+    end
+
+    assert refresh_called
+    assert_equal "oauth-refresh-token", captured_refresh_token
+    @user.setting.reload
+    assert_equal "oauth-refreshed-token", @user.setting.openai_oauth_access_token
+    assert_equal "oauth-refreshed-refresh-token", @user.setting.openai_oauth_refresh_token
+    assert @user.setting.openai_oauth_expires_at.present?
+    assert_equal "oauth-refreshed-token", captured_client_kwargs[:api_key]
+    assert_equal OpenaiOauthService::CODEX_RESPONSES_BASE_URI, captured_client_kwargs[:base_url]
+  end
+
+  test "initialize clears invalid OpenAI OAuth and raises when codex provider has no OAuth token" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-expired-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 5.minutes.ago.iso8601,
+      openai_oauth_sub: "user_before",
+      openai_oauth_email: "before@example.com"
+    )
+
+    assert_equal "oauth-expired-token", @user.setting.openai_oauth_access_token
+    assert @user.setting.openai_oauth_expired?
+
+    refresh_called = false
+    captured_refresh_token = nil
+    fake_oauth = Object.new
+    fake_oauth.define_singleton_method(:refresh_access_token) do |refresh_token:|
+      refresh_called = true
+      captured_refresh_token = refresh_token
+      raise OpenaiOauthService::Error, "invalid_grant"
+    end
+
+    OpenaiOauthService.stub(:new, -> { fake_oauth }) do
+      error = assert_raises(OpenAiError) do
+        OpenaiResponsesService.new(
+          current_user: @user,
+          log_completion: false
+        )
+      end
+      assert_includes error.message, "ChatGPT Codex provider requires OpenAI OAuth"
+    end
+
+    assert refresh_called
+    assert_equal "oauth-refresh-token", captured_refresh_token
+    @user.setting.reload
+    assert_nil @user.setting.openai_oauth_access_token
+    assert_nil @user.setting.openai_oauth_refresh_token
+    assert_nil @user.setting.openai_oauth_expires_at
+    assert_nil @user.setting.openai_oauth_sub
+    assert_nil @user.setting.openai_oauth_email
+  end
+
+  test "initialize preserves OAuth credentials when refresh fails transiently" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-expired-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 5.minutes.ago.iso8601,
+      openai_oauth_sub: "user_before",
+      openai_oauth_email: "before@example.com"
+    )
+
+    fake_oauth = Object.new
+    fake_oauth.define_singleton_method(:refresh_access_token) do |refresh_token:|
+      assert_equal "oauth-refresh-token", refresh_token
+      raise OpenaiOauthService::Error, "temporarily_unavailable"
+    end
+
+    OpenaiOauthService.stub(:new, -> { fake_oauth }) do
+      error = assert_raises(OpenAiError) do
+        OpenaiResponsesService.new(
+          current_user: @user,
+          log_completion: false
+        )
+      end
+      assert_includes error.message, "ChatGPT Codex provider requires OpenAI OAuth"
+    end
+
+    @user.setting.reload
+    assert_equal "oauth-expired-token", @user.setting.openai_oauth_access_token
+    assert_equal "oauth-refresh-token", @user.setting.openai_oauth_refresh_token
+    assert @user.setting.openai_oauth_expires_at.present?
+    assert_equal "user_before", @user.setting.openai_oauth_sub
+    assert_equal "before@example.com", @user.setting.openai_oauth_email
+  end
+
+  test "student-triggered OAuth refresh updates teacher setting and not student row" do
+    student = users(:student)
+    teacher = student.teacher
+    teacher.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "teacher-oauth-expired",
+      openai_oauth_refresh_token: "teacher-oauth-refresh",
+      openai_oauth_expires_at: 5.minutes.ago.iso8601
+    )
+
+    student_setting_updated_at = student.setting.updated_at
+
+    assert_equal "teacher-oauth-expired", teacher.setting.openai_oauth_access_token
+    assert teacher.setting.openai_oauth_expired?
+
+    refresh_called = false
+    captured_refresh_token = nil
+    fake_oauth = Object.new
+    fake_oauth.define_singleton_method(:refresh_access_token) do |refresh_token:|
+      refresh_called = true
+      captured_refresh_token = refresh_token
+      {
+        "access_token" => "teacher-oauth-refreshed",
+        "refresh_token" => "teacher-oauth-refresh-2",
+        "expires_in" => 3600
+      }
+    end
+
+    captured_client_kwargs = nil
+    fake_client = build_responses_client do |_params|
+      response_payload("Done", id: "resp_student_teacher_refresh")
+    end
+
+    OpenaiOauthService.stub(:new, -> { fake_oauth }) do
+      OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+        OpenaiResponsesService.new(
+          current_user: student,
+          log_completion: false
+        )
+      end
+    end
+
+    assert refresh_called
+    assert_equal "teacher-oauth-refresh", captured_refresh_token
+    teacher.setting.reload
+    assert_equal "teacher-oauth-refreshed", teacher.setting.openai_oauth_access_token
+    assert_equal "teacher-oauth-refresh-2", teacher.setting.openai_oauth_refresh_token
+    assert_equal "teacher-oauth-refreshed", captured_client_kwargs[:api_key]
+    assert_equal OpenaiOauthService::CODEX_RESPONSES_BASE_URI, captured_client_kwargs[:base_url]
+    student.setting.reload
+    assert_equal student_setting_updated_at.to_i, student.setting.updated_at.to_i
+    assert_nil student.setting.settings["openai_oauth_access_token"]
+    assert_nil student.setting.settings["openai_oauth_refresh_token"]
+  end
+
+  test "retrieve_response with include uses codex host when OAuth provider is selected" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-openai-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+
+    captured = {}
+    fake_http = Object.new
+    fake_http.define_singleton_method(:use_ssl=) { |_value| }
+    fake_http.define_singleton_method(:request) do |request|
+      captured[:path] = request.path
+      captured[:auth] = request["Authorization"]
+      response = Net::HTTPOK.new("1.1", "200", "OK")
+      response.instance_variable_set(:@read, true)
+      response.define_singleton_method(:body) { { "id" => "resp_1", "status" => "completed" }.to_json }
+      response
+    end
+
+    fake_client = build_responses_client do |_params|
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      Net::HTTP.stub(:new, ->(host, port) { captured[:host] = host; captured[:port] = port; fake_http }) do
+        service = OpenaiResponsesService.new(current_user: @user, log_completion: false)
+        result = service.retrieve_response("resp_1", include: [ "reasoning.encrypted_content" ])
+        assert_equal "resp_1", result["id"]
+      end
+    end
+
+    assert_equal "chatgpt.com", captured[:host]
+    assert_includes captured[:path], "/backend-api/codex/responses/resp_1"
+    assert_includes captured[:path], "include%5B%5D=reasoning.encrypted_content"
+    assert_equal "Bearer oauth-openai-token", captured[:auth]
+  end
+
+  test "codex OAuth provider omits unsupported background and metadata request params" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: @model,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-openai-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_codex_omit")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(current_user: @user, log_completion: false)
+      service.stub(:manual_codex_responses_stream, lambda { |request_params, _request_options_param|
+        captured = request_params
+        [
+          { "type" => "response.completed", "response" => response_payload("Done", id: "resp_codex_omit") }
+        ].to_enum
+      }) do
+        result = service.complete(
+          [ { role: "user", content: "Hello" } ],
+          background: true,
+          metadata: { "k" => "v" }
+        )
+        assert_equal "resp_codex_omit", result["id"]
+      end
+    end
+
+    assert_nil captured[:background]
+    assert_nil captured[:metadata]
+  end
+
   test "complete converts string keyed tool call history into Responses input items" do
     captured = nil
     messages = [
@@ -133,6 +435,280 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
     assert_equal "Explicit instructions", captured[:instructions]
     assert_equal "user", captured[:input][0]["role"]
+  end
+
+  test "codex provider sends fallback top-level instructions" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+
+      service.stub(:manual_codex_responses_stream, lambda { |request_params, _request_options_param|
+        captured = request_params
+        [
+          { "type" => "response.completed", "response" => response_payload("Done") }
+        ].to_enum
+      }) do
+        result = service.complete(
+          [
+            { role: "system", content: "Custom system prompt" },
+            { role: "user", content: "Hello" }
+          ]
+        )
+        assert_equal "Done", result
+      end
+    end
+
+    assert_equal "This is Gray Oak Academy.", captured[:instructions]
+    assert_equal "developer", captured[:input][0]["role"]
+    assert_equal "Custom system prompt", captured[:input][0]["content"]
+    assert_equal "user", captured[:input][1]["role"]
+    assert_equal "Hello", captured[:input][1]["content"]
+  end
+
+  test "codex provider keeps developer input item while adding fallback instructions" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+
+      service.stub(:manual_codex_responses_stream, lambda { |request_params, _request_options_param|
+        captured = request_params
+        [
+          { "type" => "response.completed", "response" => response_payload("Done") }
+        ].to_enum
+      }) do
+        result = service.complete(
+          nil,
+          input: [
+            { "role" => "developer", "content" => "Developer guardrails" },
+            { "role" => "user", "content" => "Hello" }
+          ]
+        )
+        assert_equal "Done", result
+      end
+    end
+
+    assert_equal "This is Gray Oak Academy.", captured[:instructions]
+    assert_equal 2, captured[:input].length
+    assert_equal "developer", captured[:input][0]["role"]
+    assert_equal "Developer guardrails", captured[:input][0]["content"]
+    assert_equal "user", captured[:input][1]["role"]
+    assert_equal "Hello", captured[:input][1]["content"]
+  end
+
+  test "codex provider explicitly disables store" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+
+      service.stub(:manual_codex_responses_stream, lambda { |request_params, _request_options_param|
+        captured = request_params
+        [
+          { "type" => "response.completed", "response" => response_payload("Done") }
+        ].to_enum
+      }) do
+        result = service.complete([ { role: "user", content: "Hello" } ])
+        assert_equal "Done", result
+      end
+    end
+
+    assert_equal false, captured[:store]
+    assert_nil captured[:previous_response_id]
+  end
+
+  test "codex provider omits temperature" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+
+      service.stub(:manual_codex_responses_stream, lambda { |request_params, _request_options_param|
+        captured = request_params
+        [
+          { "type" => "response.completed", "response" => response_payload("Done") }
+        ].to_enum
+      }) do
+        result = service.complete([ { role: "user", content: "Hello" } ], temperature: 0.2)
+        assert_equal "Done", result
+      end
+    end
+
+    refute_includes captured.keys, :temperature
+  end
+
+  test "codex provider uses manual responses stream path" do
+    captured = { manual: 0, sdk_stream: 0 }
+
+    responses = Object.new
+    responses.define_singleton_method(:stream) do |**_params|
+      captured[:sdk_stream] += 1
+      [].to_enum
+    end
+
+    client = Object.new
+    client.define_singleton_method(:responses) { responses }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        stream_handler: ->(_event) { },
+        log_completion: false
+      )
+      service.stub(:manual_codex_responses_stream, ->(_request_params, _request_options_param) {
+        captured[:manual] += 1
+        [].to_enum
+      }) do
+        service.complete([ { role: "user", content: "Hello" } ])
+      end
+    rescue OpenAiError
+      # No final payload is expected from an empty fake stream.
+    end
+
+    assert_equal 1, captured[:manual]
+    assert_equal 0, captured[:sdk_stream]
+  end
+
+  test "codex provider uses manual stream transport for synchronous structured output" do
+    responses = Object.new
+    responses.define_singleton_method(:create) do |**_params|
+      flunk("SDK create should not be used for Codex responses")
+    end
+
+    client = Object.new
+    client.define_singleton_method(:responses) { responses }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+
+      response = {
+        "id" => "resp_codex_sync",
+        "status" => "completed",
+        "model" => @model,
+        "output" => [
+          {
+            "type" => "message",
+            "content" => [
+              { "type" => "output_text", "text" => "{\"outline\":[{\"topic\":\"Origins\",\"description\":\"Early printing methods.\"}]}" }
+            ]
+          }
+        ],
+        "usage" => {}
+      }
+
+      service.stub(:manual_codex_responses_stream, ->(_request_params, _request_options_param) {
+        [
+          { "type" => "response.completed", "response" => response }
+        ].to_enum
+      }) do
+        result = service.complete(
+          [ { role: "user", content: "Hello" } ],
+          response_format: { type: "json_schema", json_schema: { name: "Outline", schema: { "type" => "object" } } }
+        )
+
+        assert_equal({ "outline" => [ { "topic" => "Origins", "description" => "Early printing methods." } ] }, result)
+      end
+    end
+  end
+
+  test "finalize_stream_response synthesizes response from text deltas when completed event is missing" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      stream_handler: ->(_event) { },
+      log_completion: false
+    )
+
+    service.instance_variable_set(:@stream_fallback_text, +"Fallback text")
+    fake_stream = Object.new
+    fake_stream.define_singleton_method(:get_final_response) do
+      raise RuntimeError, "Didn't receive a 'response.completed' event"
+    end
+
+    service.send(:finalize_stream_response, fake_stream)
+
+    assert_equal "completed", service.last_response_hash["status"]
+    assert_equal @model, service.last_response_hash["model"]
+    assert_equal "Fallback text", service.output_text(service.last_response_hash)
+    assert service.last_response_id.start_with?("resp_stream_fallback_")
+  end
+
+  test "drain_sse_events parses codex-style SSE frames without relying on content-type" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+    buffer = <<~SSE
+      event: response.created
+      data: {"type":"response.created","response":{"id":"resp_1","status":"in_progress"}}
+
+      event: response.output_text.delta
+      data: {"type":"response.output_text.delta","delta":"Hello"}
+
+    SSE
+
+    events = service.send(:drain_sse_events!, buffer.dup, flush: true)
+
+    assert_equal 2, events.length
+    assert_equal "response.created", events[0]["type"]
+    assert_equal "resp_1", events[0].dig("response", "id")
+    assert_equal "response.output_text.delta", events[1]["type"]
+    assert_equal "Hello", events[1]["delta"]
   end
 
   test "complete rejects explicit instructions when previous response id is used" do
@@ -1303,5 +1879,13 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       ],
       "usage" => {}
     }
+  end
+
+  def codex_completed_stream(response)
+    lambda do |_request_params, _request_options_param|
+      [
+        { "type" => "response.completed", "response" => response }
+      ].to_enum
+    end
   end
 end

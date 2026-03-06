@@ -1,0 +1,130 @@
+class OpenaiCodexResponsesService < OpenaiResponsesService
+  private
+
+  def provider_requires_stream_transport?
+    true
+  end
+
+  def build_state_params(store:, previous_response_id:)
+    { store: false }
+  end
+
+  def fallback_instructions
+    format(CODEX_FALLBACK_INSTRUCTIONS_TEMPLATE, app_name: ENV["APP_NAME"].presence || "Gray Oak Academy")
+  end
+
+  def request_temperature_param(_temperature)
+    {}
+  end
+
+  def responses_stream_for_provider(request_params, request_options_param)
+    manual_codex_responses_stream(request_params, request_options_param)
+  end
+
+  def manual_codex_responses_stream(request_params, request_options_param)
+    uri = URI.join(ensure_trailing_slash(@base_uri), "responses")
+    payload = request_params.deep_dup
+    payload[:stream] = true
+    headers = {
+      "Authorization" => "Bearer #{@access_token}",
+      "Content-Type" => "application/json",
+      "Accept" => "text/event-stream"
+    }.merge(request_options_param.dig(:request_options, :extra_headers).to_h)
+
+    Enumerator.new do |y|
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = uri.scheme == "https"
+      http.open_timeout = client_timeout_seconds
+      http.read_timeout = client_timeout_seconds
+
+      request = Net::HTTP::Post.new(uri.request_uri)
+      headers.each { |key, value| request[key] = value }
+      request.body = payload.to_json
+
+      http.request(request) do |response|
+        if !response.is_a?(Net::HTTPSuccess)
+          error_body = +""
+          response.read_body { |chunk| error_body << chunk }
+          raise OpenAiError,
+                "Codex stream request failed: status=#{response.code} content_type=#{response['Content-Type']} body=#{error_body.first(240).inspect}"
+        end
+
+        content_type = response["Content-Type"].to_s
+        buffer = +""
+        saw_sse_frame = false
+        response.read_body do |chunk|
+          buffer << chunk
+          event_hashes = drain_sse_events!(buffer)
+          saw_sse_frame ||= event_hashes.present?
+          event_hashes.each do |event_hash|
+            y << event_hash
+          end
+        end
+
+        event_hashes = drain_sse_events!(buffer, flush: true)
+        saw_sse_frame ||= event_hashes.present?
+        event_hashes.each do |event_hash|
+          y << event_hash
+        end
+
+        if !saw_sse_frame
+          Rails.logger.warn(
+            "OpenaiResponsesService: Codex stream returned non-SSE content_type=#{content_type.inspect} body=#{buffer.first(240).inspect}"
+          )
+        end
+      end
+    end
+  end
+
+  def drain_sse_events!(buffer, flush: false)
+    events = []
+    normalized = buffer.gsub("\r\n", "\n")
+    cursor = 0
+
+    while (separator_index = normalized.index("\n\n", cursor))
+      chunk = normalized[cursor...separator_index]
+      events.concat(parse_sse_chunk(chunk))
+      cursor = separator_index + 2
+    end
+
+    if flush
+      remainder = normalized[cursor..]
+      events.concat(parse_sse_chunk(remainder.to_s))
+      buffer.clear
+    else
+      buffer.replace(normalized[cursor..].to_s)
+    end
+
+    events
+  end
+
+  def parse_sse_chunk(chunk)
+    return [] if chunk.blank?
+
+    event_name = nil
+    data_lines = []
+
+    chunk.each_line(chomp: true) do |line|
+      next if line.blank? || line.start_with?(":")
+
+      field, value = line.split(":", 2)
+      value = value.to_s.sub(/\A /, "")
+      case field
+      when "event"
+        event_name = value
+      when "data"
+        data_lines << value
+      end
+    end
+
+    data = data_lines.join("\n")
+    return [] if data.blank? || data == "[DONE]"
+
+    parsed = JSON.parse(data)
+    parsed["type"] ||= event_name if parsed.is_a?(Hash) && event_name.present?
+    parsed.is_a?(Array) ? parsed : [ parsed ]
+  rescue JSON::ParserError => e
+    Rails.logger.warn("OpenaiResponsesService: failed to parse Codex SSE payload: #{e.message} chunk=#{chunk.first(240).inspect}")
+    []
+  end
+end

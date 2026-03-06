@@ -1,6 +1,8 @@
 # Job submits a conversation to the Responses API wrapper service, handles tool calls,
 # and broadcasts completion events to the user.
 class GetResponsesCompletionJob < ApplicationJob
+  require "securerandom"
+
   include ActionView::RecordIdentifier
   include ApplicationHelper
   queue_as :default
@@ -47,7 +49,8 @@ class GetResponsesCompletionJob < ApplicationJob
     response_hash = complete_and_capture_response(
       client,
       messages: initial_messages,
-      reasoning: reasoning_options_for(stateful_supported: stateful_supported)
+      reasoning: reasoning_options_for(stateful_supported: stateful_supported),
+      stream_state: stream_state
     )
     flush_stream_content!(conversation: conversation, state: stream_state, force: true)
     final_message_id = nil
@@ -83,7 +86,8 @@ class GetResponsesCompletionJob < ApplicationJob
           client,
           input: tool_outputs,
           previous_response_id: response_hash["id"],
-          reasoning: reasoning_options_for(stateful_supported: stateful_supported)
+          reasoning: reasoning_options_for(stateful_supported: stateful_supported),
+          stream_state: stream_state
         )
         flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       else
@@ -92,7 +96,8 @@ class GetResponsesCompletionJob < ApplicationJob
         response_hash = complete_and_capture_response(
           client,
           messages: history_messages,
-          reasoning: reasoning_options_for(stateful_supported: stateful_supported)
+          reasoning: reasoning_options_for(stateful_supported: stateful_supported),
+          stream_state: stream_state
         )
         flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       end
@@ -130,9 +135,9 @@ class GetResponsesCompletionJob < ApplicationJob
 
   private
 
-  def complete_and_capture_response(client, messages: nil, input: nil, previous_response_id: nil, reasoning: nil)
+  def complete_and_capture_response(client, messages: nil, input: nil, previous_response_id: nil, reasoning: nil, stream_state: nil)
     client.complete(messages, input: input, previous_response_id: previous_response_id, reasoning: reasoning)
-    response_hash = client.last_response_hash
+    response_hash = client.last_response_hash.presence || synthesize_stream_response_hash(stream_state)
     raise OpenAiError, "Responses API did not return a valid response payload." if response_hash.blank?
     raise_on_response_refusal!(response_hash)
 
@@ -317,6 +322,29 @@ class GetResponsesCompletionJob < ApplicationJob
     }
   end
 
+  def synthesize_stream_response_hash(stream_state)
+    return nil unless stream_state.is_a?(Hash)
+
+    buffered_text = +""
+    buffered_text << stream_state[:message].content.to_s if stream_state[:message].present?
+    buffered_text << stream_state[:content_buffer].to_s
+    return nil if buffered_text.blank?
+
+    {
+      "id" => "resp_stream_job_fallback_#{SecureRandom.hex(8)}",
+      "status" => "completed",
+      "output" => [
+        {
+          "type" => "message",
+          "content" => [
+            { "type" => "output_text", "text" => buffered_text }
+          ]
+        }
+      ],
+      "usage" => {}
+    }
+  end
+
   def start_stream_turn!(state:)
     state[:message] = nil
     state[:content_buffer] = +""
@@ -335,10 +363,16 @@ class GetResponsesCompletionJob < ApplicationJob
           state[:content_buffer] << delta
           flush_stream_content!(conversation: conversation, state: state)
         when "response.output_text.done"
-          text = event["text"].to_s
-          if !text.empty? && state[:message].nil? && state[:content_buffer].empty?
-            state[:content_buffer] << text
+          append_stream_completion_text!(state: state, text: event["text"])
+          flush_stream_content!(conversation: conversation, state: state, force: true)
+        when "response.content_part.done"
+          part = event["part"]
+          if part.is_a?(Hash) && part["type"].to_s == "output_text"
+            append_stream_completion_text!(state: state, text: part["text"])
           end
+          flush_stream_content!(conversation: conversation, state: state, force: true)
+        when "response.output_item.done"
+          append_stream_completion_text!(state: state, text: extract_output_item_text(event["item"]))
           flush_stream_content!(conversation: conversation, state: state, force: true)
         when "response.completed"
           flush_stream_content!(conversation: conversation, state: state, force: true)
@@ -364,6 +398,27 @@ class GetResponsesCompletionJob < ApplicationJob
     state[:message].save!
     state[:content_buffer] = +""
     state[:last_update_time] = Time.current
+  end
+
+  def append_stream_completion_text!(state:, text:)
+    completion_text = text.to_s
+    return if completion_text.empty?
+    message_content = state[:message]&.content.to_s
+    return unless state[:content_buffer].empty? && message_content.empty?
+
+    state[:content_buffer] << completion_text
+  end
+
+  def extract_output_item_text(item)
+    return "" unless item.is_a?(Hash)
+    return "" unless item["type"].to_s == "message"
+
+    Array(item["content"]).filter_map do |part|
+      next unless part.is_a?(Hash)
+      next unless part["type"].to_s == "output_text"
+
+      part["text"].to_s.presence
+    end.join
   end
 
   def destroy_last_user_message_if_latest!(conversation)

@@ -34,14 +34,16 @@ class BackfillMemoriesFromLessonReportJob < ApplicationJob
 
     # Call LLM and process response
     begin
-      client = OpenaiApiService.new(
+      client = LlmServiceRouting.build_completion_client(
         current_user: student,
         task_system_prompt: task_system_prompt,
-        reasoning_model: true
+        reasoning_model: true,
+        store: false
       )
 
-      parsed_content = client.complete(
-        messages,
+      parsed_content = LlmServiceRouting.complete_structured_output(
+        client: client,
+        messages: messages,
         response_format: {
           type: "json_schema",
           json_schema: MERGED_MEMORIES_SCHEMA.slice(:name, :schema, :strict)

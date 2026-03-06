@@ -21,6 +21,7 @@ class OpenaiResponsesService
   require "uri"
   include OpenaiResponseHelper
   include OpenaiErrorHelper
+  include OpenaiOauthTokenResolver
 
   attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id, :model, :base_uri
   STATEFUL_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
@@ -30,11 +31,46 @@ class OpenaiResponsesService
   RESPONSES_METADATA_MAX_KEYS = 16
   RESPONSES_METADATA_MAX_KEY_LENGTH = 64
   RESPONSES_METADATA_MAX_STRING_LENGTH = 512
+  CODEX_FALLBACK_INSTRUCTIONS_TEMPLATE = "This is %<app_name>s.".freeze
+
+  class << self
+    alias_method :instantiate_without_provider_routing, :new
+
+    def new(*args, **kwargs, &block)
+      return instantiate_without_provider_routing(*args, **kwargs, &block) if self != OpenaiResponsesService
+
+      service_class_for(**kwargs).instantiate_without_provider_routing(*args, **kwargs, &block)
+    end
+  end
 
   def self.base_uri_host(base_uri)
     URI.parse(base_uri.to_s).host.to_s.downcase.presence
   rescue URI::InvalidURIError
     nil
+  end
+
+  def self.normalized_base_uri(base_uri)
+    value = base_uri.to_s.strip
+    return "" if value.blank?
+
+    value.end_with?("/") ? value : "#{value}/"
+  end
+
+  def self.codex_provider_base_uri?(base_uri)
+    normalized_base_uri(base_uri) == SupportedApi::OPENAI_CODEX_BASE_URI
+  end
+
+  def self.service_class_for(current_user:, base_uri: nil, agent_run: false, **_kwargs)
+    resolved_base_uri =
+      if base_uri.present?
+        base_uri
+      elsif agent_run
+        AppSetting.settings&.openai_agent_supported_api&.api_base_uri
+      else
+        current_user.settings&.effective_llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"].presence
+      end
+
+    codex_provider_base_uri?(resolved_base_uri) ? OpenaiCodexResponsesService : self
   end
 
   def self.stateful_supported_base_uri?(base_uri)
@@ -129,6 +165,7 @@ class OpenaiResponsesService
     @agent_run_active_run_id = nil
     @response_overview_log_state = {}
     @response_summary_log_state = {}
+    @stream_fallback_text = +""
 
     # Start with the full system prompt (base system prompt + teaching principles)
     @system_prompt = "Today's date: #{Time.current.strftime("%B %d, %Y")}\n\n" + Prompt.full_system_prompt(user: current_user)
@@ -171,13 +208,16 @@ class OpenaiResponsesService
       chained_state = state_params[:previous_response_id].present?
       include_fields = build_include_fields(include: include, state_params: state_params)
 
-      if instructions.present?
+      effective_instructions = instructions
+
+      if effective_instructions.present?
         if chained_state
           raise OpenAiError,
                 "Explicit instructions are not allowed with previous_response_id. Use developer messages for stateful follow-up requests."
         end
       else
         input_items = prepend_default_developer_input(input_items, messages: messages, chained_state: chained_state)
+        effective_instructions = fallback_instructions
       end
 
       reasoning_options = build_reasoning_options(reasoning)
@@ -203,8 +243,8 @@ class OpenaiResponsesService
       request_params = {
         model: @model,
         input: input_items,
-        temperature: temperature,
-        **(instructions.present? ? { instructions: instructions } : {}),
+        **request_temperature_param(temperature),
+        **(effective_instructions.present? ? { instructions: effective_instructions } : {}),
         **(@tools.present? ? { tools: @tools } : {}),
         **(include_fields.present? ? { include: include_fields } : {}),
         **(request_background ? { background: true } : {}),
@@ -223,17 +263,37 @@ class OpenaiResponsesService
       request_options_param = request_options.present? ? { request_options: request_options } : {}
       log_request_summary(request_params: request_params, request_options: request_options, streaming: @stream_handler.present?)
 
-      if @stream_handler
+      if stream_transport?
         # Streaming: Responses SDK yields a stream of typed events.
         # We normalize each event to a hash and forward it to the handler.
         # When the "response.completed" event arrives, we log usage and update
         # previous_response_id for stateful follow-ups.
-        stream = @client.responses.stream(**request_params, **request_options_param)
+        stream = responses_stream_for_provider(request_params, request_options_param)
         stream.each do |event|
+          capture_stream_fallback_text(event)
           handle_stream_event(event)
-          @stream_handler.call(normalize_response_hash(event))
+          @stream_handler.call(normalize_response_hash(event)) if @stream_handler
         end
-        return
+        finalize_stream_response(stream)
+        response_hash = @last_response_hash
+        raise OpenAiError, "Responses API did not return a valid response payload." if response_hash.blank?
+
+        if background
+          return response_hash
+        end
+
+        check_for_refusal(response_hash)
+        content = extract_output_text(response_hash)
+        check_for_blank_content(content, response_hash: response_hash)
+
+        if %w[json_schema json_object].include?(format_type)
+          parsed_content = parse_JSON(content)
+          validate_JSON(parsed_content, schema) if schema.present?
+          Rails.logger.debug "Validated JSON content: #{parsed_content}"
+          return parsed_content
+        end
+
+        return content
       end
 
       response = @client.responses.create(**request_params, **request_options_param)
@@ -429,6 +489,13 @@ class OpenaiResponsesService
   end
 
   def determine_access_token
+    oauth_token = resolve_openai_oauth_access_token
+    return oauth_token if oauth_token.present?
+
+    if self.class.codex_provider_base_uri?(@base_uri)
+      raise OpenAiError, "ChatGPT Codex provider requires OpenAI OAuth. Connect your OpenAI account in Settings > LLMs."
+    end
+
     # Prefer the user's own token
     return @user.setting.llm_api_access_token if @user.setting.llm_api_access_token.present?
 
@@ -662,6 +729,14 @@ class OpenaiResponsesService
     end
   end
 
+  def fallback_instructions
+    nil
+  end
+
+  def request_temperature_param(temperature)
+    { temperature: temperature }
+  end
+
   # Convert Chat Completions-style messages into Responses input items.
   # We skip system messages here because they are converted to a developer
   # input item (or explicit instructions when provided).
@@ -824,15 +899,102 @@ class OpenaiResponsesService
     handler
   end
 
+  def stream_transport?
+    @stream_handler.present? || provider_requires_stream_transport?
+  end
+
+  def provider_requires_stream_transport?
+    false
+  end
+
   # Handle stream events. We care primarily about response completion so we can
   # log usage and update previous_response_id for stateful follow-ups.
   def handle_stream_event(event)
-    return unless event.is_a?(OpenAI::Streaming::ResponseCompletedEvent)
+    response_hash =
+      if event.is_a?(OpenAI::Streaming::ResponseCompletedEvent)
+        normalize_response_hash(event.response)
+      elsif event.is_a?(Hash) && event["type"].to_s == "response.completed"
+        normalize_response_hash(event["response"])
+      end
+    return if response_hash.blank?
 
-    response_hash = normalize_response_hash(event.response)
-    set_last_response(response_hash, event.response)
+    set_last_response(response_hash, event)
     log_response_summary(response_hash, phase: "stream_completed")
     log_completion(response_hash)
+  end
+
+  def finalize_stream_response(stream)
+    return if @last_response_hash.present?
+    if stream.respond_to?(:get_final_response)
+      final_response = stream.get_final_response
+      response_hash = normalize_response_hash(final_response)
+      if response_hash.present?
+        set_last_response(response_hash, final_response)
+        log_response_summary(response_hash, phase: "stream_completed_fallback")
+        log_completion(response_hash)
+      end
+    end
+  rescue RuntimeError => e
+    synthetic_response_hash = synthesize_stream_fallback_response_hash
+    if synthetic_response_hash.present?
+      set_last_response(synthetic_response_hash, synthetic_response_hash)
+      log_response_summary(synthetic_response_hash, phase: "stream_completed_synthesized")
+      Rails.logger.warn("OpenaiResponsesService: synthesized final streamed response from text deltas.")
+    end
+
+    Rails.logger.warn("OpenaiResponsesService: unable to obtain final streamed response: #{e.message}")
+  ensure
+    if @last_response_hash.blank?
+      synthetic_response_hash = synthesize_stream_fallback_response_hash
+      if synthetic_response_hash.present?
+        set_last_response(synthetic_response_hash, synthetic_response_hash)
+        log_response_summary(synthetic_response_hash, phase: "stream_completed_synthesized")
+        Rails.logger.warn("OpenaiResponsesService: synthesized final streamed response from text deltas.")
+      end
+    end
+  end
+
+  def responses_stream_for_provider(request_params, request_options_param)
+    @client.responses.stream(**request_params, **request_options_param)
+  end
+
+  def capture_stream_fallback_text(event)
+    case event
+    when OpenAI::Streaming::ResponseTextDeltaEvent
+      @stream_fallback_text << event.delta.to_s
+    when OpenAI::Streaming::ResponseTextDoneEvent
+      text = event.text.to_s
+      @stream_fallback_text << text if @stream_fallback_text.empty? && text.present?
+    else
+      event_type = event.respond_to?(:type) ? event.type.to_s : ""
+      case event_type
+      when "response.output_text.delta"
+        @stream_fallback_text << event.delta.to_s if event.respond_to?(:delta)
+      when "response.output_text.done"
+        text = event.respond_to?(:text) ? event.text.to_s : ""
+        @stream_fallback_text << text if @stream_fallback_text.empty? && text.present?
+      end
+    end
+  end
+
+  def synthesize_stream_fallback_response_hash
+    text = @stream_fallback_text.to_s
+    return nil if text.blank?
+
+    {
+      "id" => "resp_stream_fallback_#{SecureRandom.hex(8)}",
+      "status" => "completed",
+      "model" => @model,
+      "output" => [
+        {
+          "type" => "message",
+          "content" => [
+            { "type" => "output_text", "text" => text }
+          ]
+        }
+      ],
+      "usage" => {}
+    }
   end
 
   # Record the last response so callers can chain stateful requests.

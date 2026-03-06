@@ -416,6 +416,106 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal "Jazz Fusion", assistant.content
   end
 
+  test "synthesizes response payload from streamed text when final response is missing" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Stream this")
+
+    captured_stream_handler = nil
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { nil }
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "Synth" })
+      captured_stream_handler.call({ "type" => "response.output_text.delta", "delta" => "esized" })
+      nil
+    end
+    fake_client.define_singleton_method(:last_response_hash) { nil }
+    fake_client.define_singleton_method(:output_text) { |response_hash| response_hash.dig("output", 0, "content", 0, "text").to_s }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, lambda { |**kwargs|
+      captured_stream_handler = kwargs[:stream_handler]
+      fake_client
+    }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    assistant = conversation.reload.messages.role_assistant.order(:created_at).last
+    assert_not_nil assistant
+    assert_equal "Synthesized", assistant.content
+  end
+
+  test "captures text from response.output_item.done when final response is missing" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.messages.create!(role: :user, content: "Stream this")
+
+    captured_stream_handler = nil
+
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { nil }
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
+      captured_stream_handler.call(
+        {
+          "type" => "response.output_item.done",
+          "item" => {
+            "type" => "message",
+            "content" => [
+              { "type" => "output_text", "text" => "Output item text" }
+            ]
+          }
+        }
+      )
+      nil
+    end
+    fake_client.define_singleton_method(:last_response_hash) { nil }
+    fake_client.define_singleton_method(:output_text) { |response_hash| response_hash.dig("output", 0, "content", 0, "text").to_s }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    OpenaiResponsesService.stub(:new, lambda { |**kwargs|
+      captured_stream_handler = kwargs[:stream_handler]
+      fake_client
+    }) do
+      ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+        Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+          GetResponsesCompletionJob.perform_now(conversation: conversation)
+        end
+      end
+    end
+
+    assistant = conversation.reload.messages.role_assistant.order(:created_at).last
+    assert_not_nil assistant
+    assert_equal "Output item text", assistant.content
+  end
+
+  test "append_stream_completion_text handles active record message instances" do
+    conversation = conversations(:teacher_generic_conversation)
+    message = conversation.messages.build(role: "assistant")
+    state = { content_buffer: +"", message: message }
+    job = GetResponsesCompletionJob.new
+
+    job.send(:append_stream_completion_text!, state: state, text: "Hello")
+
+    assert_equal "Hello", state[:content_buffer]
+  end
+
   test "raises OpenAiError with refusal message for streamed responses" do
     conversation = conversations(:teacher_generic_conversation)
     conversation.messages.delete_all

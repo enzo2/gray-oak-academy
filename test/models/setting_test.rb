@@ -96,4 +96,39 @@ class SettingTest < ActiveSupport::TestCase
     ENV.delete("OPENAI_API_BASE_URL")
     ENV.delete("OPENAI_API_KEY")
   end
+
+  test "permits custom model when OpenAI OAuth credential is present" do
+    @setting.llm_api_base_uri = SupportedApi::OPENAI_CODEX_BASE_URI
+    @setting.llm_api_access_token = ""
+    @setting.openai_oauth_access_token = "oauth-token"
+    @setting.openai_oauth_expires_at = 1.hour.from_now.iso8601
+    @setting.llm_model_name = "non-catalog-openai-model"
+
+    assert @setting.valid?
+  end
+
+  test "llm_configured? is true when OpenAI OAuth credential is present" do
+    @setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: "custom-openai-model",
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-token",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+
+    assert @setting.llm_configured?
+  end
+
+  test "llm_configured? is false for codex provider when only API key is present" do
+    @setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      llm_model_name: "custom-openai-model",
+      llm_api_access_token: "personal-openai-key",
+      openai_oauth_access_token: nil,
+      openai_oauth_refresh_token: nil,
+      openai_oauth_expires_at: nil
+    )
+
+    refute @setting.llm_configured?
+  end
 end

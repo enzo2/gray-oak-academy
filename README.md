@@ -23,9 +23,9 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, careful
 
   *Solution*: The app's agent can quickly discover internet resources, but the supervising teacher must approve them, as well as add their own non-internet resources. Image generation is available to the LLM, but it's instructed how to use it responsibly. 
 
-* **Screen Time**:  The LLM can and should be bridged into the real world by linking resources like tools, demonstrations, even human resources. However, some lessons are better taught away from the computer, or through casual conversation. Some activities should not be tutored at all.
+* **Screen Time**:  The LLM can and should be bridged into the real world by linking resources like books, tools, demonstrations, even human resources. However, some lessons are better taught away from the computer, or through casual conversation. Some activities should not be tutored at all.
 
-  *Solution*: Voice-only lessons allow learning in any setting, like a "walk-and-talk", lab or workshop. Going further, "offline" lessons are encouraged, where the student is given an activity and debriefed afterward. (You could even make an entire course of offline workshops.)
+  *Solution*: Voice-only lessons allow learning in any setting, like a "walk-and-talk", lab or workshop. Going further, "offline" lessons are encouraged, where the student is given an activity and debriefed afterward. (You could even make an entire course of offline workshops, like reading a book, drawing, or a series of projects.)
 
 Importantly, the system should negate the arguments implied in [Isaac Asimov's short story](https://archive.org/details/Fantasy_Science_Fiction_v006n02_1954-02/page/n125/mode/2up), namely that an AI homeschool tutor would be boring, unadaptable, and overly reliant on screen time and tedious homework rather than tactile resources and social experiences. This could still be a problem in the absence of human teacher. Therefore, as with traditional home– or small–group schooling, the supervisory teacher or parent remains responsible for keeping the student engaged and inspired by supplying a broad set of resources and experiences, monitoring progress, and adjusting the curriculum and prompts. If not, Asimov will be vindicated. 
 
@@ -80,6 +80,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 ### Production:
 - *Note: The default setup is not secure. It just runs the Puma server. The minimum option for serving publically would be to enable Thruster, Rails' basic proxy with Let's Encrypt support, in the Dockerfile. You'll also need to adjust SSL settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 - Create `/.env.production` following `.env.production.example`. Include a random 32-character `RAILS_MASTER_KEY`, and keep it secure. 
+- OpenAI OAuth uses the built-in public Codex client id (`app_EMoamEEZ73f0CkXaXp7hrann`) with device authorization. No custom OAuth client configuration is currently supported.
 - Also create `/.env`: see `.env.example`. (This is for Postgres.)
 - *As an alternative without .env files, e.g. for a Portainer stack deployment, `docker-compose-noenv.yml` is provided.*
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
@@ -87,6 +88,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ### Choosing an API:
 - Any OpenAI-compatible API is supported for chat/lessons. 
+- OpenAI provider supports optional OAuth credentialing in user settings for ChatGPT Codex Responses usage (select `https://chatgpt.com/backend-api/codex/` as API base URI).
 - Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. OpenRouter also supports BYOK and ZDR.
 - Make sure to use an API that supports automated prompt caching.
 - For background agent runs during curriculum design, OpenAI currently works best, and Exa is required for web search.

@@ -11,6 +11,99 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     @model = "m1"
   end
 
+  test "initialize ignores OpenAI OAuth token for OpenAI chat completions provider path" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_BASE_URI,
+      llm_model_name: nil,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-openai-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+
+    captured_client_kwargs = nil
+    fake_client = build_chat_client do |_params|
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, log_completion: false)
+      result = service.complete(@messages)
+      assert_equal "ok", result
+    end
+
+    assert_equal "openai-test-token", captured_client_kwargs[:api_key]
+  end
+
+  test "initialize does not refresh OpenAI OAuth token for chat completions path" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_BASE_URI,
+      llm_model_name: nil,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-expired-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 5.minutes.ago.iso8601
+    )
+
+    refresh_called = false
+    fake_oauth = Object.new
+    fake_oauth.define_singleton_method(:refresh_access_token) do |refresh_token:|
+      refresh_called = true
+      {
+        "access_token" => "oauth-refreshed-token",
+        "refresh_token" => "oauth-refreshed-refresh-token",
+        "expires_in" => 3600
+      }
+    end
+
+    captured_client_kwargs = nil
+    fake_client = build_chat_client do |_params|
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenaiOauthService.stub(:new, -> { fake_oauth }) do
+      OpenAI::Client.stub(:new, ->(**kwargs) { captured_client_kwargs = kwargs; fake_client }) do
+        service = OpenaiApiService.new(current_user: @user, log_completion: false)
+        result = service.complete(@messages)
+        assert_equal "ok", result
+      end
+    end
+
+    assert_not refresh_called
+    @user.setting.reload
+    assert_equal "oauth-expired-token", @user.setting.openai_oauth_access_token
+    assert_equal "oauth-refresh-token", @user.setting.openai_oauth_refresh_token
+    assert_equal "openai-test-token", captured_client_kwargs[:api_key]
+  end
+
+  test "initialize raises explicit error when only OpenAI OAuth is present for chat completions path" do
+    @user.setting.update!(
+      llm_api_base_uri: SupportedApi::OPENAI_BASE_URI,
+      llm_model_name: nil,
+      llm_api_access_token: nil,
+      openai_oauth_access_token: "oauth-expired-token",
+      openai_oauth_refresh_token: "oauth-refresh-token",
+      openai_oauth_expires_at: 5.minutes.ago.iso8601,
+      openai_oauth_sub: "user_before",
+      openai_oauth_email: "before@example.com"
+    )
+
+    supported_openai = SupportedApi.openai_supported
+    previous_shared_token = supported_openai&.api_access_token
+    previous_env_token = ENV["OPENAI_API_KEY"]
+    supported_openai&.update!(api_access_token: nil)
+    ENV["OPENAI_API_KEY"] = ""
+
+    error = assert_raises(OpenAiError) do
+      OpenaiApiService.new(current_user: @user, log_completion: false)
+    end
+
+    assert_includes error.message, "OpenAI OAuth is currently only used by Responses API flows"
+  ensure
+    supported_openai&.update!(api_access_token: previous_shared_token)
+    ENV["OPENAI_API_KEY"] = previous_env_token
+  end
+
   test "complete injects system prompt when missing and returns content" do
     fake_client = build_chat_client do |_params|
       { "choices" => [ { "message" => { "content" => "LLM reply" } } ], "usage" => { "prompt_tokens" => 1, "completion_tokens" => 1, "total_tokens" => 2 } }

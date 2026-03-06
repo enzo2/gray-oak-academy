@@ -5,22 +5,19 @@ class AutoNameConversationJobTest < ActiveJob::TestCase
     conversation = Conversation.create!(user: users(:admin), title: "Chat 1")
     conversation.messages.create!(role: :user, content: "Can you help me factor quadratics?")
 
-    fake_client = Object.new.tap do |o|
-      o.define_singleton_method(:complete) do |*_args, **_kwargs|
-        { "title" => "Factoring Quadratics Help" }
-      end
-    end
+    fake_client = Object.new
+    broadcast_args = nil
+    broadcast_kwargs = nil
 
-    OpenaiApiService.stub(:new, fake_client) do
-      broadcast_args = nil
-      broadcast_kwargs = nil
-
-      Turbo::StreamsChannel.stub(:broadcast_replace_to, ->(*args, **kwargs) {
-        broadcast_args = args
-        broadcast_kwargs = kwargs
-      }) do
-        Turbo::StreamsChannel.stub(:broadcast_update_to, nil) do
-          AutoNameConversationJob.perform_now(conversation: conversation)
+    LlmServiceRouting.stub(:build_completion_client, fake_client) do
+      LlmServiceRouting.stub(:complete_structured_output, { "title" => "Factoring Quadratics Help" }) do
+        Turbo::StreamsChannel.stub(:broadcast_replace_to, ->(*args, **kwargs) {
+          broadcast_args = args
+          broadcast_kwargs = kwargs
+        }) do
+          Turbo::StreamsChannel.stub(:broadcast_update_to, nil) do
+            AutoNameConversationJob.perform_now(conversation: conversation)
+          end
         end
       end
 
@@ -39,7 +36,7 @@ class AutoNameConversationJobTest < ActiveJob::TestCase
     conversation.messages.create!(role: :user, content: "Hello")
 
     called = false
-    OpenaiApiService.stub(:new, ->(**_kwargs) { called = true }) do
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { called = true }) do
       AutoNameConversationJob.perform_now(conversation: conversation)
     end
 
@@ -52,7 +49,7 @@ class AutoNameConversationJobTest < ActiveJob::TestCase
     conversation.messages.create!(role: :user, content: "")
 
     called = false
-    OpenaiApiService.stub(:new, ->(**_kwargs) { called = true }) do
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { called = true }) do
       AutoNameConversationJob.perform_now(conversation: conversation)
     end
 
@@ -64,16 +61,37 @@ class AutoNameConversationJobTest < ActiveJob::TestCase
     conversation = Conversation.create!(user: users(:admin), title: "Chat 1")
     conversation.messages.create!(role: :user, content: "Hi")
 
-    fake_client = Object.new.tap do |o|
-      o.define_singleton_method(:complete) do |*_args, **_kwargs|
-        { "title" => "" }
+    fake_client = Object.new
+
+    LlmServiceRouting.stub(:build_completion_client, fake_client) do
+      LlmServiceRouting.stub(:complete_structured_output, { "title" => "" }) do
+        AutoNameConversationJob.perform_now(conversation: conversation)
       end
     end
 
-    OpenaiApiService.stub(:new, fake_client) do
-      AutoNameConversationJob.perform_now(conversation: conversation)
+    assert_equal "Chat 1", conversation.reload.title
+  end
+
+  test "requests a stateless client so auto-name does not join the chat response chain" do
+    conversation = Conversation.create!(user: users(:admin), title: "Chat 1")
+    conversation.messages.create!(role: :user, content: "Help me practice algebra")
+
+    fake_client = Object.new
+    captured_kwargs = nil
+
+    LlmServiceRouting.stub(:build_completion_client, ->(**kwargs) {
+      captured_kwargs = kwargs
+      fake_client
+    }) do
+      LlmServiceRouting.stub(:complete_structured_output, { "title" => "Algebra Practice" }) do
+        Turbo::StreamsChannel.stub(:broadcast_replace_to, nil) do
+          AutoNameConversationJob.perform_now(conversation: conversation)
+        end
+      end
     end
 
-    assert_equal "Chat 1", conversation.reload.title
+    assert_equal users(:admin), captured_kwargs[:current_user]
+    assert_equal conversation, captured_kwargs[:conversation]
+    assert_equal false, captured_kwargs[:store]
   end
 end

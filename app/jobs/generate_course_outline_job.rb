@@ -21,14 +21,15 @@ class GenerateCourseOutlineJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenaiApiService.new(current_user: current_user, reasoning_model: true)
-      parsed_outline = client.complete(
-        messages,
+      client = LlmServiceRouting.build_completion_client(current_user: current_user, reasoning_model: true, store: false)
+      parsed_outline = LlmServiceRouting.complete_structured_output(
+        client: client,
+        messages: messages,
         response_format: {
           type: "json_schema",
           json_schema: OUTLINE_SCHEMA.slice(:name, :schema, :strict)
         },
-        schema: OUTLINE_SCHEMA[:schema],  # Also pass the schema to the wrapper service for validation of the response
+        schema: OUTLINE_SCHEMA[:schema],
         prefill: "{\"outline\": ["
       )
 

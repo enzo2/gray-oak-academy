@@ -15,21 +15,21 @@ class GenerateLessonPlanContentJobTest < ActiveJob::TestCase
     lesson_plan = lessons(:one).lesson_plan
 
     fake_service = Object.new
-    fake_service.define_singleton_method(:complete) do |_messages, **_kwargs|
-      {
-        "lesson_plan" => [
-          { "type" => "activity", "details" => "Warm up activity" },
-          { "type" => "explain", "details" => "Explain concept" }
-        ],
-        "suggested_resources" => [
-          { "type" => "book", "description" => "Reference book" }
-        ]
-      }
-    end
+    response = {
+      "lesson_plan" => [
+        { "type" => "activity", "details" => "Warm up activity" },
+        { "type" => "explain", "details" => "Explain concept" }
+      ],
+      "suggested_resources" => [
+        { "type" => "book", "description" => "Reference book" }
+      ]
+    }
 
-    OpenaiApiService.stub(:new, ->(**_kwargs) { fake_service }) do
-      Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-        assert GenerateLessonPlanContentJob.perform_now(lesson_plan, teacher)
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { fake_service }) do
+      LlmServiceRouting.stub(:complete_structured_output, response) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          assert GenerateLessonPlanContentJob.perform_now(lesson_plan, teacher)
+        end
       end
     end
 

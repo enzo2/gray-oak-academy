@@ -25,12 +25,14 @@ class GenerateCourseReportJob < ApplicationJob
 
     begin
       # Make the LLM request
-      client = OpenaiApiService.new(
+      client = LlmServiceRouting.build_completion_client(
         current_user: teacher,
-        reasoning_model: true
+        reasoning_model: true,
+        store: false
       )
-      parsed_content = client.complete(
-        messages,
+      parsed_content = LlmServiceRouting.complete_structured_output(
+        client: client,
+        messages: messages,
         response_format: {
           type: "json_schema",
           json_schema: REPORT_SCHEMA.slice(:name, :schema, :strict)

@@ -1,0 +1,28 @@
+<div class="mx-auto max-w-2xl px-4 py-8" data-controller="openai-oauth-device"
+     data-openai-oauth-device-poll-url-value="<%= user_settings_openai_oauth_device_poll_path %>"
+     data-openai-oauth-device-interval-ms-value="<%= (@device_auth["interval_seconds"].to_i > 0 ? @device_auth["interval_seconds"].to_i : 5) * 1000 %>"
+     data-openai-oauth-device-settings-url-value="<%= edit_user_registration_path(active_tab: :api) %>">
+  <h1 class="text-2xl font-semibold mb-3">Connect OpenAI</h1>
+  <p class="text-sm text-dim mb-4">
+    Open <span class="font-mono"><%= @device_auth["verification_uri"] %></span> and enter this code:
+  </p>
+
+  <div class="rounded-lg border border-stone-300 bg-stone-50 p-4 mb-4 dark:border-stone-700 dark:bg-stone-900/40">
+    <p class="font-mono text-3xl tracking-[0.3em]" data-openai-oauth-device-target="code"><%= @device_auth["user_code"] %></p>
+  </div>
+
+  <div class="flex flex-wrap gap-3 mb-4">
+    <a href="<%= @device_auth["verification_uri"] %>" target="_blank" rel="noopener noreferrer" class="btn-primary">
+      Open OpenAI Verification Page
+    </a>
+    <button type="button" class="btn-secondary" data-action="openai-oauth-device#pollNow">
+      I've Entered The Code
+    </button>
+    <%= link_to "Cancel", edit_user_registration_path(active_tab: :api), class: "btn-secondary" %>
+  </div>
+
+  <p class="text-sm text-dim mb-2" data-openai-oauth-device-target="status">
+    Waiting for OpenAI authorization...
+  </p>
+  <p class="text-sm text-red-700 dark:text-red-300 hidden" data-openai-oauth-device-target="error"></p>
+</div>

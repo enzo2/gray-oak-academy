@@ -1,6 +1,7 @@
 class OpenaiApiService
   # Wrapper around official OpenAI Ruby SDK for LLM completions.
   require "json/repair"
+  require "uri"
   include OpenaiResponseHelper
   include OpenaiErrorHelper
   PREFILL_UNSUPPORTED_HOSTS = %w[api.openai.com api.x.ai].freeze
@@ -208,6 +209,10 @@ class OpenaiApiService
   end
 
   def determine_access_token
+    if codex_provider_base_uri?(@base_uri)
+      raise OpenAiError, "ChatGPT Codex provider is Responses-only. Use OpenAI Responses routing for this provider."
+    end
+
     # Prefer the user's own token
     return @user.setting.llm_api_access_token if @user.setting.llm_api_access_token.present?
 
@@ -216,7 +221,15 @@ class OpenaiApiService
     return provider.api_access_token if provider&.api_access_token.present?
 
     # Fallback to ENV
-    ENV.fetch("OPENAI_API_KEY") { raise "Access token was neither provided nor set in OPENAI_API_KEY." }
+    env_token = ENV["OPENAI_API_KEY"].to_s
+    return env_token if env_token.present?
+
+    if @user.setting.openai_oauth_connected? && openai_provider_base_uri?(@base_uri)
+      raise OpenAiError,
+            "OpenAI OAuth is currently only used by Responses API flows. Add an OpenAI API key (personal/shared/ENV) for this path."
+    end
+
+    raise OpenAiError, "Access token was neither provided nor set in OPENAI_API_KEY."
   end
 
   def determine_model(reasoning_model_flag)
@@ -359,6 +372,18 @@ class OpenaiApiService
     end
 
     { reasoning_effort: effort }
+  end
+
+  def openai_provider_base_uri?(base_uri)
+    URI.parse(base_uri.to_s).host.to_s.downcase == "api.openai.com"
+  rescue URI::InvalidURIError
+    false
+  end
+
+  def codex_provider_base_uri?(base_uri)
+    normalized = base_uri.to_s.strip
+    normalized = "#{normalized}/" if normalized.present? && !normalized.end_with?("/")
+    normalized == SupportedApi::OPENAI_CODEX_BASE_URI
   end
 
   def base_uri_host
