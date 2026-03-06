@@ -1,29 +1,6 @@
 {
   "ignored_warnings": [
     {
-      "warning_type": "SQL Injection",
-      "warning_code": 0,
-      "fingerprint": "8af4f95b92079c2d0920bf7a144a7766df9d3519fb352bace78d45688ab6e3c4",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/services/journal_service.rb",
-      "line": 34,
-      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "ActiveRecord::Base.connection.select_all(\"SELECT * FROM (\\n  #{(student.observations.where.not(:status => :pending) or student.observations.approved).select(\"id, 'Observation' as record_type, created_at\").to_sql}\\n  UNION ALL\\n  #{student.student_feedbacks.select(\"id, 'StudentFeedback' as record_type, created_at\").to_sql}\\n  UNION ALL\\n  #{student.student_reports.select(\"id, 'StudentReport' as record_type, created_at\").to_sql}\\n  UNION ALL\\n  #{student.memories.select(\"id, 'Memory' as record_type, created_at\").to_sql}\\n) AS timeline_items\\nORDER BY created_at DESC\\nLIMIT #{per_page} OFFSET #{((page - 1) * per_page)}\\n\")",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "JournalService",
-        "method": "s(:self).get_timeline"
-      },
-      "user_input": "per_page",
-      "confidence": "Medium",
-      "cwe_id": [
-        89
-      ],
-      "note": ""
-    },
-    {
       "warning_type": "Cross-Site Scripting",
       "warning_code": 4,
       "fingerprint": "d132ec920acda609483e31767237ff3b08244dabc440ac2bc8097a5d0060e963",

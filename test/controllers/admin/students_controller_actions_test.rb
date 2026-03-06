@@ -96,7 +96,13 @@ class Admin::StudentsControllerActionsTest < ActionDispatch::IntegrationTest
 
   test "enroll action enrolls a student in a course" do
     student = users(:student)
-    course_to_enroll = courses(:two) # A course the student is not yet enrolled in
+    course_to_enroll = Course.create!(
+      title: "Teacher-owned course",
+      summary: "Available for enrollment",
+      outline: [],
+      grade_level: "2",
+      teacher: @admin
+    )
 
     assert_not student.courses.include?(course_to_enroll)
 

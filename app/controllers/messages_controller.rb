@@ -5,7 +5,7 @@ class MessagesController < ApplicationController
 
   # For text/image messages
   def create
-    conversation = Conversation.find_by(id: params[:conversation_id])
+    conversation = authorized_conversation_scope.find_by(id: params[:conversation_id])
     return head :not_found unless conversation
 
     @message = conversation.messages.new(message_params.except(:images_data).merge(role: "user"))
@@ -34,7 +34,9 @@ class MessagesController < ApplicationController
 
   # POST /conversations/:conversation_id/audio_messages
   def create_audio_message
-    conversation = Conversation.find(params[:conversation_id])
+    conversation = authorized_conversation_scope.find_by(id: params[:conversation_id])
+    return head :not_found unless conversation
+
     unless conversation.audio_input_permitted?
       render json: {
         error: "Audio messages are not permitted for this conversation. Use transcription instead."
@@ -75,7 +77,9 @@ class MessagesController < ApplicationController
 
   # POST /conversations/:conversation_id/transcribed_messages
   def create_transcribed_message
-    conversation = Conversation.find(params[:conversation_id])
+    conversation = authorized_conversation_scope.find_by(id: params[:conversation_id])
+    return head :not_found unless conversation
+
     unless params[:audio]
       render json: { error: "No audio file provided" }, status: :bad_request
       return
@@ -173,11 +177,9 @@ class MessagesController < ApplicationController
 
   # GET /messages/:id/tts_stream
   def tts_stream
-    message = Message.find(params[:id])
-    # Only allow streaming speech for messages in conversations the user owns
-    unless (message.conversation.user == current_user) || current_user.role_superuser?
-      return head :forbidden
-    end
+    message = authorized_message_scope.find_by(id: params[:id])
+    return head :not_found unless message
+
     unless AppSetting.speech_configured?
       Rails.logger.warn "Streaming speech requested but not configured!"
       return head :not_implemented

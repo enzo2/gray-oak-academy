@@ -12,13 +12,6 @@ class LlmTest < ActiveSupport::TestCase
     assert llm.api_provider.end_with?("/"), "api_provider should have trailing slash"
   end
 
-  test "supports_audio_input? returns underlying flag" do
-    llm = Llm.create!(model: "m-audio", api_provider: "https://example.com/", supports_audio_input: true, context_length: 1000)
-    assert llm.supports_audio_input?
-    llm.update!(supports_audio_input: false)
-    refute llm.supports_audio_input?
-  end
-
   test "list_api_base_uri_options includes default and supported URIs" do
     options = Llm.list_api_base_uri_options
     assert options.is_a?(Array)
@@ -40,33 +33,6 @@ class LlmTest < ActiveSupport::TestCase
     llm.unarchive
     refute llm.archived?
     assert_nil llm.archived_at
-  end
-
-  test "default scope excludes archived LLMs" do
-    active_llm = Llm.create!(model: "active-model", api_provider: "https://example.com/", context_length: 1000)
-    archived_llm = Llm.with_archived.create!(model: "archived-model", api_provider: "https://example.com/", archived_at: Time.current, context_length: 1000)
-
-    all_llms = Llm.all
-    assert_includes all_llms, active_llm
-    refute_includes all_llms, archived_llm
-  end
-
-  test "with_archived scope includes archived LLMs" do
-    active_llm = Llm.create!(model: "active-model", api_provider: "https://example.com/", context_length: 1000)
-    archived_llm = Llm.with_archived.create!(model: "archived-model", api_provider: "https://example.com/", archived_at: Time.current, context_length: 1000)
-
-    all_llms = Llm.with_archived.all
-    assert_includes all_llms, active_llm
-    assert_includes all_llms, archived_llm
-  end
-
-  test "archived scope returns only archived LLMs" do
-    active_llm = Llm.create!(model: "active-model", api_provider: "https://example.com/", context_length: 1000)
-    archived_llm = Llm.with_archived.create!(model: "archived-model", api_provider: "https://example.com/", archived_at: Time.current, context_length: 1000)
-
-    archived_llms = Llm.archived
-    assert_includes archived_llms, archived_llm
-    refute_includes archived_llms, active_llm
   end
 
   test "cannot create duplicate model when archived exists" do

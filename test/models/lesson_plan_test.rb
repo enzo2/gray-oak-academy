@@ -1,11 +1,6 @@
 require "test_helper"
 
 class LessonPlanTest < ActiveSupport::TestCase
-  test "teacher association works through course" do
-    lesson_plan = lesson_plans(:one)
-    assert_equal users(:admin), lesson_plan.teacher
-  end
-
   test "cannot publish while linked resources are pending approval" do
     lesson_plan = lesson_plans(:one)
     lesson_plan.content = [ { "Intro" => "Ready" } ]

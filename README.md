@@ -127,7 +127,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ## About the Creator
 
-*I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling my son. I had dabbled in Rails over a decade prior in college, but my burgeoning penchant for making web apps abruptly disappeared within a week of starting med school. A few years into practicing medicine, LLMs made coding feasible again for me, and I found Rails still to be thriving (and great fun). In August 2024, I started laying down the vision for Gray Oak Academy, but in early 2025, LLMs were still not capable of driving it. Knowing this would soon change, I pressed on and decided to fully realize the concept over the next year. The app is therefore a blend of LLM pair-programming and vibe-coding (and hopefully bears the artisinal aura of pre-2026 software).
+*I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling my son. I had dabbled in Rails over a decade prior in college, but my burgeoning penchant for making web apps abruptly disappeared within a week of starting med school. A few years into practicing medicine, LLMs made coding feasible again for me, and I found Rails still to be thriving (and great fun). In August 2024, I started laying down the vision for Gray Oak Academy, but in early 2025, LLMs were still not capable of driving it. Knowing this would soon change, I pressed on and decided to fully realize the concept over the next year. The app is therefore a blend of LLM pair-programming and vibe-coding (and hopefully bears the artisanal aura of pre-2026 software).
 
 ## License 
 See LICENSE.md.

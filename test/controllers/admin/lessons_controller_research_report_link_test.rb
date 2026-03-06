@@ -38,5 +38,13 @@ module Admin
       assert_response :success
       assert_not_includes response.body, "View Guidance Report"
     end
+
+    test "teacher cannot view another teacher lesson" do
+      sign_in(users(:admin))
+
+      get admin_course_lesson_path(courses(:two), lessons(:two))
+
+      assert_response :not_found
+    end
   end
 end

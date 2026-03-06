@@ -80,6 +80,19 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:warning], "without starter context"
   end
 
+  test "teacher cannot access another teachers student conversation" do
+    teacher = users(:admin)
+    other_teacher = users(:admin2)
+    other_student = users(:student2)
+    other_student.update!(teacher: other_teacher)
+    conversation = Conversation.create!(user: other_student, title: "Other Teacher Student Chat")
+    sign_in(teacher)
+
+    get conversation_path(conversation)
+
+    assert_response :forbidden
+  end
+
   private
 
   def with_prompt_stubs

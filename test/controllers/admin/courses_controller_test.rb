@@ -26,5 +26,13 @@ module Admin
       end
       assert_response :success
     end
+
+    test "teacher cannot edit another teacher course" do
+      sign_in(users(:admin))
+
+      get edit_admin_course_path(courses(:two))
+
+      assert_response :not_found
+    end
   end
 end

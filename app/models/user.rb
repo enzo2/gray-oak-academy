@@ -12,7 +12,8 @@ class User < ApplicationRecord
 
   validates :first_name, presence: true
   validates :last_name, presence: true
-  validate :validate_first_user_must_be_admin_or_superuser
+  validate :validate_first_user_must_be_admin
+  validate :validate_signup_role
   validate :validate_signup_code # A signup code is required for registration, to differentiate teachers and students
   validate :validate_teacher_role
   validate :validate_not_own_teacher
@@ -116,10 +117,17 @@ class User < ApplicationRecord
     end
   end
 
-  def validate_first_user_must_be_admin_or_superuser
+  def validate_first_user_must_be_admin
     return unless new_record?
     return unless User.count.zero?
-    errors.add(:role, "must not be a student, because it is the first user.") unless role_superuser? || role_admin?
+    errors.add(:role, "must be an admin, because it is the first user.") unless role_admin?
+  end
+
+  def validate_signup_role
+    return unless new_record?
+    return if role_student? || role_admin?
+
+    errors.add(:role, "must be student or admin during sign up")
   end
 
   def validate_signup_code
@@ -127,7 +135,7 @@ class User < ApplicationRecord
     errors.add :signup_code, "is required" unless signup_code.present?
 
     case role
-    when "admin" || "superuser"
+    when "admin"
       errors.add(:signup_code, "is invalid") unless signup_code == ENV["TEACHER_SIGNUP_CODE"]
     when "student"
       errors.add(:signup_code, "is invalid") unless signup_code == ENV["STUDENT_SIGNUP_CODE"]

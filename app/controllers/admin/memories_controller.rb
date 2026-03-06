@@ -60,7 +60,7 @@ module Admin
     private
 
     def set_student
-      @student = User.find(params[:student_id])
+      @student = authorized_student_scope(include_self: true).find(params[:student_id])
     end
 
     def set_memory

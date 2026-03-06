@@ -7,18 +7,20 @@ class CompletionTest < ActiveSupport::TestCase
     @conversation = Conversation.create!(user: @user, title: "Test")
   end
 
-  test "valid completion" do
+  test "creation associates llm and inherits user from conversation" do
     completion = Completion.new(
-      llm: @llm,
       conversation: @conversation,
-      user: @user,
       model: "test-model",
       api_provider: "https://example.com/",
       prompt_tokens: 100,
       completion_tokens: 50,
       total_tokens: 150
     )
-    assert completion.valid?
+
+    completion.save!
+
+    assert_equal @llm, completion.llm
+    assert_equal @user, completion.user
   end
 
   test "usage data includes archived LLMs" do

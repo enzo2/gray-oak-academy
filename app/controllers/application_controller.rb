@@ -64,6 +64,62 @@ class ApplicationController < ActionController::Base
     devise_parameter_sanitizer.permit(:account_update, keys: [ :first_name, :last_name ])
   end
 
+  def authorized_student_scope(include_self: false)
+    case current_user.role
+    when "student"
+      User.where(id: current_user.id)
+    when "admin"
+      scope = User.where(id: current_user.students.select(:id))
+      include_self ? scope.or(User.where(id: current_user.id)) : scope
+    when "superuser"
+      include_self ? User.all : User.role_student
+    else
+      User.none
+    end
+  end
+
+  def authorized_course_scope
+    case current_user.role
+    when "admin"
+      current_user.taught_courses
+    when "superuser"
+      Course.all
+    else
+      Course.none
+    end
+  end
+
+  def authorized_conversation_scope
+    case current_user.role
+    when "student"
+      current_user.conversations
+    when "admin"
+      Conversation.where(user_id: current_user.id)
+                  .or(Conversation.where(user_id: current_user.students.select(:id)))
+    when "superuser"
+      Conversation.all
+    else
+      Conversation.none
+    end
+  end
+
+  def authorized_message_scope
+    Message.joins(:conversation).merge(authorized_conversation_scope)
+  end
+
+  def authorized_enrollment_scope
+    case current_user.role
+    when "student"
+      current_user.enrollments
+    when "admin"
+      Enrollment.where(student_id: authorized_student_scope(include_self: true).select(:id))
+    when "superuser"
+      Enrollment.all
+    else
+      Enrollment.none
+    end
+  end
+
   def check_llm_configured
     return if current_user.settings.llm_configured?
 

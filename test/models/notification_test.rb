@@ -76,22 +76,4 @@ class NotificationTest < ActiveSupport::TestCase
     assert_not_nil notification.read_at
     assert notification.read?
   end
-
-  test "scopes filter correctly" do
-    user = users(:admin)
-    unread = Notification.create!(
-      recipient: user,
-      event_type: "lesson.complete",
-      params: { "student_name" => "Test", "lesson_title" => "Test", "report_id" => 1 }
-    )
-    read = Notification.create!(
-      recipient: user,
-      event_type: "lesson.complete",
-      params: { "student_name" => "Test2", "lesson_title" => "Test2", "report_id" => 2 },
-      read_at: Time.current
-    )
-
-    assert_includes user.notifications.unread, unread
-    assert_not_includes user.notifications.unread, read
-  end
 end

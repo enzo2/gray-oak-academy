@@ -61,7 +61,8 @@ module Admin
       @observation_sort = Observation.normalize_management_sort(params[:observation_sort])
       @observation_sort_options = Observation.management_sort_options
       resolved_active_tab = raw_active_tab == "journal" ? "journal_timeline" : raw_active_tab
-      @active_tab = resolved_active_tab.to_sym
+      allowed_tabs = %w[journal_timeline journal_observations active_courses past_courses enroll memories applets settings]
+      @active_tab = (allowed_tabs.include?(resolved_active_tab) ? resolved_active_tab : "journal_timeline").to_sym
       @memories = @student.memories.includes(:author).order(created_at: :desc)
       @pending_observations = @student.observations.pending.order(created_at: :desc)
       @observation_timeline = Observation.for_management_timeline(
@@ -93,7 +94,7 @@ module Admin
     end
 
     def enroll
-      course = Course.find(params[:course_id])
+      course = authorized_course_scope.find(params[:course_id])
       @student.enrollments.create(course: course)
       flash[:success] = "Student enrolled successfully."
       redirect_to admin_student_path(@student, active_tab: :active_courses), status: :see_other
@@ -144,6 +145,5 @@ module Admin
       @completed_enrollments = @student.enrollments.completed
       @orphaned_reports = @student.student_reports.orphaned.order(created_at: :desc)
     end
-
   end
 end

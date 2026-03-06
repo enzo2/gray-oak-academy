@@ -126,7 +126,8 @@ module Admin
     private
 
     def set_lesson
-      @lesson = Lesson.find(params[:lesson_id])
+      @course = authorized_course_scope.find(params[:course_id])
+      @lesson = @course.lessons.find(params[:lesson_id])
     end
 
     def set_lesson_plan

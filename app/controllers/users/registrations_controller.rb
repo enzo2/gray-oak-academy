@@ -18,6 +18,12 @@ class Users::RegistrationsController < Devise::RegistrationsController
   #  super
   # end
 
+  def sign_up_params
+    sanitized = super
+    sanitized[:role] = normalize_signup_role(sanitized[:role])
+    sanitized
+  end
+
   # GET /resource/edit
   def edit
     # This view is used as the user settings page-- also includes tabs besides Devise-controlled user settings.
@@ -117,5 +123,12 @@ class Users::RegistrationsController < Devise::RegistrationsController
     else
       current_user.memories.order(created_at: :desc)
     end
+  end
+
+  def normalize_signup_role(role)
+    value = role.to_s
+    return value if %w[student admin].include?(value)
+
+    nil
   end
 end

@@ -210,6 +210,15 @@ module Admin
       assert_response :not_found
     end
 
+    test "cannot edit another teacher lesson plan" do
+      sign_in(users(:admin))
+      lesson = lessons(:two)
+
+      get edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson)
+
+      assert_response :not_found
+    end
+
     test "generate_content does not enqueue when generation already in progress" do
       sign_in(users(:admin))
       lesson = lessons(:one)

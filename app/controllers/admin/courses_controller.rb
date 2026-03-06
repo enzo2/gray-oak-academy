@@ -178,7 +178,7 @@ module Admin
     private
 
     def set_course
-      @course = Course.find(params[:id])
+      @course = authorized_course_scope.find(params[:id])
       @source_anchors = Array(@course.outline_research_hash["source_anchors"]).map { |anchor| anchor.is_a?(Hash) ? anchor : {} }
     end
 

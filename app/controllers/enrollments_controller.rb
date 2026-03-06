@@ -12,7 +12,7 @@ class EnrollmentsController < ApplicationController
   private
 
   def set_enrollment
-    @enrollment = Enrollment.find(params[:id])
+    @enrollment = authorized_enrollment_scope.find(params[:id])
   end
 
   def enrollment_layout

@@ -63,6 +63,20 @@ class UserTest < ActiveSupport::TestCase
     assert_includes teacher.errors[:signup_code], "is invalid"
   end
 
+  test "validate_signup_role rejects superuser during sign up" do
+    superuser = User.new(
+      first_name: "Test",
+      last_name: "Superuser",
+      email: "testsuperuser@example.com",
+      password: "password",
+      role: "superuser",
+      signup_code: ENV["TEACHER_SIGNUP_CODE"]
+    )
+
+    assert_not superuser.valid?
+    assert_includes superuser.errors[:role], "must be student or admin during sign up"
+  end
+
   test "should not destroy user with associated courses" do
     assert @admin.taught_courses.any?
 

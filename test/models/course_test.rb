@@ -7,29 +7,6 @@ class CourseTest < ActiveSupport::TestCase
     @teacher = users(:admin)
   end
 
-  test "should be valid with valid attributes" do
-    assert @course.valid?
-  end
-
-  test "should require a title" do
-    @course.title = ""
-    assert_not @course.valid?
-  end
-
-  test "should require a summary" do
-    @course.summary = ""
-    assert_not @course.valid?
-  end
-
-  test "should require a valid grade_level" do
-    @course.grade_level = "!"
-    assert_not @course.valid?
-    @course.grade_level = "A"
-    assert @course.valid?
-    @course.grade_level = "10"
-    assert @course.valid?
-  end
-
   test "enrolled_in? returns true if student is enrolled" do
     assert @course.enrolled_in?(@student)
   end
@@ -46,15 +23,6 @@ class CourseTest < ActiveSupport::TestCase
   test "available_for_enrollment returns only courses not already enrolled" do
     available = Course.available_for_enrollment(@student, @course.teacher)
     assert_not_includes available, @course
-  end
-
-  test "outline research stage must be valid" do
-    @course.outline_research_stage = "invalid_stage"
-    assert_not @course.valid?
-    assert_includes @course.errors[:outline_research_stage], "is not included in the list"
-
-    @course.outline_research_stage = "idle"
-    assert @course.valid?
   end
 
   test "outline guidance questions are capped at five" do

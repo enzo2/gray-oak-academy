@@ -71,11 +71,43 @@ class AdminStudentsTest < ApplicationSystemTestCase
     assert_selector "#past_courses:not(.hidden)"
   end
 
-  test "invalid active tab param falls back to journal panel" do
+  test "invalid active tab param falls back to journal timeline panel" do
     sign_in @admin
     visit admin_student_path(@my_student, active_tab: :unknown_tab)
 
-    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-panel="journal"][data-state="open"]'
-    assert_selector "#journal:not(.hidden)"
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-panel="journal_timeline"][data-state="open"]'
+    assert_selector "#journal_timeline:not(.hidden)"
+  end
+
+  test "me as student entry allows admin to add a memory for self" do
+    sign_in @admin
+    visit admin_students_path
+
+    click_on "Me as student"
+    find('#student-dashboard-tabs [role="tab"][data-tabs-panel="memories"]').click
+
+    fill_in "New Memory", with: "Remember to review this lesson flow as a teacher-student."
+    check "Hide from student"
+    click_on "Add Memory"
+
+    assert_text "Remember to review this lesson flow as a teacher-student."
+    assert_text "hidden from student"
+  end
+
+  test "my lessons entry shows admin self enrollments" do
+    course = Course.create!(
+      title: "Teacher Self Study",
+      summary: "Course visible from the teacher self dashboard.",
+      outline: [],
+      grade_level: "1",
+      teacher: @admin
+    )
+    Enrollment.create!(student: @admin, course: course)
+
+    sign_in @admin
+    click_on "My Lessons"
+
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_text "Teacher Self Study"
   end
 end
