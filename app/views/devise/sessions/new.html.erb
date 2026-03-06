@@ -1,7 +1,7 @@
 <main class="container mx-auto py-3 px-4 max-w-md">
   <h2 class="font-serif font-bold text-xl sm:hidden w-full mb-3 text-center"><%= ENV["APP_NAME"] || "Gray Oak Academy" %></h2>
 
-  <%= image_tag "logo_1024.jpg", class: "w-full max-w-64 mx-auto mb-4 sm:mt-4 p-0.5 bg-zinc-300 dark:bg-zinc-300 outline-double outline-4 outline-stone-300 dark:outline-stone-600" %>
+  <%= image_tag "logo_1024.jpg", class: "mx-auto mb-4 w-full max-w-64 bg-paper-300 p-0.5 outline-double outline-4 outline-stone-300 sm:mt-4 dark:bg-paper-300 dark:outline-stone-600" %>
 
   <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
     <div class="mb-4">

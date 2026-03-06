@@ -2,14 +2,14 @@
   <%= button_to(edit_memory_path(memory),
                 method: :get,
                 form: { data: { turbo_stream: true } },
-                class: "hover:text-blue-500 mr-2") do %>
+                class: "mr-2 hover:text-moss-500") do %>
     <sl-icon name="pencil"></sl-icon>
   <% end %>
 
   <%= button_to(memory_path(memory),
                 method: :delete,
                 form: { data: { turbo_confirm: "Delete this memory?" } },
-                class: "hover:text-red-500") do %>
+                class: "hover:text-danger-500") do %>
     <sl-icon name="trash"></sl-icon>
   <% end %>
 <% end %>

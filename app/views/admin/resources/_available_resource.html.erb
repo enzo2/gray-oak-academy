@@ -1,13 +1,13 @@
 <div id="available-<%= dom_id(resource) %>" class="flex space-x-2 my-1 p-1 bg-stone-200 dark:bg-stone-700">
   <%= link_to link_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
               data: { turbo_method: :post },
-              class: "text-green-600 hover:text-green-800 ml-1 flex items-center" do %>
+              class: "ml-1 flex items-center text-success-600 hover:text-success-800" do %>
     <sl-icon name="link"></sl-icon>
   <% end %>
   <div class="flex flex-col">
     <span><%= [resource.category, resource.description].compact_blank.join(" - ") %></span>
     <% if resource.approved == false %>
-      <span class="text-xs text-amber-700 dark:text-amber-300">Pending approval</span>
+      <span class="text-xs text-warning-700 dark:text-warning-300">Pending approval</span>
     <% end %>
     <% if resource.tags.any? %>
       <div class="mt-1 flex flex-wrap gap-1">

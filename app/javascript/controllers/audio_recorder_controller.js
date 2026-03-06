@@ -74,7 +74,7 @@ export default class extends Controller {
   async startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      this.recordButtonTarget.classList.add("text-red-500")
+      this.recordButtonTarget.classList.add("text-danger-500")
       this.recordButtonTarget.name = "stop-circle" // Change icon to stop
       this.recordButtonTarget.setAttribute("name", "stop-circle");
       this.helpTextTarget.textContent = "Recording...press stop to send message."
@@ -106,7 +106,7 @@ export default class extends Controller {
         this.isRecording = false
         this.recordButtonTarget.name = "mic" // Change icon back to mic
         this.recordButtonTarget.setAttribute("name", "mic");
-        this.recordButtonTarget.classList.remove("text-red-500")
+        this.recordButtonTarget.classList.remove("text-danger-500")
         this.helpTextTarget.innerText = this.helpTextTarget.dataset.defaultValue
         this.helpTextTarget.classList.add("hidden")
         const audioBlob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType })
@@ -132,7 +132,7 @@ export default class extends Controller {
       this.isRecording = false
       this.recordButtonTarget.name = "mic"
       this.recordButtonTarget.setAttribute("name", "mic");
-      this.recordButtonTarget.classList.remove("text-red-500")
+      this.recordButtonTarget.classList.remove("text-danger-500")
       this.helpTextTarget.innerText = this.helpTextTarget.dataset.defaultValue
       this.helpTextTarget.classList.add("hidden")
     }

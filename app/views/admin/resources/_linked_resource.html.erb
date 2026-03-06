@@ -2,14 +2,14 @@
   <% if resource.approved == false %>
     <%= link_to delete_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
                 data: { turbo_method: :delete, turbo_confirm: "Delete this resource from the library and all lesson plans?" },
-                class: "text-red-700 hover:text-red-900 ml-1 flex items-center",
+                class: "ml-1 flex items-center text-danger-700 hover:text-danger-900",
                 title: "Delete resource" do %>
       <sl-icon name="trash"></sl-icon>
     <% end %>
   <% else %>
     <%= link_to unlink_resource_admin_course_lesson_lesson_plan_path(lesson_plan.lesson.course, lesson_plan.lesson, resource_id: resource.id),
                 data: { turbo_method: :delete },
-                class: "text-red-600 hover:text-red-800 ml-1 flex items-center",
+                class: "ml-1 flex items-center text-danger-600 hover:text-danger-800",
                 title: "Unlink resource" do %>
       <sl-icon name="file-earmark-minus"></sl-icon>
     <% end %>
@@ -40,12 +40,12 @@
       </span>
     <% end %>
     <% if resource.approved == false %>
-      <span class="text-xs text-amber-700 dark:text-amber-300">
+      <span class="text-xs text-warning-700 dark:text-warning-300">
         Pending approval
         <%= link_to "Approve",
           approve_admin_resource_path(resource, lesson_plan_id: lesson_plan.id),
           data: { turbo_method: :patch, turbo_stream: true },
-          class: "ml-2 text-green-700 dark:text-green-300 underline" %>
+          class: "ml-2 text-success-700 underline dark:text-success-300" %>
       </span>
     <% end %>
     <% if resource.tags.any? %>

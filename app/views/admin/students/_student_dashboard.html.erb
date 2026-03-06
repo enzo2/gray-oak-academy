@@ -102,7 +102,7 @@
       <div id="pending_observations" class="space-y-2 md:space-y-4 mb-6">
         <% if @pending_observations.present? %>
           <div class="flex items-center gap-2 mb-2">
-            <sl-icon name="hourglass-split" class="text-amber-500"></sl-icon>
+            <sl-icon name="hourglass-split" class="text-warning-500"></sl-icon>
             <h3 class="font-semibold text-stone-600 dark:text-stone-400">Pending Observations</h3>
           </div>
           <% @pending_observations.each do |observation| %>
@@ -219,7 +219,7 @@
 
       <% if current_user.role_superuser? && current_user != @student %>
         <details class="mt-4">
-          <summary class="cursor-pointer text-red-600 font-bold">Danger Zone</summary>
+          <summary class="cursor-pointer font-bold text-danger-600">Danger Zone</summary>
           <div data-controller="modal">
             <button type="button" class="btn-danger text-sm mt-2 block" data-action="modal#open">DELETE STUDENT ACCOUNT</button>
 

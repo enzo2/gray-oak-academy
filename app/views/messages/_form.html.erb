@@ -17,13 +17,13 @@
   ) do |form| %>
 
   <% if local_assigns[:error].present? %>
-    <div class="mb-4 p-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-md">
+    <div class="mb-4 rounded-md bg-danger-100 p-2 text-danger-800 dark:bg-danger-900/50 dark:text-danger-100">
       <%= error %>
     </div>
   <% end %>
 
   <div data-new-message-target="previewArea" id="previewArea"
-       class="flex flex-wrap gap-2 mt-2 bg-neutral-200 dark:bg-neutral-700 rounded-md p-3 hidden"></div>
+       class="mt-2 hidden flex-wrap gap-2 rounded-md bg-stone-200 p-3 dark:bg-stone-700"></div>
 
   <div class="relative">
     <div class="relative
@@ -42,7 +42,7 @@
               [&::part(base)]:border-1
               [&::part(base)]:rounded-none
               [&::part(base)]:rounded-t-md
-              [&::part(base)]:border-neutral-200
+              [&::part(base)]:border-stone-200
               dark:[&::part(base)]:border-0
               [&::part(base)]:shadow-none!
               [&::part(base)]:focus:ring-offset-0
@@ -66,7 +66,7 @@
 
       <div data-new-message-target="helpText" data-audio-recorder-target="helpText"
            data-default-value="<%= audio_setting == "only" ? "Audio-only lesson: press spacebar to start recording" : "" %>"
-           class="text-xs text-neutral-500 absolute bottom-1 left-4 <%= "hidden" unless audio_setting == "only" %>">
+           class="absolute bottom-1 left-4 text-xs text-stone-500 dark:text-stone-400 <%= "hidden" unless audio_setting == "only" %>">
         <% if audio_setting == "only" %>
           Audio-only lesson: press spacebar to start recording
         <% end %>
@@ -112,9 +112,9 @@
       <button type="submit" class="text-xl" data-new-message-target="submitButton" data-action="click->new-message#submit">
         <sl-icon-button name="arrow-right-square" class="hidden" data-new-message-target="submitIcon"></sl-icon-button>
         <div data-new-message-target="submitSpinner" class="hidden p-[6px] flex items-center gap-[3px]">
-          <span class="block w-[5px] h-[5px] rounded-full bg-neutral-400 animate-pulse-dot"></span>
-          <span class="block w-[5px] h-[5px] rounded-full bg-neutral-400 animate-pulse-dot [animation-delay:0.2s]"></span>
-          <span class="block w-[5px] h-[5px] rounded-full bg-neutral-400 [animation-delay:0.4s] animate-pulse-dot"></span>
+          <span class="block h-[5px] w-[5px] rounded-full bg-stone-400 animate-pulse-dot"></span>
+          <span class="block h-[5px] w-[5px] rounded-full bg-stone-400 animate-pulse-dot [animation-delay:0.2s]"></span>
+          <span class="block h-[5px] w-[5px] rounded-full bg-stone-400 [animation-delay:0.4s] animate-pulse-dot"></span>
         </div>
       </button>
     </div>

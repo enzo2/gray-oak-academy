@@ -1,11 +1,11 @@
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 10px;">
-  <h1 style="color: #333; text-align: center;">Hello <%= @email %>!</h1>
+<h1 class="email-title">Hello <%= @email %>!</h1>
 
+<div class="email-body">
   <% if @resource.try(:unconfirmed_email?) %>
-    <p style="color: #555; font-size: 16px; line-height: 1.5;">We're contacting you to notify you that your email is being changed to <%= @resource.unconfirmed_email %>.</p>
+    <p>We're contacting you to notify you that your email is being changed to <%= @resource.unconfirmed_email %>.</p>
   <% else %>
-    <p style="color: #555; font-size: 16px; line-height: 1.5;">We're contacting you to notify you that your email has been changed to <%= @resource.email %>.</p>
+    <p>We're contacting you to notify you that your email has been changed to <%= @resource.email %>.</p>
   <% end %>
 
-  <p style="color: #777; font-size: 14px; margin-top: 30px; text-align: center;">If you didn't request this change, please contact our support team immediately.</p>
+  <p>If you didn't request this change, please contact our support team immediately.</p>
 </div>

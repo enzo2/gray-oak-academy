@@ -36,16 +36,16 @@
             <td class="px-2 py-1"><%= api.api_base_uri %></td>
             <td class="px-2 py-1">
               <% if api.api_access_token.present? %>
-                <span class="text-emerald-700 dark:text-emerald-300">Present</span>
+                <span class="text-success-700 dark:text-success-300">Present</span>
               <% else %>
-                <span class="text-stone-500">None</span>
+                <span class="text-stone-500 dark:text-stone-400">None</span>
               <% end %>
             </td>
             <td class="px-2 py-1">
               <% if api.enabled? %>
-                <span class="text-emerald-700 dark:text-emerald-300">Enabled</span>
+                <span class="text-success-700 dark:text-success-300">Enabled</span>
               <% else %>
-                <span class="text-stone-500">Disabled</span>
+                <span class="text-stone-500 dark:text-stone-400">Disabled</span>
               <% end %>
             </td>
             

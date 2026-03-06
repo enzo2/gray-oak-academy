@@ -116,7 +116,7 @@ export default class extends Controller {
 
     this.tooltipElement = document.createElement("div");
     this.tooltipElement.className =
-      "tooltip-content pointer-events-none wrap-break-word shadow-sm border rounded-lg border-white/10 absolute bg-[#333333] text-white py-1 px-2 z-[1000]";
+      "tooltip-content pointer-events-none wrap-break-word shadow-sm border rounded-lg absolute border-stone-700/40 bg-stone-800 text-stone-100 py-1 px-2 z-[1000] dark:border-stone-300/60 dark:bg-stone-100 dark:text-stone-900";
 
     const sizeClasses = {
       small: "text-xs",
@@ -155,7 +155,7 @@ export default class extends Controller {
 
       // Create the arrow element within the container
       this.arrowElement = document.createElement("div");
-      this.arrowElement.className = "tooltip-arrow-element bg-[#333333] w-2 h-2 border-white/10";
+      this.arrowElement.className = "tooltip-arrow-element h-2 w-2 border border-stone-700/40 bg-stone-800 dark:border-stone-300/60 dark:bg-stone-100";
       this.arrowElement.style.transform = "rotate(45deg)";
 
       this.arrowContainer.appendChild(this.arrowElement);

@@ -1,6 +1,6 @@
 <%= form_with(model: [:admin, @course, @lesson], id: "lesson-form") do |f| %>
   <% if @lesson.errors.any? %>
-    <div class="mb-4 text-red-950 dark:text-red-300">
+    <div class="mb-4 text-danger-950 dark:text-danger-300">
       <%= pluralize(@lesson.errors.count, "error") %> prevented this lesson from being saved.
       <ul>
         <% @lesson.errors.full_messages.each do |message| %>

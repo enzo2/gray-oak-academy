@@ -3,13 +3,13 @@
 <h2 class="text-xl font-semibold mb-2">
   Speech
   <% if AppSetting.speech_configured? || AppSetting.stt_configured? %>
-    <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+    <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
   <% end %>
 </h2>
 
 <%= form_with(model: @setting, url: admin_app_setting_path, method: :patch, class: "space-y-4") do |f| %>
   <% if @setting.errors.any? %>
-    <div class="mb-4 text-red-700 dark:text-red-300">
+    <div class="mb-4 text-danger-700 dark:text-danger-300">
       <%= pluralize(@setting.errors.count, "error") %> prevented saving:
       <ul class="list-disc list-inside">
         <% @setting.errors.full_messages.each do |message| %>
@@ -35,7 +35,7 @@
     <p class="text-xs text-dim mt-1">
       When present, this token will be used instead of the provider's shared token for TTS/STT calls. Stored encrypted.
       <% if @setting.provider_supported_api&.api_access_token.present? %>
-        <span class="text-green-600 dark:text-green-400">Shared OpenAI key is configured.</span>
+        <span class="text-success-600 dark:text-success-400">Shared OpenAI key is configured.</span>
       <% end %>
     </p>
   </div>
@@ -98,7 +98,7 @@
   <h2 class="text-xl font-semibold mb-2 mt-4">
     Image Gen
     <% if AppSetting.image_generation_configured? %>
-      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+      <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
   <div>
@@ -122,7 +122,7 @@
     <%= f.label :image_generation_two_pass, class: "flex items-start cursor-pointer" do %>
       <%= f.check_box :image_generation_two_pass, class: "checkbox-primary mt-1 mr-2" %>
       <div>
-        <span class="font-medium text-gray-700 dark:text-gray-300">Enable 2-pass generation (critique & regenerate)</span>
+        <span class="font-medium text-stone-700 dark:text-stone-300">Enable 2-pass generation (critique & regenerate)</span>
         <p class="text-xs text-dim mt-0.5">
           When enabled, the model will critique and regenerate the image to correct errors. Disable for faster generation or if using highly capable models (e.g. Gemini 3 Pro).
         </p>
@@ -133,7 +133,7 @@
   <h2 class="text-xl font-semibold mb-2 mt-4">
     Embeddings
     <% if AppSetting.embeddings_configured? %>
-      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+      <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
     <p class="text-sm text-dim mb-2">Used for app functions like memories.</p>
@@ -143,9 +143,9 @@
     <p class="text-xs text-dim mb-1">
       <b>Instructions:</b> Supports OpenRouter only. Enter an OpenRouter embedding model.<br>
       <% if SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")&.api_access_token.present? %>
-        <span class="text-green-600 dark:text-green-400">OpenRouter token is configured.</span>
+        <span class="text-success-600 dark:text-success-400">OpenRouter token is configured.</span>
       <% else %>
-        <span class="text-red-600 dark:text-red-400">Please add an OpenRouter shared access token in the LLM API settings.</span>
+        <span class="text-danger-600 dark:text-danger-400">Please add an OpenRouter shared access token in the LLM API settings.</span>
       <% end %> 
     </p>
   </div>
@@ -175,7 +175,7 @@
   <h2 class="text-xl font-semibold mt-4 mb-2">
     Background Agent Runs
     <% if AppSetting.openai_agent_enabled? %>
-      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+      <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
   <p class="text-dim text-sm mb-2">
@@ -217,9 +217,9 @@
       <p class="text-xs text-dim mt-1">
         Runs are only enabled when this field is set and the selected provider has a shared key.
         <% if @setting.openai_agent_access_token.present? %>
-          <span class="text-green-600 dark:text-green-400">Shared provider key is configured.</span>
+          <span class="text-success-600 dark:text-success-400">Shared provider key is configured.</span>
         <% else %>
-          <span class="text-red-600 dark:text-red-400">Add a shared key for OpenAI or xAI in LLM APIs to enable this pipeline.</span>
+          <span class="text-danger-600 dark:text-danger-400">Add a shared key for OpenAI or xAI in LLM APIs to enable this pipeline.</span>
         <% end %>
       </p>
     </div>
@@ -235,7 +235,7 @@
   <h2 class="text-xl font-semibold mt-4 mb-2">
     Exa Research
     <% if AppSetting.exa_enabled? %>
-      <sl-icon name="check-circle-fill" class="text-green-500 inline-block ml-2 align-middle text-lg"></sl-icon>
+      <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
   <p class="text-dim text-sm mb-2">
@@ -255,11 +255,11 @@
     <p class="text-xs text-dim mt-1">
       Stored encrypted. When present, this key is used for Exa calls.
       <% if @setting.exa_api_key.present? %>
-        <span class="text-green-600 dark:text-green-400">Exa API key is configured in App Settings.</span>
+        <span class="text-success-600 dark:text-success-400">Exa API key is configured in App Settings.</span>
       <% elsif ENV["EXA_API_KEY"].present? %>
-        <span class="text-green-600 dark:text-green-400">Using EXA_API_KEY from environment.</span>
+        <span class="text-success-600 dark:text-success-400">Using EXA_API_KEY from environment.</span>
       <% else %>
-        <span class="text-red-600 dark:text-red-400">Add an Exa key to enable Exa search/contents/research services.</span>
+        <span class="text-danger-600 dark:text-danger-400">Add an Exa key to enable Exa search/contents/research services.</span>
       <% end %>
     </p>
   </div>
@@ -269,7 +269,7 @@
       <%= f.label :course_outline_research_stub_enabled, class: "flex items-start cursor-pointer" do %>
         <%= f.check_box :course_outline_research_stub_enabled, class: "checkbox-primary mt-1 mr-2" %>
         <div>
-          <span class="font-medium text-gray-700 dark:text-gray-300">Enable outline research stub mode (development only)</span>
+          <span class="font-medium text-stone-700 dark:text-stone-300">Enable outline research stub mode (development only)</span>
           <p class="text-xs text-dim mt-0.5">
             Bypasses real Exa and Responses calls for course outline research runs and uses deterministic stub data.
           </p>

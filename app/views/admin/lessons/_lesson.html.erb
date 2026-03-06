@@ -1,7 +1,7 @@
 <div id="<%= dom_id(lesson) %>" class="grid grid-cols-1
-            md:grid-cols-[minmax(0,1.5fr)_minmax(0,3.4fr)_minmax(0,0.6fr)_minmax(0,0.5fr)]
-            lg:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(11rem,0.5fr)]
-            gap-2 md:gap-3 border-t md:first:border-t-0 border-stone-600 dark:border-stone-400 py-4 md:py-2">
+            md:grid-cols-[minmax(0,1.45fr)_minmax(0,3.55fr)_5.25rem_4.5rem]
+            xl:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(9rem,0.5fr)]
+            gap-2 md:gap-2 xl:gap-3 border-t md:first:border-t-0 border-stone-600 dark:border-stone-400 py-4 md:py-2">
   <%# Mobile: stacked with labels. Desktop: grid matching header order %>
   <div class="col-span-1 flex flex-col justify-center order-1 md:order-none">
     <div class="flex justify-between items-start md:items-center md:justify-start md:gap-3">
@@ -13,7 +13,7 @@
         </div>
 
         <div class="flex flex-col pr-2">
-          <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Title</span>
+          <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Title</span>
           <span class="text-[1.05rem] md:text-base font-semibold tracking-tight text-stone-900 dark:text-stone-100"><%= lesson.title %></span>
           <span class="text-sm text-stone-500 dark:text-stone-400"><%= lesson.approx_duration_min %> min</span>
         </div>
@@ -27,16 +27,16 @@
   </div>
 
   <div class="col-span-1 flex flex-col justify-start order-3 md:order-none">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Goals</span>
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Goals</span>
     <span class="text-[0.95rem] md:text-sm leading-snug text-stone-600 dark:text-stone-300/90 md:pr-2"><%= truncate(lesson.goals, length: 500) %></span>
   </div>
 
-  <div class="col-span-1 flex flex-col justify-center md:items-center order-4 md:order-none">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Lesson Plan</span>
+  <div class="col-span-1 flex flex-col justify-center md:items-end order-4 md:order-none">
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Lesson Plan</span>
     <%= link_to edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
-          class: "btn-table-action justify-start md:justify-center gap-2 self-start md:self-auto" do %>
+          class: "btn-table-action justify-start md:justify-end gap-2 self-start md:self-end" do %>
       <sl-icon name="pencil-square" class="text-base flex-shrink-0"></sl-icon>
-      <span class="truncate">
+      <span class="truncate md:hidden xl:inline">
         <% if lesson.lesson_plan.present? %>
           <%= lesson.lesson_plan.status.titleize %>
         <% else %>
@@ -47,11 +47,11 @@
   </div>
 
   <div class="col-span-1 flex flex-col justify-center order-5 md:order-none">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-2">Actions</span>
+    <span class="mb-2 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Actions</span>
     <div class="flex flex-row md:flex-col items-center md:items-end gap-2 [&_sl-icon]:text-base flex-wrap">
       <%= link_to edit_admin_course_lesson_path(lesson.course, lesson), class: "btn-table-action justify-center w-auto gap-2", data: { turbo_stream: true } do %>
         <sl-icon name="pencil" class="flex-shrink-0"></sl-icon>
-        <span class="md:hidden lg:inline">Edit</span>
+        <span class="md:hidden xl:inline">Edit</span>
       <% end %>
       <%= button_to admin_course_lesson_path(lesson.course, lesson),
             method: :delete,
@@ -60,7 +60,7 @@
               turbo_confirm: "Are you sure? This will delete the associated lesson plan too."
             } do %>
             <sl-icon name="trash" class="flex-shrink-0"></sl-icon>
-            <span class="md:hidden lg:inline">Delete</span>
+            <span class="md:hidden xl:inline">Delete</span>
       <% end %>
     </div>
   </div>

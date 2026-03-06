@@ -126,7 +126,7 @@ export default class extends Controller {
       idle: ["text-stone-600", "dark:text-stone-300"],
       saving: ["text-stone-700", "dark:text-stone-200"],
       saved: ["text-success-700", "dark:text-success-300"],
-      error: ["text-red-700", "dark:text-red-300"]
+      error: ["text-danger-700", "dark:text-danger-300"]
     }
 
     const allStateClasses = Object.values(stateClasses).flat()

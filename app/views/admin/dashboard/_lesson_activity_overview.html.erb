@@ -2,8 +2,8 @@
   <div class="flex flex-wrap items-center justify-between gap-2">
     <h2 class="text-lg font-semibold text-stone-900 dark:text-stone-100">7-Day Lesson Activity</h2>
     <div class="flex flex-wrap items-center gap-3 text-xs text-stone-600 dark:text-stone-400">
-      <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-sky-500"></span>Started</span>
-      <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>Completed</span>
+      <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-moss-500"></span>Started</span>
+      <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-success-500"></span>Completed</span>
     </div>
   </div>
   <% started_total = dashboard[:lesson_activity_7d].sum { |day| day[:started_count] } %>
@@ -33,10 +33,10 @@
                    data-started="<%= day[:started_count] %>"
                    data-completed="<%= day[:completed_count] %>"
                    class="flex items-end justify-center gap-1">
-                <div class="w-2.5 rounded-t-sm bg-sky-500 sm:w-3"
+                <div class="w-2.5 rounded-t-sm bg-moss-500 sm:w-3"
                      title="<%= "#{day[:date].strftime('%a, %b %-d')}: #{day[:started_count]} started" %>"
                      style="height: <%= dashboard_bar_height(day[:started_count], max_count) %>"></div>
-                <div class="w-2.5 rounded-t-sm bg-emerald-500 sm:w-3"
+                <div class="w-2.5 rounded-t-sm bg-success-500 sm:w-3"
                      title="<%= "#{day[:date].strftime('%a, %b %-d')}: #{day[:completed_count]} completed" %>"
                      style="height: <%= dashboard_bar_height(day[:completed_count], max_count) %>"></div>
               </div>

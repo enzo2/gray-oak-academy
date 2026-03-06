@@ -5,7 +5,7 @@
 
 <%= form_with(model: [:admin, lesson.course, lesson, lesson_plan], url: admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :patch, id: "lesson-plan-form") do |f| %>
   <% if lesson_plan.errors.any? %>
-    <div class="mb-4 text-red-800 dark:text-red-300" id="lesson-plan-errors">
+    <div class="mb-4 text-danger-800 dark:text-danger-300" id="lesson-plan-errors">
       <%= pluralize(lesson_plan.errors.count, "error") %> prevented this lesson plan from being saved.
       <ul>
         <% lesson_plan.errors.full_messages.each do |message| %>
@@ -73,7 +73,7 @@
                     turbo_confirm: 'Remove this suggested resource?' 
                     }, 
                   class: 'mt-0.5 shrink-0 flex items-center' do %>
-              <sl-icon name="trash" class="text-gray-500 hover:text-red-500"></sl-icon>
+              <sl-icon name="trash" class="text-stone-500 hover:text-danger-500 dark:text-stone-400 dark:hover:text-danger-400"></sl-icon>
             <% end %>
             <div class="min-w-0 whitespace-normal wrap-break-word">
               <span class="font-semibold"><%= resource.keys.first %></span><span class="mx-1">:</span><%= resource.values.first %>
@@ -104,7 +104,7 @@
         <div class="flex items-start gap-3">
           <%= b.radio_button(class: "mt-1 radio-primary") %>
           <div class="flex-1">
-            <%= b.label(class: "block text-sm font-medium text-neutral-700 dark:text-neutral-300") do %>
+            <%= b.label(class: "block text-sm font-medium text-stone-700 dark:text-stone-300") do %>
                <%= b.value == 'only' ? 'Audio Only' : b.text.titleize %>
             <% end %>
             <p class="text-xs text-dim">
@@ -126,7 +126,7 @@
     <%= f.label :status, class: "form-label" %>
     <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Pending linked resources must be approved first.</i></p>
     <% status_radio_classes = "radio-primary" %>
-    <% status_radio_classes = "#{status_radio_classes} border-red-400 dark:border-red-800" if lesson_plan.errors[:status].any? %>
+    <% status_radio_classes = "#{status_radio_classes} border-danger-400 dark:border-danger-800" if lesson_plan.errors[:status].any? %>
     <div class="flex flex-wrap gap-x-6 gap-y-2">
       <% LessonPlan.statuses.keys.each do |status_value| %>
         <label for="lesson_plan_status_<%= status_value %>" data-value="<%= status_value %>" class="inline-flex items-center gap-2">

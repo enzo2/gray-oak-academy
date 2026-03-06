@@ -6,7 +6,7 @@
 <%= render partial: "admin/lesson_plans/propose_resources_button", locals: { lesson: lesson, lesson_plan: lesson_plan } %>
 
 <% if lesson_plan.resources.pending_approval.exists? %>
-  <p class="text-sm text-amber-700 dark:text-amber-300 mb-3">
+  <p class="mb-3 text-sm text-warning-700 dark:text-warning-300">
     Some linked resources are pending approval. You must approve them before publishing this lesson plan.
   </p>
 <% end %>

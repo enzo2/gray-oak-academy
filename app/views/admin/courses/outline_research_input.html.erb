@@ -10,9 +10,9 @@
 <% apply_completed_at = begin Time.zone.parse(apply_completed_at_raw) rescue nil end %>
 <% apply_in_progress = @course.outline_research_stage == "applying_guidance_updates" %>
 <% pipeline_completed = @course.outline_research_stage == "completed" %>
-<% outline_failed_classes = "rounded border border-red-300 bg-red-50/70 px-4 py-[0.9rem] dark:border-red-800 dark:bg-red-950/20" %>
+<% outline_failed_classes = "rounded border border-danger-300 bg-danger-50/70 px-4 py-[0.9rem] dark:border-danger-800 dark:bg-danger-950/20" %>
 <% outline_failed_header_classes = "flex items-center gap-3" %>
-<% outline_failed_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-red-600 to-red-700 text-[0.95rem] font-bold text-white ring-2 ring-red-500/20" %>
+<% outline_failed_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-danger-600 to-danger-700 text-[0.95rem] font-bold text-white ring-2 ring-danger-500/20" %>
 <% outline_complete_classes = "rounded border border-moss-500/45 bg-gradient-to-b from-moss-100/70 to-stone-100/70 px-4 py-[0.9rem] dark:border-moss-700 dark:from-stone-900 dark:to-stone-800" %>
 <% outline_complete_header_classes = "flex items-center gap-3" %>
 <% outline_complete_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-moss-600 to-moss-700 text-[0.9rem] font-bold text-white ring-2 ring-moss-500/25" %>
@@ -165,7 +165,7 @@
       <% end %>
     </div>
   <% elsif @course.outline_research_error.present? %>
-    <p class="text-sm text-red-700 dark:text-red-300 mb-4">
+    <p class="mb-4 text-sm text-danger-700 dark:text-danger-300">
       <b>Error:</b> <%= @course.outline_research_error %>
     </p>
   <% end %>

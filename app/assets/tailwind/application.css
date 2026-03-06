@@ -13,6 +13,18 @@
   --font-sans: "InterVariable", sans-serif;
   --font-serif: "Merriweather", serif;
 
+  --color-paper-50: var(--goa-paper-50);
+  --color-paper-100: var(--goa-paper-100);
+  --color-paper-200: var(--goa-paper-200);
+  --color-paper-300: var(--goa-paper-300);
+  --color-paper-400: var(--goa-paper-400);
+  --color-paper-500: var(--goa-paper-500);
+  --color-paper-600: var(--goa-paper-600);
+  --color-paper-700: var(--goa-paper-700);
+  --color-paper-800: var(--goa-paper-800);
+  --color-paper-900: var(--goa-paper-900);
+  --color-paper-950: var(--goa-paper-950);
+
   --color-moss-50: var(--goa-moss-50);
 	--color-moss-100: var(--goa-moss-100);
 	--color-moss-200: var(--goa-moss-200);
@@ -31,6 +43,18 @@
   --color-moss-light-hover: #ced8b8;
   --color-moss-light-active: #bcc9a1;
 
+  --color-forest-50: var(--goa-forest-50);
+  --color-forest-100: var(--goa-forest-100);
+  --color-forest-200: var(--goa-forest-200);
+  --color-forest-300: var(--goa-forest-300);
+  --color-forest-400: var(--goa-forest-400);
+  --color-forest-500: var(--goa-forest-500);
+  --color-forest-600: var(--goa-forest-600);
+  --color-forest-700: var(--goa-forest-700);
+  --color-forest-800: var(--goa-forest-800);
+  --color-forest-900: var(--goa-forest-900);
+  --color-forest-950: var(--goa-forest-950);
+
 	--color-success-50: var(--goa-success-50);
 	--color-success-100: var(--goa-success-100);
   --color-success-200: var(--goa-success-200);
@@ -42,6 +66,30 @@
 	--color-success-800: var(--goa-success-800);
 	--color-success-900: var(--goa-success-900);
 	--color-success-950: var(--goa-success-950);
+
+	--color-warning-50: var(--goa-warning-50);
+	--color-warning-100: var(--goa-warning-100);
+	--color-warning-200: var(--goa-warning-200);
+	--color-warning-300: var(--goa-warning-300);
+	--color-warning-400: var(--goa-warning-400);
+	--color-warning-500: var(--goa-warning-500);
+	--color-warning-600: var(--goa-warning-600);
+	--color-warning-700: var(--goa-warning-700);
+	--color-warning-800: var(--goa-warning-800);
+	--color-warning-900: var(--goa-warning-900);
+	--color-warning-950: var(--goa-warning-950);
+
+	--color-danger-50: var(--goa-danger-50);
+	--color-danger-100: var(--goa-danger-100);
+	--color-danger-200: var(--goa-danger-200);
+	--color-danger-300: var(--goa-danger-300);
+	--color-danger-400: var(--goa-danger-400);
+	--color-danger-500: var(--goa-danger-500);
+	--color-danger-600: var(--goa-danger-600);
+	--color-danger-700: var(--goa-danger-700);
+	--color-danger-800: var(--goa-danger-800);
+	--color-danger-900: var(--goa-danger-900);
+	--color-danger-950: var(--goa-danger-950);
 
   --spacing-1\/2screen: 50vh;
   --spacing-2\/3screen: 66vh;
@@ -207,7 +255,7 @@
   .field_with_errors textarea,
   .field_with_errors select,
   .field_with_errors  {
-    @apply !border-red-400 dark:!border-red-800;
+    @apply !border-danger-400 dark:!border-danger-700;
   }
 
 }
@@ -235,10 +283,10 @@
 @utility btn-secondary {
   @apply inline-flex items-center justify-center gap-2 rounded-sm text-base
          px-3 py-[5px] border
-         bg-white dark:bg-neutral-900
+         bg-white dark:bg-stone-900
          text-stone-800 dark:text-stone-200
          border-stone-300 dark:border-stone-600
-         hover:bg-stone-100 dark:hover:bg-neutral-800
+         hover:bg-stone-100 dark:hover:bg-stone-800
          focus-visible:outline-hidden
          focus-visible:ring-2 focus-visible:ring-moss-dark dark:focus-visible:ring-moss-light
          focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
@@ -250,14 +298,15 @@
 @utility btn-danger {
   @apply inline-flex items-center justify-center gap-2 rounded-sm font-medium text-base
          px-2 py-[4px] border-1
-         bg-white dark:bg-neutral-900 border-red-200 dark:border-red-950
-         hover:bg-red-700 active:bg-red-800
-         text-stone-800 dark:text-stone-200
+         bg-white dark:bg-stone-900 border-danger-300 dark:border-danger-800
+         text-danger-700 dark:text-danger-300
+         hover:bg-danger-700 active:bg-danger-800
+         hover:border-danger-700 active:border-danger-800
          hover:text-white active:text-white
          
          transition-colors duration-100 ease-out
          focus-visible:outline-hidden
-         focus-visible:ring-2 focus-visible:ring-red-200 dark:focus-visible:ring-red-400
+         focus-visible:ring-2 focus-visible:ring-danger-300 dark:focus-visible:ring-danger-500
          focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
          disabled:opacity-60;
 }

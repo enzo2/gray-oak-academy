@@ -1,6 +1,6 @@
 <%= form_with(model: [:admin, @supported_api], class: "space-y-4") do |f| %>
   <% if @supported_api.errors.any? %>
-    <div class="mb-4 text-red-700 dark:text-red-300">
+    <div class="mb-4 text-danger-700 dark:text-danger-300">
       <%= pluralize(@supported_api.errors.count, "error") %> prevented saving:
       <ul class="list-disc list-inside">
         <% @supported_api.errors.full_messages.each do |message| %>
@@ -24,11 +24,11 @@
     <% if @supported_api.persisted? %>
       <p class="text-xs text-dim mt-1">
         <% if @supported_api.api_access_token.present? %>
-          Token: <span class="text-emerald-700 dark:text-emerald-300">
+          Token: <span class="text-success-700 dark:text-success-300">
             Saved (<%= @supported_api.api_access_token.first(4) %>...<%= @supported_api.api_access_token.last(2) %>)
             </span> — leave blank to keep unchanged.
         <% else %>
-          Token: <span class="text-stone-500">None</span>
+          Token: <span class="text-stone-500 dark:text-stone-400">None</span>
         <% end %>
       </p>
     <% else %>

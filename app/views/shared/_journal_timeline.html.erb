@@ -2,13 +2,13 @@
      data-controller="infinite-scroll"
      data-infinite-scroll-url-value="<%= local_assigns[:url] || journal_admin_student_path(@student) %>">
   
-  <div class="relative w-full before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 dark:before:via-stone-600 before:to-transparent">
+  <div class="relative w-full before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-stone-300 before:to-transparent md:before:mx-auto md:before:translate-x-0 dark:before:via-stone-600">
     <div id="journal_entries" class="space-y-2 md:space-y-0" data-infinite-scroll-target="entries">
       <%# Items loaded via Stimulus %>
     </div>
   </div>
   
-  <div id="journal_pagination" data-infinite-scroll-target="pagination" class="py-4 text-center text-stone-500">
+  <div id="journal_pagination" data-infinite-scroll-target="pagination" class="py-4 text-center text-stone-500 dark:text-stone-400">
     <sl-spinner></sl-spinner> Loading journal...
   </div>
 </div>

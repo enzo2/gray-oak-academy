@@ -1,6 +1,6 @@
 <%= form_with(model: [:admin, course], id: "course-form") do |f| %>
   <% if course.errors.any? %>
-    <div class="mb-4 text-red-950 dark:text-red-300">
+    <div class="mb-4 text-danger-950 dark:text-danger-300">
       <%= pluralize(course.errors.count, "error") %> prevented this course from being saved.
       <ul>
         <% course.errors.full_messages.each do |message| %>

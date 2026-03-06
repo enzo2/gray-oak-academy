@@ -21,7 +21,7 @@
              data-connection-status-connected-icon-value="cloud-check"
              data-connection-status-disconnected-icon-value="cloud-slash"
              data-connection-status-connected-class="text-success-600 dark:text-success-500"
-             data-connection-status-disconnected-class="text-red-600 dark:text-red-500">
+             data-connection-status-disconnected-class="text-danger-600 dark:text-danger-500">
           <div data-controller="tooltip" 
                data-tooltip-content="Connecting..." 
                data-connection-status-target="tooltip"
@@ -74,7 +74,7 @@
     <% if @conversation.messages.length < 2 %>
     <!-- Will be removed after first user message -->
     <div class="flex-none flex items-center gap-2 mb-1" id="lesson-duration">
-      <sl-icon name="clock" class="text-stone-500"></sl-icon>
+      <sl-icon name="clock" class="text-stone-500 dark:text-stone-400"></sl-icon>
       <span class="text-sm text-stone-600 dark:text-stone-400">Approx. <%= @lesson.approx_duration_min %> minutes</span>
     </div>
     <% end %>
@@ -106,7 +106,7 @@
     <%# Mobile Chalkboard Overlay %>
     <div data-chalkboard-target="mobileOverlay" class="fixed inset-0 z-[60] hidden xl:hidden">
       <div class="absolute inset-0 bg-black/50" data-action="click->chalkboard#closeMobile"></div>
-      <div class="absolute inset-y-0 right-0 w-full bg-slate-100 dark:bg-stone-900 shadow-xl border-l border-stone-300 dark:border-stone-700">
+      <div class="absolute inset-y-0 right-0 w-full border-l border-stone-300 bg-stone-100 shadow-xl dark:border-stone-700 dark:bg-stone-900">
         <%# Single-instance host where the chalkboard DOM is moved into for mobile %>
         <div data-chalkboard-target="host" class="flex h-full flex-col"></div>
       </div>

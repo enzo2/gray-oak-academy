@@ -15,7 +15,7 @@
           <%= button_to clear_conversation_path(conversation), method: :delete,
               data: { turbo_method: :delete, turbo_confirm: 'This will delete all messages in the conversation.' } do %>
             <div class="flex items-center">
-              <sl-icon name="eraser" label="Clear conversation" class="hover:text-red-700"></sl-icon>
+              <sl-icon name="eraser" label="Clear conversation" class="hover:text-danger-700"></sl-icon>
               <span class="pl-2">Clear</span>
             </div>
           <% end %>
@@ -25,7 +25,7 @@
                 data: { turbo_method: :delete, turbo_confirm: "Are you sure?" },
                 class: "" do %>
             <div class="flex items-center">
-              <sl-icon name="trash" label="Delete conversation" class="hover:text-red-700"></sl-icon>
+              <sl-icon name="trash" label="Delete conversation" class="hover:text-danger-700"></sl-icon>
               <span class="pl-2">Delete</span>
             </div>
           <% end %>

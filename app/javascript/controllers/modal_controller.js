@@ -128,7 +128,7 @@ export default class extends Controller {
 
     // 2. Backdrop (dark overlay)
     const backdrop = document.createElement("div")
-    backdrop.className = "fixed inset-0 bg-gray-500/75 transition-opacity"
+    backdrop.className = "fixed inset-0 bg-stone-950/70 transition-opacity"
     this.modalWrapper.appendChild(backdrop)
 
     // 3. Scrollable container

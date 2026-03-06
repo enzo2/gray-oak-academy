@@ -13,9 +13,9 @@
         <% my_students.each do |student| %>
           <%= link_to student.name,
               admin_student_path(student),
-              class: "hover:underline block px-2 py-1 rounded #{'bg-slate-300 dark:bg-slate-700' if @student&.id == student.id}" %>
+              class: "block rounded px-2 py-1 hover:underline #{'bg-stone-300 dark:bg-stone-700' if @student&.id == student.id}" %>
         <% end.empty? and begin %>
-          <div class="py-1 text-gray-500">No students yet</div>
+          <div class="py-1 text-stone-500 dark:text-stone-400">No students yet</div>
         <% end %>
       </div>
     </div>
@@ -39,14 +39,14 @@
             <%# Superusers can navigate to any student's settings; teachers can only see the name %>
             <% if current_user.role_superuser? %>
               <%= link_to student.name, admin_student_path(student), 
-              class: "hover:underline block px-2 py-1 rounded #{'bg-slate-300 dark:bg-slate-700' if @student&.id == student.id}" %>
+              class: "block rounded px-2 py-1 hover:underline #{'bg-stone-300 dark:bg-stone-700' if @student&.id == student.id}" %>
             <% elsif current_user.role_admin? %>
               <span><%= student.name %></span>
             <% end %>
 
             <% if student.teacher.nil? %>
               <%= link_to adopt_admin_student_path(student),
-                    class: "text-green-600 hover:text-green-500 p-1",
+                    class: "p-1 text-success-600 hover:text-success-500",
                     data: { turbo_method: :post } do %>
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -56,7 +56,7 @@
             <% end %>
           </div>
         <% end.empty? and begin %>
-          <div class="py-1 text-gray-500">No other students</div>
+          <div class="py-1 text-stone-500 dark:text-stone-400">No other students</div>
         <% end %>
       </div>
     </div>
@@ -65,7 +65,7 @@
 
 <hr class="hr-primary mb-2">
 
-  <button class="hover:text-green-500 hover:cursor-pointer flex items-center" 
+  <button class="flex items-center hover:cursor-pointer hover:text-success-500" 
         data-show-dialog="new-student-modal">
   <svg class="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -77,7 +77,7 @@
 <hr class="hr-primary my-2">
 
 <%= link_to admin_student_path(current_user),
-    class: "hover:underline block py-1 rounded #{'bg-slate-300 dark:bg-slate-700 pl-1' if @student&.id == current_user.id}" do %>
+    class: "block rounded py-1 hover:underline #{'bg-stone-300 dark:bg-stone-700 pl-1' if @student&.id == current_user.id}" do %>
   <div class="flex flex-row items-center">
     <sl-icon name="person-circle" class="mr-1"></sl-icon>Me as student
   </div>

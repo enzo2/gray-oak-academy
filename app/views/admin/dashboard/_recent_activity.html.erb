@@ -9,11 +9,11 @@
       <% dashboard[:recent_activity_items].each do |item| %>
         <% badge_label, badge_classes = case item[:kind]
           when :lesson_completed
-            ["Lesson", "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200"]
+            ["Lesson", "bg-success-100 text-success-900 dark:bg-success-800 dark:text-success-100 dark:ring-1 dark:ring-success-500/30"]
           when :profile_generated
-            ["Profile", "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-200"]
+            ["Profile", "bg-forest-100 text-forest-900 dark:bg-forest-800 dark:text-forest-100 dark:ring-1 dark:ring-forest-500/30"]
           else
-            ["Feedback", "bg-cyan-100 text-cyan-900 dark:bg-cyan-900/40 dark:text-cyan-200"]
+            ["Feedback", "bg-paper-200 text-paper-900 dark:bg-paper-800 dark:text-paper-50 dark:ring-1 dark:ring-paper-500/30"]
           end %>
 
         <li data-testid="recent-activity-row" class="rounded-sm border border-stone-200 p-3 dark:border-stone-700">

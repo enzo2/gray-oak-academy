@@ -7,7 +7,7 @@
   <% end %>
 </div>
 
-<div class="mb-4" data-controller="resource-filter">
+<div class="mb-4 min-w-0" data-controller="resource-filter">
   <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 mb-3">
     <div class="w-full lg:max-w-md">
       <label for="resource_search" class="block text-sm font-semibold text-stone-700 dark:text-stone-200 mb-1">Search</label>
@@ -35,10 +35,9 @@
     </div>
   </div>
 
-  <div class="w-full">
-    <div class="hidden md:grid items-end
+  <div class="w-full min-w-0">
+    <div class="hidden md:grid min-w-0 items-end
                 md:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]
-                lg:grid-cols-[minmax(12rem,1.2fr)_minmax(20rem,2.8fr)_minmax(10rem,0.8fr)_minmax(12rem,1fr)]
                 gap-3 border-b border-stone-800 dark:border-stone-200 py-2 font-bold">
       <div>Category</div>
       <div>Description</div>
@@ -46,7 +45,7 @@
       <div class="text-right">Actions</div>
     </div>
 
-    <div id="resources-table-body">
+    <div id="resources-table-body" class="min-w-0">
       <% if @resources.any? %>
         <%= render @resources %>
         <div data-resource-filter-target="emptyState" class="hidden py-4 px-6 text-center border-t border-stone-600 dark:border-stone-400">

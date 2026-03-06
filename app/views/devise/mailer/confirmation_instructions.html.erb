@@ -1,11 +1,13 @@
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa; border-radius: 10px;">
-  <h1 style="color: #333; text-align: center;">Welcome <%= @email %>!</h1>
+<h1 class="email-title">Welcome <%= @email %>!</h1>
 
-  <p style="color: #555; font-size: 16px; line-height: 1.5;">You can confirm your account email through the link below:</p>
+<div class="email-body">
+  <p>You can confirm your account email through the link below.</p>
+</div>
 
-  <div style="text-align: center; margin-top: 30px;">
-    <%= link_to 'Confirm my account', confirmation_url(@resource, confirmation_token: @token), style: "display: inline-block; padding: 10px 20px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;" %>
-  </div>
+<div class="email-actions">
+  <%= link_to "Confirm my account", confirmation_url(@resource, confirmation_token: @token), class: "email-button" %>
+</div>
 
-  <p style="color: #777; font-size: 14px; margin-top: 30px; text-align: center;">If you didn't request this, please ignore this email.</p>
+<div class="email-body">
+  <p>If you didn't request this, please ignore this email.</p>
 </div>

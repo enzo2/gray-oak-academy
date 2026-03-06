@@ -1,15 +1,52 @@
-<div id="<%= dom_id(resource) %>" data-resource-filter-target="availableResource" data-resource-filter-searchable="<%= "#{resource.category} #{resource.description} #{resource.tags&.join(' ')}".strip %>" data-resource-filter-tags="<%= resource.tags.join(',') %>" data-resource-filter-category="<%= resource.category.to_s %>" class="relative grid grid-cols-1 pr-28 md:pr-0
+<% action_buttons = capture do %>
+  <% if resource.approved == false %>
+    <%= button_to approve_admin_resource_path(resource), method: :patch, class: "btn-success justify-center gap-1 px-2 py-1 text-xs font-semibold md:text-sm", aria: { label: "Approve resource" }, title: "Approve" do %>
+      <sl-icon name="check-circle"></sl-icon>
+      <span class="hidden lg:inline">Approve</span>
+    <% end %>
+  <% end %>
+  <% if resource.applet.present? %>
+    <%= link_to run_applet_path(resource.applet),
+                class: "btn-table-action",
+                target: "_blank",
+                rel: "noopener noreferrer",
+                aria: { label: "Run applet preview" },
+                title: "Run applet preview" do %>
+      <sl-icon name="play-circle"></sl-icon>
+    <% end %>
+  <% end %>
+  <%= link_to admin_resource_path(resource), class: "btn-table-action", aria: { label: "View resource" }, title: "View" do %>
+    <sl-icon name="eye"></sl-icon>
+  <% end %>
+  <%= link_to edit_admin_resource_path(resource), class: "btn-table-action", aria: { label: "Edit resource" }, title: "Edit" do %>
+    <sl-icon name="pencil"></sl-icon>
+  <% end %>
+  <%= button_to admin_resource_path(resource), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn-table-danger", aria: { label: "Delete resource" }, title: "Delete" do %>
+    <sl-icon name="trash"></sl-icon>
+  <% end %>
+<% end %>
+
+<div id="<%= dom_id(resource) %>" data-resource-filter-target="availableResource" data-resource-filter-searchable="<%= "#{resource.category} #{resource.description} #{resource.tags&.join(' ')}".strip %>" data-resource-filter-tags="<%= resource.tags.join(',') %>" data-resource-filter-category="<%= resource.category.to_s %>" class="grid min-w-0 grid-cols-1
             md:grid-cols-[minmax(0,1.2fr)_minmax(0,2.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]
-            lg:grid-cols-[minmax(12rem,1.2fr)_minmax(20rem,2.8fr)_minmax(10rem,0.8fr)_minmax(12rem,1fr)]
-            gap-2 md:gap-3 border-t md:first:border-t-0 py-2 md:py-2 <%= resource.approved == false ? 'bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-700' : 'border-stone-600 dark:border-stone-400' %>">
-  <div class="col-span-1 flex flex-col justify-center order-1 md:order-none">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Category</span>
-    <span class="text-[1.05rem] md:text-base tracking-tight text-stone-900 dark:text-stone-100"><%= resource.category %></span>
+            gap-2 md:gap-3 border-t md:first:border-t-0 py-2 md:py-2 <%= resource.approved == false ? 'bg-warning-50/80 dark:bg-warning-950/25 border-warning-300 dark:border-warning-700' : 'border-stone-600 dark:border-stone-400' %>">
+  <div class="col-span-1 order-1 min-w-0 flex flex-col justify-start md:order-none md:justify-center">
+    <div class="flex items-start justify-between gap-3 md:block">
+      <div class="min-w-0">
+        <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Category</span>
+        <span class="block break-words text-[1.05rem] tracking-tight text-stone-900 dark:text-stone-100 md:text-base"><%= resource.category %></span>
+      </div>
+
+      <div class="shrink-0 self-start md:hidden">
+        <div class="flex max-w-[7rem] flex-wrap justify-end gap-2 [&_sl-icon]:text-base">
+          <%= action_buttons %>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="col-span-1 flex flex-col justify-start order-2 md:order-none">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Description</span>
-    <span class="text-[0.95rem] md:text-sm leading-snug text-stone-600 dark:text-stone-300/90 md:pr-2"><%= truncate(resource.description, length: 150) %></span>
+  <div class="col-span-1 order-2 min-w-0 flex flex-col justify-start md:order-none">
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Description</span>
+    <span class="break-words text-[0.95rem] leading-snug text-stone-600 dark:text-stone-300/90 md:pr-2 md:text-sm"><%= resource.description %></span>
     <% if resource.tags.any? %>
       <div class="mt-2 flex flex-wrap gap-1">
         <% resource.tags.each do |tag| %>
@@ -19,38 +56,14 @@
     <% end %>
   </div>
 
-  <div class="col-span-1 flex flex-col justify-center md:items-center order-3 md:order-none">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Include by default</span>
+  <div class="col-span-1 order-3 min-w-0 flex flex-col justify-center md:order-none md:items-center">
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Include by default</span>
     <span class="text-sm text-stone-700 dark:text-stone-200 md:text-center"><%= resource.include_by_default? ? 'Yes' : 'No' %></span>
   </div>
 
-  <div class="col-span-1 order-4 md:order-none absolute right-2 top-2 md:static md:flex md:flex-col md:justify-center">
-    <div class="flex flex-col md:flex-row items-end md:items-center md:justify-end gap-2 [&_sl-icon]:text-base">
-      <% if resource.approved == false %>
-        <%= button_to approve_admin_resource_path(resource), method: :patch, class: 'btn-success px-2 py-1 text-xs md:text-sm font-semibold', aria: { label: 'Approve resource' }, title: 'Approve' do %>
-          <sl-icon name="check-circle"></sl-icon>
-          Approve
-        <% end %>
-      <% end %>
-      <% if resource.applet.present? %>
-        <%= link_to run_applet_path(resource.applet),
-                    class: 'btn-table-action',
-                    target: "_blank",
-                    rel: "noopener noreferrer",
-                    aria: { label: 'Run applet preview' },
-                    title: 'Run applet preview' do %>
-          <sl-icon name="play-circle"></sl-icon>
-        <% end %>
-      <% end %>
-      <%= link_to admin_resource_path(resource), class: 'btn-table-action', aria: { label: 'View resource' }, title: 'View' do %>
-        <sl-icon name="eye"></sl-icon>
-      <% end %>
-      <%= link_to edit_admin_resource_path(resource), class: 'btn-table-action', aria: { label: 'Edit resource' }, title: 'Edit' do %>
-        <sl-icon name="pencil"></sl-icon>
-      <% end %>
-      <%= button_to admin_resource_path(resource), method: :delete, data: { turbo_confirm: 'Are you sure?' }, class: 'btn-table-danger', aria: { label: 'Delete resource' }, title: 'Delete' do %>
-        <sl-icon name="trash"></sl-icon>
-      <% end %>
+  <div class="col-span-1 order-4 hidden min-w-0 flex-col justify-center md:flex md:order-none">
+    <div class="flex flex-wrap items-center justify-end gap-2 [&_sl-icon]:text-base">
+      <%= action_buttons %>
     </div>
   </div>
 </div>

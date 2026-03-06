@@ -7,7 +7,7 @@
   <% selected_api_base_uri = settings.llm_api_base_uri.to_s.presence || settings.effective_llm_api_base_uri.to_s %>
   <% show_oauth_for_selected_base = selected_api_base_uri == codex_base_uri %>
   <% if settings.errors.any? %>
-    <div class="mb-4 text-red-950 dark:text-red-300">
+    <div class="mb-4 text-danger-950 dark:text-danger-300">
       <%= pluralize(settings.errors.count, "error") %> prevented the settings from being saved.
       <ul>
         <% settings.errors.full_messages.each do |message| %>
@@ -58,7 +58,7 @@
                       data: { turbo: false } %>
         <% end %>
       <% else %>
-        <p class="text-sm text-amber-700 dark:text-amber-300">
+        <p class="text-sm text-warning-700 dark:text-warning-300">
           OpenAI OAuth is unavailable on this server.
         </p>
       <% end %>
@@ -89,7 +89,7 @@
         </p>
     </details>
 
-    <p data-llm-settings-target="sharedTokenHint" class="text-sm text-emerald-700 dark:text-emerald-300 mb-4 hidden">
+    <p data-llm-settings-target="sharedTokenHint" class="mb-4 hidden text-sm text-success-700 dark:text-success-300">
       A shared access token is available for this provider. Leave blank to use the shared token, or enter your own to override.
     </p>
 

@@ -1,20 +1,20 @@
 <div id="<%= dom_id(course) %>" class="grid grid-cols-1
-            md:grid-cols-[minmax(0,1.5fr)_minmax(0,3.4fr)_minmax(0,0.6fr)_minmax(0,0.5fr)]
+            md:grid-cols-[minmax(0,1.4fr)_minmax(0,2.8fr)_minmax(0,1fr)_minmax(0,0.8fr)]
             lg:grid-cols-[minmax(14rem,1.5fr)_minmax(18rem,3.4fr)_minmax(0,0.6fr)_minmax(11rem,0.5fr)]
             gap-2 md:gap-3 border-t md:first:border-t-0 border-stone-600 dark:border-stone-400 py-4 md:py-2">
   <div class="col-span-1 flex flex-col justify-center">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Title</span>
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Title</span>
     <span class="text-[1.05rem] lg:text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100"><%= course.title %></span>
-    <span class="text-sm text-stone-500 dark:text-stone-400 mt-auto pt-2"><span class="font-bold text-stone-500 uppercase">Grade level:</span> <%= course.grade_level %></span>
+    <span class="mt-auto pt-2 text-sm text-stone-500 dark:text-stone-400"><span class="font-bold uppercase text-stone-500 dark:text-stone-400">Grade level:</span> <%= course.grade_level %></span>
   </div>
   
   <div class="col-span-1 flex flex-col justify-start">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Summary</span>
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Summary</span>
     <span class="text-[0.95rem] md:text-sm leading-snug text-stone-700 dark:text-stone-300 md:pr-2"><%= course.summary %></span>
   </div>
   
   <div class="col-span-1 flex flex-col justify-center md:items-center">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-1">Status</span>
+    <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Status</span>
     <div class="w-full md:text-left text-stone-700 dark:text-stone-300">
       <% if course.enrollments.any? %>
         <% count = course.enrollments.count %>
@@ -32,7 +32,7 @@
   </div>
   
   <div class="col-span-1 flex flex-col justify-center">
-    <span class="block md:hidden font-bold text-sm text-stone-500 uppercase mb-2">Actions</span>
+    <span class="mb-2 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Actions</span>
     <div class="flex flex-row md:flex-col items-center md:items-end gap-2 [&_sl-icon]:text-base flex-wrap">
       <% if course.status_active? %>
         <% if course.outline.empty? %>

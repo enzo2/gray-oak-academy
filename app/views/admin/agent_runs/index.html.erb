@@ -4,7 +4,7 @@
       clear_admin_agent_runs_path,
       method: :delete,
       data: { turbo_confirm: "Clear all agent run logs? This cannot be undone." },
-      class: "btn-secondary text-red-700 dark:text-red-300" %>
+      class: "btn-secondary text-danger-700 dark:text-danger-300" %>
 </div>
 <p class="mb-4 text-sm text-dim">OpenAI Responses background runs.</p>
 <%
@@ -44,11 +44,11 @@
             <td>
               <% case run[:status].to_s %>
               <% when "completed" %>
-                <span class="text-green-700 dark:text-green-400">completed</span>
+                <span class="text-success-700 dark:text-success-400">completed</span>
               <% when "failed" %>
-                <span class="text-red-700 dark:text-red-400">failed</span>
+                <span class="text-danger-700 dark:text-danger-400">failed</span>
               <% else %>
-                <span class="text-amber-700 dark:text-amber-300"><%= run[:status].presence || "submitted" %></span>
+                <span class="text-warning-700 dark:text-warning-300"><%= run[:status].presence || "submitted" %></span>
               <% end %>
             </td>
             <td class="font-mono text-xs"><%= run[:run_id] %></td>
@@ -75,7 +75,7 @@
                 </details>
               <% end %>
             </td>
-            <td class="max-w-xs text-red-700 dark:text-red-400"><%= run[:error_message] %></td>
+            <td class="max-w-xs text-danger-700 dark:text-danger-400"><%= run[:error_message] %></td>
             <td>
               <% if run[:response_id].present? %>
                 <%= link_to "View", admin_agent_runs_path(trace_response_id: run[:response_id]), class: "underline underline-offset-2" %>
@@ -93,7 +93,7 @@
     <div class="mt-6">
       <h3 class="text-lg font-semibold mb-2">Run Trace: <span class="font-mono text-sm"><%= @trace_run[:response_id] %></span></h3>
       <% if @trace_data[:error].present? %>
-        <p class="text-sm text-red-700 dark:text-red-400"><%= @trace_data[:error] %></p>
+        <p class="text-sm text-danger-700 dark:text-danger-400"><%= @trace_data[:error] %></p>
       <% end %>
 
       <h4 class="text-sm font-medium mt-4 mb-1">Tool Calls</h4>

@@ -22,7 +22,7 @@
 %>
 <%= form_with(model: [:admin, resource], id: "resource-form", data: { controller: "embed-checker resource-form", resource_form_initial_type_value: payload_type, resource_form_payload_locked_value: payload_locked }) do |form| %>
   <% if resource.errors.any? %>
-    <div class="mb-4 text-red-950 dark:text-red-300" role="alert">
+    <div class="mb-4 text-danger-950 dark:text-danger-300" role="alert">
       <h2 class="font-bold mb-2"><%= pluralize(resource.errors.count, "error") %> prohibited this resource from being saved:</h2>
       <ul class="list-disc list-inside">
         <% resource.errors.full_messages.each do |message| %>

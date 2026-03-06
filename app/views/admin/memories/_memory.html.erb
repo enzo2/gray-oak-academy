@@ -31,14 +31,14 @@
       <%= button_to(edit_admin_student_memory_path(@student, memory),
                     method: :get,
                     form: { data: { turbo_stream: true } },
-                    class: "hover:text-blue-500") do %>
+                    class: "hover:text-moss-500") do %>
         <sl-icon name="pencil"></sl-icon>
       <% end %>
 
       <%= button_to(admin_student_memory_path(@student, memory),
                     method: :delete,
                     form: { data: { turbo_confirm: "Delete this memory?" } },
-                    class: "hover:text-red-500") do %>
+                    class: "hover:text-danger-500") do %>
         <sl-icon name="trash"></sl-icon>
       <% end %>
     </div>

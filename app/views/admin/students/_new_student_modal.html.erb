@@ -1,7 +1,7 @@
 <% student = local_assigns[:student] || User.new(role: :student) %>
 
 <% if student&.errors&.any? %>
-  <div class="mb-2 text-red-600">
+  <div class="mb-2 text-danger-600">
     <ul>
       <% student.errors.full_messages.each do |msg| %>
         <li><%= msg %></li>

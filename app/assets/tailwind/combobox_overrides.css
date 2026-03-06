@@ -111,8 +111,8 @@
 /* Invalid State - Applied to wrapper for focus-within */
 .hw-combobox__main__wrapper:has(.hw-combobox__input--invalid) {
     @apply
-      !border-red-500 dark:!border-red-400 /* Match typical invalid input border */
-      focus-within:!border-red-500 dark:focus-within:!border-red-400; /* Keep border red on focus */
+      !border-danger-500 dark:!border-danger-400 /* Match typical invalid input border */
+      focus-within:!border-danger-500 dark:focus-within:!border-danger-400; /* Keep border red on focus */
 }
 /* Note: The JS adds/removes `hw-combobox__input--invalid` class to the *input*,
     but we style the wrapper using :has() for the border/focus effect.

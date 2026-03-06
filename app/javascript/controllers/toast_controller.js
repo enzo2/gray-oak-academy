@@ -268,7 +268,7 @@ export default class extends Controller {
     }
 
     const span = document.createElement("span");
-    span.className = `relative flex flex-col items-start shadow-xs w-full transition-all duration-200 bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 rounded-lg sm:rounded-xl sm:max-w-xs group ${
+    span.className = `relative flex w-full flex-col items-start rounded-lg border border-stone-200 bg-white shadow-xs transition-all duration-200 dark:border-stone-700 dark:bg-stone-800 sm:max-w-xs sm:rounded-xl group ${
       toast.html ? "p-0" : "p-4"
     }`;
     span.style.transitionTimingFunction = "cubic-bezier(0.4, 0, 0.2, 1)";
@@ -308,7 +308,7 @@ export default class extends Controller {
     // Add close button
     const closeBtn = document.createElement("span");
     const hasActions = toast.action || toast.secondaryAction;
-    closeBtn.className = `absolute right-0 p-1.5 mr-2.5 text-neutral-400 duration-100 ease-in-out rounded-full cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-500 dark:hover:text-neutral-300 ${
+    closeBtn.className = `absolute right-0 mr-2.5 cursor-pointer rounded-full p-1.5 text-stone-400 duration-100 ease-in-out hover:bg-stone-50 hover:text-stone-500 dark:hover:bg-stone-700 dark:hover:text-stone-300 ${
       !toast.description && !toast.html && !hasActions ? "top-1/2 -translate-y-1/2" : "top-0 mt-2.5"
     }`;
     closeBtn.innerHTML = `<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`;
@@ -330,10 +330,10 @@ export default class extends Controller {
 
     const typeColors = {
       success: "text-success-600 dark:text-success-500",
-      error: "text-red-600 dark:text-red-400",
+      error: "text-danger-600 dark:text-danger-400",
       info: "text-moss-600 dark:text-moss-400",
-      warning: "text-amber-600 dark:text-amber-400",
-      danger: "text-red-600 dark:text-red-400",
+      warning: "text-warning-600 dark:text-warning-400",
+      danger: "text-danger-600 dark:text-danger-400",
       loading: "text-stone-500 dark:text-stone-400",
       default: "text-stone-800 dark:text-stone-200",
     };
@@ -359,12 +359,12 @@ export default class extends Controller {
         <div class="flex justify-end items-center gap-2 mt-0.5">
           ${
             toast.secondaryAction
-              ? `<button data-action-type="secondary" class="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-white/90 px-2 py-1.5 text-xs font-medium whitespace-nowrap text-neutral-800 shadow-xs transition-all duration-100 ease-in-out select-none hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-neutral-700/50 dark:text-neutral-50 dark:hover:bg-neutral-700/75 dark:focus-visible:outline-neutral-200">${this.escapeHtml(toast.secondaryAction.label)}</button>`
+              ? `<button data-action-type="secondary" class="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-stone-200 bg-white/90 px-2 py-1.5 text-xs font-medium text-stone-800 shadow-xs transition-all duration-100 ease-in-out select-none hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-stone-700/50 dark:text-stone-50 dark:hover:bg-stone-700/75 dark:focus-visible:outline-stone-200">${this.escapeHtml(toast.secondaryAction.label)}</button>`
               : ""
           }
           ${
             toast.action
-              ? `<button data-action-type="primary" class="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-400/30 bg-neutral-800 px-2 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-sm transition-all duration-100 ease-in-out select-none hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100 dark:focus-visible:outline-neutral-200">${this.escapeHtml(toast.action.label)}</button>`
+              ? `<button data-action-type="primary" class="flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-forest-400/30 bg-forest-800 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-100 ease-in-out select-none hover:bg-forest-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-paper-100 dark:text-forest-900 dark:hover:bg-paper-200 dark:focus-visible:outline-paper-200">${this.escapeHtml(toast.action.label)}</button>`
               : ""
           }
         </div>`
@@ -376,13 +376,13 @@ export default class extends Controller {
           <div class="flex items-center h-full ${color}">
             ${icon}
           </div>
-          <p class="text-[13px] font-medium text-neutral-800 dark:text-neutral-200 pr-6">
+          <p class="pr-6 text-[13px] font-medium text-stone-800 dark:text-stone-200">
             ${safeMessage}
           </p>
           ${
             toast.description
               ? `<div></div>
-          <div class="text-xs text-neutral-600 dark:text-neutral-400">
+          <div class="text-xs text-stone-600 dark:text-stone-400">
             ${safeDescription}
           </div>`
               : ""

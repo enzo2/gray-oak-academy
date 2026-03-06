@@ -3,7 +3,7 @@
     "<%= simple_format(feedback.content, {}, wrapper_tag: "span") %>"
   </div>
   
-  <div class="flex items-center justify-end text-xs text-stone-500">
+  <div class="flex items-center justify-end text-xs text-stone-500 dark:text-stone-400">
     <% if feedback.lesson_progress %>
       <span>Re: <%= feedback.lesson_progress.lesson.title %></span>
     <% end %>

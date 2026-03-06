@@ -21,7 +21,7 @@
 
 <% if @memory.errors.any? %>
   <%= turbo_stream.update(dom_id(@memory, :errors)) do %>
-    <div class="text-red-400 dark:text-red-600 mb-2">
+    <div class="mb-2 text-danger-500 dark:text-danger-400">
       <%= pluralize(@memory.errors.count, "error") %> prohibited this memory from being saved:
       <ul>
         <% @memory.errors.full_messages.each do |message| %>
