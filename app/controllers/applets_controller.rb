@@ -72,7 +72,7 @@ class AppletsController < ApplicationController
   def run
     # This action renders the applet in a standalone page, suitable for iframing.
     # It allows us to use standard CSP nonces for the scripts.
-    render layout: false
+    render layout: "applet_preview"
   end
 
   private

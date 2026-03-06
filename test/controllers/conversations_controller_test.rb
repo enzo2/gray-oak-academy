@@ -141,6 +141,17 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test "conversation show renders labeled message submit button" do
+    student = users(:student)
+    conversation = conversations(:student_generic_conversation)
+    sign_in(student)
+
+    get conversation_path(conversation)
+
+    assert_response :success
+    assert_select "button[data-new-message-target='submitButton'][aria-label='Send message'][title='Send message']"
+  end
+
   private
 
   def with_prompt_stubs

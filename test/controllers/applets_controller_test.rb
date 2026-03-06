@@ -121,4 +121,15 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :not_found
   end
+
+  test "run renders preview metadata for standalone applet page" do
+    sign_in @teacher
+
+    get run_applet_path(@teacher_applet)
+
+    assert_response :success
+    assert_select "title", text: /Teacher Applet Preview/
+    assert_select "link[rel='icon'][href*='logo_icon_negative']"
+    assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1']"
+  end
 end

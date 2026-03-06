@@ -1,6 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
+<% content_for :title do %>
+  <%= "#{@applet.title.to_s.presence || "Applet"} Preview | #{ENV["APP_NAME"] || "Gray Oak Academy"}" %>
+<% end %>
+
+<% content_for :head do %>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" nonce="<%= content_security_policy_nonce %>"></script>
   <style nonce="<%= content_security_policy_nonce %>">
     @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
@@ -110,18 +112,16 @@
       }
     };
   </script>
-</head>
-<body>
-  <div id="sandbox"></div>
-  <script type="module" nonce="<%= content_security_policy_nonce %>">
-    const codeToExecute = <%= @applet.code.to_json.html_safe %>;
-    const blob = new Blob([codeToExecute], { type: 'text/javascript' });
-    const moduleUrl = URL.createObjectURL(blob);
-    import(moduleUrl).catch(error => {
-      console.error(error);
-    }).finally(() => {
-      URL.revokeObjectURL(moduleUrl);
-    });
-  </script>
-</body>
-</html>
+<% end %>
+
+<div id="sandbox"></div>
+<script type="module" nonce="<%= content_security_policy_nonce %>">
+  const codeToExecute = <%= @applet.code.to_json.html_safe %>;
+  const blob = new Blob([codeToExecute], { type: 'text/javascript' });
+  const moduleUrl = URL.createObjectURL(blob);
+  import(moduleUrl).catch(error => {
+    console.error(error);
+  }).finally(() => {
+    URL.revokeObjectURL(moduleUrl);
+  });
+</script>
