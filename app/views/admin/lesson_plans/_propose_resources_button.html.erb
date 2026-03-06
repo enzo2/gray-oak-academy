@@ -7,7 +7,7 @@
       url: propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
       method: :post,
       data: {
-        turbo_confirm: "This may take a while. Proceed with proposing and linking resources?",
+        turbo_confirm: "This may take longer than 5 minutes. Proceed with proposing and linking resources?",
         controller: "button-loading"
       }
     ) do %>

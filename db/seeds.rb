@@ -366,7 +366,7 @@ tool = Tool.find_or_initialize_by(name: 'Delegate_To_Frontier_LLM')
 tool.access = :admin
 tool.specifications = {
   name: "Delegate_To_Frontier_LLM",
-  description: "Delegate a task to the reasoning LLM. Accepts a text prompt and returns the LLM's text response. Suitable for text-based queries like: writing a Javascript applet, performing an analysis, creating a problem set, creative writing, curriculum critique, or any task worth the tradeoff of latency & higher cost for higher intelligence/creativity/knowledge. Avoid using for tasks with existing dedicated jobs (e.g., generating course outlines, lessons, or lesson plans). Reasoning LLM does NOT have tool use, app or DB access, with the exception of web search, so do not request that it perform any actions. The system prompt containing teaching and generative guidelines will be included automatically; so you do not need to repeat the instructions for executable JS applets. However, conversation history, student or curriculum context will not be included in the prompt--you determine what context to provide. This tool will execute synchronously and block the conversation until complete. The result is not shown to the user, nor is any code executed; it is up to you to decide how to use the result. As examples, if an executable JS applet was requested, you must copy it into a markdown code block in the conversation to execute it; if a problem set was requested, you could copy it into the conversation, or save it as a resource.",
+  description: "Delegate a task to the reasoning LLM. Accepts a text prompt and returns the LLM's text response. Suitable for text-based queries like: writing a Javascript applet, performing an analysis, creating a problem set, creative writing, curriculum critique, or any task worth the tradeoff of latency & higher cost for higher intelligence/creativity/knowledge. Avoid using for tasks with existing dedicated jobs (e.g., generating course outlines, lessons, or lesson plans). Reasoning LLM does NOT have tool use, app or DB access, so do not request that it perform any actions. The system prompt containing teaching and generative guidelines will be included automatically; so you do not need to repeat the instructions for executable JS applets. However, conversation history, student or curriculum context will not be included in the prompt--you determine what context to provide. This tool will execute synchronously and block the conversation until complete. The result is not shown to the user, nor is any code executed; it is up to you to decide how to use the result. As examples, if an executable JS applet was requested, you must copy it, in full, into a markdown code block in the conversation to execute it; if a problem set was requested, you could copy it into the conversation, or save it as a resource.",
   parameters: {
     type: "object",
     properties: {
@@ -783,7 +783,7 @@ p.prompt = <<~PROMPT
   Your tasks:
   1) Review the lesson plan and existing suggested resources.
   2) Find and verify web-available resources where possible.
-  3) You aren't restricted to seeking the suggested_resources. Consider locating additional web-based resources that would be relevant and valuable.
+  3) You aren't restricted to seeking the suggested_resources. Consider locating additional web-based resources that would be relevant and valuable. Overall, try to link at least a few high-quality resources.
   4) Design, code and link JavaScript applet(s) specified in the lesson plan, or otherwise warranted. Review the tool call response to ensure they have passed syntax checking.
   5) Finish adding and linking validated web-based resources using tools. Do not call any tools during your final response, since you would not be able to respond to a failed tool call.
   6) Return a final refined suggested_resources JSON array, excluding any resources now linked, and including anything still unresolved or teacher-dependent. Consider whether any additional suggested resources should be included for teacher consideration, such as non-web-available resources, teacher-dependent resources, physical items, or activities.
@@ -889,6 +889,7 @@ p.prompt = <<~PROMPT
   **Example:**
   ```javascript {executable="true" hidden="true" renderTarget="chalkboard" autoRun="false"}
   // Your JavaScript code here
+  // Include FULL code, not an abbreviated version. It will not auto-populate from elsewhere.
   console.log('Hello from the applet!');
   ```
   **Attribute Details:**
@@ -901,7 +902,7 @@ p.prompt = <<~PROMPT
   - `autoRun="true"`: The code executes automatically when the message loads. Useful for interactive applets or younger students.
   - Place all desired attributes within the single pair of curly braces `{}`, separated by spaces.
   **Important:**
-  - Ensure your code is complete within the fenced block.
+  - Ensure your code is complete within the fenced block. Do not rely on code from elsewhere in the conversation, as it will not auto-populate into the applet.
   Applet Structure and Requirements:
   - Applets run in a sandboxed `<iframe>`. Inline applets render in a frame roughly 400px high within the chat flow. Chalkboard applets use the available chalkboard space, which is full-height and wider than the chat.
   - TailwindCSS is loaded in the iframe, so you can use Tailwind classes. Use `font-sans` and `font-serif` to match the main app's fonts.
@@ -1118,10 +1119,10 @@ p.save!
 p = Prompt.find_or_initialize_by(category: 'delegate_to_frontier_llm', teacher_id: nil)
 p.title = "Default Delegate to Frontier LLM"
 p.prompt = <<~PROMPT
-  The app's standard-capability LLM has now determined that a longer-thinking, higher parameter LLM (you) is needed to provide a superior response. Your task is to respond to the LLM's query, knowing that your response will be returned to the LLM, not the user. Please think carefully before responding. Use search tools to verify factual content or seek out primary sources where appropriate.
+  The app's standard-capability LLM has now determined that a longer-thinking, higher parameter LLM (you) is needed to provide a superior response. Your task is to respond to the LLM's query, knowing that your response will be returned to the LLM, not the user. Please think carefully before responding. If you cannot proceed without further information (eg. web search result, code execution result, intent clarification), respond with a specific request for clarification or additional information.
   Important: You are not directly interacting with the end-user, whether teacher or student. Your response will not be directly displayed to the end-user, but returned in a tool message to the standard LLM, which will then respond to the end-user.
 
-  If your response is expected to be used subsequently in a user-facing context, feel free to use appropriate formatting (eg. markdown, KaTeX) following the generative_guidelines. For app-compatible Javascript applet requests, follow the generative_guidelines, but again remember that your response will be passed to the standard LLM first, which also is aware of the generative_guidelines.
+  If your response is expected to be used subsequently in a user-facing context, feel free to use appropriate formatting (eg. markdown, KaTeX) following the generative_guidelines. For app-compatible Javascript applet requests, follow the generative_guidelines, but again remember that your response will be passed to the standard LLM first, which also is aware of the generative_guidelines.#{' '}
 PROMPT
 p.save!
 

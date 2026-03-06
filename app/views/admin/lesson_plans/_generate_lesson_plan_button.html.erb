@@ -10,7 +10,7 @@
       <% if resource_proposal_enabled %>
         <label class="inline-flex items-center gap-2 text-sm">
           <%= check_box_tag :propose_resources, "1", false, class: "checkbox-primary" %>
-          Also propose and link resources (may take longer)
+          Also propose and link resources (takes >5 minutes)
         </label>
       <% end %>
       <button type="submit" id="generate-lesson-plan-button" class="btn-success gap-2 w-fit" <%= "disabled" if lesson_plan.generation_in_progress? %>>
