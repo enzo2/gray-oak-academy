@@ -1,32 +1,34 @@
-<%= form_with(model: [:admin, @course, @lesson], id: "lesson-form") do |f| %>
-  <% if @lesson.errors.any? %>
+<%= form_with(model: [:admin, @course, lesson], id: "lesson-form") do |f| %>
+  <% if lesson.errors.any? %>
     <div class="mb-4 text-danger-950 dark:text-danger-300">
-      <%= pluralize(@lesson.errors.count, "error") %> prevented this lesson from being saved.
+      <%= pluralize(lesson.errors.count, "error") %> prevented this lesson from being saved.
       <ul>
-        <% @lesson.errors.full_messages.each do |message| %>
+        <% lesson.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
-  <div class="mb-4">
-    <%= f.label :title, class: "form-label" %>
-    <%= f.text_field :title, class: "input-primary", required: true %>
+  <div class="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(14rem,0.7fr)]">
+    <div>
+      <%= f.label :title, class: "form-label" %>
+      <%= f.text_field :title, class: "input-primary", required: true %>
+    </div>
+
+    <div>
+      <%= f.label :approx_duration_min, "Approximate Duration (minutes)", class: "form-label" %>
+      <%= f.number_field :approx_duration_min, class: "input-primary", required: true %>
+    </div>
+
+    <div class="xl:col-span-2">
+      <%= f.label :goals, class: "form-label" %>
+      <p class="block text-sm mb-2"><i>The goals will be used to generate the lesson plan. Include any desired content. Also specify any special circumstance, location, or methodology (eg. speech-only, recap-only).</i></p>
+      <%= f.text_area :goals, class: "input-primary min-h-56", rows: 8, required: true %>
+    </div>
   </div>
 
-  <div class="mb-4">
-    <%= f.label :goals, class: "form-label" %>
-    <p class="block text-sm mb-2"><i>The goals will be used to generate the lesson plan. Include any desired content. Also specify any special circumstance, location, or methodology (eg. speech-only, recap-only).</i></p>
-    <%= f.text_area :goals, class: "input-primary", required: true %>
-  </div>
-
-  <div class="mb-4">
-    <%= f.label :approx_duration_min, "Approximate Duration (minutes)", class: "form-label" %>
-    <%= f.number_field :approx_duration_min, class: "input-primary", required: true %>
-  </div>
-
-  <div class="flex flex-row space-x-5">
+  <div class="mt-5 flex flex-row flex-wrap gap-4">
     <%= f.submit "Save", class: "btn-primary" %>
     <%= link_to "Cancel", admin_course_lessons_path(@course), class: "btn-secondary" %>
   </div>

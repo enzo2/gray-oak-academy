@@ -7,21 +7,37 @@ export default class extends Controller {
 
   connect() {
     this.updateArrowVisibility();
+    this.autoResizeAll();
+  }
+
+  autoResize(event) {
+    this.resizeTextarea(event.target);
+  }
+
+  autoResizeAll() {
+    this.fieldContainerTarget.querySelectorAll('textarea').forEach(ta => this.resizeTextarea(ta));
+  }
+
+  resizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
+  get fieldsWrapper() {
+    return this.fieldContainerTarget.querySelector('.outline-fields') || this.fieldContainerTarget;
   }
 
   addField(event) {
     event.preventDefault();
-    // Find the template within the fieldContainer
     const template = this.fieldContainerTarget.querySelector('template');
     if (!template) {
       console.error('Template not found in fieldContainer');
       return;
     }
-    // Clone the template content
     const fieldContent = template.content.cloneNode(true);
-    // Insert the field
-    this.fieldContainerTarget.insertBefore(fieldContent, event.target);
+    this.fieldsWrapper.appendChild(fieldContent);
     this.updateArrowVisibility();
+    this.autoResizeAll();
   }
 
   removeField(event) {
@@ -36,8 +52,9 @@ export default class extends Controller {
     event.preventDefault();
     const field = event.target.closest('.outline-field');
     if (!field) { return; }
-    if (field.previousElementSibling && field.previousElementSibling !== this.fieldContainerTarget.querySelector('template')) {
-      this.fieldContainerTarget.insertBefore(field, field.previousElementSibling);
+    const wrapper = this.fieldsWrapper;
+    if (field.previousElementSibling) {
+      wrapper.insertBefore(field, field.previousElementSibling);
     }
     this.updateArrowVisibility();
   }
@@ -47,7 +64,7 @@ export default class extends Controller {
     const field = event.target.closest('.outline-field');
     if (!field) { return; }
     if (field.nextElementSibling) {
-      this.fieldContainerTarget.insertBefore(field.nextElementSibling, field);
+      field.nextElementSibling.after(field);
     }
     this.updateArrowVisibility();
   }
@@ -74,6 +91,10 @@ export default class extends Controller {
       } else {
         downButtons.forEach(btn => setButtonHidden(btn, false));
       }
+
+      // Update section number indicator
+      const numberEl = field.querySelector('.font-mono');
+      if (numberEl) { numberEl.textContent = index + 1; }
     });
 
     if (fields.length === 1) {

@@ -1,0 +1,10 @@
+<div class="w-full max-w-5xl">
+  <%= link_to "Back to Lessons", admin_course_lessons_path(@course), class: "block mb-4 hover:underline" %>
+
+  <h2 class="text-2xl mb-5 leading-tight">
+    Edit Lesson:
+    <b class="block md:inline"><%= @lesson.title %></b>
+  </h2>
+
+  <%= render "form", lesson: @lesson %>
+</div>

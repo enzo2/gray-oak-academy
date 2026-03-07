@@ -31,6 +31,7 @@ module Admin
 
     def edit
       respond_to do |format|
+        format.html
         format.turbo_stream
       end
     end
@@ -38,10 +39,12 @@ module Admin
     def update
       if @lesson.update(lesson_params)
         respond_to do |format|
+          format.html { redirect_to admin_course_lessons_path(@course), notice: "Lesson updated.", status: :see_other }
           format.turbo_stream
         end
       else
         respond_to do |format|
+          format.html { render :edit, status: :unprocessable_content }
           format.turbo_stream { render :update, status: :unprocessable_content }
         end
       end

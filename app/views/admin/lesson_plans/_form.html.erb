@@ -25,34 +25,38 @@
       To create a reflection/recap/debrief lesson, add an <b>"Offline Activity"</b> content item with instructions for the student to perform away from the device, followed by a <b>"Reflection"</b> or <b>"Recap"</b> content item with debrief prompts.
     </details>
     <% content_data = lesson_plan.content.presence || [{ "" => "" }] %>
-    <% content_data.each_with_index do |item, index| %>
-      <div class="outline-field flex flex-col lg:flex-row lg:items-center mb-3 lg:mb-0 border-stone-300 dark:border-stone-700 border-l-2 pl-1 lg:border-none lg:pl-0" data-index="<%= index %>">
-        <div class="flex flex-col lg:flex-row lg:gap-2 lg:items-center w-full">
-          <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Content type", class: "input-primary w-full lg:w-1/4 py-1 mb-1", required: true %>
-          <%= text_field_tag "lesson_plan[content_values][]", item.values.first, placeholder: "Details", class: "input-primary w-full lg:w-3/4 py-1", required: true %>
+    <div class="outline-fields space-y-3">
+      <% content_data.each_with_index do |item, index| %>
+        <div class="outline-field group rounded-sm border-l-3 border-moss-400 dark:border-moss-700 bg-paper-50 dark:bg-paper-950/40 shadow-sm focus-within:shadow-md transition-shadow" data-index="<%= index %>">
+          <div class="flex items-center gap-1 px-2 py-1.5 bg-paper-100/80 dark:bg-paper-900/30 rounded-tr-sm">
+            <span class="text-paper-400 dark:text-paper-600 text-xs font-mono select-none shrink-0 mr-0.5"><%= index + 1 %></span>
+            <%= text_field_tag "lesson_plan[content_keys][]", item.keys.first, placeholder: "Section type (e.g. Knowledge, Exercise, Resource...)", class: "flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-semibold tracking-wide uppercase text-moss-800 dark:text-moss-300 placeholder-paper-400 dark:placeholder-paper-600 py-0 px-1", required: true %>
+            <div class="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+              <sl-icon-button name="chevron-up" class="move-up text-xs" data-action="click->outline#moveUp" data-index="<%= index %>"></sl-icon-button>
+              <sl-icon-button name="chevron-down" class="move-down text-xs" data-action="click->outline#moveDown" data-index="<%= index %>"></sl-icon-button>
+              <sl-icon-button name="x-lg" class="remove-field text-xs" data-action="click->outline#removeField"></sl-icon-button>
+            </div>
+          </div>
+          <%= text_area_tag "lesson_plan[content_values][]", item.values.first, placeholder: "Describe this section's content, instructions, or details...", class: "w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed text-paper-900 dark:text-paper-200 placeholder-paper-400 dark:placeholder-paper-600 px-3 py-2 resize-none overflow-hidden", required: true, rows: 2, data: { action: "input->outline#autoResize" } %>
         </div>
-        <div class="flex gap-2 shrink-0 items-start">
-          <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp" data-index="<%= index %>"></sl-icon-button>
-          <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown" data-index="<%= index %>"></sl-icon-button>
-          <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
-        </div>
-      </div>
-    <% end %>
-    <sl-button class="mb-2" data-action="click->outline#addField" outline>
+      <% end %>
+    </div>
+    <sl-button class="mt-3 mb-2" data-action="click->outline#addField" outline>
       <sl-icon slot="prefix" name="plus-circle"></sl-icon>
       Add content section
     </sl-button>
     <template>
-      <div class="outline-field flex flex-col lg:flex-row lg:items-center mb-3 lg:mb-0 border-stone-300 dark:border-stone-700 border-l-2 pl-1 lg:border-none lg:pl-0">
-        <div class="flex flex-col lg:flex-row lg:gap-2 lg:items-center w-full">
-          <%= text_field_tag "lesson_plan[content_keys][]", "", placeholder: "Content type", class: "input-primary w-full lg:w-1/4 py-1 mb-1", required: true %>
-          <%= text_field_tag "lesson_plan[content_values][]", "", placeholder: "Details", class: "input-primary w-full lg:w-3/4 py-1", required: true %>
+      <div class="outline-field group rounded-sm border-l-3 border-moss-400 dark:border-moss-700 bg-paper-50 dark:bg-paper-950/40 shadow-sm focus-within:shadow-md transition-shadow">
+        <div class="flex items-center gap-1 px-2 py-1.5 bg-paper-100/80 dark:bg-paper-900/30 rounded-tr-sm">
+          <span class="text-paper-400 dark:text-paper-600 text-xs font-mono select-none shrink-0 mr-0.5">&bull;</span>
+          <%= text_field_tag "lesson_plan[content_keys][]", "", placeholder: "Section type (e.g. Knowledge, Exercise, Resource...)", class: "flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-semibold tracking-wide uppercase text-moss-800 dark:text-moss-300 placeholder-paper-400 dark:placeholder-paper-600 py-0 px-1", required: true %>
+          <div class="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            <sl-icon-button name="chevron-up" class="move-up text-xs" data-action="click->outline#moveUp"></sl-icon-button>
+            <sl-icon-button name="chevron-down" class="move-down text-xs" data-action="click->outline#moveDown"></sl-icon-button>
+            <sl-icon-button name="x-lg" class="remove-field text-xs" data-action="click->outline#removeField"></sl-icon-button>
+          </div>
         </div>
-        <div class="flex gap-2 shrink-0 items-start">
-          <sl-icon-button name="arrow-up" class="move-up" data-action="click->outline#moveUp"></sl-icon-button>
-          <sl-icon-button name="arrow-down" class="move-down" data-action="click->outline#moveDown"></sl-icon-button>
-          <sl-icon-button name="x-circle" class="remove-field" data-action="click->outline#removeField"></sl-icon-button>
-        </div>
+        <%= text_area_tag "lesson_plan[content_values][]", "", placeholder: "Describe this section's content, instructions, or details...", class: "w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed text-paper-900 dark:text-paper-200 placeholder-paper-400 dark:placeholder-paper-600 px-3 py-2 resize-none overflow-hidden", required: true, rows: 2, data: { action: "input->outline#autoResize" } %>
       </div>
     </template>
   </div>
@@ -72,11 +76,11 @@
                     turbo_method: :delete,
                     turbo_confirm: 'Remove this suggested resource?' 
                     }, 
-                  class: 'mt-0.5 shrink-0 flex items-center' do %>
+                  class: 'mt-1 shrink-0 flex items-center' do %>
               <sl-icon name="trash" class="text-stone-500 hover:text-danger-500 dark:text-stone-400 dark:hover:text-danger-400"></sl-icon>
             <% end %>
             <div class="min-w-0 whitespace-normal wrap-break-word">
-              <span class="font-semibold"><%= resource.keys.first %></span><span class="mx-1">:</span><%= resource.values.first %>
+              <span class="font-semibold"><%= resource.keys.first %></span><span class="mr-1">:&nbsp;</span><%= resource.values.first %>
             </div>
           </li>
         <% end %>
