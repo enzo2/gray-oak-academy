@@ -6,12 +6,39 @@ export default class extends Controller {
   static targets = ["fieldContainer"];
 
   connect() {
+    this.boundTurboRender = () => this.scheduleAutoResizeAll();
+    document.addEventListener("turbo:render", this.boundTurboRender);
+    document.addEventListener("turbo:load", this.boundTurboRender);
+    document.addEventListener("turbo:after-stream-render", this.boundTurboRender);
+
     this.updateArrowVisibility();
-    this.autoResizeAll();
+    this.scheduleAutoResizeAll();
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:render", this.boundTurboRender);
+    document.removeEventListener("turbo:load", this.boundTurboRender);
+    document.removeEventListener("turbo:after-stream-render", this.boundTurboRender);
+
+    if (this.resizeFrame) {
+      cancelAnimationFrame(this.resizeFrame);
+      this.resizeFrame = null;
+    }
   }
 
   autoResize(event) {
     this.resizeTextarea(event.target);
+  }
+
+  scheduleAutoResizeAll() {
+    if (this.resizeFrame) {
+      cancelAnimationFrame(this.resizeFrame);
+    }
+
+    this.resizeFrame = requestAnimationFrame(() => {
+      this.resizeFrame = null;
+      this.autoResizeAll();
+    });
   }
 
   autoResizeAll() {
@@ -19,8 +46,14 @@ export default class extends Controller {
   }
 
   resizeTextarea(textarea) {
+    if (this.usesNativeFieldSizing(textarea)) { return; }
     textarea.style.height = 'auto';
     textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
+  usesNativeFieldSizing(textarea) {
+    return textarea.classList.contains('outline-native-autosize') &&
+      window.CSS?.supports?.('field-sizing', 'content');
   }
 
   get fieldsWrapper() {
@@ -37,7 +70,7 @@ export default class extends Controller {
     const fieldContent = template.content.cloneNode(true);
     this.fieldsWrapper.appendChild(fieldContent);
     this.updateArrowVisibility();
-    this.autoResizeAll();
+    this.scheduleAutoResizeAll();
   }
 
   removeField(event) {

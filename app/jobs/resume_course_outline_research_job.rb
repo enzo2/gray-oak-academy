@@ -5,6 +5,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     current_user = User.find(user_id)
     course = Course.find(course_id)
     failure_phase = "initialize"
+    client = nil
 
     permission = ActiveModel::Type::Boolean.new.cast(permission_granted)
     raise OpenAiError, "Teacher permission is required before applying research updates." unless permission
@@ -97,6 +98,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     broadcast_refresh(current_user)
   rescue StandardError => e
     Rails.logger.error("ResumeCourseOutlineResearchJob failed for course=#{course_id}: #{e.message}")
+    client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
     course&.update(
       outline_research_stage: "failed",
       outline_research_error: "Failed to apply outline research guidance: #{e.message}"

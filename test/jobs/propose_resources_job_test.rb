@@ -300,6 +300,59 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     analytics_warning_events = analytics_events.select { |entry| entry["event_type"] == "agent_run.high_tool_call_warning" }
     assert_equal 1, analytics_warning_events.size
   end
+
+  test "propose resources marks the agent run failed when tool-turn limit is exceeded" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    app_setting = AppSetting.settings
+    app_setting.update!(openai_agent_model: "gpt-5.2", openai_agent_max_tool_turns: "1")
+
+    complete_calls = 0
+    failure_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
+      complete_calls += 1
+      { "id" => "resp_#{complete_calls}", "status" => "queued", "output" => [] }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **_kwargs|
+      {
+        "id" => response_id,
+        "status" => "completed",
+        "output" => [
+          {
+            "type" => "function_call",
+            "name" => "exa_search",
+            "call_id" => "call_#{response_id}",
+            "arguments" => { query: "resource #{response_id}" }.to_json
+          }
+        ]
+      }
+    end
+    fake_client.define_singleton_method(:mark_current_agent_run_failed) do |error_message:, response_hash:|
+      failure_calls << { error_message: error_message, response_hash: response_hash }
+    end
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:execute) do |function_call|
+      { type: "function_call_output", call_id: function_call["call_id"], output: "{\"ok\":true}" }
+    end
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          result = ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          assert_equal false, result
+        end
+      end
+    end
+
+    assert_equal "failed", lesson_plan.reload.generation_stage
+    assert_equal 1, failure_calls.size
+    assert_includes failure_calls.first[:error_message], "Resource proposal exceeded tool-call limit (1)"
+    assert_equal "resp_2", failure_calls.first[:response_hash]["id"]
+  end
 end
 
 class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase

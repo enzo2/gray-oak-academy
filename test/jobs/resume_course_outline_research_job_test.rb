@@ -216,6 +216,89 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_operator course.outline.size, :>, 0
   end
 
+  test "marks the agent run failed when apply tool-turn limit is exceeded" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      outline_research_stage: "awaiting_teacher_input",
+      outline_guidance_questions: [
+        {
+          "id" => "q1",
+          "question" => "Question one?",
+          "choices" => { "A" => "A", "B" => "B", "C" => "C", "OTHER" => "Other" }
+        }
+      ],
+      outline_guidance_answers: { "q1" => { "choice" => "A" } },
+      outline_research: {
+        "source_anchors" => [
+          { "id" => "anchor_1", "title" => "Source A", "url" => "https://example.com/a", "excerpt" => "", "highlights" => [], "notes" => "" }
+        ],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => []
+      },
+      outline_research_run_id: "run_limit_1",
+      outline_research_response_id: "resp_previous"
+    )
+    ensure_prompt("apply_course_outline_research", "Teacher responses:\n{teacher_answers}")
+    AppSetting.settings.update!(openai_agent_model: "gpt-5.2", openai_agent_max_tool_turns: "1")
+
+    complete_calls = 0
+    failure_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
+      complete_calls += 1
+      { "id" => "resp_apply_#{complete_calls}" }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **_kwargs|
+      {
+        "id" => response_id,
+        "status" => "completed",
+        "output" => [
+          {
+            "type" => "function_call",
+            "name" => "apply_course_research_update",
+            "call_id" => "call_#{response_id}",
+            "arguments" => {
+              summary: "Updated summary",
+              outline: [ { topic: "Updated Topic", description: "Updated details" } ]
+            }.to_json
+          }
+        ]
+      }
+    end
+    fake_client.define_singleton_method(:mark_current_agent_run_failed) do |error_message:, response_hash:|
+      failure_calls << { error_message: error_message, response_hash: response_hash }
+    end
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:execute) do |function_call|
+      { type: "function_call_output", call_id: function_call["call_id"], output: "{\"ok\":true}" }
+    end
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      CourseResearchToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        error = assert_raises(OpenAiError) do
+          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+            ResumeCourseOutlineResearchJob.perform_now(
+              course_id: course.id,
+              user_id: teacher.id,
+              permission_granted: true,
+              source: "course_edit_page"
+            )
+          end
+        end
+        assert_includes error.message, "Outline research apply run exceeded tool-call limit (1)"
+      end
+    end
+
+    assert_equal "failed", course.reload.outline_research_stage
+    assert_equal 1, failure_calls.size
+    assert_includes failure_calls.first[:error_message], "Outline research apply run exceeded tool-call limit (1)"
+    assert_equal "resp_apply_2", failure_calls.first[:response_hash]["id"]
+  end
+
   private
 
   def ensure_prompt(category, text)

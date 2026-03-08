@@ -32,6 +32,8 @@ class ProposeResourcesJob < ApplicationJob
     response_hash = nil
     pending_retryable_tool_errors = []
     retry_prompt_sent = false
+    client = nil
+    executor = nil
     lesson_plan.update!(status: "draft") if lesson_plan.status_published?
 
     set_generation_state(lesson_plan, "proposing_resources", nil) if track_stage
@@ -150,6 +152,7 @@ class ProposeResourcesJob < ApplicationJob
       "ProposeResourcesJob failed source=#{source} lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
       "last_response_id=#{response_hash&.dig('id')} error=#{e.message}"
     )
+    client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
     set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{e.message}") if track_stage && lesson_plan.present?
     broadcast_refresh(current_user) if current_user.present?
     raise if raise_on_error

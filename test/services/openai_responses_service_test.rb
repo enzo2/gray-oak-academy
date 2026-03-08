@@ -1730,6 +1730,68 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal 0, completed_calls.size
   end
 
+  test "mark_current_agent_run_failed logs aggregate metrics after tool-call turn completes" do
+    fake_client = build_responses_client(
+      retrieve_proc: lambda { |_response_id, _params|
+        {
+          "id" => "resp_bg",
+          "status" => "completed",
+          "output" => [
+            { "type" => "function_call", "call_id" => "call_1", "name" => "lookup", "arguments" => "{\"query\":\"oak\"}" }
+          ]
+        }
+      }
+    ) do |_params|
+      {
+        "id" => "resp_bg",
+        "status" => "queued",
+        "model" => @model,
+        "output" => []
+      }
+    end
+
+    failed_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**_kwargs| true }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| nil }
+    fake_run_log.define_singleton_method(:record_failed) { |**kwargs| failed_calls << kwargs }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: supported_apis(:openai).api_base_uri,
+          model: @model,
+          log_completion: false,
+          agent_run: true
+        )
+
+        service.complete(
+          [ { role: "user", content: "Run long task" } ],
+          background: true,
+          metadata: { run_id: "run_failed", run_type: "propose_resources" }
+        )
+        response_hash = service.wait_for_response("resp_bg", timeout_seconds: 5, poll_interval_seconds: 0)
+        service.mark_current_agent_run_failed(
+          error_message: "Tool-call limit exceeded (1). Ask the user to confirm how to proceed.",
+          response_hash: response_hash
+        )
+      end
+    end
+
+    assert_equal 1, failed_calls.size
+    assert_equal "run_failed", failed_calls.first[:run_id]
+    assert_equal "resp_bg", failed_calls.first[:response_id]
+    assert_equal(
+      { assistant_turns: 0, tool_call_count: 1, tool_turn_count: 1, reasoning_item_count: 0, output_item_count: 1 },
+      failed_calls.first[:metrics]
+    )
+    assert_equal 1, failed_calls.first[:tool_calls].size
+    assert_equal "call_1", failed_calls.first[:tool_calls].first[:call_id]
+    assert_equal "lookup", failed_calls.first[:tool_calls].first[:name]
+  end
+
   test "background calls with a conversation do not log agent runs" do
     fake_client = build_responses_client do |_params|
       { "id" => "resp_bg", "status" => "queued", "model" => @model, "output" => [] }

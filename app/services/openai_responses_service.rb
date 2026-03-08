@@ -421,6 +421,10 @@ class OpenaiResponsesService
     extract_output_text(target)
   end
 
+  def mark_current_agent_run_failed(error_message:, response_hash: nil)
+    record_agent_run_failed(error_message: error_message, response_hash: response_hash)
+  end
+
   private
 
   def agent_run_synchronous_background?(background:)

@@ -324,3 +324,9 @@
 .toast-item[data-position^="bottom"][data-removed="true"] {
   transform: translate3d(0, 16px, 0) scale(0.96);
 }
+
+@supports (field-sizing: content) {
+  .outline-native-autosize {
+    field-sizing: content;
+  }
+}
