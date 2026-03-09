@@ -153,6 +153,40 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='Close screenshot instructions'][title='Close screenshot instructions']"
   end
 
+  test "clear removes messages and resets responses state for generic conversation" do
+    teacher = users(:admin)
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    conversation.update!(
+      responses_previous_id: "resp_existing",
+      responses_provider: "https://openrouter.ai/api/v1/",
+      responses_model: "gpt-test"
+    )
+    conversation.messages.create!(role: :user, content: "Old context")
+    sign_in(teacher)
+
+    delete clear_conversation_path(conversation)
+
+    assert_redirected_to conversation_path(conversation)
+
+    conversation.reload
+    assert_empty conversation.messages
+    assert_nil conversation.responses_previous_id
+    assert_nil conversation.responses_provider
+    assert_nil conversation.responses_model
+  end
+
+  test "clear refuses lesson conversation" do
+    student = users(:student)
+    conversation = conversations(:student_lesson_conversation)
+    sign_in(student)
+
+    delete clear_conversation_path(conversation)
+
+    assert_response :unprocessable_content
+    assert_equal "Cannot clear a conversation associated with a lesson in progress.", flash[:alert]
+  end
+
   private
 
   def with_prompt_stubs

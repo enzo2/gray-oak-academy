@@ -44,7 +44,7 @@ class ConversationsController < ApplicationController
     # For generic conversations - make sure the conversation is not associated with a lesson in progress first
     # (For lessons would be correct to maintain the conversation record unless the lesson is restarted)
     if @conversation.lesson_progress.nil?
-      @conversation.messages.destroy_all
+      @conversation.clear!
       redirect_to conversation_path(@conversation), status: :see_other, success: "Conversation cleared."
     else
       redirect_to conversation_path(@conversation), status: :unprocessable_content, alert: "Cannot clear a conversation associated with a lesson in progress."

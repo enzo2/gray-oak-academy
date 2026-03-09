@@ -74,4 +74,23 @@ class ConversationTest < ActiveSupport::TestCase
       assert @conversation.auto_read_default
     end
   end
+
+  test "clear! removes messages and resets responses state" do
+    @conversation.messages.delete_all
+    @conversation.update!(
+      responses_previous_id: "resp_123",
+      responses_provider: "https://openrouter.ai/api/v1/",
+      responses_model: "gpt-test"
+    )
+    @conversation.messages.create!(role: :user, content: "Hello")
+    @conversation.messages.create!(role: :assistant, content: "Hi")
+
+    @conversation.clear!
+
+    @conversation.reload
+    assert_empty @conversation.messages
+    assert_nil @conversation.responses_previous_id
+    assert_nil @conversation.responses_provider
+    assert_nil @conversation.responses_model
+  end
 end

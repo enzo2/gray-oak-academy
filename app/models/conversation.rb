@@ -88,4 +88,15 @@ class Conversation < ApplicationRecord
     return 0 unless context_limit
     last_prompt_tokens.to_f / context_limit.to_f * 100
   end
+
+  def clear!
+    transaction do
+      messages.destroy_all
+      update!(
+        responses_previous_id: nil,
+        responses_provider: nil,
+        responses_model: nil
+      )
+    end
+  end
 end
