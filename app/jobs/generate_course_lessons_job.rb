@@ -98,7 +98,7 @@ class GenerateCourseLessonsJob < ApplicationJob
       channel,
       target: "lessons-table-body",
       html: html)
-    Turbo::StreamsChannel.broadcast_update_to(
+    Turbo::StreamsChannel.broadcast_replace_to(
       channel,
       target: "generate-lessons-button",
       partial: "admin/lessons/generate_lessons_button",
@@ -114,7 +114,7 @@ class GenerateCourseLessonsJob < ApplicationJob
       partial: "shared/flash",
       locals: { flash: { error: message } }
     )
-    Turbo::StreamsChannel.broadcast_update_to(
+    Turbo::StreamsChannel.broadcast_replace_to(
       "teacher_#{current_user.id}-dashboard",
       target: "generate-lessons-button",
       partial: "admin/lessons/generate_lessons_button",

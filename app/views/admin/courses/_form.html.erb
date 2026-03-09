@@ -41,15 +41,15 @@
         <% course.outline.each_with_index do |item, index| %>
           <div class="outline-field group rounded-sm border-l-3 border-moss-400 dark:border-moss-700 bg-paper-50 dark:bg-paper-950/40 shadow-sm focus-within:shadow-md transition-shadow" data-index="<%= index %>">
             <div class="flex items-center gap-1 px-2 py-1.5 bg-paper-100/80 dark:bg-paper-900/30 rounded-tr-sm">
-              <span class="text-paper-400 dark:text-paper-600 text-xs font-mono select-none shrink-0 mr-0.5"><%= index + 1 %></span>
-              <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-semibold tracking-wide uppercase text-moss-800 dark:text-moss-300 placeholder-paper-400 dark:placeholder-paper-600 py-0 px-1" %>
+              <span class="text-paper-500 dark:text-paper-600 text-xs font-mono select-none shrink-0 mr-0.5"><%= index + 1 %></span>
+              <%= text_field_tag "course[outline_topics][]", item.keys.first, placeholder: "Topic", class: "flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-semibold tracking-wide uppercase text-moss-800 dark:text-moss-300 placeholder-paper-700 dark:placeholder-paper-600 py-0 px-1" %>
               <div class="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                 <sl-icon-button name="chevron-up" class="move-up text-xs" data-action="click->outline#moveUp" data-index="<%= index %>"></sl-icon-button>
                 <sl-icon-button name="chevron-down" class="move-down text-xs" data-action="click->outline#moveDown" data-index="<%= index %>"></sl-icon-button>
                 <sl-icon-button name="x-lg" class="remove-field text-xs" data-action="click->outline#removeField"></sl-icon-button>
               </div>
             </div>
-            <%= text_area_tag "course[outline_details][]", item.values.first, placeholder: "Describe the scope, themes, goals, or notes for this topic...", class: "outline-native-autosize w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed text-paper-900 dark:text-paper-200 placeholder-paper-400 dark:placeholder-paper-600 px-3 py-2 resize-none overflow-hidden", rows: 1, data: { action: "input->outline#autoResize" } %>
+            <%= text_area_tag "course[outline_details][]", item.values.first, placeholder: "Describe the scope, themes, goals, or notes for this topic...", class: "outline-native-autosize w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed text-paper-900 dark:text-paper-200 placeholder-paper-700 dark:placeholder-paper-600 px-3 py-2 resize-none overflow-hidden", rows: 1, data: { action: "input->outline#autoResize" } %>
           </div>
         <% end %>
       <% end %>
@@ -61,15 +61,15 @@
     <template>
       <div class="outline-field group rounded-sm border-l-3 border-moss-400 dark:border-moss-700 bg-paper-50 dark:bg-paper-950/40 shadow-sm focus-within:shadow-md transition-shadow">
         <div class="flex items-center gap-1 px-2 py-1.5 bg-paper-100/80 dark:bg-paper-900/30 rounded-tr-sm">
-          <span class="text-paper-400 dark:text-paper-600 text-xs font-mono select-none shrink-0 mr-0.5">&bull;</span>
-          <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-semibold tracking-wide uppercase text-moss-800 dark:text-moss-300 placeholder-paper-400 dark:placeholder-paper-600 py-0 px-1", required: true %>
+          <span class="text-paper-500 dark:text-paper-600 text-xs font-mono select-none shrink-0 mr-0.5">&bull;</span>
+          <%= text_field_tag "course[outline_topics][]", "", placeholder: "Topic", class: "flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-semibold tracking-wide uppercase text-moss-800 dark:text-moss-300 placeholder-paper-700 dark:placeholder-paper-600 py-0 px-1", required: true %>
           <div class="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
             <sl-icon-button name="chevron-up" class="move-up text-xs" data-action="click->outline#moveUp"></sl-icon-button>
             <sl-icon-button name="chevron-down" class="move-down text-xs" data-action="click->outline#moveDown"></sl-icon-button>
             <sl-icon-button name="x-lg" class="remove-field text-xs" data-action="click->outline#removeField"></sl-icon-button>
           </div>
         </div>
-        <%= text_area_tag "course[outline_details][]", "", placeholder: "Describe the scope, themes, goals, or notes for this topic...", class: "outline-native-autosize w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed text-paper-900 dark:text-paper-200 placeholder-paper-400 dark:placeholder-paper-600 px-3 py-2 resize-none overflow-hidden", required: true, rows: 1, data: { action: "input->outline#autoResize" } %>
+        <%= text_area_tag "course[outline_details][]", "", placeholder: "Describe the scope, themes, goals, or notes for this topic...", class: "outline-native-autosize w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm leading-relaxed text-paper-900 dark:text-paper-200 placeholder-paper-700 dark:placeholder-paper-600 px-3 py-2 resize-none overflow-hidden", required: true, rows: 1, data: { action: "input->outline#autoResize" } %>
       </div>
     </template>
   </div>
