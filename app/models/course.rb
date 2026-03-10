@@ -106,6 +106,16 @@ class Course < ApplicationRecord
     outline_guidance_report_md.to_s.strip.present?
   end
 
+  def outline_drafted_not_researched?
+    outline.present? && outline_research_stage == "idle"
+  end
+
+  def outline_research_snapshot_present?
+    %w[source_anchors coverage_gaps factual_notes alternative_approaches].any? do |key|
+      outline_research_hash.key?(key)
+    end
+  end
+
   def outline_research_review_page_available?
     outline_research_input_open? || outline_guidance_report_present?
   end

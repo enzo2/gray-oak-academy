@@ -81,6 +81,31 @@ module Admin
       assert_not_includes response.body, "Discuss Lessons with LLM"
     end
 
+    test "lessons index links back to course editor and recommends research before generating lessons" do
+      teacher = users(:admin)
+      course = Course.create!(
+        teacher: teacher,
+        title: "Research Prompt Course",
+        summary: "A course created to verify the lessons-page outline research prompt.",
+        grade_level: "5",
+        outline: [ { "Topic 1" => "Details 1" } ],
+        outline_research_stage: "idle"
+      )
+      sign_in(teacher)
+
+      AppSetting.stub(:openai_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get admin_course_lessons_path(course)
+        end
+      end
+
+      assert_response :success
+      assert_includes response.body, "Edit Course"
+      assert_includes response.body, edit_admin_course_path(course)
+      assert_includes response.body, "Outline research has not been run yet."
+      assert_includes response.body, "before generating lessons"
+    end
+
     test "teacher cannot view another teacher lesson" do
       sign_in(users(:admin))
 

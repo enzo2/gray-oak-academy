@@ -34,5 +34,52 @@ module Admin
 
       assert_response :not_found
     end
+
+    test "index shows drafted outline status before lessons are generated" do
+      teacher = users(:admin)
+      sign_in(teacher)
+
+      Course.create!(
+        teacher: teacher,
+        title: "Drafted Outline Course",
+        summary: "A course with an outline drafted but research not yet started.",
+        grade_level: "6",
+        outline: [ { "Origins" => "Begin with the earliest foundations." } ],
+        outline_research_stage: "idle"
+      )
+
+      AppSetting.stub(:openai_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get admin_courses_path
+        end
+      end
+
+      assert_response :success
+      assert_includes response.body, "Outline drafted; not researched"
+    end
+
+    test "index falls back to no lessons added when outline research is unavailable" do
+      teacher = users(:admin)
+      sign_in(teacher)
+
+      Course.create!(
+        teacher: teacher,
+        title: "Outline Without Research",
+        summary: "A course with an outline where research cannot run in this environment.",
+        grade_level: "6",
+        outline: [ { "Origins" => "Begin with the earliest foundations." } ],
+        outline_research_stage: "idle"
+      )
+
+      AppSetting.stub(:openai_agent_enabled?, false) do
+        AppSetting.stub(:exa_enabled?, false) do
+          get admin_courses_path
+        end
+      end
+
+      assert_response :success
+      assert_includes response.body, "No lessons added"
+      assert_not_includes response.body, "Outline drafted; not researched"
+    end
   end
 end

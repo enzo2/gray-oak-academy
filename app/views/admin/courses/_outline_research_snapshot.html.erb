@@ -1,0 +1,66 @@
+<% if course.outline_research_snapshot_present? %>
+  <% outline_research = course.outline_research_hash %>
+  <% outline_findings_classes = "rounded border border-stone-300 bg-stone-50/90 px-[0.95rem] py-[0.85rem] dark:border-stone-700 dark:bg-stone-900/90" %>
+
+  <div class="<%= outline_findings_classes %> mt-6">
+    <h3 class="text-xl font-semibold mb-1">Research Findings Snapshot</h3>
+    <p class="text-sm mb-3">Raw research results captured during the run, shown for reference.</p>
+
+    <div class="mb-4">
+      <h4 class="font-semibold mb-1">Source Anchors</h4>
+      <% source_anchors = Array(outline_research["source_anchors"]) %>
+      <% if source_anchors.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% source_anchors.each_with_index do |item, idx| %>
+            <% anchor = item.is_a?(Hash) ? item : {} %>
+            <li><%= anchor["title"].presence || "Source #{idx + 1}" %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No source anchors returned.</p>
+      <% end %>
+    </div>
+
+    <div class="mb-4">
+      <h4 class="font-semibold mb-1">Coverage Gaps</h4>
+      <% coverage_gaps = Array(outline_research["coverage_gaps"]) %>
+      <% if coverage_gaps.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% coverage_gaps.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No coverage gaps returned.</p>
+      <% end %>
+    </div>
+
+    <div class="mb-4">
+      <h4 class="font-semibold mb-1">Factual Notes</h4>
+      <% factual_notes = Array(outline_research["factual_notes"]) %>
+      <% if factual_notes.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% factual_notes.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No factual notes returned.</p>
+      <% end %>
+    </div>
+
+    <div class="mb-0">
+      <h4 class="font-semibold mb-1">Alternative Approaches</h4>
+      <% alternative_approaches = Array(outline_research["alternative_approaches"]) %>
+      <% if alternative_approaches.any? %>
+        <ul class="list-disc pl-5 space-y-1 text-sm">
+          <% alternative_approaches.each do |item| %>
+            <li><%= item %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-dim">No alternate approaches returned.</p>
+      <% end %>
+    </div>
+  </div>
+<% end %>

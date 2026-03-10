@@ -1,5 +1,11 @@
-<div class="flex flex-row justify-between">
-  <%= link_to "Back to Courses", admin_courses_path, class: "block mb-4 hover:underline" %>
+<% outline_research_available = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+<% outline_research_recommended = outline_research_available && @course.outline_drafted_not_researched? %>
+
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <%= link_to "Edit Course", edit_admin_course_path(@course), class: "btn-secondary" %>
+    <%= link_to "Back to Courses", admin_courses_path, class: "block hover:underline" %>
+  </div>
   <div class="flex flex-wrap items-center gap-2 mb-4">
     <% if @course.outline_guidance_report_present? %>
       <%= link_to outline_research_input_admin_course_path(@course, anchor: "guidance-report"), class: "btn-secondary" do %>
@@ -29,6 +35,14 @@
       <%= render "admin/lessons/generate_lessons_button", course: @course %>
     <% end %>
   </div>
+
+  <% if outline_research_recommended %>
+    <p class="mb-2 text-sm italic text-stone-600 dark:text-stone-300">
+      Outline research has not been run yet. It is worth reviewing on the
+      <%= link_to "Edit Course", edit_admin_course_path(@course), class: "underline" %>
+      page before generating lessons.
+    </p>
+  <% end %>
 
   <div id="generate-lessons-info">
     <% if @course.outline.blank? %>

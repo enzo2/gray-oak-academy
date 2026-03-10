@@ -19,6 +19,10 @@ module Admin
       assert_select "form[action='/admin/courses/#{course.id}/generate_outline?source=edit'][data-controller='button-loading']"
       assert_select "#generate-outline-button-#{course.id}", text: /Generate Outline/
       assert_not_includes response.body, "Outline Research"
+
+      generate_index = response.body.index("Generate Outline")
+      course_outline_index = response.body.index("Course Outline")
+      assert_operator generate_index, :<, course_outline_index
     end
 
     test "edit shows research panel only when outline exists and research features are enabled" do
@@ -84,6 +88,12 @@ module Admin
       assert_includes response.body, "Review Research Workspace"
       assert_includes response.body, "Research Findings Snapshot"
       assert_not_includes response.body, "Research Outline"
+
+      panel_index = response.body.index("Optional course-level research pass.")
+      course_outline_index = response.body.index("Course Outline")
+      findings_index = response.body.index("Research Findings Snapshot")
+      assert_operator panel_index, :<, course_outline_index
+      assert_operator course_outline_index, :<, findings_index
     end
 
     test "edit hides guidance report link when report is missing" do

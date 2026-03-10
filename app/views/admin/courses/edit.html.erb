@@ -5,10 +5,12 @@
   <% outline_present = @course.outline.present? %>
   <% outline_research_available = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
 
-  <%= render "admin/courses/form", course: @course %>
+  <% if outline_present && outline_research_available %>
+    <%= render "admin/courses/outline_research_panel", course: @course %>
+  <% end %>
 
   <% unless outline_present %>
-    <div class="mt-6 border border-stone-300 dark:border-stone-700 rounded-md p-4">
+    <div class="mb-6 border border-stone-300 dark:border-stone-700 rounded-md p-4">
       <h3 class="text-lg font-semibold mb-2">Generate Outline</h3>
       <p class="text-sm mb-3">
         This course does not have an outline yet. You can generate one now from this page.
@@ -24,8 +26,10 @@
     </div>
   <% end %>
 
+  <%= render "admin/courses/form", course: @course %>
+
   <% if outline_present && outline_research_available %>
-    <%= render "admin/courses/outline_research_panel", course: @course %>
+    <%= render "admin/courses/outline_research_snapshot", course: @course %>
   <% end %>
   <br>
 </div>
