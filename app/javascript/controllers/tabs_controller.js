@@ -50,9 +50,18 @@ export default class extends Controller {
 
   connect() {
     this.currentTabId = null
-    const fallback = this.tabTargets[0]?.dataset.tabsPanel
-    const initial = this.resolvePanelId(this.activeTabValue || fallback, fallback)
-    if (initial) this.showTab(initial, { initial: true })
+    this.boundRefresh = () => {
+      requestAnimationFrame(() => {
+        if (this.element.isConnected) this.refresh()
+      })
+    }
+
+    document.addEventListener("turbo:render", this.boundRefresh)
+    this.refresh({ initial: true })
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:render", this.boundRefresh)
   }
 
   // Action: click->tabs#show
@@ -128,6 +137,13 @@ export default class extends Controller {
     })
 
     this.dispatch("change", { detail: { tab: resolvedContentId, initial } })
+  }
+
+  refresh({ initial = false } = {}) {
+    const fallback = this.tabTargets[0]?.dataset.tabsPanel
+    const preferred = this.currentTabId || this.activeTabValue || fallback
+    const resolvedTabId = this.resolvePanelId(preferred, fallback)
+    if (resolvedTabId) this.showTab(resolvedTabId, { initial })
   }
 
   resolvePanelId(contentId, fallbackId = this.tabTargets[0]?.dataset.tabsPanel) {

@@ -76,6 +76,29 @@ class AdminStudentsTest < ApplicationSystemTestCase
     assert_selector "#journal_timeline:not(.hidden)"
   end
 
+  test "unenrolling keeps only the active dashboard panel visible after redirect" do
+    sign_in @admin
+    visit admin_student_path(@my_student, active_tab: :active_courses)
+
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_selector "#active_courses:not(.hidden)"
+
+    find("button", text: "Un-enroll", match: :first).click
+
+    within "[role='dialog']" do
+      find("input[placeholder='UNENROLL']").fill_in with: "UNENROLL"
+      click_button "Un-enroll"
+    end
+
+    assert_text "Student un-enrolled successfully."
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_equal [ "active_courses" ], evaluate_script(<<~JS)
+      Array.from(document.querySelectorAll('#student-dashboard-tabs [role="tabpanel"]'))
+        .filter((panel) => !panel.classList.contains('hidden'))
+        .map((panel) => panel.id)
+    JS
+  end
+
   test "me as student entry allows admin to add a memory for self" do
     sign_in @admin
     visit admin_students_path
