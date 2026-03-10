@@ -263,7 +263,9 @@ Devise.setup do |config|
   # should add them to the navigational formats lists.
   #
   # The "*/*" below is required to match Internet Explorer requests.
-  # config.navigational_formats = ['*/*', :html, :turbo_stream]
+  # Include :turbo_stream so Devise redirects on Turbo sign-out instead of
+  # responding with 204 No Content and leaving stale page state in place.
+  config.navigational_formats = [ :html, :turbo_stream ]
 
   # The default HTTP method used to sign out a resource. Default is :delete.
   config.sign_out_via = :delete

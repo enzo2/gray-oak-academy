@@ -59,4 +59,18 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     assert_select "button[aria-label='Edit memory'][title='Edit memory']", count: 2
     assert_select "button[aria-label='Delete memory'][title='Delete memory']", count: 2
   end
+
+  test "turbo logout redirects immediately to the login page" do
+    sign_in(@teacher)
+
+    delete destroy_user_session_path, as: :turbo_stream
+
+    assert_response :see_other
+    assert_redirected_to new_user_session_path
+
+    follow_redirect!
+
+    assert_response :success
+    assert_match(/Log in/i, response.body)
+  end
 end
