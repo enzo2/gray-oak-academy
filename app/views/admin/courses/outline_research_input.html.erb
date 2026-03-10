@@ -18,6 +18,7 @@
 <% outline_complete_badge_classes = "inline-flex h-[1.8rem] w-[1.8rem] items-center justify-center rounded-full bg-gradient-to-b from-moss-600 to-moss-700 text-[0.9rem] font-bold text-white ring-2 ring-moss-500/25" %>
 <% outline_complete_report_classes = "prose mt-3 max-w-none rounded border border-stone-300 bg-white/90 px-[0.85rem] py-3 text-sm dark:border-stone-700 dark:bg-stone-900/90 dark:prose-invert" %>
 <% outline_findings_classes = "rounded border border-stone-300 bg-stone-50/90 px-[0.95rem] py-[0.85rem] dark:border-stone-700 dark:bg-stone-900/90" %>
+<% finding_markdown_classes = "prose prose-sm prose-stone max-w-none dark:prose-invert prose-p:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-a:break-all [&>*:first-child]:mt-0 [&>*:last-child]:mb-0" %>
 <%# Tab navigation classes %>
 <% tab_nav_classes = "flex gap-0 border-b border-stone-300 dark:border-stone-600 mb-6" %>
 <% tab_button_classes = "group relative border-0 bg-transparent px-4 py-2.5 text-sm font-medium text-stone-500 transition-colors hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 dark:text-stone-400 dark:hover:text-stone-200 data-[state=active]:text-stone-900 dark:data-[state=active]:text-stone-100" %>
@@ -48,7 +49,9 @@
             <% anchor_hash = anchor.is_a?(Hash) ? anchor : {} %>
             <div class="rounded border border-stone-200 dark:border-stone-700 p-3 bg-white/70 dark:bg-stone-900/50">
               <div class="flex flex-wrap items-start justify-between gap-2">
-                <p class="text-sm font-semibold"><%= anchor_hash["title"].presence || "Source #{idx + 1}" %></p>
+                <div class="min-w-0 flex-1 <%= finding_markdown_classes %>">
+                  <%= markdown(anchor_hash["title"].presence || "Source #{idx + 1}") %>
+                </div>
                 <%= link_to "Convert to Resource",
                             convert_source_anchor_to_resource_admin_course_path(@course, source_anchor_index: idx),
                             class: "btn-secondary",
@@ -63,18 +66,26 @@
                 </p>
               <% end %>
               <% if anchor_hash["excerpt"].present? %>
-                <p class="text-sm mt-2"><%= anchor_hash["excerpt"] %></p>
+                <div class="<%= finding_markdown_classes %> mt-2">
+                  <%= markdown(anchor_hash["excerpt"].to_s) %>
+                </div>
               <% end %>
               <% highlights = Array(anchor_hash["highlights"]) %>
               <% if highlights.any? %>
-                <ul class="list-disc pl-5 text-sm mt-2">
+                <ul class="list-disc pl-5 mt-2 space-y-2">
                   <% highlights.each do |highlight| %>
-                    <li><%= highlight %></li>
+                    <li>
+                      <div class="<%= finding_markdown_classes %>">
+                        <%= markdown(highlight.to_s) %>
+                      </div>
+                    </li>
                   <% end %>
                 </ul>
               <% end %>
               <% if anchor_hash["notes"].present? %>
-                <p class="text-xs text-dim mt-2"><%= anchor_hash["notes"] %></p>
+                <div class="<%= finding_markdown_classes %> text-xs text-dim mt-2">
+                  <%= markdown(anchor_hash["notes"].to_s) %>
+                </div>
               <% end %>
             </div>
           <% end %>
@@ -88,9 +99,13 @@
       <h4 class="font-semibold mb-1">Coverage Gaps</h4>
       <% coverage_gaps = Array(outline_research["coverage_gaps"]) %>
       <% if coverage_gaps.any? %>
-        <ul class="list-disc pl-5 space-y-1 text-sm">
+        <ul class="list-disc pl-5 space-y-2">
           <% coverage_gaps.each do |item| %>
-            <li><%= item %></li>
+            <li>
+              <div class="<%= finding_markdown_classes %>">
+                <%= markdown(item.to_s) %>
+              </div>
+            </li>
           <% end %>
         </ul>
       <% else %>
@@ -102,9 +117,13 @@
       <h4 class="font-semibold mb-1">Factual Notes</h4>
       <% factual_notes = Array(outline_research["factual_notes"]) %>
       <% if factual_notes.any? %>
-        <ul class="list-disc pl-5 space-y-1 text-sm">
+        <ul class="list-disc pl-5 space-y-2">
           <% factual_notes.each do |item| %>
-            <li><%= item %></li>
+            <li>
+              <div class="<%= finding_markdown_classes %>">
+                <%= markdown(item.to_s) %>
+              </div>
+            </li>
           <% end %>
         </ul>
       <% else %>
@@ -116,9 +135,13 @@
       <h4 class="font-semibold mb-1">Alternative Approaches</h4>
       <% alternative_approaches = Array(outline_research["alternative_approaches"]) %>
       <% if alternative_approaches.any? %>
-        <ul class="list-disc pl-5 space-y-1 text-sm">
+        <ul class="list-disc pl-5 space-y-2">
           <% alternative_approaches.each do |item| %>
-            <li><%= item %></li>
+            <li>
+              <div class="<%= finding_markdown_classes %>">
+                <%= markdown(item.to_s) %>
+              </div>
+            </li>
           <% end %>
         </ul>
       <% else %>

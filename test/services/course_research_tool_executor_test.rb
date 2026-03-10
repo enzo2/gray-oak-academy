@@ -116,9 +116,11 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
   test "tool schemas define strict outline_research objects" do
     executor = CourseResearchToolExecutor.new(course: @course, current_user: @teacher)
 
+    apply_tool = executor.send(:apply_course_research_update_tool)
     apply_schema = executor.send(:apply_course_research_update_tool)
       .dig(:parameters)
     assert_equal %w[summary outline outline_guidance_report_md outline_research], apply_schema[:required]
+    assert_includes apply_tool[:description], "pass null"
 
     outline_research_schema = apply_schema
       .dig(:properties, :outline_research)
@@ -127,6 +129,9 @@ class CourseResearchToolExecutorTest < ActiveSupport::TestCase
     assert_equal %w[source_anchors coverage_gaps factual_notes alternative_approaches], outline_research_schema[:required]
     assert_equal false, outline_research_schema.dig(:properties, :source_anchors, :items, :additionalProperties)
     assert_equal %w[id title url excerpt highlights notes], outline_research_schema.dig(:properties, :source_anchors, :items, :required)
+    assert_includes outline_research_schema[:description], "markdown"
+    assert_includes outline_research_schema.dig(:properties, :coverage_gaps, :description), "leave unchanged"
+    assert_includes outline_research_schema.dig(:properties, :source_anchors, :items, :properties, :notes, :description), "Markdown"
 
     patch_schema = executor.send(:update_outline_research_tool)
       .dig(:parameters, :properties, :outline_research_patch)

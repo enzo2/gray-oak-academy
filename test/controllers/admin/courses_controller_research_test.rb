@@ -96,6 +96,47 @@ module Admin
       assert_operator course_outline_index, :<, findings_index
     end
 
+    test "edit renders markdown inside research findings snapshot" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline: [ { "Topic" => "Details" } ],
+        outline_research_stage: "completed",
+        outline_guidance_report_md: "## Guidance\nUse the research framing.",
+        outline_research: {
+          "source_anchors" => [
+            {
+              "id" => "anchor_1",
+              "title" => "Source with **emphasis**",
+              "url" => "https://example.com/a",
+              "excerpt" => "Reference excerpt",
+              "highlights" => [],
+              "notes" => ""
+            }
+          ],
+          "coverage_gaps" => [ "Add **maps** and _timelines_." ],
+          "factual_notes" => [ "Review [primary source](https://example.com/source)." ],
+          "alternative_approaches" => [ "Try a `theme-first` sequence." ],
+          "apply_agent_summary_md" => "Applied successfully.",
+          "apply_completed_at" => "2026-02-12T16:44:06Z"
+        }
+      )
+
+      AppSetting.stub(:openai_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get edit_admin_course_path(course)
+        end
+      end
+
+      assert_response :success
+      assert_includes response.body, "<strong>emphasis</strong>"
+      assert_includes response.body, "<strong>maps</strong>"
+      assert_includes response.body, "<em>timelines</em>"
+      assert_includes response.body, "href=\"https://example.com/source\""
+      assert_includes response.body, "<code>theme-first</code>"
+    end
+
     test "edit hides guidance report link when report is missing" do
       teacher = users(:admin)
       course = courses(:one)

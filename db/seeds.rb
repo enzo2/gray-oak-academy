@@ -593,10 +593,15 @@ p.prompt = <<~PROMPT
   {outline}
 
   Return focused research in JSON only with these fields:
-  - source_anchors: high-quality course-level references that a teacher may use while planning the curriculum. Include concise excerpts/highlights and a short note on relevance.
-  - coverage_gaps: topics or perspectives that appear underrepresented in the current outline.
-  - factual_notes: accuracy caveats or clarifications important for course planning. Focus on high-value information or areas of contention/dispute.
-  - alternative_approaches: alternative/heterodox sequencing or framing approaches
+  - source_anchors: up to 10 high-quality course-level references that a teacher may use while planning the curriculum. Prefer primary sources, canonical references, official institutions, original texts, and widely trusted expert sources over secondary summaries or SEO-style pages. Include brief excerpts/highlights and a short note on relevance.
+  - coverage_gaps: directly relevant, grade-level-appropriate topics that appear to be lacking in the current outline.
+  - factual_notes: brief accuracy caveats or clarifications important for course planning. Focus on high-value information or areas of contention/dispute.
+  - alternative_approaches: brief alternative or heterodox sequencing/framing approaches
+
+  Do not include information or analysis that is not directly relevant to the course outline planning. Do not shoehorn political viewpoints like "bias", "underrepresentation", or "global perspectives" into apolitical subjects.
+  Be concise throughout. Keep list items short and teacher-usable.
+
+  Respond in JSON only with the aforementioned fields.
 PROMPT
 p.save!
 
@@ -658,6 +663,7 @@ p.prompt = <<~PROMPT
 
   Teacher responses:
   {teacher_answers}
+
   Additional comments from teacher:
   {additional_comments}
 

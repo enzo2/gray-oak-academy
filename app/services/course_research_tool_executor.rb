@@ -170,7 +170,7 @@ class CourseResearchToolExecutor
     {
       type: "function",
       name: "get_course_state",
-      description: "Read the current course summary, outline, guidance report, and outline research payload.",
+      description: "Read the latest persisted course summary, outline, guidance report markdown, and normalized outline_research payload before making changes.",
       parameters: {
         type: "object",
         properties: {},
@@ -185,13 +185,17 @@ class CourseResearchToolExecutor
     {
       type: "function",
       name: "apply_course_research_update",
-      description: "Atomically apply course updates for the provided fields based on teacher-approved research guidance.",
+      description: "Atomically apply teacher-approved course updates. This schema is strict, so all four top-level keys must be present; pass null for any field you do not want to change.",
       parameters: {
         type: "object",
         properties: {
-          summary: { type: [ "string", "null" ] },
+          summary: {
+            type: [ "string", "null" ],
+            description: "Complete replacement course summary. Pass null to leave the current summary unchanged."
+          },
           outline: {
             type: [ "array", "null" ],
+            description: "Complete replacement course outline. Each item must contain a topic and description. Pass null to leave the current outline unchanged.",
             items: {
               type: "object",
               properties: {
@@ -202,7 +206,10 @@ class CourseResearchToolExecutor
               additionalProperties: false
             }
           },
-          outline_guidance_report_md: { type: [ "string", "null" ] },
+          outline_guidance_report_md: {
+            type: [ "string", "null" ],
+            description: "Complete replacement teacher-facing guidance report in markdown. Pass null to leave the current report unchanged."
+          },
           outline_research: outline_research_schema(nullable: true)
         },
         required: %w[summary outline outline_guidance_report_md outline_research],
@@ -216,7 +223,7 @@ class CourseResearchToolExecutor
     {
       type: "function",
       name: "update_outline_research",
-      description: "Merge a partial patch into course outline_research and persist it.",
+      description: "Merge a partial patch into outline_research. Provide only the sections that should change; omitted keys are preserved.",
       parameters: {
         type: "object",
         properties: {
@@ -232,21 +239,40 @@ class CourseResearchToolExecutor
   def outline_research_schema(nullable:)
     schema = {
       type: "object",
+      description: "Structured research findings for teacher review. Strings may include short markdown. Arrays replace the entire existing list for that field.",
       properties: {
         source_anchors: {
           type: [ "array", "null" ],
+          description: "High-quality source anchors relevant to course planning. Pass null only in apply_course_research_update to leave this field unchanged.",
           items: {
             type: "object",
+            description: "A single source anchor with normalized fields for display and later teacher review.",
             properties: {
-              id: { type: [ "string", "null" ] },
-              title: { type: [ "string", "null" ] },
-              url: { type: [ "string", "null" ] },
-              excerpt: { type: [ "string", "null" ] },
+              id: {
+                type: [ "string", "null" ],
+                description: "Stable anchor identifier. Reuse an existing id when updating an existing anchor."
+              },
+              title: {
+                type: [ "string", "null" ],
+                description: "Teacher-facing title of the source."
+              },
+              url: {
+                type: [ "string", "null" ],
+                description: "Canonical source URL."
+              },
+              excerpt: {
+                type: [ "string", "null" ],
+                description: "Short excerpt or synopsis of the source. Markdown is allowed."
+              },
               highlights: {
                 type: [ "array", "null" ],
+                description: "Short bullet-style highlights extracted from the source. Markdown is allowed in each string.",
                 items: { type: [ "string", "null" ] }
               },
-              notes: { type: [ "string", "null" ] }
+              notes: {
+                type: [ "string", "null" ],
+                description: "Brief note about why the source matters for this course. Markdown is allowed."
+              }
             },
             required: %w[id title url excerpt highlights notes],
             additionalProperties: false
@@ -254,14 +280,17 @@ class CourseResearchToolExecutor
         },
         coverage_gaps: {
           type: [ "array", "null" ],
+          description: "Important topics missing from the outline. Pass null only in apply_course_research_update to leave unchanged.",
           items: { type: [ "string", "null" ] }
         },
         factual_notes: {
           type: [ "array", "null" ],
+          description: "Accuracy caveats, corrections, or clarifications that matter for planning. Pass null only in apply_course_research_update to leave unchanged.",
           items: { type: [ "string", "null" ] }
         },
         alternative_approaches: {
           type: [ "array", "null" ],
+          description: "Alternative sequencing, framing, or pedagogical approaches. Pass null only in apply_course_research_update to leave unchanged.",
           items: { type: [ "string", "null" ] }
         }
       },
