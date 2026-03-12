@@ -50,7 +50,9 @@ class LessonPlan < ApplicationRecord
   end
 
   def link_default_resources
-    default_resources = Resource.where(include_by_default: true)
+    return unless teacher.present?
+
+    default_resources = Resource.where(teacher: teacher, include_by_default: true)
     resources << default_resources
   end
 

@@ -32,6 +32,22 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @teacher, resource.applet.user
   end
 
+  test "cannot create and link a resource into another teacher lesson plan" do
+    other_lesson_plan = lesson_plans(:two)
+
+    assert_no_difference("Resource.count") do
+      post admin_resources_path, params: {
+        resource: {
+          description: "Cross-tenant link attempt",
+          lesson_plan_id: other_lesson_plan.id
+        }
+      }, as: :turbo_stream
+    end
+
+    assert_response :not_found
+    assert_not other_lesson_plan.reload.resources.where(description: "Cross-tenant link attempt").exists?
+  end
+
   test "should create resource with tags" do
     assert_difference("Resource.count") do
       post admin_resources_path, params: {

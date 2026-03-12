@@ -27,7 +27,8 @@ module Admin
     def create
       # May submit the form from Resources dashboard (new available resource), or Lesson Plan dashboard (link to the plan upon creation)
       # Remove the lesson_plan_id since it's not part of resource_params (there's a join table for HABTM relationship)
-      @lesson_plan = LessonPlan.find(params[:resource].delete(:lesson_plan_id)) if params[:resource][:lesson_plan_id].present?
+      lesson_plan_id = params[:resource].delete(:lesson_plan_id)
+      @lesson_plan = find_authorized_lesson_plan!(lesson_plan_id) if lesson_plan_id.present?
       @resource = Resource.new(resource_params)
       @resource.teacher = current_user
       @resource.category = "Applet" if @resource.applet
@@ -71,7 +72,7 @@ module Admin
 
     def approve
       @resource.update!(approved: true)
-      @lesson_plan = LessonPlan.find(params[:lesson_plan_id]) if params[:lesson_plan_id].present?
+      @lesson_plan = find_authorized_lesson_plan!(params[:lesson_plan_id]) if params[:lesson_plan_id].present?
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_back fallback_location: admin_resources_path, notice: "Resource approved." }
@@ -124,6 +125,14 @@ module Admin
     def resource_params
       params.expect(resource: [ :category, :description, :uri, :content, :file, :include_by_default, :tags, applet_attributes: [ :id, :title, :code ] ])
       # Could add _destroy for applet_attributes if want to allow deleting applets, but makes sense to delete the whole resource
+    end
+
+    def find_authorized_lesson_plan!(lesson_plan_id)
+      return LessonPlan.find(lesson_plan_id) if current_user.role_superuser?
+
+      LessonPlan.joins(lesson: :course)
+                .where(courses: { teacher_id: current_user.id })
+                .find(lesson_plan_id)
     end
   end
 end
