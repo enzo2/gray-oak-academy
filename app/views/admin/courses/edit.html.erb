@@ -6,7 +6,7 @@
   <% outline_research_available = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
 
   <% if outline_present && outline_research_available %>
-    <%= render "admin/courses/outline_research_panel", course: @course %>
+    <%= render "admin/courses/outline_research_panel_container", course: @course %>
   <% end %>
 
   <% unless outline_present %>
@@ -29,7 +29,7 @@
   <%= render "admin/courses/form", course: @course %>
 
   <% if outline_present && outline_research_available %>
-    <%= render "admin/courses/outline_research_snapshot", course: @course %>
+    <%= render "admin/courses/outline_research_snapshot_container", course: @course %>
   <% end %>
   <br>
 </div>

@@ -1,0 +1,5 @@
+<div id="<%= dom_id(course, :outline_research_snapshot) %>">
+  <% if course.outline_research_snapshot_present? %>
+    <%= render "admin/courses/outline_research_snapshot", course: course %>
+  <% end %>
+</div>

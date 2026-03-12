@@ -38,5 +38,24 @@ module Admin
       label = choices[normalized_key.downcase].to_s.strip if label.blank?
       label.presence || DEFAULT_RESEARCH_CHOICE_LABELS[normalized_key]
     end
+
+    def course_form_dom_id(course)
+      course.persisted? ? dom_id(course, :form) : "course-form"
+    end
+
+    def outline_research_lock_message(course)
+      return "" unless course.outline_research_in_progress?
+
+      case course.outline_research_stage
+      when "researching_outline"
+        "Outline research is running. Course edits are temporarily locked."
+      when "generating_guidance_questions"
+        "Guidance is being prepared. Course edits are temporarily locked."
+      when "applying_guidance_updates"
+        "Research updates are being applied. Course edits are temporarily locked."
+      else
+        "Outline research is in progress. Course edits are temporarily locked."
+      end
+    end
   end
 end

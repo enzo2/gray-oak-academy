@@ -99,7 +99,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       emitted_events = []
       job = ResumeCourseOutlineResearchJob.new
       job.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
-        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+        CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
           job.perform(
             course_id: course.id,
             user_id: teacher.id,
@@ -148,7 +148,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     )
 
     error = assert_raises(OpenAiError) do
-      Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+      CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
         ResumeCourseOutlineResearchJob.perform_now(
           course_id: course.id,
           user_id: teacher.id,
@@ -195,7 +195,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
 
     CourseOutlineResearchStubService.stub(:enabled?, true) do
       OpenaiResponsesService.stub(:new, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
-        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+        CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
           ResumeCourseOutlineResearchJob.perform_now(
             course_id: course.id,
             user_id: teacher.id,
@@ -280,7 +280,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
       CourseResearchToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         error = assert_raises(OpenAiError) do
-          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
             ResumeCourseOutlineResearchJob.perform_now(
               course_id: course.id,
               user_id: teacher.id,

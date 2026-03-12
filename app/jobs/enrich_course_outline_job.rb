@@ -54,7 +54,7 @@ class EnrichCourseOutlineJob < ApplicationJob
     failure_phase = "initialize"
 
     course.update!(outline_research_stage: "researching_outline", outline_research_error: nil)
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
     if CourseOutlineResearchStubService.enabled?
       run_stub_pipeline(
         course: course,
@@ -85,7 +85,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_stage: "generating_guidance_questions",
       outline_research_error: nil
     )
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
 
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
     failure_phase = "guidance_generation"
@@ -117,7 +117,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       source_anchor_count: Array(course.outline_research_hash["source_anchors"]).size
     )
     broadcast_chalkboard_research_input(course: course, conversation_id: conversation_id)
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
   rescue StandardError => e
     Rails.logger.error("EnrichCourseOutlineJob failed for course=#{course_id}: #{e.message}")
     course&.update(
@@ -135,7 +135,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       response_id: course&.outline_research_response_id.to_s,
       error_message: e.message.to_s.truncate(500)
     )
-    broadcast_refresh(current_user) if current_user.present?
+    broadcast_editor_state(course, current_user) if current_user.present? && course.present?
     raise
   end
 
@@ -161,7 +161,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_stage: "generating_guidance_questions",
       outline_research_error: nil
     )
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
 
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
     guidance_payload = CourseOutlineResearchStubService.guidance_payload(course: course)
@@ -191,7 +191,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       source_anchor_count: Array(course.outline_research_hash["source_anchors"]).size
     )
     broadcast_chalkboard_research_input(course: course, conversation_id: conversation_id)
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
   end
 
   def run_exa_research(course:, current_user:)
@@ -215,7 +215,7 @@ class EnrichCourseOutlineJob < ApplicationJob
       poll_count: poll_count,
       response: created
     )
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
 
     response =
       if research_id.present?
@@ -233,7 +233,7 @@ class EnrichCourseOutlineJob < ApplicationJob
           status_changed = status.present? && status != previous_status
           should_broadcast = status_changed || (Time.current - last_broadcast_at) >= 9
           if should_broadcast
-            broadcast_refresh(current_user)
+            broadcast_editor_state(course, current_user)
             last_broadcast_at = Time.current
           end
         end
@@ -483,8 +483,8 @@ class EnrichCourseOutlineJob < ApplicationJob
     raise OpenAiError, "Invalid JSON from outline research output: #{e.message}"
   end
 
-  def broadcast_refresh(current_user)
-    Turbo::StreamsChannel.broadcast_refresh_to("teacher_#{current_user.id}-dashboard")
+  def broadcast_editor_state(course, current_user)
+    CourseOutlineResearchBroadcasts.broadcast_editor_state(course: course, current_user: current_user)
   end
 
   def broadcast_chalkboard_research_input(course:, conversation_id:)

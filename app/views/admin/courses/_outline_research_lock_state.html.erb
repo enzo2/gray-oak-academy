@@ -1,0 +1,5 @@
+<div id="<%= dom_id(course, :outline_research_lock_state) %>"
+     data-outline-target="lockState"
+     data-locked="<%= course.outline_research_in_progress? %>"
+     data-lock-message="<%= outline_research_lock_message(course) %>">
+</div>

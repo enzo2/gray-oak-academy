@@ -1,4 +1,4 @@
-<%= form_with(model: [:admin, course], id: "course-form") do |f| %>
+<%= form_with(model: [:admin, course], id: course_form_dom_id(course)) do |f| %>
   <% if course.errors.any? %>
     <div class="mb-4 text-danger-950 dark:text-danger-300">
       <%= pluralize(course.errors.count, "error") %> prevented this course from being saved.
@@ -27,7 +27,10 @@
   </div>
   <p class="text-sm mb-4"><i>Hint: The grade level is useful for tuning the LLM's behavior. It doesn't have the be the exact grade level of the student.</i></p>
 
-  <div class="mb-4" data-controller="outline" data-outline-target="fieldContainer">
+  <div class="mb-4 relative"
+       data-controller="outline"
+       data-action="submit@document->outline#guardResearchStart"
+       data-outline-target="fieldContainer">
     <%= f.label :outline, "Course Outline", class: "form-label" %>
     <p class="block text-sm mb-2">   
       <i>
@@ -35,6 +38,18 @@
         The outline will be used by the LLM to generate the list of lessons. Include any desired content.
       </i>
     </p>
+
+    <%= render "admin/courses/outline_research_lock_state", course: course %>
+    <div class="hidden absolute inset-0 z-10 rounded-md bg-stone-50/85 backdrop-blur-[1px] dark:bg-stone-950/80"
+         data-outline-target="lockOverlay"
+         aria-hidden="true">
+      <div class="flex h-full items-center justify-center p-6">
+        <div class="max-w-xl rounded-md border border-stone-300 bg-white/95 px-4 py-3 text-center text-sm text-stone-700 shadow-sm dark:border-stone-700 dark:bg-stone-900/95 dark:text-stone-200">
+          <p class="font-semibold">Course Editor Locked</p>
+          <p class="mt-1" data-outline-target="lockMessage"></p>
+        </div>
+      </div>
+    </div>
 
     <div class="outline-fields space-y-3">
       <% if course.outline.any? %>

@@ -3,22 +3,25 @@ import { Controller } from "@hotwired/stimulus";
 // This controller handles add/remove/rearrange content fields in course and lesson plan forms
 // <template> tag is used to clone the field content
 export default class extends Controller {
-  static targets = ["fieldContainer"];
+  static targets = ["fieldContainer", "lockState", "lockOverlay", "lockMessage"];
 
   connect() {
-    this.boundTurboRender = () => this.scheduleAutoResizeAll();
+    this.boundTurboRender = () => this.syncUi();
+    this.boundFormSubmit = (event) => this.preventSubmitWhenLocked(event);
     document.addEventListener("turbo:render", this.boundTurboRender);
     document.addEventListener("turbo:load", this.boundTurboRender);
     document.addEventListener("turbo:after-stream-render", this.boundTurboRender);
+    this.formElement?.addEventListener("submit", this.boundFormSubmit);
+    this.initialFormSignature = this.formSignature(this.formElement);
 
-    this.updateArrowVisibility();
-    this.scheduleAutoResizeAll();
+    this.syncUi();
   }
 
   disconnect() {
     document.removeEventListener("turbo:render", this.boundTurboRender);
     document.removeEventListener("turbo:load", this.boundTurboRender);
     document.removeEventListener("turbo:after-stream-render", this.boundTurboRender);
+    this.formElement?.removeEventListener("submit", this.boundFormSubmit);
 
     if (this.resizeFrame) {
       cancelAnimationFrame(this.resizeFrame);
@@ -38,7 +41,14 @@ export default class extends Controller {
     this.resizeFrame = requestAnimationFrame(() => {
       this.resizeFrame = null;
       this.autoResizeAll();
+      this.syncLockState();
     });
+  }
+
+  syncUi() {
+    this.updateArrowVisibility();
+    this.scheduleAutoResizeAll();
+    this.syncLockState();
   }
 
   autoResizeAll() {
@@ -133,5 +143,102 @@ export default class extends Controller {
     if (fields.length === 1) {
       fields[0].querySelectorAll('.move-up, .move-down').forEach(btn => setButtonHidden(btn, true));
     }
+  }
+
+  syncLockState() {
+    const locked = this.isLocked;
+    const lockMessage = this.hasLockStateTarget ? this.lockStateTarget.dataset.lockMessage || "" : "";
+
+    if (this.hasLockMessageTarget) {
+      this.lockMessageTarget.textContent = lockMessage;
+    }
+
+    if (this.hasLockOverlayTarget) {
+      this.lockOverlayTarget.classList.toggle("hidden", !locked);
+      this.lockOverlayTarget.setAttribute("aria-hidden", locked ? "false" : "true");
+    }
+
+    const activeElement = document.activeElement;
+    if (locked && activeElement instanceof HTMLElement && this.fieldContainerTarget.contains(activeElement)) {
+      activeElement.blur();
+    }
+
+    this.fieldContainerTarget.setAttribute("aria-busy", locked ? "true" : "false");
+
+    this.lockManagedControls.forEach((element) => {
+      if (locked) {
+        if (!element.dataset.outlineLockInitialDisabled) {
+          element.dataset.outlineLockInitialDisabled = element.disabled ? "true" : "false";
+        }
+        element.disabled = true;
+      } else {
+        const initiallyDisabled = element.dataset.outlineLockInitialDisabled === "true";
+        element.disabled = initiallyDisabled;
+        delete element.dataset.outlineLockInitialDisabled;
+      }
+    });
+  }
+
+  get lockManagedControls() {
+    if (!this.formElement || !this.hasLockStateTarget) { return []; }
+
+    return Array.from(
+      new Set(
+        this.formElement.querySelectorAll(
+          "input:not([type='hidden']), textarea, select, button, sl-button, sl-icon-button"
+        )
+      )
+    );
+  }
+
+  get formElement() {
+    return this.fieldContainerTarget.closest("form");
+  }
+
+  get isLocked() {
+    return this.hasLockStateTarget && this.lockStateTarget.dataset.locked === "true";
+  }
+
+  preventSubmitWhenLocked(event) {
+    if (!this.isLocked) { return; }
+
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  guardResearchStart(event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) { return; }
+    if (form.dataset.outlineResearchStart !== "true") { return; }
+    if (!this.formElement) { return; }
+    if (this.formSignature(this.formElement) === this.initialFormSignature) { return; }
+
+    event.preventDefault();
+    event.stopPropagation();
+    window.alert(form.dataset.outlineDirtyMessage || "Save or discard your edits before continuing.");
+  }
+
+  formSignature(form) {
+    if (!form) { return ""; }
+
+    return Array.from(form.querySelectorAll("input, textarea, select")).map((field) => {
+      const type = field.type || field.tagName.toLowerCase();
+      const name = field.name || "";
+
+      if (field.tagName === "SELECT") {
+        const value = Array.from(field.options)
+          .filter((option) => option.selected)
+          .map((option) => option.value)
+          .join("\u0001");
+
+        return `${name}\u0000${type}\u0000${value}`;
+      }
+
+      if (type === "checkbox" || type === "radio") {
+        return `${name}\u0000${type}\u0000${field.checked ? "1" : "0"}\u0000${field.value}`;
+      }
+
+      return `${name}\u0000${type}\u0000${field.value}`;
+    }).join("\u0002");
   }
 }

@@ -229,6 +229,29 @@ module Admin
       assert_equal "course_edit_page", captured_kwargs[:source]
     end
 
+    test "start_outline_research returns turbo stream updates for the edit page" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(outline: [ { "Topic" => "Details" } ])
+
+      fake_service = Object.new
+      fake_service.define_singleton_method(:enqueue_start) do
+        { ok: true, stage: "researching_outline", message: "Queued outline research." }
+      end
+
+      CourseOutlineResearchAsyncService.stub(:new, ->(**_kwargs) { fake_service }) do
+        post start_outline_research_admin_course_path(course), headers: { "ACCEPT" => Mime[:turbo_stream].to_s }
+      end
+
+      assert_response :success
+      assert_equal Mime[:turbo_stream].to_s, response.media_type
+      assert_includes response.body, %(target="outline_research_panel_course_#{course.id}")
+      assert_includes response.body, %(target="form_course_#{course.id}")
+      assert_includes response.body, %(target="outline_research_lock_state_course_#{course.id}")
+      assert_includes response.body, "Queued outline research."
+    end
+
     test "outline_research_input renders awaiting-teacher-input workspace" do
       teacher = users(:admin)
       course = courses(:one)

@@ -35,6 +35,38 @@ module Admin
       assert_response :not_found
     end
 
+    test "update rejects edits while outline research is in progress" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        title: "Locked Course",
+        summary: "Original summary that should remain unchanged while the editor is locked.",
+        grade_level: "5",
+        outline: [ { "Topic" => "Details" } ],
+        outline_research_stage: "researching_outline"
+      )
+
+      patch admin_course_path(course), params: {
+        course: {
+          title: "Changed Title",
+          summary: "Updated summary that should not be persisted because the lock is active.",
+          grade_level: "6",
+          outline_topics: [ "Updated Topic" ],
+          outline_details: [ "Updated Details" ]
+        }
+      }
+
+      assert_redirected_to edit_admin_course_path(course)
+      assert_equal "Course edits are locked while outline research is in progress.", flash[:alert]
+
+      course.reload
+      assert_equal "Locked Course", course.title
+      assert_equal "Original summary that should remain unchanged while the editor is locked.", course.summary
+      assert_equal "5", course.grade_level
+      assert_equal [ { "Topic" => "Details" } ], course.outline
+    end
+
     test "index shows drafted outline status before lessons are generated" do
       teacher = users(:admin)
       sign_in(teacher)

@@ -90,7 +90,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
         chalkboard_broadcasts = []
         job = EnrichCourseOutlineJob.new
         job.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
-          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
             Turbo::StreamsChannel.stub(:broadcast_append_to, ->(*args, **kwargs) {
               chalkboard_broadcasts << { args: args, kwargs: kwargs }
             }) do
@@ -171,7 +171,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     CourseOutlineResearchStubService.stub(:enabled?, true) do
       ExaApiService.stub(:new, ->(**_kwargs) { raise "Exa should not run in stub mode" }) do
         OpenaiResponsesService.stub(:new, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
-          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
             EnrichCourseOutlineJob.perform_now(
               course_id: course.id,
               user_id: teacher.id,

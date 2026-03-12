@@ -36,7 +36,16 @@ module Admin
     end
 
     def update
-      if @course.update(course_params)
+      update_result = nil
+
+      @course.with_lock do
+        @course.reload
+        return redirect_to(edit_admin_course_path(@course), alert: "Course edits are locked while outline research is in progress.", status: :see_other) if @course.outline_research_in_progress?
+
+        update_result = @course.update(course_params)
+      end
+
+      if update_result
         redirect_to admin_courses_path, status: :see_other
       else
         respond_to do |format|
@@ -84,10 +93,22 @@ module Admin
         source: "course_edit_page"
       ).enqueue_start
 
-      if result[:ok]
-        redirect_to edit_admin_course_path(@course), notice: result[:message], status: :see_other
-      else
-        redirect_to edit_admin_course_path(@course), alert: result[:message], status: :see_other
+      @course.reload
+
+      respond_to do |format|
+        if result[:ok]
+          format.turbo_stream do
+            flash.now[:notice] = result[:message]
+            render turbo_stream: course_edit_outline_research_streams(@course)
+          end
+          format.html { redirect_to edit_admin_course_path(@course), notice: result[:message], status: :see_other }
+        else
+          format.turbo_stream do
+            flash.now[:alert] = result[:message]
+            render turbo_stream: course_edit_outline_research_streams(@course), status: :unprocessable_content
+          end
+          format.html { redirect_to edit_admin_course_path(@course), alert: result[:message], status: :see_other }
+        end
       end
     end
 
@@ -308,6 +329,32 @@ module Admin
         ready_to_resume: resumable_run && unanswered_count.zero?,
         resumable_run: resumable_run
       }
+    end
+
+    def course_edit_outline_research_streams(course)
+      [
+        turbo_stream.update("flash_bar", partial: "shared/flash"),
+        turbo_stream.replace(
+          view_context.dom_id(course, :outline_research_panel),
+          partial: "admin/courses/outline_research_panel_container",
+          locals: { course: course }
+        ),
+        turbo_stream.replace(
+          view_context.dom_id(course, :form),
+          partial: "admin/courses/form",
+          locals: { course: course }
+        ),
+        turbo_stream.replace(
+          view_context.dom_id(course, :outline_research_snapshot),
+          partial: "admin/courses/outline_research_snapshot_container",
+          locals: { course: course }
+        ),
+        turbo_stream.replace(
+          view_context.dom_id(course, :outline_research_lock_state),
+          partial: "admin/courses/outline_research_lock_state",
+          locals: { course: course }
+        )
+      ]
     end
   end
 end

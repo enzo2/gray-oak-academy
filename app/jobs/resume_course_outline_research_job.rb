@@ -17,7 +17,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       outline_research_error: nil,
       outline_research: clear_apply_completion_fields(course.outline_research_hash)
     )
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
 
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
     if CourseOutlineResearchStubService.enabled?
@@ -95,7 +95,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       response_id: response_hash["id"].to_s,
       tool_turns: turns.to_i
     )
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
   rescue StandardError => e
     Rails.logger.error("ResumeCourseOutlineResearchJob failed for course=#{course_id}: #{e.message}")
     client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
@@ -114,7 +114,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       response_id: course&.outline_research_response_id.to_s,
       error_message: e.message.to_s.truncate(500)
     )
-    broadcast_refresh(current_user) if current_user.present?
+    broadcast_editor_state(course, current_user) if current_user.present? && course.present?
     raise
   end
 
@@ -158,7 +158,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       response_id: response_id.to_s,
       tool_turns: 1
     )
-    broadcast_refresh(current_user)
+    broadcast_editor_state(course, current_user)
   end
 
   def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:)
@@ -317,8 +317,8 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     end
   end
 
-  def broadcast_refresh(current_user)
-    Turbo::StreamsChannel.broadcast_refresh_to("teacher_#{current_user.id}-dashboard")
+  def broadcast_editor_state(course, current_user)
+    CourseOutlineResearchBroadcasts.broadcast_editor_state(course: course, current_user: current_user)
   end
 
   def emit_analytics_event(event_class, course:, current_user:, source:, stage:, **params)
