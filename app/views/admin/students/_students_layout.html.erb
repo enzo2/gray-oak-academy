@@ -8,12 +8,12 @@
     <sl-icon-button
       name="people"
       label="Open student list"
-      class="text-2xl lg:hidden"
+      class="text-2xl xl:hidden"
       data-action="click->sidebar#openMobile">
     </sl-icon-button>
   </div>
 
-  <div id="students-mobile-sidebar" class="fixed inset-x-0 top-10 bottom-0 z-50 lg:hidden hidden" data-sidebar-target="mobileSidebar">
+  <div id="students-mobile-sidebar" class="fixed inset-x-0 top-10 bottom-0 z-50 xl:hidden hidden" data-sidebar-target="mobileSidebar">
     <div id="students-mobile-backdrop" class="absolute inset-0 bg-black/50 transition-opacity duration-300" data-sidebar-target="mobileBackdrop" data-action="click->sidebar#closeMobile"></div>
 
     <div class="absolute inset-y-0 left-0 w-64 bg-stone-50 dark:bg-stone-900 shadow-xl border-r border-stone-200 dark:border-stone-800 transition-transform duration-300 ease-out" data-sidebar-target="mobilePanel">
@@ -21,8 +21,8 @@
     </div>
   </div>
 
-  <div class="pt-4 flex flex-col lg:flex-row gap-2">
-    <div class="basis-48 pr-2 border-r max-lg:hidden">
+  <div class="pt-4 flex flex-col xl:flex-row gap-2">
+    <div class="hidden w-56 shrink-0 pr-2 border-r xl:block">
       <div data-sidebar-target="desktopContent">
         <template data-sidebar-target="contentTemplate">
           <nav class="h-full">
@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <div class="grow lg:pl-4 max-w-7xl min-w-0">
+    <div class="grow xl:pl-4 max-w-7xl min-w-0">
       <%= yield %>
     </div>
   </div>
