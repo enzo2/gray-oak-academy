@@ -136,4 +136,5 @@ LLM APIs are configured per-user in `Setting`:
 ## Alignment
 
 - If user intent is not clear, ask before implementing. 
+- Do not stage changes unless asked.
 - Avoid unnecessary backward compatibility when actively working on new features that haven't been committed yet.
