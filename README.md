@@ -32,7 +32,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 ## Features
 - Teacher-directed, LLM-conducted learning platform, thoughtfully designed for human control
 - AI-augmented, yet deliberate curriculum planning: Rapidly expand a full set of lessons according to your goals; take manual control at any point in the process
-- Powerful LLM tutor: can create/run Javascript applets, display web resources, save memories and observations, evaluate students
+- Powerful LLM tutor: can create/run JavaScript applets, display web resources, save memories and observations, evaluate students
 - Integrated multimodal LLM chat for teachers and students, with STT/TTS/auto-read, images & webcam, and "chalkboard" (canvas accessible by the LLM)
 - Encourages away-from-keyboard: Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 - Longitudinal student model with atomic observations keeps a fluid view of student progress; teacher may veto observations
@@ -63,8 +63,8 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 ### Security
 - Devise for authentication
 - Superuser, Teacher and Student roles
-- For security, not designed for hosting publically by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
-- Note: The LLM is permitted to auto-execute its own Javascript within a sandboxed iframe. 
+- For security, not designed for hosting publicly by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
+- Note: The LLM is permitted to auto-execute its own JavaScript within a sandboxed iframe. 
 
 ## Setup Instructions
 - `git clone` the repository to your machine. 
@@ -78,7 +78,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 - Run `rails server`. Visit http://localhost:3000. To access from other devices over the same LAN, visit https://your-machine-ip:3001 (note: you will get a self-signed root CA warning).
 
 ### Production:
-- *Note: The default setup is not secure. It just runs the Puma server. The minimum option for serving publically would be to enable Thruster, Rails' basic proxy with Let's Encrypt support, in the Dockerfile. You'll also need to adjust SSL settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
+- *Note: The default setup is not secure. It just runs the Puma server. The minimum option for serving publicly would be to enable Thruster, Rails' basic proxy with Let's Encrypt support, in the Dockerfile. You'll also need to adjust SSL settings in `/config/production.rb`. Please refer to Rails and Thruster documentation.*
 - Create `/.env.production` following `.env.production.example`. Include a random 32-character `RAILS_MASTER_KEY`, and keep it secure. 
 - OpenAI OAuth uses the built-in public Codex client id (`app_EMoamEEZ73f0CkXaXp7hrann`) with device authorization. No custom OAuth client configuration is currently supported.
 - Also create `/.env`: see `.env.example`. (This is for Postgres.)
@@ -112,11 +112,12 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ## Feature ideas:
 - Compaction
+- Non-digital resource availability/planning
 - Additional agentic flows for curriculum planning 
 - Address resource explosion (Resource archive & auto-organization)
 - Improve student analytics
 - MCP support
-- Document uploads
+- Document uploads / local corpus search & linkage
 - Refactor LLM tools into virtual CLI tools
 - Generative Python applets (pyodide iframe)
 - Non-lesson-based, graph-based course option (directed graph creation and traversal)
@@ -129,5 +130,6 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 *I'm a doctor, Jim, not a software engineer.* I started this as a personal project for homeschooling my son. I had dabbled in Rails over a decade prior in college, but my burgeoning penchant for making web apps abruptly disappeared within a week of starting med school. A few years into practicing medicine, LLMs made coding feasible again for me, and I found Rails still to be thriving (and great fun). In August 2024, I started laying down the vision for Gray Oak Academy, but in early 2025, LLMs were still not capable of driving it. Knowing this would soon change, I pressed on and decided to fully realize the concept over the next year. The app is therefore a blend of LLM pair-programming and vibe-coding (and hopefully bears the artisanal aura of pre-2026 software).
 
-## License 
+## License
+
 See LICENSE.md.
