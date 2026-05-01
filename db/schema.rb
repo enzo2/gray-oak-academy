@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_22_123000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_30_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -54,6 +54,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_22_123000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agent_api_events", force: :cascade do |t|
+    t.bigint "agent_api_key_id", null: false
+    t.string "command"
+    t.datetime "created_at", null: false
+    t.string "error_code"
+    t.text "error_message"
+    t.string "path", null: false
+    t.jsonb "record_ids", default: {}, null: false
+    t.string "request_method", null: false
+    t.datetime "requested_at", null: false
+    t.integer "status"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["agent_api_key_id"], name: "index_agent_api_events_on_agent_api_key_id"
+    t.index ["command"], name: "index_agent_api_events_on_command"
+    t.index ["requested_at"], name: "index_agent_api_events_on_requested_at"
+    t.index ["status"], name: "index_agent_api_events_on_status"
+    t.index ["user_id"], name: "index_agent_api_events_on_user_id"
+  end
+
+  create_table "agent_api_keys", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_used_at"
+    t.string "name", null: false
+    t.datetime "revoked_at"
+    t.string "token_digest", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.string "visible_prefix", null: false
+    t.index ["revoked_at"], name: "index_agent_api_keys_on_revoked_at"
+    t.index ["token_digest"], name: "index_agent_api_keys_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_agent_api_keys_on_user_id"
+    t.index ["visible_prefix"], name: "index_agent_api_keys_on_visible_prefix"
   end
 
   create_table "agent_runs", force: :cascade do |t|
@@ -427,6 +462,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_22_123000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_api_events", "agent_api_keys"
+  add_foreign_key "agent_api_events", "users"
+  add_foreign_key "agent_api_keys", "users"
   add_foreign_key "applets", "resources"
   add_foreign_key "applets", "users"
   add_foreign_key "audios", "messages"

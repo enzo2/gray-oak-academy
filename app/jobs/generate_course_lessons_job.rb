@@ -9,7 +9,7 @@ class GenerateCourseLessonsJob < ApplicationJob
     schema: LlmSchemas::CourseLessonsSchema.to_json_schema.deep_stringify_keys
   }
 
-  def perform(course, current_user, replace_existing_lessons: false)
+  def perform(course, current_user, replace_existing_lessons: false, raise_on_error: false)
     # Handle replacement logic
     if replace_existing_lessons
       if course.lessons.joins(:lesson_plan).exists?
@@ -81,6 +81,7 @@ class GenerateCourseLessonsJob < ApplicationJob
         course,
         "Failed to generate course lessons: #{e.message}"
       )
+      raise if raise_on_error
     end
   end
 

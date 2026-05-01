@@ -10,7 +10,7 @@ class GenerateCourseOutlineJob < ApplicationJob
     schema: LlmSchemas::CourseOutlineSchema.to_json_schema.deep_stringify_keys
   }.freeze
 
-  def perform(course, current_user)
+  def perform(course, current_user, raise_on_error: false)
     customized_prompt = Prompt.get_prompt(category: "generate_course_outline", user: current_user)
       .gsub("{title}", course.title)
       .gsub("{summary}", course.summary)
@@ -49,6 +49,7 @@ class GenerateCourseOutlineJob < ApplicationJob
         course,
         "Failed to generate course outline: #{e.message}"
       )
+      raise if raise_on_error
     end
   end
 

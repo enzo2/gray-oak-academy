@@ -72,4 +72,22 @@ class GenerateCourseLessonsJobTest < ActiveJob::TestCase
       }
     ]
   end
+
+  test "raise_on_error propagates provider failures" do
+    course = courses(:one)
+    teacher = users(:admin)
+    fake_service = Object.new
+
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { fake_service }) do
+      LlmServiceRouting.stub(:complete_structured_output, ->(**_kwargs) { raise StandardError, "provider unavailable" }) do
+        Turbo::StreamsChannel.stub(:broadcast_update_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_replace_to, true) do
+            assert_raises(StandardError) do
+              GenerateCourseLessonsJob.perform_now(course, teacher, raise_on_error: true)
+            end
+          end
+        end
+      end
+    end
+  end
 end

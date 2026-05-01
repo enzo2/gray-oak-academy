@@ -12,6 +12,9 @@
         <button role="tab" type="button" class="<%= tab_button_classes %>"
                 data-tabs-target="tab" data-tabs-panel="api"
                 data-action="click->tabs#show keydown->tabs#handleTabKeydown">LLMs</button>
+        <button role="tab" type="button" class="<%= tab_button_classes %>"
+                data-tabs-target="tab" data-tabs-panel="agent_access"
+                data-action="click->tabs#show keydown->tabs#handleTabKeydown">Agent Access</button>
       <% end %>
       <button role="tab" type="button" class="<%= tab_button_classes %>"
               data-tabs-target="tab" data-tabs-panel="notifications"
@@ -27,6 +30,9 @@
     <% if current_user.role_teacher? %>
       <div id="api" role="tabpanel" data-tabs-target="panel">
         <%= render "user_settings/api", settings: current_user.settings %>
+      </div>
+      <div id="agent_access" role="tabpanel" data-tabs-target="panel">
+        <%= render "user_settings/agent_access" %>
       </div>
     <% end %>
 

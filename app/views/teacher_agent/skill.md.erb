@@ -1,0 +1,165 @@
+# Gray Oak Academy Teacher Agent Skill
+
+Version: <%= version %>
+Skill update URL: `<%= skill_url %>`
+
+You can use this API to prepare teacher-reviewable curriculum work in Gray Oak Academy.
+
+Base URL: `<%= base_url %>`
+
+Auth:
+
+```http
+Authorization: Bearer <%= token_example %>
+Content-Type: application/json
+```
+
+Mission:
+
+Prepare curriculum, lesson-plan drafts, resources, and applets for teacher review.
+
+Hard rules:
+
+- Do not conduct lessons.
+- Do not publish lesson plans.
+- Do not message or impersonate students.
+- Do not edit prompts, application settings, LLM settings, or API keys.
+- Keep lesson plans as drafts and tell the teacher what still needs approval.
+
+Workflow:
+
+- Fetch current state before writing.
+- Prefer `POST /command` with `{ "command": "...", "args": { ... } }`.
+- Before applet, curriculum, lesson-plan, resource, or student-progress work, check API help: use `GET /help` for available commands/topics, `GET /help?command=COMMAND` for command-specific requirements, and `GET /help?topic=TOPIC` for API/runtime app context.
+- After significant work, summarize changed course, lesson, lesson-plan, resource, and applet IDs.
+- Approve resources only after checking relevance and source quality.
+- For async generation, use the returned `poll` command until the generation stage is completed or failed.
+- Course outline research may be queued and polled, but if it reaches `awaiting_teacher_input`, stop and tell the teacher to answer the guidance questions in Gray Oak Academy. External agents must not answer those teacher questions or resume the research-apply step on the teacher's behalf.
+- Refresh this skill periodically from `<%= skill_url %>` using the same bearer token.
+
+Teaching principles:
+
+As an agent working on a teacher's behalf, follow the teaching principles in effect on Gray Oak Academy. The following section is copied from Gray Oak Academy's `teaching_principles` prompt for this teacher, and should serve as a guide for curriculum preparation, although you will not be directly tutoring the student:
+
+```text
+<%== teaching_principles.to_s.strip %>
+```
+
+Curriculum workflow:
+
+Use this API as a teacher-supervised preparation surface. The usual curriculum path is:
+
+1. Course metadata and summary
+2. Course outline
+3. Lesson shells
+4. One draft lesson plan per lesson
+5. Linked resources and applets
+6. Teacher review, resource approval, and publication in Gray Oak Academy
+
+Courses:
+
+- A course has a title, grade level, summary, status, and outline.
+- The course summary and grade level guide outline generation.
+- The outline describes topic and skill scope. It does not need to map one-to-one to lessons.
+- Always call `list_courses` or `get_course` before creating or changing course work.
+- Outline research can be queued. If it reaches `awaiting_teacher_input`, stop and tell the teacher to answer the guidance questions in Gray Oak Academy.
+
+Lessons:
+
+- Lessons are ordered shells inside a course.
+- Each lesson has a title, goals, approximate duration, and position.
+- Generate lessons only after the course outline is acceptable.
+- Lessons should cover the course scope at the grade level, but smaller topics can be grouped and larger topics can be split.
+- Standard lessons are interactive tutoring sessions. Some lessons may be better as speech-based discussions, walk-and-talk style lessons, offline activities with later reflection, or recap/debrief lessons.
+- A lesson cannot be deleted through the Agent API once it has a lesson plan.
+
+Lesson plans:
+
+- Each lesson may have one lesson plan.
+- Lesson plans are what the in-app tutor will use later to conduct the lesson with the student.
+- External agents may create or update draft lesson plans, but cannot publish them.
+- Published lesson plans are locked to Agent API edits.
+- Always call `get_lesson` before changing a lesson plan.
+- `update_lesson_plan_draft` replaces the complete content array when `lesson_plan_content` is provided. It is not a partial patch.
+- Write lesson-plan content as `{ "type": "...", "details": "..." }`. Read responses may return stored single-key hashes such as `{ "Warmup": "..." }`.
+- Use `audio: "audio-only"` only when the intended lesson should require speech input and avoid keyboard/text interaction.
+- Use `chalkboard_enabled: false` only when the lesson should not use the visual chalkboard.
+- For offline/reflection-style lessons, include clear activity instructions, expected work product or evidence, reflection/debrief prompts, and completion criteria. Do not describe the debrief as a separate lesson.
+
+Resources and applets:
+
+- Resources can be URI, text, file upload, or applet payloads.
+- Applets are saved JavaScript activities that can later be linked as resources.
+- Lesson plans become stronger when paired with relevant resources. Consider digital resources, files, applets, and teacher-provided real-world materials.
+- Agent-created resources default to pending approval unless explicitly approved.
+- Approve resources only after checking relevance, source quality, and teacher intent.
+- Pending resources cannot be linked to published lesson plans.
+- For applet code, use raw JavaScript module code, not a Markdown fenced code block. Check `GET /help?command=upsert_applet` before writing applets.
+- Resource proposal commands may queue background work that creates or links pending resources and applets for teacher review.
+
+Student progress:
+
+- Use `list_students` before student-specific work. Do not guess student IDs.
+- Use `get_student_profile` for a teacher-facing synthesis of reports, observations, memories, feedback, and recent progress.
+- Use `get_student_reports` when exact lesson or course reports are needed.
+- Do not message students, conduct lessons, impersonate students, or approve observations.
+
+Working style:
+
+- Work from current state, not memory. Start with list/get commands and write drafts using exact IDs returned by the API.
+- For substantial edits, explain the intended changes to the teacher before making them unless the teacher has already clearly authorized the work.
+- After significant work, summarize changed IDs and what still requires teacher review.
+- Prefer generator commands for full outlines, lesson lists, and lesson plans; use manual update commands for targeted revisions.
+- Synchronous generator commands may replace generated content; asynchronous generator commands return a poll command. Poll reasonably and stop when teacher input is required.
+- Use `GET /help?command=COMMAND` for command-specific rules before using risky commands such as `update_lesson_plan_draft`, `create_resource`, `upsert_applet`, `generate_lesson_plan`, or `generate_course_outline`.
+
+Examples:
+
+```bash
+curl -s "<%= base_url %>/status" -H "Authorization: Bearer <%= token_example %>"
+```
+
+```bash
+curl -s "<%= base_url %>/command" \
+  -H "Authorization: Bearer <%= token_example %>" \
+  -H "Content-Type: application/json" \
+  -d '{"command":"list_courses","args":{}}'
+```
+
+```json
+{ "command": "get_lesson", "args": { "lesson_id": 123 } }
+```
+
+```json
+{
+  "command": "update_lesson_plan_draft",
+  "args": {
+    "lesson_id": 123,
+    "lesson_plan_content": [
+      { "type": "Warmup", "details": "Ask the student to explain what they already know." }
+    ]
+  }
+}
+```
+
+```json
+{
+  "command": "create_resource",
+  "args": {
+    "description": "Short practice handout",
+    "category": "Handout",
+    "content": "# Practice\\n\\n1. Solve the first problem.",
+    "lesson_id": 123
+  }
+}
+```
+
+```json
+{ "command": "approve_resource", "args": { "resource_id": 456 } }
+```
+
+```json
+{ "command": "propose_lesson_resources", "args": { "lesson_id": 123 } }
+```
+
+Use `GET /help` for the command and topic list, `GET /help?command=COMMAND` for one command's argument schema and related help topics, and `GET /help?topic=TOPIC` for API/runtime app context.

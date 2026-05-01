@@ -22,10 +22,24 @@ Rails.application.routes.draw do
 
   patch "user_settings", to: "user_settings#update"
   get "user_settings/llm_models", to: "user_settings#llm_models"
+  get "user_settings/agent_skill.md", to: "agent_api_keys#skill", as: :user_settings_agent_skill
+  get "user_settings/agent_skill", to: redirect("/user_settings/agent_skill.md")
   get "user_settings/openai_oauth/connect", to: "user_settings/openai_oauth#connect", as: :user_settings_openai_oauth_connect
   get "user_settings/openai_oauth/device", to: "user_settings/openai_oauth#device", as: :user_settings_openai_oauth_device
   post "user_settings/openai_oauth/device_poll", to: "user_settings/openai_oauth#device_poll", as: :user_settings_openai_oauth_device_poll
   delete "user_settings/openai_oauth/disconnect", to: "user_settings/openai_oauth#disconnect", as: :user_settings_openai_oauth_disconnect
+  resources :agent_api_keys, only: [ :create, :destroy ]
+
+  namespace :api do
+    namespace :agent do
+      namespace :v1 do
+        get "status", to: "root#status"
+        get "help", to: "root#help"
+        get "skill", to: "root#skill"
+        post "command", to: "commands#create"
+      end
+    end
+  end
 
   resources :notifications, only: [ :index, :update, :destroy ] do
     post :mark_all_read, on: :collection

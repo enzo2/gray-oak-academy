@@ -49,6 +49,8 @@ class User < ApplicationRecord
   has_many :conversations, dependent: :destroy
   has_many :applets, dependent: :destroy
   has_many :notifications, foreign_key: :recipient_id, dependent: :destroy
+  has_many :agent_api_keys, dependent: :destroy
+  has_many :agent_api_events, dependent: :destroy
 
   def name
     "#{first_name} #{last_name}"

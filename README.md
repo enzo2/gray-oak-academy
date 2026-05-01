@@ -41,11 +41,11 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ### Cool tech stuff
 - Self-hostable with docker
+- Optional API + SKILL.md for trusted personal agents (e.g. OpenClaw, Hermes) to prepare curriculum, draft lesson plans, resources, and applets
 - All system prompts can be customized (opinionated defaults included)
 - Works with any OpenAI-compatible API (including local). OpenAI, OpenRouter, and xAI use Responses API. 
 - OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
 - API + token management: Preload multiple LLM APIs for teachers to choose from
-- Background agent runs via Responses API 
 - Automated memory saving and semantic consolidation, with choice of embeddings model
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
@@ -64,6 +64,7 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 - Devise for authentication
 - Superuser, Teacher and Student roles
 - For security, not designed for hosting publicly by default. You will need to secure the app yourself by adding a reverse proxy, modifying the Dockerfile, production.rb, etc. 
+- Teacher-scoped API tokens for AI agent access
 - Note: The LLM is permitted to auto-execute its own JavaScript within a sandboxed iframe. 
 
 ## Setup Instructions
@@ -102,8 +103,9 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 - Create a teacher account using the teacher signup code. 
 - Become a superuser and access all functions/settings. Open a terminal inside the container, run `bin/rails console` and manually change your user_role, `User.first.role_superuser!`.)
 - As a superuser, go to LLM API settings and set up shared tokens for OpenAI and OpenRouter. Go to App Settings and set up speech, Exa, and other settings.
-- Go to your own user settings > Preferences and set your API and models.
+- Go to your Settings > Preferences and set your API and models.
 - To verify your setup and try the chat interface, go to LLM Chat. Try asking the LLM to generate an applet. (Note: for microphone input, you must be on localhost or HTTPS.)
+- For agent access / SKILL.md, go to Settings > Agent Access.
 - Create a course using the Course Manager, or by asking the LLM. Next, generate a course outline, and optionally run the outline research flow.
 - You can then create lessons, followed by lesson plans. Finally, you can run the resource proposal agent on a plan.
 - When the first lesson plan is ready, mark it as published. 

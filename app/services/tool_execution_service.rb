@@ -211,6 +211,14 @@ class ToolExecutionService
     raise ToolExecutionError, "No teacher associated with current user"
   end
 
+  def teacher_agent_operations
+    @teacher_agent_operations ||= TeacherAgent::Operations.new(teacher: current_teacher)
+  end
+
+  def create_teacher_agent_tool_message(payload)
+    create_tool_message(JSON.pretty_generate(payload))
+  end
+
   def applet_scope_for_user
     case @user.role
     when "student" # Allow own or teacher's applets.
@@ -578,56 +586,15 @@ class ToolExecutionService
   end
 
   def execute_create_course
-    # Teacher-only tool
-    title = @args["title"]
-    summary = @args["summary"]
-    grade = @args["grade_level"]
-
-    course = current_teacher.taught_courses.new(title: title, summary: summary, grade_level: grade)
-
-    if course.save
-      create_tool_message(JSON.pretty_generate({ status: "ok", course: course.as_json(only: [ :id, :title, :summary, :grade_level, :status ]) }))
-    else
-      raise ToolExecutionError, "Validation failed: #{course.errors.full_messages.join(', ')}"
-    end
+    create_teacher_agent_tool_message({ status: "ok" }.merge(teacher_agent_operations.create_course(@args)))
+  rescue TeacherAgent::Operations::Error => e
+    raise ToolExecutionError, e.message
   end
 
   def execute_update_course
-    # Teacher-only tool
-    course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.find_by(id: course_id)
-    raise ToolExecutionError, "Course not found" unless course
-
-    Course.transaction do
-      # Update basic course fields if provided
-      course.title = @args["title"] if @args["title"].present?
-      course.summary = @args["summary"] if @args["summary"].present?
-      course.grade_level = @args["grade_level"] if @args["grade_level"].present?
-
-      # If an outline is provided, expect an array of { "topic": "...", "description": "..." }
-      if @args.key?("outline")
-        outline_items = @args["outline"]
-        unless outline_items.is_a?(Array)
-          raise ToolExecutionError, "outline must be an array"
-        end
-
-        begin
-          course.outline = outline_items.map do |it|
-            topic = it["topic"]
-            desc = it["description"]
-            if topic.blank? || desc.blank?
-              raise ToolExecutionError, "Each outline item must include non-empty 'topic' and 'description'"
-            end
-            { topic => desc }
-          end
-        rescue => e
-          raise ToolExecutionError, e.message
-        end
-      end
-
-      course.save!
-      create_tool_message(JSON.pretty_generate({ status: "ok", course: course.for_llm }))
-    end
+    create_teacher_agent_tool_message({ status: "ok" }.merge(teacher_agent_operations.update_course(@args)))
+  rescue TeacherAgent::Operations::Error => e
+    raise ToolExecutionError, e.message
   end
 
   def execute_update_lesson_plan
@@ -788,92 +755,18 @@ class ToolExecutionService
   end
 
   def execute_edit_course_lessons
-    # Teacher-only tool
-    course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.find_by(id: course_id)
-    raise ToolExecutionError, "Course not found" unless course
-
-    Course.transaction do
-      # 0. Delete Lessons
-      if @args["lessons_to_delete"].present?
-        @args["lessons_to_delete"].each do |l_id|
-          lesson = course.lessons.find_by(id: l_id)
-          raise ToolExecutionError, "Lesson #{l_id} not found in course #{course_id}" unless lesson
-
-          # Check for lesson plan
-          if lesson.lesson_plan.present?
-            raise ToolExecutionError, "Cannot delete lesson #{l_id} ('#{lesson.title}') because it has a lesson plan."
-          end
-
-          lesson.destroy!
-        end
-        # Reload course association to ensure deleted lessons are gone from memory for subsequent steps
-        course.lessons.reload
-      end
-
-      # 1. Update Lessons
-      if @args["lessons_to_update"].present?
-        @args["lessons_to_update"].each do |item|
-          l_id = item["id"].to_i
-          lesson = course.lessons.find_by(id: l_id)
-          raise ToolExecutionError, "Lesson #{l_id} not found in course #{course_id}" unless lesson
-
-          lesson.title = item["title"] if item["title"].present?
-          lesson.goals = item["goals"] if item["goals"].present?
-          lesson.approx_duration_min = item["approx_duration_min"].to_i if item["approx_duration_min"].present?
-          lesson.save!
-        end
-      end
-
-      # 2. Reorder Lessons
-      if @args["lessons_order"].present?
-        order_list = @args["lessons_order"]
-        # Validation: ensure strict 1-to-1 match of IDs
-        input_ids = order_list.map { |x| x["id"].to_i }.sort
-        existing_ids = course.lessons.pluck(:id).sort
-
-        unless input_ids == existing_ids
-          raise ToolExecutionError, "lessons_order must contain exactly all lesson IDs for this course. Missing: #{existing_ids - input_ids}, Extras: #{input_ids - existing_ids}"
-        end
-
-        # We should also validate positions are 1..N
-        sorted_orders = order_list.sort_by { |x| x["position"].to_i }
-        expected_positions = (1..existing_ids.count).to_a
-        given_positions = sorted_orders.map { |x| x["position"].to_i }
-        unless given_positions == expected_positions
-          raise ToolExecutionError, "lessons_order positions must be a contiguous sequence from 1 to N."
-        end
-
-        # Apply updates using acts_as_list's insert_at to handle shuffling safely
-        sorted_orders.each do |item|
-          l_id = item["id"].to_i
-          l = course.lessons.find(l_id)
-          l.insert_at(item["position"].to_i)
-        end
-      end
-    end
-
-    course.reload
-    create_tool_message(JSON.pretty_generate(course.for_llm))
+    create_teacher_agent_tool_message(teacher_agent_operations.edit_course_lessons(@args)[:course])
+  rescue TeacherAgent::Operations::Error => e
+    raise ToolExecutionError, e.message
   end
 
   def execute_generate_course_lessons
-    # Teacher-only tool
-    course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.find_by(id: course_id)
-    raise ToolExecutionError, "Course not found" unless course
-
-    replace = !!@args["replace_existing_lessons"]
-
-    begin
-      # Run the generation job synchronously; caller is expected to wait for completion
-      GenerateCourseLessonsJob.perform_now(course, current_teacher, replace_existing_lessons: replace)
-      course.reload
-      create_tool_message(JSON.pretty_generate(course.for_llm))
-    rescue StandardError => e
-      Rails.logger.error "GenerateCourseLessonsJob error: #{e.message}"
-      raise ToolExecutionError, "Failed to generate lessons: #{e.message}"
-    end
+    create_teacher_agent_tool_message(teacher_agent_operations.generate_course_lessons(@args)[:course])
+  rescue TeacherAgent::Operations::Error => e
+    raise ToolExecutionError, e.message
+  rescue StandardError => e
+    Rails.logger.error "GenerateCourseLessonsJob error: #{e.message}"
+    raise ToolExecutionError, "Failed to generate lessons: #{e.message}"
   end
 
   def execute_generate_lesson_plan
