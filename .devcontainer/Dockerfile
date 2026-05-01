@@ -1,5 +1,5 @@
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=4.0.1
+ARG RUBY_VERSION=4.0.3
 FROM ghcr.io/rails/devcontainer/images/ruby:$RUBY_VERSION
 
 RUN sudo apt-get update && export DEBIAN_FRONTEND=noninteractive \

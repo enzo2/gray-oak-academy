@@ -1217,7 +1217,7 @@ p.save!
 openai = SupportedApi.find_or_create_by!(api_base_uri: 'https://api.openai.com/v1/')
 openrouter = SupportedApi.find_or_create_by!(api_base_uri: 'https://openrouter.ai/api/v1/')
 SupportedApi.find_or_create_by!(api_base_uri: 'https://api.x.ai/v1/')
-# SupportedApi.find_or_create_by!(api_base_uri: 'https://api.cerebras.ai/v1/') # Fast but no image models yet.
+# SupportedApi.find_or_create_by!(api_base_uri: 'https://api.cerebras.ai/v1/') # Fast but no image-input models yet.
 
 # Create default AppSetting pointing at OpenAI for speech and openrouter for embeddings
 AppSetting.first_or_create!(
@@ -1232,14 +1232,14 @@ AppSetting.first_or_create!(
   image_generation_two_pass: "0",
   user_daily_budget: "10.00",
   max_chat_cost: "5.00",
-  openai_agent_model: "gpt-5.2",
+  openai_agent_model: "gpt-5.4",
   openai_agent_supported_api_id: openai.id,
-  openai_agent_max_tool_turns: "20",
+  openai_agent_max_tool_turns: "30",
   exa_research_model: "exa-research"
 )
 
 # ---- Seed OpenRouter image-capable LLM ----
-llm = Llm.find_or_create_by!(api_provider: openrouter.api_base_uri, model: 'google/gemini-3-pro-image-preview')
+llm = Llm.find_or_create_by!(api_provider: openrouter.api_base_uri, model: 'google/gemini-3.1-flash-image-preview')
 begin
   UpdateOpenrouterModelMetadataJob.perform_now(llm)
 rescue

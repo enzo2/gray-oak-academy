@@ -661,6 +661,56 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "codex provider parses streamed text when completed response has no output items" do
+    responses = Object.new
+    responses.define_singleton_method(:create) do |**_params|
+      flunk("SDK create should not be used for Codex responses")
+    end
+
+    client = Object.new
+    client.define_singleton_method(:responses) { responses }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+
+      completed_response = {
+        "id" => "resp_codex_empty_output",
+        "status" => "completed",
+        "model" => @model,
+        "output" => [],
+        "usage" => { "total_tokens" => 42 }
+      }
+
+      service.stub(:manual_codex_responses_stream, ->(_request_params, _request_options_param) {
+        [
+          { "type" => "response.output_text.delta", "delta" => "{\"lessons\":[" },
+          { "type" => "response.output_text.delta", "delta" => "{\"title\":\"Intro\",\"goals\":\"Start here\",\"duration\":20}" },
+          { "type" => "response.output_text.delta", "delta" => "]}" },
+          { "type" => "response.completed", "response" => completed_response }
+        ].to_enum
+      }) do
+        result = service.complete(
+          [ { role: "user", content: "Create lessons" } ],
+          response_format: { type: "json_schema", json_schema: { name: "Lessons", schema: { "type" => "object" } } }
+        )
+
+        assert_equal(
+          { "lessons" => [ { "title" => "Intro", "goals" => "Start here", "duration" => 20 } ] },
+          result
+        )
+        assert_equal "resp_codex_empty_output", service.last_response_id
+        assert_equal "completed", service.last_response_hash["status"]
+        assert_equal 42, service.last_response_hash.dig("usage", "total_tokens")
+      end
+    end
+  end
+
   test "finalize_stream_response synthesizes response from text deltas when completed event is missing" do
     service = OpenaiResponsesService.new(
       current_user: @user,

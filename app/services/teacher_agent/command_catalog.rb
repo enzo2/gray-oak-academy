@@ -166,5 +166,66 @@ module TeacherAgent
     def self.allowed?(name)
       COMMANDS.key?(name.to_s)
     end
+
+    def self.execute(name, operations, args)
+      command = name.to_s
+
+      case command
+      when "status"
+        operations.status(args)
+      when "list_students"
+        operations.list_students(args)
+      when "get_student_profile"
+        operations.get_student_profile(args)
+      when "get_student_reports"
+        operations.get_student_reports(args)
+      when "list_courses"
+        operations.list_courses(args)
+      when "get_course"
+        operations.get_course(args)
+      when "create_course"
+        operations.create_course(args)
+      when "update_course"
+        operations.update_course(args)
+      when "generate_course_outline"
+        operations.generate_course_outline(args)
+      when "generate_course_lessons"
+        operations.generate_course_lessons(args)
+      when "edit_course_lessons"
+        operations.edit_course_lessons(args)
+      when "get_lesson"
+        operations.get_lesson(args)
+      when "update_lesson_plan_draft"
+        operations.update_lesson_plan_draft(args)
+      when "generate_lesson_plan"
+        operations.generate_lesson_plan(args)
+      when "propose_lesson_resources"
+        operations.propose_lesson_resources(args)
+      when "list_resources"
+        operations.list_resources(args)
+      when "get_resource"
+        operations.get_resource(args)
+      when "create_resource"
+        operations.create_resource(args)
+      when "update_resource"
+        operations.update_resource(args)
+      when "link_resource_to_lesson_plan"
+        operations.link_resource_to_lesson_plan(args)
+      when "unlink_resource_from_lesson_plan"
+        operations.unlink_resource_from_lesson_plan(args)
+      when "approve_resource"
+        operations.approve_resource(args)
+      when "list_applets"
+        operations.list_applets(args)
+      when "get_applet"
+        operations.get_applet(args)
+      when "upsert_applet"
+        operations.upsert_applet(args)
+      when "save_applet_as_resource"
+        operations.save_applet_as_resource(args)
+      else
+        raise TeacherAgent::Operations::Error.new("Unknown or forbidden command: #{command}", code: "unknown_command", http_status: :not_found)
+      end
+    end
   end
 end

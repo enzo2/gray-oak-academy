@@ -8,11 +8,7 @@ module Api
           @agent_command = command
           args = command_args(parsed_params)
 
-          unless TeacherAgent::CommandCatalog.allowed?(command)
-            raise TeacherAgent::Operations::Error.new("Unknown or forbidden command: #{command}", code: "unknown_command", http_status: :not_found)
-          end
-
-          data = operations.public_send(command, args)
+          data = TeacherAgent::CommandCatalog.execute(command, operations, args)
           @agent_record_ids = operations.touched_records
           render json: success_payload(data)
         end

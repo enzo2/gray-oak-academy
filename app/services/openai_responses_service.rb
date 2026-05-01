@@ -928,7 +928,11 @@ class OpenaiResponsesService
   end
 
   def finalize_stream_response(stream)
-    return if @last_response_hash.present?
+    if @last_response_hash.present?
+      apply_stream_fallback_text_to_last_response if extract_output_text(@last_response_hash).blank?
+      return
+    end
+
     if stream.respond_to?(:get_final_response)
       final_response = stream.get_final_response
       response_hash = normalize_response_hash(final_response)
@@ -970,6 +974,17 @@ class OpenaiResponsesService
       text = event.text.to_s
       @stream_fallback_text << text if @stream_fallback_text.empty? && text.present?
     else
+      if event.is_a?(Hash)
+        case event["type"].to_s
+        when "response.output_text.delta"
+          @stream_fallback_text << event["delta"].to_s
+        when "response.output_text.done"
+          text = event["text"].to_s
+          @stream_fallback_text << text if @stream_fallback_text.empty? && text.present?
+        end
+        return
+      end
+
       event_type = event.respond_to?(:type) ? event.type.to_s : ""
       case event_type
       when "response.output_text.delta"
@@ -981,14 +996,31 @@ class OpenaiResponsesService
     end
   end
 
+  def apply_stream_fallback_text_to_last_response
+    return if @stream_fallback_text.blank?
+
+    @last_response_hash = response_hash_with_output_text(@last_response_hash, @stream_fallback_text.to_s)
+    @last_response = @last_response_hash
+    Rails.logger.warn("OpenaiResponsesService: used streamed text deltas because final response output was blank.")
+  end
+
   def synthesize_stream_fallback_response_hash
     text = @stream_fallback_text.to_s
     return nil if text.blank?
 
-    {
-      "id" => "resp_stream_fallback_#{SecureRandom.hex(8)}",
-      "status" => "completed",
-      "model" => @model,
+    response_hash_with_output_text(
+      {
+        "id" => "resp_stream_fallback_#{SecureRandom.hex(8)}",
+        "status" => "completed",
+        "model" => @model,
+        "usage" => {}
+      },
+      text
+    )
+  end
+
+  def response_hash_with_output_text(response_hash, text)
+    response_hash.to_h.merge(
       "output" => [
         {
           "type" => "message",
@@ -996,9 +1028,8 @@ class OpenaiResponsesService
             { "type" => "output_text", "text" => text }
           ]
         }
-      ],
-      "usage" => {}
-    }
+      ]
+    )
   end
 
   # Record the last response so callers can chain stateful requests.

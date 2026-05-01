@@ -45,6 +45,16 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes student_ids, users(:student2).id
   end
 
+  test "command endpoint rejects non-catalog operation method names" do
+    post api_agent_v1_command_path,
+         params: { command: "destroy!", args: {} }.to_json,
+         headers: auth_headers
+
+    assert_response :not_found
+    assert_equal false, response.parsed_body["ok"]
+    assert_equal "unknown_command", response.parsed_body.dig("error", "code")
+  end
+
   test "teacher key cannot read another teacher course" do
     post api_agent_v1_command_path,
          params: { command: "get_course", args: { course_id: courses(:two).id } }.to_json,
@@ -228,7 +238,7 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes lesson_plans(:one).reload.resources, resource
   end
 
-  test "generate_lesson_plan uses raising job mode for immediate content generation" do
+  test "generate_lesson_plan returns actionable generation failures" do
     captured_kwargs = nil
 
     GenerateLessonPlanContentJob.stub(:perform_now, ->(*_args, **kwargs) {
@@ -243,12 +253,13 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
            headers: auth_headers
     end
 
-    assert_response :internal_server_error
+    assert_response :unprocessable_content
     assert_equal true, captured_kwargs[:raise_on_error]
-    assert_equal "internal_error", response.parsed_body.dig("error", "code")
+    assert_equal "generation_failed", response.parsed_body.dig("error", "code")
+    assert_equal "Failed to generate lesson plan content: provider unavailable", response.parsed_body.dig("error", "message")
   end
 
-  test "generate_course_lessons uses raising job mode" do
+  test "generate_course_lessons returns actionable generation failures" do
     captured_kwargs = nil
 
     GenerateCourseLessonsJob.stub(:perform_now, ->(*_args, **kwargs) {
@@ -263,9 +274,10 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
            headers: auth_headers
     end
 
-    assert_response :internal_server_error
+    assert_response :unprocessable_content
     assert_equal true, captured_kwargs[:raise_on_error]
-    assert_equal "internal_error", response.parsed_body.dig("error", "code")
+    assert_equal "generation_failed", response.parsed_body.dig("error", "code")
+    assert_equal "Failed to generate course lessons: provider unavailable", response.parsed_body.dig("error", "message")
   end
 
   test "malformed json returns envelope and audit event" do
@@ -282,7 +294,7 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 400, AgentApiEvent.last.status
   end
 
-  test "unexpected command errors return envelope" do
+  test "generate_course_outline returns actionable generation failures" do
     GenerateCourseOutlineJob.stub(:perform_now, ->(*) { raise StandardError, "provider unavailable" }) do
       post api_agent_v1_command_path,
            params: {
@@ -292,9 +304,10 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
            headers: auth_headers
     end
 
-    assert_response :internal_server_error
+    assert_response :unprocessable_content
     assert_equal false, response.parsed_body["ok"]
-    assert_equal "internal_error", response.parsed_body.dig("error", "code")
+    assert_equal "generation_failed", response.parsed_body.dig("error", "code")
+    assert_equal "Failed to generate course outline: provider unavailable", response.parsed_body.dig("error", "message")
   end
 
   test "skill endpoint includes hard lines" do

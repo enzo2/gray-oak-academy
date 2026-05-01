@@ -104,7 +104,9 @@ module TeacherAgent
 
       case action
       when "generate_outline"
-        GenerateCourseOutlineJob.perform_now(course, teacher, raise_on_error: true)
+        run_generator_command("Failed to generate course outline") do
+          GenerateCourseOutlineJob.perform_now(course, teacher, raise_on_error: true)
+        end
         touch(course)
         { status: "completed", action: action, course: course.reload.for_llm }
       when "research_outline"
@@ -114,7 +116,9 @@ module TeacherAgent
         touch(course)
         { status: "queued", action: action, message: result[:message], course_id: course.id, outline_research_stage: course.reload.outline_research_stage, poll: { command: "get_course", args: { course_id: course.id } } }
       when "generate_and_research"
-        GenerateCourseOutlineJob.perform_now(course, teacher, raise_on_error: true)
+        run_generator_command("Failed to generate course outline") do
+          GenerateCourseOutlineJob.perform_now(course, teacher, raise_on_error: true)
+        end
         result = CourseOutlineResearchAsyncService.new(course: course.reload, current_user: teacher, source: "agent_api").enqueue_start
         raise Error.new(result[:message], code: "queue_failed") unless result[:ok]
 
@@ -128,7 +132,9 @@ module TeacherAgent
     def generate_course_lessons(args)
       course = find_course!(args["course_id"])
       replace = ActiveModel::Type::Boolean.new.cast(args["replace_existing_lessons"])
-      GenerateCourseLessonsJob.perform_now(course, teacher, replace_existing_lessons: replace, raise_on_error: true)
+      run_generator_command("Failed to generate course lessons") do
+        GenerateCourseLessonsJob.perform_now(course, teacher, replace_existing_lessons: replace, raise_on_error: true)
+      end
       touch(course)
       { status: "completed", course: course.reload.for_llm }
     end
@@ -211,7 +217,9 @@ module TeacherAgent
 
       case action
       when "generate_content"
-        GenerateLessonPlanContentJob.perform_now(lesson_plan, teacher, raise_on_error: true)
+        run_generator_command("Failed to generate lesson plan content") do
+          GenerateLessonPlanContentJob.perform_now(lesson_plan, teacher, raise_on_error: true)
+        end
         touch(lesson_plan)
         { status: "completed", action: action, lesson: lesson.reload.for_llm }
       when "propose_resources_async"
@@ -439,6 +447,14 @@ module TeacherAgent
       Integer(args[key])
     rescue ArgumentError, TypeError
       raise Error.new("Missing or invalid integer argument: #{key}", code: "invalid_argument", http_status: :bad_request)
+    end
+
+    def run_generator_command(message)
+      yield
+    rescue Error
+      raise
+    rescue StandardError => e
+      raise Error.new("#{message}: #{e.message}", code: "generation_failed", http_status: :unprocessable_content)
     end
 
     def normalize_outline(items)
