@@ -10,6 +10,7 @@ class Lesson < ApplicationRecord
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :goals, presence: true, length: { minimum: 10, maximum: 1000 }
   validates :approx_duration_min, presence: true, numericality: { greater_than: 0, only_integer: true }
+  validate :quick_lesson_course_has_single_lesson
 
   scope :published, -> { joins(:lesson_plan).where(lesson_plans: { status: "published" }) }
 
@@ -74,5 +75,17 @@ class Lesson < ApplicationRecord
         chalkboard_enabled: lp.chalkboard_enabled
       } : nil)
     }
+  end
+
+  private
+
+  def quick_lesson_course_has_single_lesson
+    return unless course&.kind_quick_lesson?
+
+    sibling_scope = course.lessons
+    sibling_scope = sibling_scope.where.not(id: id) if persisted?
+    return unless sibling_scope.exists?
+
+    errors.add(:course, "quick lessons can only contain one lesson.")
   end
 end

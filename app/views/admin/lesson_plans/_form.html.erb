@@ -143,6 +143,7 @@
 
   <div class="flex flex-row space-x-5 mb-4">
     <%= f.submit "Save", class: "btn-primary" %>
-    <%= link_to "Cancel", admin_course_lessons_path(lesson.course), class: "btn-secondary" %>
+    <% cancel_path = lesson.course.kind_quick_lesson? ? admin_quick_lessons_path : admin_course_lessons_path(lesson.course) %>
+    <%= link_to "Cancel", cancel_path, class: "btn-secondary" %>
   </div>
 <% end %>

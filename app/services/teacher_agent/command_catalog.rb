@@ -46,6 +46,28 @@ module TeacherAgent
         description: "Generate lessons from the current course outline.",
         args: { course_id: "integer", replace_existing_lessons: "optional boolean" }
       },
+      "list_quick_lessons" => {
+        description: "List one-off quick lessons owned by this teacher.",
+        args: {}
+      },
+      "create_quick_lesson" => {
+        description: "Create a teacher-reviewable one-off lesson backed by a hidden single-lesson course.",
+        args: { title: "string", goals: "string", grade_level: "string", approx_duration_min: "integer", summary: "optional string", student_ids: "optional array of teacher-owned student IDs" },
+        guidance: [
+          "Use this instead of creating a tiny course when the teacher asks for a one-off or quick lesson.",
+          "If student_ids are provided, the students are assigned immediately, but they cannot start until the teacher publishes the lesson plan.",
+          "External agents cannot publish lesson plans. Save draft work for teacher review.",
+          "After creation, use get_lesson, update_lesson_plan_draft, generate_lesson_plan, create_resource, and applet/resource commands with the returned lesson_id.",
+          "Use generate_lesson_plan for generated draft content, or update_lesson_plan_draft for manual draft content and lesson-plan settings."
+        ],
+        example_args: {
+          title: "Why Fractions Need Common Denominators",
+          goals: "Help the student understand why unlike fractions need a shared unit before addition.",
+          grade_level: "5",
+          approx_duration_min: 20,
+          student_ids: [ 123 ]
+        }
+      },
       "edit_course_lessons" => {
         description: "Create, update, delete, or reorder lesson shells.",
         args: { course_id: "integer", lessons_to_create: "optional array", lessons_to_update: "optional array", lessons_to_delete: "optional array of IDs", lessons_order: "optional array of {id, position}" }
@@ -191,6 +213,10 @@ module TeacherAgent
         operations.generate_course_outline(args)
       when "generate_course_lessons"
         operations.generate_course_lessons(args)
+      when "list_quick_lessons"
+        operations.list_quick_lessons(args)
+      when "create_quick_lesson"
+        operations.create_quick_lesson(args)
       when "edit_course_lessons"
         operations.edit_course_lessons(args)
       when "get_lesson"

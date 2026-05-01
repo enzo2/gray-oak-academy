@@ -1,0 +1,136 @@
+<div class="mb-5">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h2 class="text-2xl font-bold">Quick Lessons</h2>
+      <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
+        One-off lessons for focused tutoring moments that do not need a full course plan.
+      </p>
+    </div>
+    <%= link_to new_admin_quick_lesson_path, class: "btn-primary inline-flex items-center gap-2 self-start" do %>
+      <sl-icon name="plus-lg"></sl-icon>
+      <span>New Quick Lesson</span>
+    <% end %>
+  </div>
+</div>
+
+<% if @quick_lessons.any? %>
+  <% if @active_quick_lessons.any? %>
+    <div class="grid grid-cols-1 gap-4">
+      <% @active_quick_lessons.each do |quick_lesson| %>
+        <% lesson = quick_lesson.lessons.first %>
+        <% lesson_plan = lesson&.lesson_plan %>
+        <section id="<%= dom_id(quick_lesson) %>" class="rounded-sm border border-stone-300 bg-white p-4 dark:border-stone-700 dark:bg-stone-900">
+          <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100"><%= quick_lesson.title %></h3>
+                <span class="rounded-full border border-stone-300 px-2 py-0.5 text-xs uppercase tracking-wide text-stone-600 dark:border-stone-700 dark:text-stone-300"><%= quick_lesson.status.titleize %></span>
+                <span class="rounded-full border border-stone-300 px-2 py-0.5 text-xs uppercase tracking-wide text-stone-600 dark:border-stone-700 dark:text-stone-300"><%= lesson_plan&.status&.titleize || "No Plan" %></span>
+              </div>
+              <p class="mt-2 text-sm text-stone-700 dark:text-stone-300"><%= quick_lesson.summary %></p>
+              <% if lesson %>
+                <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
+                  Grade <%= quick_lesson.grade_level %> · <%= lesson.approx_duration_min %> minutes · <%= lesson.goals %>
+                </p>
+              <% end %>
+              <p class="mt-2 text-sm text-stone-600 dark:text-stone-400">
+                Assigned to:
+                <% if quick_lesson.students.any? %>
+                  <%= quick_lesson.students.map(&:name).to_sentence %>
+                <% else %>
+                  No students yet
+                <% end %>
+              </p>
+            </div>
+
+            <div class="flex shrink-0 flex-wrap gap-2 md:justify-end">
+              <% if lesson %>
+                <%= link_to edit_admin_course_lesson_lesson_plan_path(quick_lesson, lesson), class: "btn-primary text-sm inline-flex items-center gap-2" do %>
+                  <sl-icon name="journal-text"></sl-icon>
+                  <span>Review Plan</span>
+                <% end %>
+              <% end %>
+
+              <%= button_to archive_admin_quick_lesson_path(quick_lesson), method: :patch, class: "btn-secondary text-sm inline-flex items-center gap-2" do %>
+                <sl-icon name="archive"></sl-icon>
+                <span>Archive</span>
+              <% end %>
+
+              <% if quick_lesson.enrollments.empty? %>
+                <%= button_to admin_quick_lesson_path(quick_lesson),
+                      method: :delete,
+                      class: "btn-danger text-sm inline-flex items-center gap-2",
+                      data: { turbo_confirm: "Delete this quick lesson and its lesson plan?" } do %>
+                  <sl-icon name="trash"></sl-icon>
+                  <span>Delete</span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </section>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @archived_quick_lessons.any? %>
+    <section class="<%= "mt-8" if @active_quick_lessons.any? %> rounded-sm border border-stone-300 bg-stone-50 dark:border-stone-700 dark:bg-stone-900/60">
+      <div class="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
+        <h3 class="font-semibold text-stone-900 dark:text-stone-100">Archived Quick Lessons</h3>
+        <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">Stored out of the active teaching list. Restore one if you need to teach it again.</p>
+      </div>
+      <div class="divide-y divide-stone-200 dark:divide-stone-800">
+        <% @archived_quick_lessons.each do |quick_lesson| %>
+          <% lesson = quick_lesson.lessons.first %>
+          <% lesson_plan = lesson&.lesson_plan %>
+          <div id="<%= dom_id(quick_lesson) %>" class="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h4 class="font-medium text-stone-900 dark:text-stone-100"><%= quick_lesson.title %></h4>
+                <span class="rounded-full border border-stone-300 px-2 py-0.5 text-xs uppercase tracking-wide text-stone-600 dark:border-stone-700 dark:text-stone-300">Archived</span>
+                <span class="rounded-full border border-stone-300 px-2 py-0.5 text-xs uppercase tracking-wide text-stone-600 dark:border-stone-700 dark:text-stone-300"><%= lesson_plan&.status&.titleize || "No Plan" %></span>
+              </div>
+              <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                <% if quick_lesson.students.any? %>
+                  Assigned to <%= quick_lesson.students.map(&:name).to_sentence %>
+                <% else %>
+                  Not assigned
+                <% end %>
+              </p>
+            </div>
+
+            <div class="flex shrink-0 flex-wrap gap-2 md:justify-end">
+              <% if lesson %>
+                <%= link_to edit_admin_course_lesson_lesson_plan_path(quick_lesson, lesson), class: "btn-secondary text-sm inline-flex items-center gap-2" do %>
+                  <sl-icon name="journal-text"></sl-icon>
+                  <span>Review Plan</span>
+                <% end %>
+              <% end %>
+
+              <%= button_to unarchive_admin_quick_lesson_path(quick_lesson), method: :patch, class: "btn-secondary text-sm inline-flex items-center gap-2" do %>
+                <sl-icon name="arrow-counterclockwise"></sl-icon>
+                <span>Unarchive</span>
+              <% end %>
+
+              <%= button_to admin_quick_lesson_path(quick_lesson),
+                    method: :delete,
+                    class: "btn-danger text-sm inline-flex items-center gap-2",
+                    data: { turbo_confirm: "Delete this archived quick lesson? Students will no longer see it, but existing lesson reports remain in their journal." } do %>
+                <sl-icon name="trash"></sl-icon>
+                <span>Delete</span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+<% else %>
+  <div class="rounded-sm border border-stone-300 p-6 text-center dark:border-stone-700">
+    <p class="text-stone-700 dark:text-stone-300">No quick lessons yet.</p>
+    <p class="mt-2 text-sm text-stone-500 dark:text-stone-400">Create a focused lesson whenever a student needs a quick detour, review, or enrichment topic.</p>
+    <%= link_to new_admin_quick_lesson_path, class: "btn-primary mt-4 inline-flex items-center gap-2" do %>
+      <sl-icon name="plus-lg"></sl-icon>
+      <span>Create Quick Lesson</span>
+    <% end %>
+  </div>
+<% end %>

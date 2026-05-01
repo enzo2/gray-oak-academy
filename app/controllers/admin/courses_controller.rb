@@ -9,8 +9,8 @@ module Admin
     before_action :ensure_outline_research_input_stage!, only: [ :submit_outline_research_inputs, :resume_outline_research ]
 
     def index
-      @active_courses =   Course.status_active.where(teacher: current_user).order(created_at: :desc)
-      @archived_courses = Course.status_archived.where(teacher: current_user).order(created_at: :desc)
+      @active_courses =   Course.full_courses.status_active.where(teacher: current_user).order(created_at: :desc)
+      @archived_courses = Course.full_courses.status_archived.where(teacher: current_user).order(created_at: :desc)
     end
 
     def new
@@ -199,7 +199,7 @@ module Admin
     private
 
     def set_course
-      @course = authorized_course_scope.find(params[:id])
+      @course = authorized_course_scope.full_courses.find(params[:id])
       @source_anchors = Array(@course.outline_research_hash["source_anchors"]).map { |anchor| anchor.is_a?(Hash) ? anchor : {} }
     end
 

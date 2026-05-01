@@ -29,6 +29,15 @@ module TeacherAgent
           "Deleting a lesson through the Agent API is blocked when that lesson already has a lesson plan."
         ]
       },
+      "quick_lessons" => {
+        description: "One-off teacher-reviewable lessons that do not clutter full-course planning.",
+        guidance: [
+          "Use `create_quick_lesson` instead of creating a course when the teacher asks for a quick, one-off, or just-in-time lesson.",
+          "Quick lessons are backed by hidden single-lesson courses so normal lesson plans, resources, applets, reports, memories, and observations still work.",
+          "Students assigned through `student_ids` cannot start the lesson until the teacher publishes the lesson plan in Gray Oak Academy.",
+          "Quick lessons do not generate course-level completion reports."
+        ]
+      },
       "lesson_plans" => {
         description: "Lesson-plan content structure and generation guidance.",
         guidance: [
@@ -85,6 +94,8 @@ module TeacherAgent
       "update_course" => %w[curriculum_workflow course_outlines],
       "generate_course_outline" => %w[curriculum_workflow course_outlines],
       "generate_course_lessons" => %w[curriculum_workflow lessons],
+      "list_quick_lessons" => %w[quick_lessons lesson_plans student_progress],
+      "create_quick_lesson" => %w[quick_lessons lesson_plans resources applets student_progress],
       "edit_course_lessons" => %w[curriculum_workflow lessons],
       "get_lesson" => %w[curriculum_workflow lesson_plans resources applets],
       "update_lesson_plan_draft" => %w[curriculum_workflow lesson_plans resources applets],

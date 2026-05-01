@@ -90,6 +90,39 @@ module Admin
       assert_includes response.body, "Outline drafted; not researched"
     end
 
+    test "index hides quick lessons from course manager" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      Course.create!(
+        teacher: teacher,
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "A quick one-off lesson about common denominators.",
+        grade_level: "5"
+      )
+
+      get admin_courses_path
+
+      assert_response :success
+      assert_not_includes response.body, "Quick Fractions"
+    end
+
+    test "course routes do not expose quick lessons by direct url" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      quick_lesson = Course.create!(
+        teacher: teacher,
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "A quick one-off lesson about common denominators.",
+        grade_level: "5"
+      )
+
+      get edit_admin_course_path(quick_lesson)
+
+      assert_response :not_found
+    end
+
     test "index falls back to no lessons added when outline research is unavailable" do
       teacher = users(:admin)
       sign_in(teacher)

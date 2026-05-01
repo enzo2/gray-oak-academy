@@ -5,10 +5,12 @@ module Student
 
     def dashboard
       @enrollments = current_user.enrollments.includes(:course)
+      @course_enrollments = @enrollments.joins(:course).merge(Course.full_courses)
+      @quick_lesson_enrollments = @enrollments.joins(:course).merge(Course.quick_lessons).includes(course: { lessons: :lesson_plan })
       @applets = current_user.applets
 
       # Perform verification that the course reports were generated, in case the job failed originally
-      @enrollments.each do |enrollment|
+      @course_enrollments.each do |enrollment|
         enrollment.course_report_check if enrollment.completed?
       end
     end
@@ -35,7 +37,7 @@ module Student
     private
 
     def set_active_tab
-      allowed_tabs = %i[courses journal past_courses chat applets]
+      allowed_tabs = %i[courses quick_lessons journal past_courses chat applets]
       tab = params[:active_tab]&.to_sym
       @active_tab = allowed_tabs.include?(tab) ? tab : :courses
     end

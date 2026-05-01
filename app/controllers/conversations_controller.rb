@@ -184,7 +184,7 @@ class ConversationsController < ApplicationController
       return :invalid
     end
 
-    course = Course.where(teacher_id: current_user.id).find_by(id: course_id.to_i)
+    course = Course.full_courses.where(teacher_id: current_user.id).find_by(id: course_id.to_i)
     return course if course
 
     flash[:warning] = "Couldn't load the selected course for starter context. The chat was created without starter context."

@@ -16,7 +16,7 @@ class Enrollment < ApplicationRecord
   def self.awaiting_lessons_for_teacher(teacher_id)
     joins(:student, :course)
       .where(users: { teacher_id: teacher_id })
-      .where(courses: { status: :active })
+      .where(courses: { status: :active, kind: "full_course" })
       .in_progress
       # Query shape:
       # 1) Correlated subquery picks the earliest incomplete lesson in course order.
@@ -128,6 +128,8 @@ class Enrollment < ApplicationRecord
 
   # When the course is completed, we need to generate a course-end summary report based on all the lesson reports.
   def course_report_check
+    return if course.kind_quick_lesson?
+
     # If the course is completed and there are no student reports, generate a course report
     if completed? && !student_reports.exists?
       Rails.logger.info "Found missing enrollment report. Generating report for enrollment #{id}"

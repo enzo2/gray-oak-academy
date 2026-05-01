@@ -1,0 +1,15 @@
+<div class="mb-4">
+  <%= link_to admin_quick_lessons_path, class: "inline-flex items-center gap-1 text-sm underline" do %>
+    <sl-icon name="arrow-left"></sl-icon>
+    <span>Back to Quick Lessons</span>
+  <% end %>
+</div>
+
+<div class="w-full max-w-4xl">
+  <h2 class="text-2xl font-bold mb-2">New Quick Lesson</h2>
+  <p class="mb-5 text-sm text-stone-600 dark:text-stone-400">
+    Create a focused lesson for review, enrichment, remediation, or a timely question that does not need a full course.
+  </p>
+
+  <%= render "form", quick_lesson: @quick_lesson, lesson: @lesson, students: @assignable_students %>
+</div>

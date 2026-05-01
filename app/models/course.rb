@@ -9,17 +9,22 @@ class Course < ApplicationRecord
     completed
     failed
   ].freeze
+  KINDS = %w[full_course quick_lesson].freeze
 
   belongs_to :teacher, class_name: "User", inverse_of: :taught_courses
+  has_many :enrollments
   has_many :students, through: :enrollments, inverse_of: :courses
   has_many :lessons, -> { order(position: :asc) }, dependent: :destroy
   has_many :lesson_plans, through: :lessons
-  has_many :enrollments
   has_many :student_reports, through: :enrollments
 
   enum :status, { active: "active", archived: "archived" }, default: "active", prefix: true
+  enum :kind, { full_course: "full_course", quick_lesson: "quick_lesson" }, default: "full_course", prefix: true
   # scope :active, -> { where(status: "active") }
   # scope :archived, -> { where(status: "archived") }
+
+  scope :full_courses, -> { where(kind: "full_course") }
+  scope :quick_lessons, -> { where(kind: "quick_lesson") }
 
   validates :title, presence: true, length: { minimum: 3, maximum: 100 }
   validates :summary, presence: true, length: { minimum: 10, maximum: 2000 }
@@ -30,8 +35,10 @@ class Course < ApplicationRecord
               message: "must be a single uppercase letter or a positive integer."
             }
   validates :outline_research_stage, inclusion: { in: OUTLINE_RESEARCH_STAGES }
+  validates :kind, inclusion: { in: KINDS }
   validate :validate_outline_format
   validate :validate_outline_guidance_questions_limit
+  validate :validate_quick_lesson_shape
   before_validation :normalize_outline_guidance_report_md_line_breaks
 
   def enrolled_in?(student)
@@ -45,6 +52,7 @@ class Course < ApplicationRecord
   def self.available_for_enrollment(student, teacher)
     # status_active.where(teacher: teacher).reject { |course| course.enrolled_in?(student) }
     status_active
+      .full_courses
       .where(teacher: teacher)
       .where.not(id: student.courses.select(:id))
   end
@@ -52,6 +60,7 @@ class Course < ApplicationRecord
   def for_llm
     {
       id: self.id,
+      kind: self.kind,
       title: self.title,
       summary: self.summary,
       grade_level: self.grade_level,
@@ -216,5 +225,12 @@ class Course < ApplicationRecord
     return if escaped_newline_count < 2
 
     self.outline_guidance_report_md = report.gsub("\\r\\n", "\n").gsub("\\n", "\n")
+  end
+
+  def validate_quick_lesson_shape
+    return unless kind_quick_lesson?
+    return if lessons.size <= 1
+
+    errors.add(:base, "Quick lessons can only contain one lesson.")
   end
 end

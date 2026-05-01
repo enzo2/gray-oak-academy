@@ -57,4 +57,31 @@ class StudentReportTest < ActiveSupport::TestCase
       )
     end
   end
+
+  test "trigger_course_report_check skips quick lessons" do
+    course = Course.create!(
+      title: "Quick Common Denominators",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5",
+      teacher: @teacher,
+      kind: "quick_lesson"
+    )
+    lesson = course.lessons.create!(
+      title: "Common Denominators",
+      goals: "Understand common denominators using shared units.",
+      approx_duration_min: 20
+    )
+    Enrollment.create!(student: @student, course: course)
+    lp = LessonProgress.create!(student: @student, lesson: lesson)
+
+    assert_no_enqueued_jobs only: GenerateCourseReportJob do
+      StudentReport.create!(
+        student: @student,
+        reportable: lp,
+        author_type: :ai_generated,
+        status: :completed,
+        progress_data: {}
+      )
+    end
+  end
 end

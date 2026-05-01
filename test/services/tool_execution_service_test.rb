@@ -98,6 +98,125 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_includes tool_message.content, "Invalid JSON in tool arguments, unable to repair."
   end
 
+  test "teacher assistant can list active quick lessons without archived ones" do
+    create_quick_lesson_tool!
+    teacher = users(:admin)
+    conversation = conversations(:teacher_generic_conversation)
+    quick_lesson = teacher.taught_courses.create!(
+      kind: "quick_lesson",
+      title: "Quick Ratios",
+      summary: "Compare ratios in a focused tutoring session.",
+      grade_level: "6"
+    )
+    lesson = quick_lesson.lessons.create!(
+      title: "Quick Ratios",
+      goals: "Compare ratios using equivalent groups.",
+      approx_duration_min: 20
+    )
+    archived_quick_lesson = teacher.taught_courses.create!(
+      kind: "quick_lesson",
+      status: "archived",
+      title: "Archived Ratios",
+      summary: "Archived quick lesson.",
+      grade_level: "6"
+    )
+    archived_quick_lesson.lessons.create!(
+      title: "Archived Ratios",
+      goals: "This archived quick lesson should not be listed.",
+      approx_duration_min: 20
+    )
+
+    assert_difference "Message.count", 1 do
+      ToolExecutionService.new(conversation: conversation, message: nil).execute_tool_call(
+        id: "tc-list-quick-lessons",
+        name: "Quick_Lesson",
+        arguments: { action: "list" }.to_json
+      )
+    end
+
+    payload = JSON.parse(Message.order(:created_at).last.content)
+    item = payload["quick_lessons"].find { |quick_lesson_payload| quick_lesson_payload["course_id"] == quick_lesson.id }
+    assert_equal lesson.id, item["lesson_id"]
+    assert_equal "Quick Ratios", item["title"]
+    assert_not payload["quick_lessons"].any? { |quick_lesson_payload| quick_lesson_payload["course_id"] == archived_quick_lesson.id }
+  end
+
+  test "teacher assistant can create quick lessons with draft plan and assignments" do
+    create_quick_lesson_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    student = users(:student)
+
+    assert_difference -> { Course.quick_lessons.count }, 1 do
+      assert_difference -> { Lesson.count }, 1 do
+        assert_no_difference -> { LessonPlan.count } do
+          assert_difference -> { Enrollment.count }, 1 do
+            ToolExecutionService.new(conversation: conversation, message: nil).execute_tool_call(
+              id: "tc-create-quick-lesson",
+              name: "Quick_Lesson",
+              arguments: {
+                action: "create",
+                title: "Quick Ratios",
+                grade_level: "6",
+                goals: "Compare ratios using equivalent groups.",
+                approx_duration_min: 20,
+                student_ids: [ student.id ]
+              }.to_json
+            )
+          end
+        end
+      end
+    end
+
+    quick_lesson = Course.quick_lessons.order(:created_at).last
+    lesson = quick_lesson.lessons.first
+    payload = JSON.parse(Message.order(:created_at).last.content)
+    assert_equal "ok", payload["status"]
+    assert_equal "Quick Ratios", quick_lesson.title
+    assert_equal "Compare ratios using equivalent groups.", quick_lesson.summary
+    assert_nil lesson.lesson_plan
+    assert_equal lesson.id, payload.dig("quick_lesson", "lesson_id")
+    assert_includes quick_lesson.students, student
+  end
+
+  test "teacher assistant can create quick lessons and generate a draft plan" do
+    create_quick_lesson_tool!
+    conversation = conversations(:teacher_generic_conversation)
+    generated = false
+
+    GenerateLessonPlanContentJob.stub(:perform_now, ->(lesson_plan, _teacher, **_kwargs) {
+      generated = true
+      lesson_plan.update!(
+        content: [ { "Generated Activity" => "Compare ratios with a short worked example." } ],
+        suggested_resources: [ { "Practice" => "Equivalent ratio table prompts." } ]
+      )
+    }) do
+      assert_difference -> { Course.quick_lessons.count }, 1 do
+        assert_difference -> { LessonPlan.count }, 1 do
+          ToolExecutionService.new(conversation: conversation, message: nil).execute_tool_call(
+            id: "tc-create-and-generate-quick-lesson",
+            name: "Quick_Lesson",
+            arguments: {
+              action: "create_and_generate_plan",
+              title: "Quick Ratios",
+              grade_level: "6",
+              goals: "Compare ratios using equivalent groups.",
+              approx_duration_min: 20,
+              steering_guidance: "Keep it brisk and concrete."
+            }.to_json
+          )
+        end
+      end
+    end
+
+    payload = JSON.parse(Message.order(:created_at).last.content)
+    lesson = Lesson.find(payload.dig("quick_lesson", "lesson_id"))
+    assert_equal true, generated
+    assert_equal "ok", payload["status"]
+    assert_equal "create_and_generate_plan", payload["action"]
+    assert_equal "draft", lesson.lesson_plan.status
+    assert_equal [ { "Generated Activity" => "Compare ratios with a short worked example." } ], lesson.lesson_plan.content
+  end
+
   test "execute_show_on_chalkboard with url renders iframe tab for embeddable URL" do
     conversation = conversations(:teacher_generic_conversation)
     service = ToolExecutionService.new(conversation: conversation, message: nil)
@@ -722,6 +841,30 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
           }
         },
         "required" => [ "course_id", "action" ],
+        "additionalProperties" => false
+      }
+    }
+    tool.save!
+  end
+
+  def create_quick_lesson_tool!
+    tool = Tool.find_or_initialize_by(name: "Quick_Lesson")
+    tool.access = :admin
+    tool.specifications = {
+      "name" => "Quick_Lesson",
+      "description" => "List or create quick lessons.",
+      "parameters" => {
+        "type" => "object",
+        "properties" => {
+          "action" => { "type" => "string", "description" => "Action", "enum" => [ "list", "create", "create_and_generate_plan" ] },
+          "title" => { "type" => "string", "description" => "Title" },
+          "grade_level" => { "type" => "string", "description" => "Grade level" },
+          "goals" => { "type" => "string", "description" => "Goals" },
+          "approx_duration_min" => { "type" => "integer", "description" => "Duration" },
+          "student_ids" => { "type" => "array", "description" => "Student IDs" },
+          "steering_guidance" => { "type" => "string", "description" => "Steering guidance" }
+        },
+        "required" => [ "action" ],
         "additionalProperties" => false
       }
     }

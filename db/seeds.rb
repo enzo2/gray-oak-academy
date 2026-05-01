@@ -108,6 +108,8 @@ tool.save!
 
 # ---- Agentic curriculum tools  ----
 
+Tool.where(name: [ "List_Quick_Lessons", "Create_Quick_Lesson" ]).destroy_all
+
 tool = Tool.find_or_initialize_by(name: 'List_Students')
 tool.access = :admin
 tool.specifications = {
@@ -134,6 +136,36 @@ tool.specifications = {
     properties: {},
     required: [],
     additionalProperties: false
+  }
+}
+tool.save!
+
+tool = Tool.find_or_initialize_by(name: 'Quick_Lesson')
+tool.access = :admin
+tool.specifications = {
+  name: "Quick_Lesson",
+  description: "List or create one-off quick lessons outside the full course list. Use this for focused tutoring requests that do not need a course plan. Existing lesson-level tools can edit the returned lesson_id afterward.",
+  parameters: {
+    type: "object",
+    properties: {
+      "action" => {
+        "type" => "string",
+        "description" => "Action to perform: list active quick lessons, create a draft quick lesson, or create one and immediately generate a draft plan.",
+        "enum" => [ "list", "create", "create_and_generate_plan" ]
+      },
+      "title" => { "type" => "string", "description" => "Quick lesson title" },
+      "grade_level" => { "type" => "string", "description" => "Target grade level. Must be 'K' or an integer" },
+      "goals" => { "type" => "string", "description" => "Lesson goals." },
+      "approx_duration_min" => { "type" => "integer", "description" => "Approximate lesson duration in minutes" },
+      "student_ids" => {
+        "type" => "array",
+        "description" => "Optional IDs of teacher-owned students to assign on creation. Call list_students first when assigning.",
+        "items" => { "type" => "integer" }
+      },
+      "steering_guidance" => { "type" => "string", "description" => "Optional extra guidance for create_and_generate_plan only." }
+    },
+    "required" => [ "action" ],
+    "additionalProperties" => false
   }
 }
 tool.save!
@@ -1051,10 +1083,10 @@ p.prompt = <<~PROMPT
 
   You can serve as a curriculum-building assistant; you have access to tools that allow you to manage the curriculum for the teacher.
   The teacher, also, has access to the Course Manager, Students, and Resources dashboards, where they can manage the curriculum by hand, either manually, using the generators, or a mix of both.
-  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals), and contains the topics the course should cover. (The outline is not a 1:1 list of lessons, but knowledge/skill topics.) Lessons are generated to cover the material appropriately. Finally, each lesson plan can be generated. Resources can be added and linked to lesson plans (Automated web resource proposal available; some degree of manual work by teacher is recommended). Lesson plans are executed by the LLM tutor with the student, making use of linked resources.
+  The curriculum is structured into courses with lessons. Each lesson may have one lesson plan. The course grade level and summary serve to guide course outline generation. In turn, the course outline serves to guide lesson generation (titles and goals), and contains the topics the course should cover. (The outline is not a 1:1 list of lessons, but knowledge/skill topics.) Lessons are generated to cover the material appropriately. Finally, each lesson plan can be generated. Resources can be added and linked to lesson plans (Automated web resource proposal available; some degree of manual work by teacher is recommended). Lesson plans are executed by the LLM tutor with the student, making use of linked resources. Quick lessons are one-off lessons outside the full course list; use them for focused tutoring moments that do not need a course plan.
 
   Follow these rules for chat-based curriculum development:
-  1. Always use read tools (get_course_details, get_lesson_details, get_student_reports, list_courses, list_students) to fetch current state before proposing edits. This is critical to avoid unintentionally overwriting existing data.
+  1. Always use read tools (get_course_details, get_lesson_details, get_student_reports, list_courses, quick_lesson with action "list", list_students) to fetch current state before proposing edits. This is critical to avoid unintentionally overwriting existing data.
   2. For any write action, summarize the proposed changes in plain language and ask the teacher for explicit confirmation.
   3. Generate_Course_Outline supports action modes:
     - generate_outline: synchronous outline generation - for immediate review with teacher
@@ -1067,11 +1099,12 @@ p.prompt = <<~PROMPT
     - generate_content_and_propose_resources_async: queue full asynchronous content + propose_resources pipeline
     For asynchronous modes, tell the teacher that work has been queued. You can check generation_stage with get_lesson_details, but don't get stuck polling this repeatedly.
   5. update_lesson_plan REPLACES the full lesson_plan.content array — do not attempt partial edits. Always call get_lesson_details first to fetch the current lesson plans, then call update_lesson_plan with the complete replacement.
-  6. For applet revisions, use manage_applets (list/get/upsert/save_as_resource) and help the teacher iterate on the existing applet, not just create new ones.
-  7. When asked about a student, call list_students to disambiguate identities; never guess student IDs. When discussing with the teacher, don't refer to students by ID, but by name.
-  8. Return tool arguments as concise JSON only; avoid extraneous commentary in tool calls.
-  9. Be user-friendly. Users do not have any database IDs; you need to find these yourself. The user may not know that an 'outline' pertains to a course and is used to generate lessons, or that a 'lesson plan' is what is used by the LLM tutor to conduct the lesson. Therefore, don't just list off the available tools and ask the user to pick one; rather collaborate with the user.
-  10. Use the Web tool when a specific curriculum-development objective requires external verification (for example: checking source quality, finding a primary source, or validating factual claims). Avoid extensive research missions, which are better handled by background agents via the course outline research and propose resources flows.
+  6. For one-off tutoring requests, prefer quick_lesson with action "create" or "create_and_generate_plan" over creating a tiny course. The quick_lesson "list" action only returns active quick lessons, not archived ones. Quick lessons still have a lesson_id, so get_lesson_details, update_lesson_plan, generate_lesson_plan, resource, and applet tools can continue from that lesson_id.
+  7. For applet revisions, use manage_applets (list/get/upsert/save_as_resource) and help the teacher iterate on the existing applet, not just create new ones.
+  8. When asked about a student, call list_students to disambiguate identities; never guess student IDs. When discussing with the teacher, don't refer to students by ID, but by name.
+  9. Return tool arguments as concise JSON only; avoid extraneous commentary in tool calls.
+  10. Be user-friendly. Users do not have any database IDs; you need to find these yourself. The user may not know that an 'outline' pertains to a course and is used to generate lessons, or that a 'lesson plan' is what is used by the LLM tutor to conduct the lesson. Therefore, don't just list off the available tools and ask the user to pick one; rather collaborate with the user.
+  11. Use the Web tool when a specific curriculum-development objective requires external verification (for example: checking source quality, finding a primary source, or validating factual claims). Avoid extensive research missions, which are better handled by background agents via the course outline research and propose resources flows.
 
   Follow this general approach to curriculum development:
   1. When creating a course, discuss it with the teacher briefly at a summary level to understand the grade level, purpose, and any specific goals or approach desired. The course summary should be concise but descriptive, encapsulating the course in a few sentences to guide the course outline generation

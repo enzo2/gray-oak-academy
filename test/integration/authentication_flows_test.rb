@@ -20,6 +20,28 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     assert_match /Student|Dashboard/i, response.body
   end
 
+  test "student dashboard renders assigned quick lessons separately" do
+    quick_lesson = @teacher.taught_courses.create!(
+      kind: "quick_lesson",
+      title: "Quick Fractions",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5"
+    )
+    quick_lesson.lessons.create!(
+      title: "Quick Fractions",
+      goals: "Understand common denominators using shared units.",
+      approx_duration_min: 20
+    )
+    quick_lesson.enrollments.create!(student: @student)
+
+    sign_in(@student)
+    get student_root_path(active_tab: :quick_lessons)
+
+    assert_response :success
+    assert_select "#quick_lessons", text: /Quick Fractions/
+    assert_select "#courses", text: /Quick Fractions/, count: 0
+  end
+
   test "unauthenticated user is redirected from dashboard" do
     get admin_root_path
     assert_response :redirect

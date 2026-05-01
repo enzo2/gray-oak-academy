@@ -25,6 +25,59 @@ class CourseTest < ActiveSupport::TestCase
     assert_not_includes available, @course
   end
 
+  test "kind scopes separate full courses from quick lessons" do
+    quick_lesson = Course.create!(
+      teacher: @teacher,
+      title: "Quick Fractions",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5",
+      kind: "quick_lesson"
+    )
+
+    assert_includes Course.full_courses, @course
+    assert_not_includes Course.full_courses, quick_lesson
+    assert_includes Course.quick_lessons, quick_lesson
+    assert_not_includes Course.quick_lessons, @course
+  end
+
+  test "available_for_enrollment excludes quick lessons" do
+    quick_lesson = Course.create!(
+      teacher: @teacher,
+      title: "Quick Fractions",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5",
+      kind: "quick_lesson"
+    )
+
+    available = Course.available_for_enrollment(@student, @teacher)
+
+    assert_not_includes available, quick_lesson
+  end
+
+  test "quick lesson course cannot have multiple lessons" do
+    quick_lesson = Course.create!(
+      teacher: @teacher,
+      title: "Quick Fractions",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5",
+      kind: "quick_lesson"
+    )
+    quick_lesson.lessons.create!(
+      title: "Common Denominators",
+      goals: "Understand common denominators using shared units.",
+      approx_duration_min: 20
+    )
+
+    second_lesson = quick_lesson.lessons.build(
+      title: "Extra Practice",
+      goals: "Practice using equivalent fractions.",
+      approx_duration_min: 10
+    )
+
+    assert_not second_lesson.valid?
+    assert_includes second_lesson.errors[:course], "quick lessons can only contain one lesson."
+  end
+
   test "outline guidance questions are capped at five" do
     @course.outline_guidance_questions = [
       { "id" => "q1", "question" => "Q1" },

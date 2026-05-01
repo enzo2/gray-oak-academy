@@ -1,0 +1,57 @@
+<h2 class="text-lg mb-4">Quick Lessons</h2>
+
+<% active_enrollments = enrollments.reject(&:completed?).select { |enrollment| enrollment.course.status_active? } %>
+<% completed_enrollments = enrollments.select(&:completed?) %>
+
+<% if active_enrollments.any? %>
+  <h3 class="text-base font-semibold mb-2">Assigned</h3>
+  <div class="w-full grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4 mb-6">
+    <% active_enrollments.each do |enrollment| %>
+      <% lesson = enrollment.course.lessons.first %>
+      <div id="<%= dom_id(enrollment) %>" class="border rounded-sm p-4 border-stone-300 dark:border-stone-700">
+        <h3 class="text-xl font-semibold mb-3"><%= enrollment.course.title %></h3>
+        <p class="mb-3 text-sm text-stone-600 dark:text-stone-400"><%= enrollment.course.summary %></p>
+
+        <% if enrollment.has_available_lesson? %>
+          <%= link_to student_lesson_path(enrollment.next_available_lesson), class: "inline-block btn-primary text-sm" do %>
+            <div class="flex items-center">
+              <sl-icon name="check-circle-fill" class="text-stone-700 dark:text-stone-300"></sl-icon>
+              <span>&nbsp;<%= enrollment.next_available_lesson.started_by?(current_user) ? "Continue" : "Start" %> lesson</span>
+            </div>
+          <% end %>
+        <% elsif lesson&.lesson_plan&.status_draft? %>
+          <div>
+            <sl-icon name="hourglass-split" class="mr-2 shrink-0 text-lg text-warning-500" title="Awaiting teacher review"></sl-icon>
+            <span class="text-sm">Awaiting teacher review.</span>
+          </div>
+        <% else %>
+          <div>
+            <sl-icon name="exclamation-circle-fill" class="mr-2 shrink-0 text-lg text-warning-500" title="No available lesson"></sl-icon>
+            <span class="text-sm">Not available yet. Check with teacher.</span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% if completed_enrollments.any? %>
+  <h3 class="text-base font-semibold mb-2">Completed</h3>
+  <div class="w-full grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4 mb-6">
+    <% completed_enrollments.each do |enrollment| %>
+      <div id="<%= dom_id(enrollment) %>" class="border rounded-sm p-4 border-stone-300 dark:border-stone-700">
+        <h3 class="text-xl font-semibold mb-3"><%= enrollment.course.title %></h3>
+        <%= link_to enrollment_path(enrollment, active_tab: :quick_lessons), class: "btn-primary text-sm inline-flex items-center" do %>
+          <div class="flex items-center">
+            <sl-icon name="journal-check" class="text-success-500"></sl-icon>
+            <span>&nbsp;View lesson summary</span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% if active_enrollments.empty? && completed_enrollments.empty? %>
+  <p>You don't have any quick lessons.</p>
+<% end %>

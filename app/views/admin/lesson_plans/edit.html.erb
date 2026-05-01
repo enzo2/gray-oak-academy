@@ -2,10 +2,12 @@
   #Helper since it may be called from controller with instance vars, or from Job with local vars
   lesson = local_assigns[:lesson] || @lesson if defined?(@lesson)
   lesson_plan = local_assigns[:lesson_plan] || @lesson_plan if defined?(@lesson_plan)
+  back_label = lesson.course.kind_quick_lesson? ? "Back to Quick Lessons" : "Back to Lessons"
+  back_path = lesson.course.kind_quick_lesson? ? admin_quick_lessons_path : admin_course_lessons_path(lesson.course)
 %>
 
 
-<%= link_to "Back to Lessons", admin_course_lessons_path(lesson.course), class: "block mb-4 hover:underline" %>
+<%= link_to back_label, back_path, class: "block mb-4 hover:underline" %>
 
 <div class="w-full max-w-7xl">
 

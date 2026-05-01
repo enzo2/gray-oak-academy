@@ -61,10 +61,10 @@ class AdminStudentsTest < ApplicationSystemTestCase
     sign_in @admin
     visit admin_student_path(@my_student)
 
-    find('#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"]').click
+    find('#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses quick_lessons enroll"]').click
     click_button "Past Courses"
 
-    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses quick_lessons enroll"][data-state="open"]'
     assert_selector "#past_courses:not(.hidden)"
   end
 
@@ -80,7 +80,7 @@ class AdminStudentsTest < ApplicationSystemTestCase
     sign_in @admin
     visit admin_student_path(@my_student, active_tab: :active_courses)
 
-    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses quick_lessons enroll"][data-state="open"]'
     assert_selector "#active_courses:not(.hidden)"
 
     find("button", text: "Un-enroll", match: :first).click
@@ -91,7 +91,7 @@ class AdminStudentsTest < ApplicationSystemTestCase
     end
 
     assert_text "Student un-enrolled successfully."
-    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses quick_lessons enroll"][data-state="open"]'
     assert_equal [ "active_courses" ], evaluate_script(<<~JS)
       Array.from(document.querySelectorAll('#student-dashboard-tabs [role="tabpanel"]'))
         .filter((panel) => !panel.classList.contains('hidden'))
@@ -127,7 +127,7 @@ class AdminStudentsTest < ApplicationSystemTestCase
     sign_in @admin
     click_on "My Lessons"
 
-    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses enroll"][data-state="open"]'
+    assert_selector '#student-dashboard-tabs [role="tab"][data-tabs-group="active_courses past_courses quick_lessons enroll"][data-state="open"]'
     assert_text "Teacher Self Study"
   end
 end

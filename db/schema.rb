@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_30_000200) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -19,6 +19,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_000200) do
   # Note that some types may not work with other database engines. Be careful if changing database.
   create_enum "audio_setting", ["disabled", "enabled", "audio-only"]
   create_enum "content_type", ["image/png", "image/jpeg", "image/webp"]
+  create_enum "course_kind", ["full_course", "quick_lesson"]
   create_enum "course_status", ["active", "archived"]
   create_enum "lesson_plan_status", ["draft", "published", "archived"]
   create_enum "observation_status", ["pending", "approved", "rejected", "archived"]
@@ -198,6 +199,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_000200) do
     t.jsonb "course_prior_state", default: {}, null: false
     t.datetime "created_at", null: false
     t.string "grade_level"
+    t.enum "kind", default: "full_course", null: false, enum_type: "course_kind"
     t.jsonb "outline", default: []
     t.jsonb "outline_guidance_answers", default: {}, null: false
     t.jsonb "outline_guidance_questions", default: [], null: false
@@ -212,6 +214,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_000200) do
     t.bigint "teacher_id", null: false
     t.string "title"
     t.datetime "updated_at", null: false
+    t.index ["kind"], name: "index_courses_on_kind"
     t.index ["outline_research_stage"], name: "index_courses_on_outline_research_stage"
     t.index ["teacher_id"], name: "index_courses_on_teacher_id"
   end

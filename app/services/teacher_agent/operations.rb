@@ -28,6 +28,7 @@ module TeacherAgent
         api_version: "v1",
         capabilities: {
           can_prepare_curriculum: true,
+          can_create_quick_lessons: true,
           can_create_draft_lesson_plans: true,
           can_publish_lesson_plans: false,
           can_conduct_lessons: false,
@@ -137,6 +138,43 @@ module TeacherAgent
       end
       touch(course)
       { status: "completed", course: course.reload.for_llm }
+    end
+
+    def list_quick_lessons(_args = {})
+      all_teacher_course_scope.quick_lessons
+                              .includes(:students, lessons: :lesson_plan)
+                              .order(created_at: :desc)
+                              .map { |course| quick_lesson_payload(course) }
+    end
+
+    def create_quick_lesson(args)
+      student_ids = Array(args["student_ids"]).reject { |id| id.to_s.blank? }.map(&:to_i).uniq
+      students = validate_assignable_students!(student_ids)
+      course = nil
+      lesson = nil
+
+      Course.transaction do
+        title = required_string(args, "title")
+        goals = required_string(args, "goals")
+        course = teacher.taught_courses.create!(
+          kind: "quick_lesson",
+          title: title,
+          summary: args["summary"].to_s.strip.presence || goals,
+          grade_level: required_string(args, "grade_level")
+        )
+        lesson = course.lessons.create!(
+          title: title,
+          goals: goals,
+          approx_duration_min: required_integer(args, "approx_duration_min")
+        )
+
+        students.each { |student| Enrollment.create!(student: student, course: course) }
+      end
+
+      touch(course)
+      touch(lesson)
+      students.each { |student| touch(student) }
+      { quick_lesson: quick_lesson_payload(course.reload) }
     end
 
     def edit_course_lessons(args)
@@ -379,6 +417,10 @@ module TeacherAgent
     private
 
     def course_scope
+      teacher.taught_courses.full_courses
+    end
+
+    def all_teacher_course_scope
       teacher.taught_courses
     end
 
@@ -398,16 +440,29 @@ module TeacherAgent
       teacher.applets
     end
 
+    def validate_assignable_students!(ids)
+      return [] if ids.empty?
+
+      students = student_scope.where(id: ids).to_a
+      found_ids = students.map(&:id)
+      missing_ids = ids - found_ids
+      if missing_ids.any?
+        raise Error.new("Student not found: #{missing_ids.join(', ')}", code: "not_found", http_status: :not_found)
+      end
+
+      students
+    end
+
     def find_course!(id)
       course_scope.find_by(id: id).tap { |record| raise Error.new("Course not found", code: "not_found", http_status: :not_found) unless record }
     end
 
     def find_lesson!(id)
-      Lesson.joins(:course).merge(course_scope).find_by(id: id).tap { |record| raise Error.new("Lesson not found", code: "not_found", http_status: :not_found) unless record }
+      Lesson.joins(:course).merge(all_teacher_course_scope).find_by(id: id).tap { |record| raise Error.new("Lesson not found", code: "not_found", http_status: :not_found) unless record }
     end
 
     def find_lesson_plan!(id)
-      LessonPlan.joins(lesson: :course).merge(course_scope).find_by(id: id).tap { |record| raise Error.new("Lesson plan not found", code: "not_found", http_status: :not_found) unless record }
+      LessonPlan.joins(lesson: :course).merge(all_teacher_course_scope).find_by(id: id).tap { |record| raise Error.new("Lesson plan not found", code: "not_found", http_status: :not_found) unless record }
     end
 
     def find_student!(id)
@@ -624,6 +679,29 @@ module TeacherAgent
       }
     end
 
+    def quick_lesson_payload(course)
+      lesson = course.lessons.first
+      lesson_plan = lesson&.lesson_plan
+      {
+        id: course.id,
+        course_id: course.id,
+        kind: course.kind,
+        title: course.title,
+        summary: course.summary,
+        grade_level: course.grade_level,
+        status: course.status,
+        lesson_id: lesson&.id,
+        lesson_title: lesson&.title,
+        goals: lesson&.goals,
+        approx_duration_min: lesson&.approx_duration_min,
+        lesson_plan_id: lesson_plan&.id,
+        lesson_plan_status: lesson_plan&.status,
+        assigned_students: course.students.select(:id, :first_name, :last_name, :email, :role).map { |student| user_payload(student) },
+        created_at: course.created_at,
+        updated_at: course.updated_at
+      }
+    end
+
     def resource_payload(resource, include_payload: false)
       payload = {
         id: resource.id,
@@ -661,7 +739,7 @@ module TeacherAgent
       memories_recent = student.memories.order(created_at: :desc).limit(8)
       observations_recent = student.observations.for_context.limit(12)
       feedback_recent = student.student_feedbacks.includes(:lesson_progress).order(created_at: :desc).limit(5)
-      enrollments_in_progress = student.enrollments.in_progress.includes(:course).order(created_at: :desc)
+      enrollments_in_progress = student.enrollments.in_progress.joins(:course).merge(Course.full_courses).includes(:course).order(created_at: :desc)
       focus_memories, focus_observations, focus_mode = focus_context(student, focus, memories_recent, observations_recent)
       last_message_at = Message.joins(:conversation).where(conversations: { user_id: student.id }).order(created_at: :desc).limit(1).pluck(:created_at).first
       last_activity_at = [ last_message_at, lesson_reports.first&.created_at, course_reports.first&.created_at, feedback_recent.first&.created_at ].compact.max

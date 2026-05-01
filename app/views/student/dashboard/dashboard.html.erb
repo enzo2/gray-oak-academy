@@ -47,6 +47,9 @@
       </div>
 
       <button role="tab" type="button" class="<%= tab_button_classes %>"
+              data-tabs-target="tab" data-tabs-panel="quick_lessons"
+              data-action="click->tabs#show keydown->tabs#handleTabKeydown">Quick Lessons</button>
+      <button role="tab" type="button" class="<%= tab_button_classes %>"
               data-tabs-target="tab" data-tabs-panel="journal"
               data-action="click->tabs#show keydown->tabs#handleTabKeydown">Journal</button>
       <button role="tab" type="button" class="<%= tab_button_classes %>"
@@ -59,7 +62,11 @@
 
     <div id="courses" role="tabpanel" data-tabs-target="panel">
         <%# Filter out archived courses %>
-        <%= render 'active_courses', enrollments: @enrollments.in_progress.joins(:course).where(courses: { status: :active }) %>
+        <%= render 'active_courses', enrollments: @course_enrollments.in_progress.joins(:course).where(courses: { status: :active }) %>
+    </div>
+
+    <div id="quick_lessons" role="tabpanel" data-tabs-target="panel">
+        <%= render 'quick_lessons', enrollments: @quick_lesson_enrollments %>
     </div>
 
     <div id="journal" role="tabpanel" data-tabs-target="panel">
@@ -71,7 +78,7 @@
 
     <div id="past_courses" role="tabpanel" data-tabs-target="panel">
         <%# Include archived courses here %>
-        <%= render 'completed_courses', enrollments: @enrollments.completed %>
+        <%= render 'completed_courses', enrollments: @course_enrollments.completed %>
     </div>
 
     <div id="chat" role="tabpanel" data-tabs-target="panel">

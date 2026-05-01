@@ -24,6 +24,13 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "command endpoint lists teacher scoped courses" do
+    quick_lesson = @teacher.taught_courses.create!(
+      kind: "quick_lesson",
+      title: "Quick Fractions",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5"
+    )
+
     post api_agent_v1_command_path,
          params: { command: "list_courses", args: {} }.to_json,
          headers: auth_headers
@@ -31,6 +38,7 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     course_ids = response.parsed_body["data"].map { |course| course["id"] }
     assert_includes course_ids, courses(:one).id
+    assert_not_includes course_ids, quick_lesson.id
     assert_not_includes course_ids, courses(:two).id
   end
 
@@ -135,6 +143,83 @@ class Api::Agent::V1::CommandsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "draft", response.parsed_body.dig("data", "lesson_plan", "status")
     assert_equal [ { "Warmup" => "Count by twos." } ], lesson_plans(:one).reload.content
+  end
+
+  test "create_quick_lesson creates lesson shell and assigns students" do
+    assert_difference -> { Course.quick_lessons.count }, 1 do
+      assert_difference -> { Lesson.count }, 1 do
+        assert_no_difference -> { LessonPlan.count } do
+          assert_difference -> { Enrollment.count }, 1 do
+            post api_agent_v1_command_path,
+                 params: {
+                   command: "create_quick_lesson",
+                   args: {
+                     title: "Common Denominators",
+                     goals: "Understand common denominators using shared units.",
+                     grade_level: "5",
+                     approx_duration_min: 20,
+                     student_ids: [ users(:student).id ]
+                   }
+                 }.to_json,
+                 headers: auth_headers
+          end
+        end
+      end
+    end
+
+    assert_response :success
+    quick_lesson = Course.quick_lessons.order(:created_at).last
+    lesson = quick_lesson.lessons.first
+    assert_equal @teacher, quick_lesson.teacher
+    assert_nil lesson.lesson_plan
+    assert_includes quick_lesson.students, users(:student)
+    assert_equal lesson.id, response.parsed_body.dig("data", "quick_lesson", "lesson_id")
+  end
+
+  test "create_quick_lesson rejects non teacher owned students without creating records" do
+    assert_no_difference -> { Course.quick_lessons.count } do
+      post api_agent_v1_command_path,
+           params: {
+             command: "create_quick_lesson",
+             args: {
+               title: "Common Denominators",
+               goals: "Understand common denominators using shared units.",
+               grade_level: "5",
+               approx_duration_min: 20,
+               student_ids: [ users(:student2).id ]
+             }
+           }.to_json,
+           headers: auth_headers
+    end
+
+    assert_response :not_found
+    assert_equal "not_found", response.parsed_body.dig("error", "code")
+  end
+
+  test "list_quick_lessons returns quick lessons with assignment and plan state" do
+    quick_lesson = @teacher.taught_courses.create!(
+      kind: "quick_lesson",
+      title: "Quick Fractions",
+      summary: "A quick one-off lesson about common denominators.",
+      grade_level: "5"
+    )
+    lesson = quick_lesson.lessons.create!(
+      title: "Quick Fractions",
+      goals: "Understand common denominators using shared units.",
+      approx_duration_min: 20
+    )
+    lesson.create_lesson_plan!(status: "draft")
+    quick_lesson.enrollments.create!(student: users(:student))
+
+    post api_agent_v1_command_path,
+         params: { command: "list_quick_lessons", args: {} }.to_json,
+         headers: auth_headers
+
+    assert_response :success
+    payload = response.parsed_body["data"].find { |item| item["course_id"] == quick_lesson.id }
+    assert_equal lesson.id, payload["lesson_id"]
+    assert_equal "draft", payload["lesson_plan_status"]
+    assert_equal [ users(:student).id ], payload["assigned_students"].map { |student| student["id"] }
   end
 
   test "create_resource supports generated file upload payloads" do

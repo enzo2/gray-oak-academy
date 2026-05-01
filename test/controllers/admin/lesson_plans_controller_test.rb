@@ -27,6 +27,53 @@ module Admin
       # (The controller only builds it, it doesn't save it in 'edit')
     end
 
+    test "quick lesson plan editor links back to quick lessons" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      quick_lesson = teacher.taught_courses.create!(
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "Understand common denominators using shared units.",
+        grade_level: "5"
+      )
+      lesson = quick_lesson.lessons.create!(
+        title: "Quick Fractions",
+        goals: "Understand common denominators using shared units.",
+        approx_duration_min: 20
+      )
+
+      get edit_admin_course_lesson_lesson_plan_path(quick_lesson, lesson)
+
+      assert_response :success
+      assert_select "a[href='#{admin_quick_lessons_path}']", text: "Back to Quick Lessons"
+      assert_select "a[href='#{admin_quick_lessons_path}']", text: "Cancel"
+      assert_select "a", text: "Back to Lessons", count: 0
+    end
+
+    test "destroying a quick lesson plan redirects to quick lessons" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      quick_lesson = teacher.taught_courses.create!(
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "Understand common denominators using shared units.",
+        grade_level: "5"
+      )
+      lesson = quick_lesson.lessons.create!(
+        title: "Quick Fractions",
+        goals: "Understand common denominators using shared units.",
+        approx_duration_min: 20
+      )
+      lesson_plan = lesson.create_lesson_plan!(status: "draft", content: [ { "Warmup" => "Intro review." } ])
+
+      assert_difference("LessonPlan.count", -1) do
+        delete admin_course_lesson_lesson_plan_path(quick_lesson, lesson)
+      end
+
+      assert_not LessonPlan.exists?(lesson_plan.id)
+      assert_redirected_to admin_quick_lessons_path
+    end
+
     test "unlink pending linked resource deletes resource" do
       teacher = users(:admin)
       sign_in(teacher)

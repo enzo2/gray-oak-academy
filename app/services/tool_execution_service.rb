@@ -219,6 +219,10 @@ class ToolExecutionService
     create_tool_message(JSON.pretty_generate(payload))
   end
 
+  def quick_lesson_create_args
+    @args.except("action", "steering_guidance")
+  end
+
   def applet_scope_for_user
     case @user.role
     when "student" # Allow own or teacher's applets.
@@ -381,17 +385,17 @@ class ToolExecutionService
   def execute_list_courses
     if @user.role_student?
       # Students can only list their own courses
-      courses = @user.enrollments.in_progress.includes(:course).map(&:course)
+      courses = @user.enrollments.in_progress.includes(:course).map(&:course).select(&:kind_full_course?)
     else
       # Teachers can list their taught courses
-      courses = current_teacher.taught_courses.select(:id, :title, :grade_level, :status)
+      courses = current_teacher.taught_courses.full_courses.select(:id, :title, :grade_level, :status)
     end
     create_tool_message(JSON.pretty_generate(courses.as_json(only: [ :id, :title, :grade_level, :status ])))
   end
 
   def execute_get_course_details
     course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.find_by(id: course_id)
+    course = current_teacher.taught_courses.full_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
 
     if @user.role_student?
@@ -501,7 +505,7 @@ class ToolExecutionService
     feedback_recent = student.student_feedbacks.includes(:lesson_progress).order(created_at: :desc).limit(5)
 
     # Courses snapshot (in-progress only)
-    enrollments_in_progress = student.enrollments.in_progress.includes(:course).order(created_at: :desc)
+    enrollments_in_progress = student.enrollments.in_progress.joins(:course).merge(Course.full_courses).includes(:course).order(created_at: :desc)
 
     # Focus-based semantic retrieval (additive; never replaces recent context)
     focus_mode = nil
@@ -589,6 +593,45 @@ class ToolExecutionService
     create_teacher_agent_tool_message({ status: "ok" }.merge(teacher_agent_operations.create_course(@args)))
   rescue TeacherAgent::Operations::Error => e
     raise ToolExecutionError, e.message
+  end
+
+  def execute_quick_lesson
+    action = @args["action"].to_s
+
+    case action
+    when "list"
+      quick_lessons = teacher_agent_operations
+                        .list_quick_lessons({})
+                        .select { |quick_lesson| quick_lesson[:status] == "active" }
+      create_teacher_agent_tool_message({ status: "ok", quick_lessons: quick_lessons })
+    when "create"
+      create_teacher_agent_tool_message({ status: "ok" }.merge(teacher_agent_operations.create_quick_lesson(quick_lesson_create_args)))
+    when "create_and_generate_plan"
+      result = teacher_agent_operations.create_quick_lesson(quick_lesson_create_args)
+      lesson = Lesson.find(result.dig(:quick_lesson, :lesson_id))
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan(status: "draft")
+      lesson_plan.save! if lesson_plan.new_record?
+      GenerateLessonPlanContentJob.perform_now(
+        lesson_plan,
+        current_teacher,
+        steering_guidance: @args["steering_guidance"].to_s.strip.presence,
+        raise_on_error: true
+      )
+      lesson.reload
+      create_teacher_agent_tool_message({
+        status: "ok",
+        action: action,
+        quick_lesson: teacher_agent_operations.list_quick_lessons({}).find { |quick_lesson| quick_lesson[:course_id] == lesson.course_id },
+        lesson: lesson.for_llm
+      })
+    else
+      raise ToolExecutionError, "Quick_Lesson action must be one of: list, create, create_and_generate_plan."
+    end
+  rescue TeacherAgent::Operations::Error => e
+    raise ToolExecutionError, e.message
+  rescue StandardError => e
+    Rails.logger.error "Quick_Lesson tool error: #{e.message}"
+    raise ToolExecutionError, "Failed to #{action.presence || 'run Quick_Lesson'}: #{e.message}"
   end
 
   def execute_update_course
@@ -685,7 +728,7 @@ class ToolExecutionService
   def execute_generate_course_outline
     # Teacher-only tool
     course_id = @args["course_id"].to_i
-    course = current_teacher.taught_courses.find_by(id: course_id)
+    course = current_teacher.taught_courses.full_courses.find_by(id: course_id)
     raise ToolExecutionError, "Course not found" unless course
 
     action = @args["action"].to_s.strip.presence || "generate_outline"

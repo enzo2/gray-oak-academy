@@ -1,0 +1,59 @@
+<%= form_with scope: :quick_lesson, url: admin_quick_lessons_path, method: :post, id: "quick-lesson-form" do |f| %>
+  <% errors = quick_lesson.errors.full_messages + lesson.errors.full_messages %>
+  <% if errors.any? %>
+    <div class="mb-4 text-danger-950 dark:text-danger-300">
+      <%= pluralize(errors.count, "error") %> prevented this quick lesson from being saved.
+      <ul>
+        <% errors.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(14rem,0.7fr)]">
+    <div>
+      <%= f.label :title, class: "form-label" %>
+      <%= f.text_field :title, value: quick_lesson.title || lesson.title, class: "input-primary", required: true %>
+    </div>
+
+    <div>
+      <%= f.label :grade_level, class: "form-label" %>
+      <%= f.text_field :grade_level, value: quick_lesson.grade_level, class: "input-primary", required: true %>
+    </div>
+
+    <div class="xl:col-span-2">
+      <%= f.label :goals, class: "form-label" %>
+      <p class="block text-sm mb-2"><i>Include the target skill, context, student needs, and any preferred approach.</i></p>
+      <%= f.text_area :goals, value: lesson.goals, class: "input-primary min-h-48", rows: 7, required: true %>
+    </div>
+
+    <div>
+      <%= f.label :approx_duration_min, "Approximate Duration (minutes)", class: "form-label" %>
+      <%= f.number_field :approx_duration_min, value: lesson.approx_duration_min || 20, class: "input-primary", min: 1, required: true %>
+    </div>
+  </div>
+
+  <div class="mt-6 mb-5">
+    <%= f.label :student_ids, "Assign Students", class: "form-label" %>
+    <p class="block text-sm mb-2"><i>Optional. Assigned students can start after the lesson plan is published.</i></p>
+    <% if students.any? %>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <% selected_ids = Array(params.dig(:quick_lesson, :student_ids)).map(&:to_s) %>
+        <% students.each do |student| %>
+          <label class="flex items-center gap-2 rounded-sm border border-stone-300 px-3 py-2 text-sm dark:border-stone-700">
+            <%= check_box_tag "quick_lesson[student_ids][]", student.id, selected_ids.include?(student.id.to_s), class: "checkbox-primary" %>
+            <span><%= student.name %></span>
+          </label>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-sm text-stone-600 dark:text-stone-400">No students are currently assigned to you.</p>
+    <% end %>
+  </div>
+
+  <div class="flex flex-row flex-wrap gap-4">
+    <%= f.submit "Create and Review Plan", class: "btn-primary" %>
+    <%= link_to "Cancel", admin_quick_lessons_path, class: "btn-secondary" %>
+  </div>
+<% end %>

@@ -100,6 +100,11 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :quick_lessons, only: [ :index, :new, :create, :destroy ] do
+      patch :archive, on: :member
+      patch :unarchive, on: :member
+    end
+
     resources :prompts
 
     resources :resources do

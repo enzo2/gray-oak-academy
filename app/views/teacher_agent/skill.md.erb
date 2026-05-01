@@ -56,6 +56,8 @@ Use this API as a teacher-supervised preparation surface. The usual curriculum p
 5. Linked resources and applets
 6. Teacher review, resource approval, and publication in Gray Oak Academy
 
+For one-off tutoring requests, use `create_quick_lesson` instead of creating a tiny course. Quick lessons are hidden from the normal Course Manager, can be assigned to students with `student_ids`, and still require teacher review/publication before students can begin.
+
 Courses:
 
 - A course has a title, grade level, summary, status, and outline.
@@ -67,6 +69,7 @@ Courses:
 Lessons:
 
 - Lessons are ordered shells inside a course.
+- Quick lessons are a special one-off lesson type backed by a hidden single-lesson course; use them for quick, just-in-time, or external-agent-prepared tutoring requests.
 - Each lesson has a title, goals, approximate duration, and position.
 - Generate lessons only after the course outline is acceptable.
 - Lessons should cover the course scope at the grade level, but smaller topics can be grouped and larger topics can be split.

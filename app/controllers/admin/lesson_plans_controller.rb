@@ -20,7 +20,8 @@ module Admin
 
     def destroy
       @lesson_plan.destroy
-      redirect_to admin_course_lessons_path(@lesson.course), status: :see_other
+      redirect_target = @lesson.course.kind_quick_lesson? ? admin_quick_lessons_path : admin_course_lessons_path(@lesson.course)
+      redirect_to redirect_target, status: :see_other
     end
 
     def link_resource

@@ -50,7 +50,7 @@
       <button role="tab" type="button" class="<%= "#{tab_button_classes} inline-flex items-center gap-1" %>"
               data-tabs-target="tab"
               data-tabs-panel="active_courses"
-              data-tabs-group="active_courses past_courses enroll"
+              data-tabs-group="active_courses past_courses quick_lessons enroll"
               data-tabs-menu-trigger="true"
               data-navbar-target="trigger"
               data-content-id="courses-dropdown"
@@ -75,6 +75,10 @@
                     data-tabs-panel="past_courses"
                     data-navbar-preserve-trigger-state-param="true"
                     data-action="click->tabs#show click->navbar#close">Past Courses</button>
+            <button type="button" class="<%= tab_dropdown_item_classes %>"
+                    data-tabs-panel="quick_lessons"
+                    data-navbar-preserve-trigger-state-param="true"
+                    data-action="click->tabs#show click->navbar#close">Quick Lessons</button>
             <button type="button" class="<%= tab_dropdown_item_classes %>"
                     data-tabs-panel="enroll"
                     data-navbar-preserve-trigger-state-param="true"
@@ -160,6 +164,10 @@
           <% end %>
         </sl-details>
     <% end %>
+  </div>
+
+  <div id="quick_lessons" role="tabpanel" data-tabs-target="panel">
+    <%= render 'quick_lessons', enrollments: @quick_lesson_enrollments %>
   </div>
 
   <div id="enroll" role="tabpanel" data-tabs-target="panel">
