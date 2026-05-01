@@ -4,11 +4,14 @@ class UpdateOpenrouterModelMetadataJob < ApplicationJob
   require "net/http"
   require "uri"
 
-  def perform(llm = nil)
-    if llm
-      update_metadata(llm)
-    else
+  def perform(llms = nil)
+    if llms.nil?
       update_all_models
+      return
+    end
+
+    Array.wrap(llms).compact.each do |llm|
+      update_metadata(llm)
     end
   end
 

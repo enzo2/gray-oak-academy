@@ -1239,9 +1239,10 @@ AppSetting.first_or_create!(
 )
 
 # ---- Seed OpenRouter image-capable LLM ----
-llm = Llm.find_or_create_by!(api_provider: openrouter.api_base_uri, model: 'google/gemini-3.1-flash-image-preview')
+img_llm1 = Llm.find_or_create_by!(api_provider: openrouter.api_base_uri, model: 'google/gemini-3-pro-image-preview')
+img_llm2 = Llm.find_or_create_by!(api_provider: openrouter.api_base_uri, model: 'google/gemini-3.1-flash-image-preview')
 begin
-  UpdateOpenrouterModelMetadataJob.perform_now(llm)
+  UpdateOpenrouterModelMetadataJob.perform_now([ img_llm1, img_llm2 ])
 rescue
   puts "Failed to update OpenRouter model metadata for image generation LLM."
 end
