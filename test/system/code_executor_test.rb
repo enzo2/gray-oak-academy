@@ -57,6 +57,39 @@ class CodeExecutorTest < ApplicationSystemTestCase
     end
   end
 
+  test "saved applet runs on chalkboard from registered run url" do
+    applet = Applet.create!(
+      user: @admin,
+      title: "Saved Chalkboard Applet",
+      code: "document.getElementById('sandbox').innerHTML = '<h2>Saved Chalkboard Applet Output</h2>';"
+    )
+
+    visit conversation_path(@conversation)
+
+    execute_script <<~JS
+      window.dispatchEvent(new CustomEvent("chalkboard:register-applet", {
+        detail: {
+          event_type: "register_applet",
+          source: "linked",
+          key: "linked_#{applet.id}",
+          applet_id: #{applet.id},
+          title: "Saved Chalkboard Applet",
+          launch_url: "#{run_applet_path(applet)}",
+          embed_src: "#{run_applet_path(applet)}",
+          embed_srcdoc: null,
+          shareable: true,
+          share_url: "#{run_applet_path(applet)}",
+          auto_open_in_board: true
+        }
+      }));
+    JS
+
+    iframe = find("#panel-applets iframe", visible: true)
+    within_frame(iframe) do
+      assert_selector "h2", text: "Saved Chalkboard Applet Output", wait: 10
+    end
+  end
+
   test "chalkboard tabs preserve whiteboard and applet iframes and jit applet share stays hidden" do
     visit conversation_path(@conversation)
 

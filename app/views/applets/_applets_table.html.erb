@@ -1,20 +1,24 @@
 <div data-controller="copy-code">
   <% if applets.presence %>
     <div class="w-full md:max-w-3xl flex flex-col gap-2">
-      <div class="hidden md:flex flex-row justify-between border-b border-stone-800 dark:border-stone-200 py-2">
-        <div class="font-bold">Title</div>
-        <div class="font-bold">Actions</div>
-      </div>
-      
       <div id="applets-table-body" class="flex flex-col gap-2">
           <% applets.each do |applet| %>
-            <div id="<%= dom_id(applet) %>" class="flex flex-col md:flex-row md:items-center justify-between p-3 border border-stone-200 dark:border-stone-700 rounded-md bg-stone-50 dark:bg-stone-900 gap-3">
+            <div id="<%= dom_id(applet) %>" class="flex flex-col p-3 border border-stone-200 dark:border-stone-700 rounded-md bg-stone-50 dark:bg-stone-900 gap-3">
               <div class="font-medium break-all"><%= applet.title %></div>
-              <div class="flex flex-wrap items-center gap-2 md:justify-end">
+              <div class="flex flex-wrap items-center gap-2">
                 <sl-button variant="default" size="small" data-action="click->copy-code#copy" data-copy-code-url="<%= applet_path(applet) %>">
                   <sl-icon slot="prefix" name="copy"></sl-icon>
                   Copy
                 </sl-button>
+                <%= link_to run_applet_path(applet),
+                    class: "flex items-center",
+                    target: "_blank",
+                    rel: "noopener noreferrer" do %>
+                  <sl-button variant="default" size="small">
+                    <sl-icon slot="prefix" name="play-circle"></sl-icon>
+                    Preview
+                  </sl-button>
+                <% end %>
                 <% if current_user.role_teacher? %>
                   <%= link_to conversations_path(
                         starter_template: "applet_revision",

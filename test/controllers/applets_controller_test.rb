@@ -69,6 +69,18 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "index includes preview link for applets without resources" do
+    sign_in @teacher
+
+    get applets_path
+
+    assert_response :success
+    assert_select "a[href='#{run_applet_path(@teacher_applet)}'][target='_blank'][rel='noopener noreferrer']" do
+      assert_select "sl-button", text: /Preview/
+      assert_select "sl-icon[name='play-circle']"
+    end
+  end
+
   test "student cannot delete teacher applet" do
     sign_in @student
 
