@@ -57,6 +57,10 @@ class Users::RegistrationsController < Devise::RegistrationsController
     end
 
     ActiveRecord::Base.transaction do
+      current_user.resources.includes(:applet).find_each do |resource|
+        resource.applet&.update!(user: target_user)
+      end
+
       current_user.taught_courses.update_all(teacher_id: target_user.id)
       current_user.resources.update_all(teacher_id: target_user.id)
     end
@@ -102,6 +106,9 @@ class Users::RegistrationsController < Devise::RegistrationsController
     return unless current_user.role_teacher?
     if current_user.taught_courses.any?
       flash[:alert] = "Cannot delete user. Please transfer owned courses to another teacher first."
+      redirect_to edit_user_registration_path(active_tab: :account), status: :see_other
+    elsif current_user.resources.joins(:applet).exists?
+      flash[:alert] = "Cannot delete user. Please transfer resource-linked applets to another teacher first."
       redirect_to edit_user_registration_path(active_tab: :account), status: :see_other
     end
   end

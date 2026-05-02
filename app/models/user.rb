@@ -23,10 +23,9 @@ class User < ApplicationRecord
   after_create :seed_admin_data, if: :role_admin? || :role_superuser?
   after_create_commit :notify_user_signup
 
-
   before_destroy :validate_no_dependent_content
 
-  has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher
+  has_many :students, class_name: "User", foreign_key: "teacher_id", inverse_of: :teacher, dependent: :nullify
   belongs_to :teacher, class_name: "User", optional: true, inverse_of: :students
   has_one_attached :profile_picture, dependent: :destroy
   has_one :setting, dependent: :destroy
@@ -97,6 +96,10 @@ class User < ApplicationRecord
   def validate_no_dependent_content
     if taught_courses.any?
       errors.add(:base, "Cannot delete user. Please transfer owned courses to another teacher first.")
+      throw(:abort)
+    end
+    if resources.joins(:applet).exists?
+      errors.add(:base, "Cannot delete user. Please transfer resource-linked applets to another teacher first.")
       throw(:abort)
     end
   end

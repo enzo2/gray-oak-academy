@@ -11,6 +11,8 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     get admin_root_path
     assert_response :success
     assert_match /Teacher|Dashboard/i, response.body
+    assert_select "[data-testid='teacher-guide-nav-link-desktop']", text: "Guide"
+    assert_select "[data-testid='teacher-guide-nav-link-mobile']", text: "Guide"
   end
 
   test "student can sign in and access student dashboard" do
@@ -18,6 +20,8 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
     get student_root_path
     assert_response :success
     assert_match /Student|Dashboard/i, response.body
+    assert_select "[data-testid='teacher-guide-nav-link-desktop']", count: 0
+    assert_select "[data-testid='teacher-guide-nav-link-mobile']", count: 0
   end
 
   test "student dashboard renders assigned quick lessons separately" do
@@ -94,5 +98,81 @@ class AuthenticationFlowsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match(/Log in/i, response.body)
+  end
+
+  test "teacher account deletion releases adopted students and signs out" do
+    teacher = User.create!(
+      first_name: "Delete",
+      last_name: "Me",
+      email: "delete-flow-#{SecureRandom.hex(4)}@example.com",
+      password: "password",
+      role: "admin",
+      signup_code: ENV["TEACHER_SIGNUP_CODE"]
+    )
+    student = users(:student2)
+    student.update!(teacher: teacher)
+
+    sign_in(teacher)
+
+    assert_difference("User.count", -1) do
+      delete user_registration_path
+    end
+
+    assert_response :see_other
+    assert_redirected_to new_user_session_path
+    assert_nil student.reload.teacher_id
+  end
+
+  test "transfer assets moves resource applet ownership to target teacher" do
+    source_teacher = User.create!(
+      first_name: "Source",
+      last_name: "Teacher",
+      email: "source-teacher-#{SecureRandom.hex(4)}@example.com",
+      password: "password",
+      role: "admin",
+      signup_code: ENV["TEACHER_SIGNUP_CODE"]
+    )
+    target_teacher = User.create!(
+      first_name: "Target",
+      last_name: "Teacher",
+      email: "target-teacher-#{SecureRandom.hex(4)}@example.com",
+      password: "password",
+      role: "admin",
+      signup_code: ENV["TEACHER_SIGNUP_CODE"]
+    )
+    resource_applet = Applet.create!(title: "Linked", code: "console.log('linked')", user: source_teacher)
+    resource = Resource.create!(teacher: source_teacher, category: "Applet", description: "Linked resource", applet: resource_applet)
+
+    sign_in(source_teacher)
+
+    post transfer_user_assets_path, params: { target_user_id: target_teacher.id }
+
+    assert_response :redirect
+    assert_redirected_to edit_user_registration_path(active_tab: :account)
+    assert_equal target_teacher.id, resource.reload.teacher_id
+    assert_equal target_teacher.id, resource_applet.reload.user_id
+  end
+
+  test "teacher account deletion is blocked when resource-linked applets remain" do
+    teacher = User.create!(
+      first_name: "Delete",
+      last_name: "Blocked",
+      email: "delete-blocked-#{SecureRandom.hex(4)}@example.com",
+      password: "password",
+      role: "admin",
+      signup_code: ENV["TEACHER_SIGNUP_CODE"]
+    )
+    resource_applet = Applet.create!(title: "Linked", code: "console.log('linked')", user: teacher)
+    Resource.create!(teacher: teacher, category: "Applet", description: "Linked resource", applet: resource_applet)
+
+    sign_in(teacher)
+
+    assert_no_difference("User.count") do
+      delete user_registration_path
+    end
+
+    assert_response :see_other
+    assert_redirected_to edit_user_registration_path(active_tab: :account)
+    assert_equal teacher.id, resource_applet.reload.user_id
   end
 end

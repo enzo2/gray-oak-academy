@@ -75,6 +75,9 @@
               <sl-menu>
                 <sl-menu-item data-click-child><a href="<%= root_path %>">Dashboard</a></sl-menu-item>
                 <sl-menu-item data-click-child><a href="<%= notifications_path %>">Notifications <%= render "notifications/counter", count: current_user.notifications.unread.count, id: "notifications_counter_menu" %></a></sl-menu-item>
+                <% if current_user.role_teacher? %>
+                  <sl-menu-item data-click-child><a href="<%= admin_help_path %>" data-testid="teacher-guide-nav-link-mobile">Guide</a></sl-menu-item>
+                <% end %>
                 <sl-menu-item data-click-child><a href="<%= edit_user_registration_path %>">Settings</a></sl-menu-item>
                 <sl-menu-item data-click-child><%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete } %></sl-menu-item>
               </sl-menu>
@@ -86,6 +89,9 @@
                 <span class="ml-1">
                   <%= render "notifications/counter", count: current_user.notifications.unread.count, id: "notifications_counter_desktop" %>
                 </span>
+              <% end %>
+              <% if current_user.role_teacher? %>
+                <%= link_to "Guide", admin_help_path, class: "", data: { testid: "teacher-guide-nav-link-desktop" } %>
               <% end %>
               <%= link_to "Settings", edit_user_registration_path, class: "" %>
               <%= link_to "Log out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "" %>
