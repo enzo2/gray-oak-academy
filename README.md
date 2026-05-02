@@ -31,9 +31,11 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ## Features
 - Teacher-directed, LLM-conducted learning platform, thoughtfully designed for human control
-- AI-augmented, yet deliberate curriculum planning: Rapidly expand a full set of lessons according to your goals; take manual control at any point in the process
+- AI-augmented, yet deliberate curriculum building: Quickly plan, research, and expand a full course according to your goals; take full manual control at any point in the process
+- Quick Lessons: Prepare and approve a one-off lesson in just a couple minutes
 - Powerful LLM tutor: can create/run JavaScript applets, display web resources, save memories and observations, evaluate students
 - Integrated multimodal LLM chat for teachers and students, with STT/TTS/auto-read, images & webcam, and "chalkboard" (canvas accessible by the LLM)
+- Trusted personal agent access (e.g. OpenClaw, Hermes) via optional API + SKILL.md; teacher still gives final approvals
 - Encourages away-from-keyboard: Reduce screen time with speech-only lessons, or go offline entirely with debrief-only lessons
 - Longitudinal student model with atomic observations keeps a fluid view of student progress; teacher may veto observations
 - Reports, observations, and memories feed forward, ensuring continuity
@@ -41,11 +43,11 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ### Cool tech stuff
 - Self-hostable with docker
-- Optional API + SKILL.md for trusted personal agents (e.g. OpenClaw, Hermes) to prepare curriculum, draft lesson plans, resources, and applets
 - All system prompts can be customized (opinionated defaults included)
 - Works with any OpenAI-compatible API (including local). OpenAI, OpenRouter, and xAI use Responses API. 
-- OpenRouter optimized (automated context limit tracking, actual cost tracking, LLM feature detection, image gen model support)
+- Image gen model support via OpenRouter
 - API + token management: Preload multiple LLM APIs for teachers to choose from
+- Auto model metadata fetching; actual cost tracking for OpenRouter and xAI
 - Automated memory saving and semantic consolidation, with choice of embeddings model
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
@@ -113,14 +115,14 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 - Enroll the student in the course. The student can then go to their dashboard and start the lesson.
 
 ## Feature ideas:
-- Compaction
+- auto-compaction for providers besides OpenAI
+- Address resource explosion (Resource archive & auto-organization)
 - Non-digital resource availability/planning
 - Additional agentic flows for curriculum planning 
-- Address resource explosion (Resource archive & auto-organization)
 - Improve student analytics
 - MCP support
-- Document uploads / local corpus search & linkage
-- Refactor LLM tools into virtual CLI tools
+- Document uploads for curriculum building / local corpus search & linkage
+- Refactor LLM tools into virtual CLI-style tools?
 - Generative Python applets (pyodide iframe)
 - Non-lesson-based, graph-based course option (directed graph creation and traversal)
 - Hide more advanced settings/features under a Power User setting

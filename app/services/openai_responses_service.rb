@@ -27,6 +27,11 @@ class OpenaiResponsesService
   STATEFUL_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
   BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
   METADATA_RESPONSES_HOSTS = %w[api.openai.com openrouter.ai].freeze
+  COMPACTION_RESPONSES_HOSTS = %w[api.openai.com].freeze
+  PROMPT_CACHE_KEY_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
+  COMPACTION_CONTEXT_RATIO = 0.7
+  COMPACTION_MAX_THRESHOLD = 200_000
+  COMPACTION_MIN_THRESHOLD = 1_000
   AGENT_RUN_SYNC_TIMEOUT_SECONDS = 900
   RESPONSES_METADATA_MAX_KEYS = 16
   RESPONSES_METADATA_MAX_KEY_LENGTH = 64
@@ -88,6 +93,24 @@ class OpenaiResponsesService
     host.present? && METADATA_RESPONSES_HOSTS.include?(host)
   end
 
+  def self.compaction_supported_base_uri?(base_uri)
+    host = base_uri_host(base_uri)
+    host.present? && COMPACTION_RESPONSES_HOSTS.include?(host)
+  end
+
+  def self.prompt_cache_key_supported_base_uri?(base_uri)
+    host = base_uri_host(base_uri)
+    host.present? && PROMPT_CACHE_KEY_RESPONSES_HOSTS.include?(host)
+  end
+
+  def self.auto_compaction_threshold_for_context_length(context_length)
+    context_length = context_length.to_i
+    return nil if context_length <= 0
+
+    threshold = (context_length * COMPACTION_CONTEXT_RATIO).floor
+    [ [ threshold, COMPACTION_MIN_THRESHOLD ].max, COMPACTION_MAX_THRESHOLD ].min
+  end
+
   # OpenAI + xAI support Responses state chaining via previous_response_id.
   def stateful_supported?
     self.class.stateful_supported_base_uri?(@base_uri)
@@ -99,6 +122,14 @@ class OpenaiResponsesService
 
   def metadata_supported?
     self.class.metadata_supported_base_uri?(@base_uri)
+  end
+
+  def compaction_supported?
+    self.class.compaction_supported_base_uri?(@base_uri)
+  end
+
+  def prompt_cache_key_supported?
+    self.class.prompt_cache_key_supported_base_uri?(@base_uri)
   end
 
   # Initialize a new Responses client.
@@ -188,7 +219,7 @@ class OpenaiResponsesService
   # - Call once with store: true (default) and no previous_response_id.
   # - Reuse the same instance and it will set previous_response_id automatically
   #   based on the last response id, allowing you to send only new inputs.
-  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil, reasoning: nil)
+  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil, reasoning: nil, auto_compaction: true)
     sanitized_metadata = sanitize_responses_metadata(metadata)
     agent_run_context = prepare_agent_run_context(
       background: background,
@@ -221,6 +252,7 @@ class OpenaiResponsesService
       end
 
       reasoning_options = build_reasoning_options(reasoning)
+      context_management = build_context_management(auto_compaction: auto_compaction)
 
       sync_background_fallback = agent_run_synchronous_background?(background: background)
       request_background = background && !sync_background_fallback && background_supported?
@@ -254,6 +286,8 @@ class OpenaiResponsesService
         **(parallel_tool_calls.present? ? { parallel_tool_calls: parallel_tool_calls } : {}),
         **(tool_choice.present? ? { tool_choice: tool_choice } : {}),
         **(reasoning_options.present? ? { reasoning: reasoning_options } : {}),
+        **(context_management.present? ? { context_management: context_management } : {}),
+        **(prompt_cache_key.present? ? { prompt_cache_key: prompt_cache_key } : {}),
         **build_text_params(response_format)
       }
 
@@ -616,6 +650,31 @@ class OpenaiResponsesService
     end
 
     options.presence
+  end
+
+  def build_context_management(auto_compaction:)
+    return nil unless compaction_supported?
+
+    threshold = auto_compaction_threshold if auto_compaction
+    return nil if threshold.blank? || threshold < COMPACTION_MIN_THRESHOLD
+
+    [
+      {
+        type: "compaction",
+        compact_threshold: threshold
+      }
+    ]
+  end
+
+  def prompt_cache_key
+    return nil unless prompt_cache_key_supported?
+    return nil unless @conversation&.id
+
+    "conversation-#{@conversation.id}"
+  end
+
+  def auto_compaction_threshold
+    self.class.auto_compaction_threshold_for_context_length(@conversation&.llm_in_use&.context_length)
   end
 
   # Build Responses "text.format" for structured output.
@@ -1314,9 +1373,19 @@ class OpenaiResponsesService
       completion_tokens: completion_tokens&.to_i,
       reasoning_tokens: reasoning_tokens&.to_i,
       total_tokens: usage["total_tokens"]&.to_i,
-      total_cost: usage["cost"]&.to_f,
+      total_cost: usage_total_cost(usage),
       cache_discount: usage["cache_discount"]&.to_f
     )
+  end
+
+  def usage_total_cost(usage)
+    cost = usage["cost"]
+    return cost.to_f if cost.present?
+
+    ticks = usage["cost_in_usd_ticks"]
+    return nil if ticks.blank?
+
+    BigDecimal(ticks.to_s) / 10_000_000_000
   end
 
   # Decide which previous_response_id to use:

@@ -5,6 +5,7 @@ class LlmTest < ActiveSupport::TestCase
 
   setup do
     ActiveJob::Base.queue_adapter = :test
+    clear_enqueued_jobs
   end
 
   test "ensure_api_provider_trailing_slash adds trailing slash when missing" do
@@ -76,6 +77,14 @@ class LlmTest < ActiveSupport::TestCase
 
     assert_enqueued_jobs 1, only: UpdateOpenrouterModelMetadataJob do
       Llm.create!(model: "openrouter/model-v1", api_provider: "https://openrouter.ai/api/v1/")
+    end
+  end
+
+  test "creating non openrouter llm enqueues models dev metadata update job" do
+    assert_enqueued_jobs 0, only: UpdateModelsDevModelMetadataJob
+
+    assert_enqueued_jobs 1, only: UpdateModelsDevModelMetadataJob do
+      Llm.create!(model: "gpt-5", api_provider: "https://api.openai.com/v1/")
     end
   end
 end

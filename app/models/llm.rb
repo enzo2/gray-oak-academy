@@ -113,12 +113,18 @@ class Llm < ApplicationRecord
     metadata_fetched_at.nil? || metadata_fetched_at < 24.hours.ago
   end
 
-  # OpenRouter provides an endpoint for fetching model metadata
-  # If this initial check fails, will be retried as recurring job daily (via recurring.yml)
+  # OpenRouter provides an endpoint for fetching model metadata.
+  # Other providers are best-effort matched against models.dev.
+  # If this initial check fails, recurring jobs retry daily (via recurring.yml).
   def update_metadata
-    return unless api_provider.include?("openrouter.ai") && metadata_stale?
+    return unless metadata_stale?
+
     Rails.logger.debug "Updating metadata for LLM: #{self.inspect}"
-    UpdateOpenrouterModelMetadataJob.set(wait: 5.seconds).perform_later(self) if metadata_stale?
+    if api_provider.include?("openrouter.ai")
+      UpdateOpenrouterModelMetadataJob.set(wait: 5.seconds).perform_later(self)
+    else
+      UpdateModelsDevModelMetadataJob.set(wait: 5.seconds).perform_later(self)
+    end
   end
 
   def not_referenced_in_app_setting

@@ -1124,6 +1124,224 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     refute OpenaiResponsesService.stateful_supported_base_uri?("https://openrouter.ai/api/v1/")
   end
 
+  test "complete includes stable prompt cache key for OpenAI Responses chats" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal "conversation-#{@conversation.id}", captured[:prompt_cache_key]
+  end
+
+  test "complete includes stable prompt cache key for xAI Responses chats" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal "conversation-#{@conversation.id}", captured[:prompt_cache_key]
+  end
+
+  test "complete omits prompt cache key when no conversation is present" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_nil captured[:prompt_cache_key]
+  end
+
+  test "auto compaction threshold is 70 percent of context length capped at 200k" do
+    assert_equal 140_000, OpenaiResponsesService.auto_compaction_threshold_for_context_length(200_000)
+    assert_equal 200_000, OpenaiResponsesService.auto_compaction_threshold_for_context_length(400_000)
+    assert_equal 1_000, OpenaiResponsesService.auto_compaction_threshold_for_context_length(999)
+    assert_equal 1_000, OpenaiResponsesService.auto_compaction_threshold_for_context_length(1_000)
+    assert_nil OpenaiResponsesService.auto_compaction_threshold_for_context_length(nil)
+  end
+
+  test "complete includes openai compaction context management by default when context length is known" do
+    llm = Struct.new(:context_length).new(200_000)
+    @conversation.define_singleton_method(:llm_in_use) { llm }
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal(
+      [ { type: "compaction", compact_threshold: 140_000 } ],
+      captured[:context_management]
+    )
+  end
+
+  test "complete caps openai auto compaction threshold at 200k" do
+    llm = Struct.new(:context_length).new(400_000)
+    @conversation.define_singleton_method(:llm_in_use) { llm }
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_equal(
+      [ { type: "compaction", compact_threshold: 200_000 } ],
+      captured[:context_management]
+    )
+  end
+
+  test "complete omits compaction context management for unsupported providers" do
+    llm = Struct.new(:context_length).new(200_000)
+    @conversation.define_singleton_method(:llm_in_use) { llm }
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://openrouter.ai/api/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_nil captured[:context_management]
+  end
+
+  test "complete omits compaction context management when auto compaction is disabled" do
+    llm = Struct.new(:context_length).new(200_000)
+    @conversation.define_singleton_method(:llm_in_use) { llm }
+
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_new")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        conversation: @conversation,
+        access_token: @access_token,
+        base_uri: "https://api.openai.com/v1/",
+        model: @model,
+        log_completion: false
+      )
+
+      service.complete([ { role: "user", content: "Hello" } ], auto_compaction: false)
+    end
+
+    assert_nil captured[:context_management]
+  end
+
+  test "complete logs xAI cost ticks as total cost" do
+    fake_client = build_responses_client do |_params|
+      response_payload("Priced reply", id: "resp_xai_cost").merge(
+        "model" => @model,
+        "usage" => {
+          "input_tokens" => 199,
+          "output_tokens" => 1,
+          "total_tokens" => 200,
+          "cost_in_usd_ticks" => 200_000_000
+        }
+      )
+    end
+
+    assert_difference -> { Completion.count }, 1 do
+      OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          conversation: @conversation,
+          access_token: @access_token,
+          base_uri: "https://api.x.ai/v1/",
+          model: @model
+        )
+
+        assert_equal "Priced reply", service.complete([ { role: "user", content: "Hello" } ])
+      end
+    end
+
+    completion = Completion.order(:created_at).last
+    assert_equal "https://api.x.ai/v1/", completion.api_provider
+    assert_in_delta 0.02, completion.total_cost.to_f, 0.0001
+  end
+
   test "complete with store false does not write response state to conversation for openai providers" do
     @conversation.update!(
       responses_previous_id: "resp_prev",

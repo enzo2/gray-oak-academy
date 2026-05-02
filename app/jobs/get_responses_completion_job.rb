@@ -8,7 +8,7 @@ class GetResponsesCompletionJob < ApplicationJob
   queue_as :default
   limits_concurrency to: 1, key: ->(conversation:) { conversation }, duration: 1.minutes
 
-  MAX_TOOL_TURNS = 10
+  MAX_TOOL_TURNS = 20
 
   def perform(conversation:)
     user = conversation.user
@@ -136,7 +136,12 @@ class GetResponsesCompletionJob < ApplicationJob
   private
 
   def complete_and_capture_response(client, messages: nil, input: nil, previous_response_id: nil, reasoning: nil, stream_state: nil)
-    client.complete(messages, input: input, previous_response_id: previous_response_id, reasoning: reasoning)
+    client.complete(
+      messages,
+      input: input,
+      previous_response_id: previous_response_id,
+      reasoning: reasoning
+    )
     response_hash = client.last_response_hash.presence || synthesize_stream_response_hash(stream_state)
     raise OpenAiError, "Responses API did not return a valid response payload." if response_hash.blank?
     raise_on_response_refusal!(response_hash)

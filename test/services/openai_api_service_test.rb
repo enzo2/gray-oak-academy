@@ -116,6 +116,84 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "complete includes stable xAI conversation header for prompt cache locality" do
+    conversation = conversations(:teacher_generic_conversation)
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        conversation: conversation,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        log_completion: false
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal(
+      "conversation-#{conversation.id}",
+      captured.dig(:request_options, :extra_headers, "x-grok-conv-id")
+    )
+  end
+
+  test "complete omits xAI conversation header when no conversation is present" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.x.ai/v1/",
+        model: @model,
+        log_completion: false
+      )
+      service.complete(@messages)
+    end
+
+    assert_nil captured[:request_options]
+  end
+
+  test "complete logs xAI cost ticks as total cost" do
+    fake_client = build_chat_client do |_params|
+      {
+        "model" => @model,
+        "choices" => [ { "message" => { "content" => "priced reply" } } ],
+        "usage" => {
+          "prompt_tokens" => 199,
+          "completion_tokens" => 1,
+          "total_tokens" => 200,
+          "cost_in_usd_ticks" => 200_000_000
+        }
+      }
+    end
+
+    assert_difference -> { Completion.count }, 1 do
+      OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+        service = OpenaiApiService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: "https://api.x.ai/v1/",
+          model: @model
+        )
+        assert_equal "priced reply", service.complete(@messages)
+      end
+    end
+
+    completion = Completion.order(:created_at).last
+    assert_equal "https://api.x.ai/v1/", completion.api_provider
+    assert_in_delta 0.02, completion.total_cost.to_f, 0.0001
+  end
+
   test "complete accepts string keyed messages and does not mutate caller array" do
     captured = nil
     input_messages = [ { "role" => "user", "content" => "Hello" } ]

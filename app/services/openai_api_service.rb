@@ -5,6 +5,7 @@ class OpenaiApiService
   include OpenaiResponseHelper
   include OpenaiErrorHelper
   PREFILL_UNSUPPORTED_HOSTS = %w[api.openai.com api.x.ai].freeze
+  XAI_HOSTS = %w[api.x.ai].freeze
 
   # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives, including tool calls and content.
   # Each chunk's choices[0] will be passed to the Proc as a JSON object.
@@ -272,10 +273,24 @@ class OpenaiApiService
 
   def build_request_options
     options = {}
-    headers = attribution_headers
+    headers = attribution_headers.merge(prompt_cache_headers)
     options[:extra_headers] = headers if headers.present?
 
     options.presence
+  end
+
+  def prompt_cache_headers
+    return {} unless xai_provider?
+    return {} unless @conversation&.id
+
+    { "x-grok-conv-id" => "conversation-#{@conversation.id}" }
+  end
+
+  def xai_provider?
+    host = URI.parse(@base_uri.to_s).host.to_s.downcase
+    XAI_HOSTS.include?(host)
+  rescue URI::InvalidURIError
+    false
   end
 
   def deep_dup_messages(messages)
@@ -596,9 +611,19 @@ class OpenaiApiService
       completion_audio_tokens: @usage&.dig("completion_tokens_details", "audio_tokens")&.to_i,
       reasoning_tokens: @usage&.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
       total_tokens: @usage&.dig("total_tokens")&.to_i,
-      total_cost: @usage&.dig("cost")&.to_f,
+      total_cost: usage_total_cost(@usage),
       cache_discount: @usage&.dig("cache_discount")&.to_f
     )
+  end
+
+  def usage_total_cost(usage)
+    cost = usage&.dig("cost")
+    return cost.to_f if cost.present?
+
+    ticks = usage&.dig("cost_in_usd_ticks")
+    return nil if ticks.blank?
+
+    BigDecimal(ticks.to_s) / 10_000_000_000
   end
 
   def resolved_model_name(candidate_model)
