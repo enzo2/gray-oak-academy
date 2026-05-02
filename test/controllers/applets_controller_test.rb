@@ -144,5 +144,4 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     assert_select "link[rel='icon'][href*='logo_icon_negative']"
     assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1']"
   end
-
 end
