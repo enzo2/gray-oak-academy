@@ -54,7 +54,6 @@ class ApplicationController < ActionController::Base
   # renderer.render template: 'notifications/show', layout: false, locals: { foo: 'bar' }
   def self.renderer_with_signed_in_user(user)
     Rails.logger.debug "Renderer with signed-in user requested: #{user.inspect}"
-    ActionController::Renderer::RACK_KEY_TRANSLATION["warden"] ||= "warden"
     proxy = Warden::Proxy.new({}, Warden::Manager.new({})).tap { |i|
       i.set_user(user, scope: :user, store: false, run_callbacks: false)
     }

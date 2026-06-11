@@ -4,12 +4,12 @@ source "https://rubygems.org"
 # gem "dotenv-rails", groups: [ :development, :test ]
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "< 8.2"
+gem "rails", github: "rails/rails", branch: "main"
 gem "propshaft"
 gem "pg" # Use postgresql as the database for Active Record
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 # gem "thruster", require: false
-gem "puma", "< 8" # Use the Puma web server [https://github.com/puma/puma]
+gem "puma"# , "< 8" # Use the Puma web server [https://github.com/puma/puma]
 gem "bootsnap", require: false
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 # gem "async"
@@ -21,7 +21,8 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "solid_queue"
 gem "solid_cable"
 gem "solid_cache"
-gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 2.0"
+gem "ruby-vips"
 gem "importmap-rails"
 gem "turbo-rails"
 gem "stimulus-rails"
@@ -40,12 +41,11 @@ gem "devise", ">= 5"
 gem "acts_as_list"
 gem "neighbor"
 gem "markdown_views"
-gem "hotwire_combobox"
+gem "hotwire_combobox", github: "josefarias/hotwire_combobox", branch: "main"  # change back to release for production
 gem "faraday-retry"
 
 # when ready: https://github.com/excid3/action_push_web
 
-# temp til next release:
 gem "commonmarker"
 
 # LLM API access/wrappers
@@ -77,7 +77,7 @@ group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
   # gem "rack-mini-profiler"
-  gem "bullet"
+  # gem "bullet"
 end
 
 group :test do

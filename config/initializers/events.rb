@@ -29,12 +29,12 @@ Rails.application.config.after_initialize do
   # Filter ensures we only process our explicit Events::Base objects,
   # ignoring internal Rails events (rendering, active_job, etc.)
   Rails.event.subscribe(NotificationSubscriber.new) do |event|
-    event[:payload].is_a?(Events::Base)
+    event[:name].start_with?("Events::")
   end
 
   # Analytics subscriber consumes the same business events and records a
   # bounded analytics stream for superuser-facing operational insight.
   Rails.event.subscribe(AnalyticsSubscriber.new) do |event|
-    event[:payload].is_a?(Events::Base)
+    event[:name].start_with?("Events::")
   end
 end
