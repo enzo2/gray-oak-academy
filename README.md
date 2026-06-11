@@ -136,4 +136,4 @@ Importantly, the system should negate the arguments implied in [Isaac Asimov's s
 
 ## License
 
-See LICENSE.md.
+Gray Oak Academy is source-available under the Elastic License 2.0 — free to self-host and modify. See LICENSE.md and COMMERCIAL.md.
