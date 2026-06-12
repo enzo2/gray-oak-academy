@@ -85,6 +85,7 @@ export default class extends Controller {
     if (this.isMobileOpen()) {
       this.closeMobile()
     }
+    this.appletRegistry.forEach((entry) => entry.detachResultChannel?.())
   }
 
   inboxEventTargetConnected(element) {
@@ -325,7 +326,8 @@ export default class extends Controller {
       share_url: this.absoluteUrl(payload.share_url),
       conversationId: payload.conversation_id || this.appletRegistry.get(key)?.conversationId || null,
       messageId: payload.message_id || this.appletRegistry.get(key)?.messageId || null,
-      panelElement: this.appletRegistry.get(key)?.panelElement || null
+      panelElement: this.appletRegistry.get(key)?.panelElement || null,
+      detachResultChannel: this.appletRegistry.get(key)?.detachResultChannel || null
     }
 
     this.appletRegistry.set(key, entry)

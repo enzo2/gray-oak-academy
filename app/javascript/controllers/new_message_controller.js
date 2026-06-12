@@ -597,10 +597,11 @@ export default class extends Controller {
       .slice(0, 160)
   }
 
+  // Escapes quotes too, since this is also used inside attribute values.
   escapeHtml(value) {
     const div = document.createElement("div")
     div.textContent = String(value ?? "")
-    return div.innerHTML
+    return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;")
   }
 
   paste(event) {

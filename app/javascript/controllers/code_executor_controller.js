@@ -481,9 +481,9 @@ export default class extends Controller {
           })();
         </script>
         <script nonce="${nonce}">
-          // Results bridge: applets call window.GOA.report({...}) to send a final
-          // result (or progress/event) to the host, which authenticates the message
-          // by iframe source and routes results to the tutor. See applet_result_channel.js.
+          // Results bridge: applets call window.GOA.report({...}) to send a result
+          // to the host, which authenticates the message by iframe source and
+          // routes it to the tutor. See applet_result_channel.js.
           (function () {
             function send(type, name, data, doSend) {
               try {
