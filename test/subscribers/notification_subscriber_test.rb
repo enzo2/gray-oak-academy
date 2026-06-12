@@ -151,7 +151,7 @@ class NotificationSubscriberTest < ActiveSupport::TestCase
         Rails.event.notify(Events::StudentProfileGenerated.new(
           recipient_ids: teacher.id,
           link: "/admin/students/1?active_tab=journal#student_report_108",
-          student_name: "Lucas Policastro",
+          student_name: "Pat Doe",
           current_snapshot: "Strong momentum in reading fluency.",
           report_id: 108
         ))
