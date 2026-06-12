@@ -1,7 +1,7 @@
 <% if message.role_user? %>
   <div id="<%= dom_id(message) %>_content"
         class="message-content bg-moss-light dark:bg-moss-dark rounded-md my-2 px-4 py-2 w-fit">
-    <% if message.content.blank? && message.images.empty? && message.audios.empty? %>
+    <% if message.content.blank? && message.images.empty? && message.audios.empty? && message.applet_results.empty? %>
       <%# This is used when an audio message is being transcribed. %>
       <sl-spinner></sl-spinner>
     <% elsif message.content.blank? && message.images.empty? && message.audios.any? %>
@@ -50,6 +50,13 @@
           <%#= audio_tag(audio.file, autoplay: false, controls: true) %>
         </div>-->
       <%# end %>
+      <% message.applet_results.each do |result| %>
+        <% display = applet_result_summary(result["data"]).presence || result["title"].presence || "Applet result" %>
+        <div class="my-1 flex items-start gap-1.5 rounded-md border border-moss/40 bg-white/70 px-3 py-1.5 text-sm text-stone-700 dark:bg-stone-800/70 dark:text-stone-200">
+          <sl-icon name="controller" class="mt-0.5 shrink-0"></sl-icon>
+          <span><%= display %></span>
+        </div>
+      <% end %>
       <%= simple_format(message.content, {}, wrapper_tag: "p") %>
     <% end %>
   </div>

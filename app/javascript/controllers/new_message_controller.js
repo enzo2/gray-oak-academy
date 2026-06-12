@@ -10,6 +10,7 @@ export default class extends Controller {
     "previewArea",
     "contentField",
     "imagesData",
+    "appletResultsData",
     "imagesMenuButton",
     "imagesMenu",
     "urlDialog",
@@ -27,8 +28,11 @@ export default class extends Controller {
   connect() {
     //console.log("New message controller connected")
     this.images = []
+    this.appletResults = new Map() // keyed by applet; buffered until the student sends
     this.busy = false
     this.boundHandleMenuSelect = this.handleMenuSelect.bind(this)
+    this.boundReceiveAppletResult = this.receiveAppletResult.bind(this)
+    window.addEventListener("applet:result", this.boundReceiveAppletResult)
     this.boundHandleCompletionFinished = this.handleCompletionFinished.bind(this)
     this.boundHandleCompletionError = this.handleCompletionError.bind(this)
     this.boundHandleSubmitEnd = this.handleSubmitEnd.bind(this)
@@ -67,13 +71,13 @@ export default class extends Controller {
   toggleSubmitButton() {
     if (this.busy) return
 
-    if (this.audioSettingValue === "only") {
+    const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0 || this.appletResults.size > 0;
+    if (this.audioSettingValue === "only" && !hasContent) {
       this.helpTextTarget.classList.remove("hidden");
       return;
     }
 
     //console.log("toggleSubmitButton")
-    const hasContent = this.contentFieldTarget.value.trim() !== '' || this.images.length > 0;
     if (hasContent) {
       this.submitIconTarget.classList.remove("hidden");
     } else {
@@ -454,11 +458,24 @@ export default class extends Controller {
   updatePreview() {
     //console.log("Updating preview")
     this.previewAreaTarget.innerHTML = ""
-    if (this.images.length === 0) {
+    if (this.images.length === 0 && this.appletResults.size === 0) {
       this.previewAreaTarget.classList.add("hidden")
     } else {
       this.previewAreaTarget.classList.remove("hidden")
     }
+    this.appletResults.forEach((result, key) => {
+      const chip = document.createElement('div')
+      chip.className = "relative flex items-start gap-1.5 rounded-md border border-moss/40 bg-white/70 px-3 py-1.5 pr-7 text-sm text-stone-700 dark:bg-stone-800/70 dark:text-stone-200"
+      const display = this.summarizeAppletData(result.data) || result.title || "Applet result"
+      chip.innerHTML = `
+        <sl-icon name="controller" class="mt-0.5 shrink-0"></sl-icon>
+        <span>${this.escapeHtml(display)}</span>
+        <sl-icon-button name="x"
+          data-action="click->new-message#removeAppletResult"
+          data-applet-key="${this.escapeHtml(key)}"
+          class="absolute top-0 right-0 text-stone-500"></sl-icon-button>`
+      this.previewAreaTarget.appendChild(chip)
+    })
     this.images.forEach((image, index) => {
       // Create a div for each image preview and append it to the previewAreaTarget 
       const previewElement = document.createElement('div')
@@ -518,14 +535,72 @@ export default class extends Controller {
     this.imagesDataTarget.value = JSON.stringify(processedImages)
   }
 
-  submit(e) {
-    e.preventDefault();
-    if (this.busy) return
+  // An applet reported a result. Buffer it as a pending attachment (one entry
+  // per applet, updated in place so repeated reports never stack or spam turns),
+  // then either wait for the student to send, or auto-send if the applet asked.
+  receiveAppletResult(event) {
+    const detail = event.detail || {}
+    if (detail.type !== "result") return // progress/event are not buffered
+    if (detail.conversationId && this.hasConversationIdValue &&
+        String(detail.conversationId) !== String(this.conversationIdValue)) return
 
-    if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0) {
-      this.element.requestSubmit(); // Submit the form
+    const key = detail.appletKey || "default"
+    this.appletResults.set(key, { title: detail.title || "Applet", data: detail.data ?? null })
+    this.updateAppletResultsData()
+    this.updatePreview()
+
+    if (detail.send === true) this.maybeSubmit()
+  }
+
+  removeAppletResult(event) {
+    const button = event.target.closest('sl-icon-button')
+    if (!button) return
+    this.appletResults.delete(button.dataset.appletKey)
+    this.updateAppletResultsData()
+    this.updatePreview()
+  }
+
+  updateAppletResultsData() {
+    if (!this.hasAppletResultsDataTarget) return
+    const results = Array.from(this.appletResults.entries()).map(([key, value]) => ({
+      applet_key: key, title: value.title, data: value.data
+    }))
+    this.appletResultsDataTarget.value = results.length ? JSON.stringify(results) : ""
+  }
+
+  // Submit when there is anything to send (typed text, images, or a buffered
+  // applet result). Used by both the send button and applet auto-send.
+  maybeSubmit() {
+    if (this.busy) return
+    if (this.contentFieldTarget.value.trim() !== '' || this.images.length > 0 || this.appletResults.size > 0) {
+      this.element.requestSubmit()
       this.setBusyState(true)
     }
+  }
+
+  submit(e) {
+    e.preventDefault();
+    this.maybeSubmit()
+  }
+
+  // Student-facing summary for the chip: prefer the applet's own `summary`
+  // sentence, otherwise fall back to a compact key/value line.
+  summarizeAppletData(data) {
+    if (data == null) return ""
+    if (typeof data !== "object") return String(data)
+    if (typeof data.summary === "string" && data.summary.trim()) return data.summary.trim().slice(0, 400)
+    if (Array.isArray(data)) return `${data.length} item${data.length === 1 ? "" : "s"}`
+    return Object.entries(data)
+      .slice(0, 4)
+      .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`)
+      .join(" · ")
+      .slice(0, 160)
+  }
+
+  escapeHtml(value) {
+    const div = document.createElement("div")
+    div.textContent = String(value ?? "")
+    return div.innerHTML
   }
 
   paste(event) {
@@ -551,13 +626,23 @@ export default class extends Controller {
     if (this.imagesMenuTarget && this.boundHandleMenuSelect) {
       this.imagesMenuTarget.removeEventListener('sl-select', this.boundHandleMenuSelect)
     }
+    window.removeEventListener("applet:result", this.boundReceiveAppletResult)
     document.removeEventListener("llm-completion-finished", this.boundHandleCompletionFinished)
     document.removeEventListener("llm-completion-error", this.boundHandleCompletionError)
     this.element.removeEventListener("turbo:submit-end", this.boundHandleSubmitEnd)
   }
 
   handleSubmitEnd(event) {
-    if (event.detail?.success === false) this.setBusyState(false)
+    if (event.detail?.success === false) {
+      this.setBusyState(false)
+      return
+    }
+    // Sent successfully: clear any buffered applet results so they aren't resent.
+    if (this.appletResults.size > 0) {
+      this.appletResults.clear()
+      this.updateAppletResultsData()
+      this.updatePreview()
+    }
   }
 
   handleCompletionFinished(event) {

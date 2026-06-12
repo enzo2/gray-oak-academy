@@ -74,6 +74,28 @@ class MessageTest < ActiveSupport::TestCase
     assert_includes json, "BASE64DATA"
   end
 
+  test "applet result only messages persist with blank content and are sent to LLM" do
+    conversation = conversations(:student_generic_conversation)
+    message = Message.create!(
+      conversation: conversation,
+      role: :user,
+      metadata: {
+        "applet_results" => [
+          {
+            "title" => "Fractions game",
+            "data" => '{"summary":"Finished 7 of 10","score":7,"total":10}'
+          }
+        ]
+      }
+    )
+
+    assert_equal "", message.content
+
+    payload = Message.for_completion(messages: [ message ])
+    assert_includes payload.first[:content], "Fractions game"
+    assert_includes payload.first[:content], "Finished 7 of 10"
+  end
+
   test "check_context_limit does not notify below adaptive threshold for small models" do
     conversation = conversations(:student_generic_conversation)
     llm = Llm.new(model: "small-model", api_provider: "https://api.limit.test/", context_length: 8_192)

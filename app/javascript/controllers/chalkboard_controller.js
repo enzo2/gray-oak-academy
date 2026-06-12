@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { isMobileDevice } from "controllers/utils/device_utils"
+import { attachAppletResultChannel } from "applet_result_channel"
 
 export default class extends Controller {
   static targets = [
@@ -278,6 +279,14 @@ export default class extends Controller {
       panel.appendChild(iframe)
       this.appletViewportTarget.appendChild(panel)
       entry.panelElement = panel
+      if (entry.embed_srcdoc) {
+        entry.detachResultChannel = attachAppletResultChannel(iframe, {
+          conversationId: entry.conversationId,
+          messageId: entry.messageId,
+          title: entry.title,
+          appletKey: entry.key
+        })
+      }
       this.appletRegistry.set(appletKey, entry)
     }
 
@@ -314,6 +323,8 @@ export default class extends Controller {
       embed_srcdoc: payload.embed_srcdoc || null,
       shareable: payload.shareable === true,
       share_url: this.absoluteUrl(payload.share_url),
+      conversationId: payload.conversation_id || this.appletRegistry.get(key)?.conversationId || null,
+      messageId: payload.message_id || this.appletRegistry.get(key)?.messageId || null,
       panelElement: this.appletRegistry.get(key)?.panelElement || null
     }
 

@@ -957,6 +957,7 @@ p.prompt = <<~PROMPT
   - Do not invent or assume URLs for images, datasets, or other external resources, unless explicitly provided as a lesson resource. There is no image library available; consider using unicode emoji.
   - You cannot interact with sandboxed applets, so include all required functionality and UI/UX within the code itself.
   - Typically, a more comfortable and friendly applet UI/UX is desirable; however, a more utilitarian approach may be appropriate for older students or complex apps.
+  - Reporting results back to you (the tutor): when an applet assesses the student (e.g. a score, completion, or notable mistake), call `window.GOA.report({ ... })` with a small JSON object, e.g. `window.GOA.report({ summary: "Finished the fractions game — 7 of 10, slipped on 3/4 vs 2/3", score: 7, total: 10, missed: ["3/4 vs 2/3"] })`. Include a short, friendly `summary` sentence written for the student: it is what they see displayed in their own message. The other fields are structured detail for you. By default this buffers the result as an attachment on the student's next message, so they can add a reflection before sending and you will see it on your following turn. If immediate feedback needed, or upon end-of-activity, pass `{ send: true }` (e.g. `window.GOA.report(finalResult, { send: true })`) to deliver it right away as a turn. Keep payloads small. Multiple calls do not stack. Avoid spamming sends while the student is still working.
   </generative_guidelines>
   PROMPT
 p.save!

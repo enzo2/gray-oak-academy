@@ -73,15 +73,34 @@ class Message < ApplicationRecord
     broadcast_remove_to("#{dom_id(conversation)}", target: "#{dom_id(self)}_buttons")
   end
 
+  # Buffered in-lesson applet results attached to this (user) message, if any.
+  def applet_results
+    md = metadata
+    md.is_a?(Hash) ? Array(md["applet_results"]) : []
+  end
+
+  # A text rendering of attached applet results, folded into the content the LLM
+  # sees so the tutor can react to them (kept out of the displayed bubble text).
+  def applet_results_llm_text
+    return nil if applet_results.empty?
+
+    lines = applet_results.map do |result|
+      title = result["title"].presence || "Applet"
+      "- \"#{title}\": #{result['data']}"
+    end
+    "[In-lesson applet result(s) the student just completed]\n" + lines.join("\n")
+  end
+
   # Return content in JSON format with optional base64 images and audio for LLM APIs.
   def content_with_media(images: true, audio: false)
+    base_text = [ content.presence, applet_results_llm_text ].compact.join("\n\n")
     include_images = images && self.images.any?
     include_audio = audio && audios.any?
     # Can just send the text string if there are no images or audio
-    return content unless include_images || include_audio
+    return base_text unless include_images || include_audio
 
     parts = []
-    parts << { "type": "text", "text": content } if content.present?
+    parts << { "type": "text", "text": base_text } if base_text.present?
     if include_images
       self.images.each do |image|
         parts << { "type": "image_url", "image_url": { "url": image.image_for_LLM } }
@@ -114,12 +133,14 @@ class Message < ApplicationRecord
 
   private
 
-  # Some LLM providers may not accept image-only messages.
-  # Ensure that if there are images but no text or audio, we add some text.
+  # Ensure messages satisfy the DB content/tool-call presence constraint while
+  # keeping attachment-only display text minimal.
   def ensure_text_present
     if content.blank? && audios.empty? && images.any?
       Rails.logger.info "Images with empty message content. Adding some text."
       self.content = "See #{'image'.pluralize(images.count)} attached."
+    elsif content.nil? && applet_results.any?
+      self.content = ""
     end
   end
 

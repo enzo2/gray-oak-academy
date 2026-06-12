@@ -13,6 +13,9 @@ class MessagesController < ApplicationController
     # Handle images
     process_images_param(@message, params[:message][:images_data]) if params[:message][:images_data].present?
 
+    # Handle buffered applet results (reported by in-lesson applets, sent with this turn)
+    assign_applet_results(@message, params[:message][:applet_results_data]) if params[:message][:applet_results_data].present?
+
     # This will trigger the model callback to broadcast the user message asynchronously.
     @message.save!
 
@@ -224,6 +227,32 @@ class MessagesController < ApplicationController
 
   def message_params
     params.require(:message).except(:images).permit(:content, :images_data)
+  end
+
+  # Parse buffered applet results (JSON array from the compose form) and store
+  # them as message metadata. Untrusted client data: bounded in count and size.
+  def assign_applet_results(message, raw)
+    parsed = JSON.parse(raw.to_s)
+    return unless parsed.is_a?(Array)
+
+    results = parsed.first(8).filter_map do |entry|
+      next unless entry.is_a?(Hash)
+      {
+        "title" => entry["title"].to_s.strip.first(200).presence || "Applet",
+        "applet_key" => entry["applet_key"].to_s.first(200).presence,
+        "data" => bounded_applet_data(entry["data"])
+      }.compact
+    end
+
+    message.metadata = (message.metadata || {}).merge("applet_results" => results) if results.any?
+  rescue JSON::ParserError
+    # Ignore malformed payloads rather than failing the whole message.
+    nil
+  end
+
+  def bounded_applet_data(data)
+    serialized = data.is_a?(String) ? data : data.to_json
+    serialized.to_s.first(4000)
   end
 
   def render_message_form_error(conversation, error_msg)

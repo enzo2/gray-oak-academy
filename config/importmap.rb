@@ -11,6 +11,7 @@ pin_all_from "app/javascript/channels", under: "channels"
 pin "turbo_stream_actions", to: "turbo_stream_actions.js"
 pin "darkModeManager", to: "darkModeManager.js"
 pin "global_handlers", to: "global_handlers.js"
+pin "applet_result_channel", to: "applet_result_channel.js"
 
 # Import shoelace components individually
 pin "@shoelace-style/shoelace/cdn/utilities/base-path", to: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/utilities/base-path.js"
