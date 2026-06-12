@@ -15,5 +15,8 @@ Rails.application.config.filter_parameters += [
   end
  ]
 
-# workaround due to bug, filtering doesn't work on SQL logging within a hash, so filter out the whole parameter containing the hash
-ActiveRecord::Base.filter_attributes += [ :settings ]
+# SQL bind logging filters by column name, not nested JSON keys, so filter the
+# whole JSONB settings column when it may contain credentials.
+ActiveSupport.on_load(:active_record) do
+  self.filter_attributes += [ /\Asettings\z/ ]
+end
