@@ -94,6 +94,96 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "openai-model-beta"
   end
 
+  test "speech provider select includes only openai and openrouter" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, []) do
+      get edit_admin_app_setting_path
+    end
+
+    assert_response :success
+    assert_select "select[name='app_setting[provider_supported_api_id]'] option" do |options|
+      option_values = options.map { |option| option.attr("value") }.compact
+      assert_includes option_values, supported_apis(:openai).id.to_s
+      assert_includes option_values, openrouter.id.to_s
+      assert_not_includes option_values, supported_apis(:xai).id.to_s
+      assert_not_includes option_values, supported_apis(:example_api).id.to_s
+    end
+  end
+
+  test "speech shared token hint names selected OpenRouter provider" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    AppSetting.first.update!(provider_supported_api_id: openrouter.id)
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, []) do
+      get edit_admin_app_setting_path
+    end
+
+    assert_response :success
+    assert_includes response.body, "Shared <span data-stt-settings-target=\"sharedTokenProviderName\">OpenRouter</span> key is configured."
+    assert_not_includes response.body, "Shared OpenAI key is configured."
+  end
+
+  test "superuser can fetch OpenRouter speech models" do
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_tts_models, [ "x-ai/grok-voice-tts-1.0", "google/gemini-tts" ]) do
+      get speech_models_admin_app_setting_path(format: :turbo_stream),
+          params: { api_uri: SupportedApi::OPENROUTER_BASE_URI, kind: "tts", q: "grok" }
+    end
+
+    assert_response :success
+    assert_includes response.body, "x-ai/grok-voice-tts-1.0"
+    assert_not_includes response.body, "google/gemini-tts"
+  end
+
+  test "superuser can fetch OpenRouter TTS voices for selected model" do
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_tts_voices, [ "eve", "ara", "rex" ]) do
+      get speech_voices_admin_app_setting_path(format: :turbo_stream),
+          params: { api_uri: SupportedApi::OPENROUTER_BASE_URI, model: "x-ai/grok-voice-tts-1.0", q: "e" }
+    end
+
+    assert_response :success
+    assert_includes response.body, "eve"
+    assert_includes response.body, "rex"
+    assert_not_includes response.body, "ara"
+  end
+
+  test "speech voice endpoint returns empty options for non OpenRouter providers" do
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_tts_voices, ->(**_kwargs) { flunk("OpenRouter voice discovery should not run") }) do
+      get speech_voices_admin_app_setting_path(format: :turbo_stream),
+          params: { api_uri: supported_apis(:openai).api_base_uri, model: "gpt-4o-mini-tts" }
+    end
+
+    assert_response :success
+    assert_not_includes response.body, "option"
+  end
+
+  test "speech model endpoint returns empty options for non OpenRouter providers" do
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_stt_models, -> { flunk("OpenRouter model discovery should not run") }) do
+      get speech_models_admin_app_setting_path(format: :turbo_stream),
+          params: { api_uri: supported_apis(:openai).api_base_uri, kind: "stt" }
+    end
+
+    assert_response :success
+    assert_not_includes response.body, "option"
+  end
+
   test "outline research stub flag is ignored outside development" do
     app_setting = AppSetting.first
     sign_in users(:super_user)

@@ -157,6 +157,8 @@ Rails.application.routes.draw do
     # App-wide settings (singleton)
     resource :app_setting, only: [ :edit, :update ] do
       get :llm_models, on: :collection
+      get :speech_models, on: :collection
+      get :speech_voices, on: :collection
     end
 
     resources :llms, only: [ :index, :update ] do

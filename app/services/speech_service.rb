@@ -50,7 +50,7 @@ class SpeechService
     else # using Speech API for STT
       @stt_model = app_setting.stt_model.presence
       # Client is only used for STT, since TTS uses Faraday directly for streaming
-      @client = create_speech_client if @speech_base_uri && @speech_access_token
+      @client = create_speech_client if @speech_base_uri && @speech_access_token && !openrouter_speech_provider?
     end
   end
 
@@ -67,136 +67,13 @@ class SpeechService
     text = sanitize_tts_text(text) # in case wasn't done yet
     return if text.blank?
 
-    conn = connection || self.class.default_conn
-    conn ||= Faraday.new(url: @speech_base_uri) do |faraday|
-      faraday.request :authorization, "Bearer", @speech_access_token
-      faraday.request :retry, { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
-      faraday.response :raise_error # Raise errors for 4xx/5xx responses
-      faraday.adapter Faraday.default_adapter
-    end
-
-    endpoint = "audio/speech"
-    payload = {
-      model: @tts_model,
-      input: text,
-      voice: @tts_voice,
-      response_format: "opus", # OpenAI returns Opus in Ogg container.
-      instructions: @tts_instructions
-    }.to_json
-
-    # Transmux the response to WebM format using ffmpeg to allow use of Opus codec with MSE on all browsers
-    # ffmpeg: read from stdin, write to stdout
-    ffmpeg_command = [ "ffmpeg", "-i", "pipe:0", "-vn", "-c:a", "copy", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ]
-    ffmpeg_stderr_output = "" # Variable to capture ffmpeg errors
-    @client_disconnected = false # Flag to track client disconnection
-
-    # Start ffmpeg process
     begin
-      # Use Open3 to manage ffmpeg process and its pipes
-      Open3.popen3(*ffmpeg_command) do |ffmpeg_stdin, ffmpeg_stdout, ffmpeg_stderr, wait_thr|
-        ffmpeg_stdin.binmode # Ensure binary mode for pipes
-        ffmpeg_stdout.binmode
-        Rails.logger.info "SpeechService: Started ffmpeg process with PID #{wait_thr.pid}"
-
-        # Thread to read ffmpeg stderr to capture errors
-        stderr_thread = Thread.new do
-          begin
-            ffmpeg_stderr_output = ffmpeg_stderr.read
-          rescue IOError => e
-            Rails.logger.debug "IOError reading ffmpeg stderr (expected on close): #{e.message}"
-          ensure
-            ffmpeg_stderr.close # Close stderr pipe when done reading
-          end
-        end
-        stderr_thread.report_on_exception = false
-
-        # Thread to read from ffmpeg's stdout and yield chunks to the controller
-        stdout_thread = Thread.new do
-          begin
-            while (chunk = ffmpeg_stdout.read(8192)) # Read in chunks
-              begin
-                yield chunk # Yield the transcoded chunk
-              rescue ActionController::Live::ClientDisconnected
-                # Client disconnected during yield, likely due to user stopping/starting another stream.
-                # This is expected, log and break the loop to allow cleanup.
-                @client_disconnected = true
-                Rails.logger.info "Client disconnected during yield in SpeechService stdout_thread. Stopping stream."
-                break # Exit the while loop
-              end
-            end
-          rescue IOError => e
-            # Ignore "stream closed" errors which can happen during cleanup
-            Rails.logger.warn "IOError reading ffmpeg stdout (expected on close): #{e.message}"
-          ensure
-            # Ensure the pipe is closed even if an error occurred before the loop finished
-            ffmpeg_stdout.close unless ffmpeg_stdout.closed?
-          end
-        end
-        stdout_thread.report_on_exception = false
-
-        # Make the API request with streaming response handling
-        data_streamed = false
-        response = nil
-        begin
-          response = conn.post(endpoint) do |req|
-            req.headers["Content-Type"] = "application/json"
-            req.headers["Transfer-Encoding"] = "chunked" # Not needed, but included for clarity
-            req.body = payload
-            req.options.timeout = 120 # Timeout for the entire request
-            req.options.open_timeout = 10 # Timeout for connection
-
-            # Use Faraday's on_data callback to stream response body directly to ffmpeg
-            req.options.on_data = Proc.new do |chunk, _overall_received_bytes|
-              # Skip writing if client disconnected or pipe closed
-              next if @client_disconnected || ffmpeg_stdin.closed?
-              data_streamed = true
-
-              begin
-                ffmpeg_stdin.write(chunk)
-              rescue Errno::EPIPE
-                Rails.logger.debug "ffmpeg stdin pipe closed prematurely."
-              end
-            end
-          end
-
-          # If adapter didn't stream via on_data, write response.body now (e.g., Faraday::Adapter::Test)
-          unless @client_disconnected || ffmpeg_stdin.closed? || data_streamed
-            body = response.body
-            if body.respond_to?(:read)
-              while (c = body.read(8192))
-                ffmpeg_stdin.write(c)
-              end
-            elsif body.respond_to?(:each)
-              body.each { |c| ffmpeg_stdin.write(c) }
-            elsif body
-              ffmpeg_stdin.write(body.to_s)
-            end
-          end
-        ensure
-          ffmpeg_stdin.close unless ffmpeg_stdin.closed?
-          stdout_thread.join
-          stderr_thread.join
-        end
-
-        ffmpeg_status = wait_thr.value # Wait for ffmpeg process to finish
-        Rails.logger.info "ffmpeg process and reader threads finished"
-
-        # Check ffmpeg exit status
-        unless ffmpeg_status.success? || @client_disconnected
-          Rails.logger.error "ffmpeg failed with status: #{ffmpeg_status.exitstatus}. Stderr: #{ffmpeg_stderr_output}"
-          raise SpeechServiceError, "Audio processing failed (ffmpeg exited with status #{ffmpeg_status.exitstatus}). Error: #{ffmpeg_stderr_output.lines.last || 'Unknown ffmpeg error'}"
-        else
-          Rails.logger.info "ffmpeg completed successfully"
-        end
-
-        # Also check the original API response status *after* streaming attempt
-        unless response.success?
-          Rails.logger.error "TTS API request failed post-stream with status #{response.status}"
-          Rails.logger.error "Error details: #{response.body}" if response.body.present?
-          # Prefer ffmpeg error if it exists, otherwise raise API error
-          raise SpeechServiceError, "TTS API request failed with status #{response.status}" unless ffmpeg_status.success?
-        end
-      end # Open3.popen3
+      conn = connection || self.class.default_conn || create_speech_faraday_connection
+      if openrouter_speech_provider?
+        tts_stream_openrouter(text, conn, &block)
+      else
+        tts_stream_openai_compatible(text, conn, &block)
+      end
 
       Rails.logger.info("TTS request finished")
     rescue Faraday::BadRequestError => e
@@ -243,8 +120,12 @@ class SpeechService
                           base_uri: @stt_chat_api_base_uri,
                           model: @stt_chat_model_name,
                           context: "Chat STT")
-    elsif @stt_via != "chat" && @client && @stt_model.present?
-      transcribe_via_speech_api(audio_file)
+    elsif @stt_via != "chat" && @speech_base_uri && @speech_access_token && @stt_model.present?
+      if openrouter_speech_provider?
+        transcribe_via_openrouter_speech_api(audio_file)
+      else
+        transcribe_via_speech_api(audio_file)
+      end
     elsif @conversation&.audio_input_permitted?
       # If STT is not configured, we can still fall back to the current conversation's LLM if it supports audio input.
       Rails.logger.warn "STT not configured, falling back to conversation's audio LLM for transcription."
@@ -275,6 +156,235 @@ class SpeechService
       max_retries: 2,
       timeout: OpenaiClientDefaults.timeout_seconds
     )
+  end
+
+  def create_speech_faraday_connection
+    Faraday.new(url: @speech_base_uri) do |faraday|
+      faraday.request :authorization, "Bearer", @speech_access_token
+      faraday.request :retry, { max: 2, interval: 0.05, interval_randomness: 0.5, backoff_factor: 2 }
+      faraday.response :raise_error
+      faraday.adapter Faraday.default_adapter
+    end
+  end
+
+  def openrouter_speech_provider?
+    URI.parse(ensure_trailing_slash(@speech_base_uri).to_s).host == "openrouter.ai"
+  rescue URI::InvalidURIError
+    false
+  end
+
+  def tts_stream_openai_compatible(text, conn, &block)
+    payload = {
+      model: @tts_model,
+      input: text,
+      voice: @tts_voice,
+      response_format: "opus", # OpenAI returns Opus in an Ogg container.
+      instructions: @tts_instructions
+    }.to_json
+
+    stream_tts_response(
+      conn: conn,
+      payload: payload,
+      ffmpeg_command: [ "ffmpeg", "-i", "pipe:0", "-vn", "-c:a", "copy", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ],
+      &block
+    )
+  end
+
+  def tts_stream_openrouter(text, conn, &block)
+    @tts_audio_yielded = false
+    stream_tts_response(
+      conn: conn,
+      payload: openrouter_tts_payload(text, response_format: "pcm"),
+      ffmpeg_command: [ "ffmpeg", "-f", "s16le", "-ar", "24000", "-ac", "1", "-i", "pipe:0", "-vn", "-c:a", "libopus", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ],
+      delay_output_until_source_audio: true,
+      &block
+    )
+  rescue Faraday::Error, SpeechServiceError => e
+    raise if @tts_audio_yielded || @client_disconnected
+
+    Rails.logger.warn "OpenRouter PCM TTS failed before audio streamed; retrying with mp3. #{e.class}: #{e.message}"
+    stream_tts_response(
+      conn: conn,
+      payload: openrouter_tts_payload(text, response_format: "mp3"),
+      ffmpeg_command: [ "ffmpeg", "-i", "pipe:0", "-vn", "-c:a", "libopus", "-f", "webm", "-nostdin", "-loglevel", "error", "pipe:1" ],
+      &block
+    )
+  end
+
+  def openrouter_tts_payload(text, response_format:)
+    payload = {
+      model: @tts_model,
+      input: text,
+      voice: @tts_voice,
+      response_format: response_format
+    }
+
+    if @tts_instructions.present? && @tts_model.to_s.start_with?("openai/")
+      payload[:provider] = { options: { openai: { instructions: @tts_instructions } } }
+    end
+
+    payload.to_json
+  end
+
+  def stream_tts_response(conn:, payload:, ffmpeg_command:, delay_output_until_source_audio: false, &block)
+    ffmpeg_stderr_output = ""
+    @client_disconnected = false
+    output_mutex = Mutex.new
+    source_audio_started = !delay_output_until_source_audio
+    buffered_output = []
+
+    emit_chunk = lambda do |chunk|
+      chunks_to_emit = nil
+      output_mutex.synchronize do
+        if source_audio_started
+          chunks_to_emit = [ chunk ]
+        else
+          buffered_output << chunk
+          return
+        end
+      end
+
+      chunks_to_emit.each do |chunk_to_emit|
+        @tts_audio_yielded = true
+        block.call(chunk_to_emit)
+      end
+    end
+
+    mark_source_audio_started = lambda do
+      chunks_to_emit = []
+      output_mutex.synchronize do
+        unless source_audio_started
+          source_audio_started = true
+          chunks_to_emit = buffered_output.dup
+          buffered_output.clear
+        end
+      end
+
+      chunks_to_emit.each do |chunk_to_emit|
+        @tts_audio_yielded = true
+        block.call(chunk_to_emit)
+      end
+    end
+
+    Open3.popen3(*ffmpeg_command) do |ffmpeg_stdin, ffmpeg_stdout, ffmpeg_stderr, wait_thr|
+      ffmpeg_stdin.binmode
+      ffmpeg_stdout.binmode
+      Rails.logger.info "SpeechService: Started ffmpeg process with PID #{wait_thr.pid}"
+
+      stderr_thread = Thread.new do
+        begin
+          ffmpeg_stderr_output = ffmpeg_stderr.read
+        rescue IOError => e
+          Rails.logger.debug "IOError reading ffmpeg stderr (expected on close): #{e.message}"
+        ensure
+          ffmpeg_stderr.close
+        end
+      end
+      stderr_thread.report_on_exception = false
+
+      stdout_thread = Thread.new do
+        begin
+          while (chunk = ffmpeg_stdout.read(8192))
+            begin
+              emit_chunk.call(chunk)
+            rescue ActionController::Live::ClientDisconnected
+              @client_disconnected = true
+              Rails.logger.info "Client disconnected during yield in SpeechService stdout_thread. Stopping stream."
+              break
+            end
+          end
+        rescue IOError => e
+          Rails.logger.warn "IOError reading ffmpeg stdout (expected on close): #{e.message}"
+        ensure
+          ffmpeg_stdout.close unless ffmpeg_stdout.closed?
+        end
+      end
+      stdout_thread.report_on_exception = false
+
+      data_streamed = false
+      response = nil
+      begin
+        response = conn.post("audio/speech") do |req|
+          req.headers["Content-Type"] = "application/json"
+          req.headers["Transfer-Encoding"] = "chunked"
+          req.body = payload
+          req.options.timeout = 120
+          req.options.open_timeout = 10
+
+          req.options.on_data = Proc.new do |chunk, _overall_received_bytes, response_env|
+            next if @client_disconnected || ffmpeg_stdin.closed?
+            next unless response_env&.success?
+            next unless chunk.bytesize.positive?
+
+            data_streamed = true
+
+            begin
+              mark_source_audio_started.call
+              ffmpeg_stdin.write(chunk)
+            rescue ActionController::Live::ClientDisconnected
+              @client_disconnected = true
+            rescue Errno::EPIPE
+              Rails.logger.debug "ffmpeg stdin pipe closed prematurely."
+            end
+          end
+        end
+
+        unless @client_disconnected || ffmpeg_stdin.closed? || data_streamed
+          source_audio_written = write_response_body_to_io(response.body, ffmpeg_stdin)
+          begin
+            mark_source_audio_started.call if source_audio_written
+          rescue ActionController::Live::ClientDisconnected
+            @client_disconnected = true
+          end
+        end
+      ensure
+        ffmpeg_stdin.close unless ffmpeg_stdin.closed?
+        stdout_thread.join
+        stderr_thread.join
+      end
+
+      ffmpeg_status = wait_thr.value
+      Rails.logger.info "ffmpeg process and reader threads finished"
+
+      unless ffmpeg_status.success? || @client_disconnected
+        Rails.logger.error "ffmpeg failed with status: #{ffmpeg_status.exitstatus}. Stderr: #{ffmpeg_stderr_output}"
+        raise SpeechServiceError, "Audio processing failed (ffmpeg exited with status #{ffmpeg_status.exitstatus}). Error: #{ffmpeg_stderr_output.lines.last || 'Unknown ffmpeg error'}"
+      end
+
+      Rails.logger.info "ffmpeg completed successfully"
+
+      unless response.success?
+        Rails.logger.error "TTS API request failed post-stream with status #{response.status}"
+        Rails.logger.error "Error details: #{response.body}" if response.body.present?
+        raise SpeechServiceError, "TTS API request failed with status #{response.status}" unless ffmpeg_status.success?
+      end
+
+      # A 200 with an empty body produces no audio. Surface it as an error so
+      # callers (e.g. OpenRouter PCM) can fall back instead of silently
+      # returning no sound.
+      if response.success? && ffmpeg_status.success? && !@tts_audio_yielded && !@client_disconnected
+        raise SpeechServiceError, "TTS API returned a successful response but produced no audio"
+      end
+    end
+  end
+
+  def write_response_body_to_io(body, io)
+    wrote_data = false
+    if body.respond_to?(:read)
+      while (chunk = body.read(8192))
+        io.write(chunk)
+        wrote_data ||= chunk.bytesize.positive?
+      end
+    elsif body.respond_to?(:each)
+      body.each do |chunk|
+        io.write(chunk)
+        wrote_data ||= chunk.bytesize.positive?
+      end
+    elsif body
+      io.write(body.to_s)
+      wrote_data ||= body.to_s.bytesize.positive?
+    end
+    wrote_data
   end
 
   # Utility helpers for STT
@@ -354,6 +464,26 @@ class SpeechService
     end
   end
 
+  def transcribe_via_openrouter_speech_api(audio_file)
+    upload_file = normalize_stt_upload_file(audio_file)
+    audio_path = upload_file.respond_to?(:path) ? upload_file.path : upload_file.to_s
+    audio_b64 = convert_file_to_base64_wav(audio_path)
+    if audio_b64.blank?
+      raise SpeechServiceError, "Failed to process audio for OpenRouter transcription."
+    end
+
+    response = create_openrouter_transcription_response(audio_b64)
+    text = extract_openrouter_transcription_text(response.body)
+    if text.blank?
+      raise SpeechServiceError, "Empty transcription result from OpenRouter Speech API."
+    end
+    text
+  rescue Faraday::Error => e
+    error_message = extract_faraday_error_message(e)
+    Rails.logger.error "Faraday error in OpenRouter STT transcription: #{e.message}: #{error_message}"
+    raise SpeechServiceError, "OpenRouter STT request failed: #{error_message}"
+  end
+
   def create_speech_transcription_response(upload_file:)
     @client.audio.transcriptions.create(
       model: @stt_model,
@@ -372,6 +502,22 @@ class SpeechService
         response_format: "text"
       }
     )
+  end
+
+  def create_openrouter_transcription_response(audio_b64)
+    conn = self.class.default_conn || create_speech_faraday_connection
+    conn.post("audio/transcriptions") do |req|
+      req.headers["Content-Type"] = "application/json"
+      req.body = {
+        model: @stt_model,
+        input_audio: {
+          data: audio_b64,
+          format: "wav"
+        }
+      }.to_json
+      req.options.timeout = 120
+      req.options.open_timeout = 10
+    end
   end
 
   # OpenAI SDK treats String file inputs as in-memory text payloads, not filesystem paths.
@@ -416,6 +562,21 @@ class SpeechService
     return response_hash["text"] if response_hash.is_a?(Hash)
 
     nil
+  end
+
+  def extract_openrouter_transcription_text(body)
+    parsed = if body.is_a?(String)
+      begin
+        JSON.parse(body)
+      rescue JSON::ParserError
+        return body
+      end
+    else
+      normalize_response_hash(body)
+    end
+
+    parsed = normalize_response_hash(parsed)
+    parsed["text"]
   end
 
   # Shared helper to transcribe audio using an LLM/chat completion provider.

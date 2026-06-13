@@ -34,6 +34,96 @@ class AppSettingTest < ActiveSupport::TestCase
     assert AppSetting.stt_configured?
   end
 
+  test "speech providers include only openai and openrouter" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+
+    provider_ids = SupportedApi.speech_providers.pluck(:id)
+
+    assert_includes provider_ids, supported_apis(:openai).id
+    assert_includes provider_ids, openrouter.id
+    assert_not_includes provider_ids, supported_apis(:xai).id
+    assert_not_includes provider_ids, supported_apis(:example_api).id
+  end
+
+  test "fetch_openrouter_tts_models caches speech model ids" do
+    cache = ActiveSupport::Cache::MemoryStore.new
+    requested_urls = []
+    response = {
+      "data" => [
+        { "id" => "x-ai/grok-voice-tts-1.0" },
+        { "id" => "google/gemini-3.1-flash-tts-preview" },
+        { "name" => "missing id" }
+      ]
+    }
+
+    Rails.stub(:cache, cache) do
+      HttpJsonService.stub(:get, ->(url) {
+        requested_urls << url
+        response
+      }) do
+        assert_equal(
+          [ "google/gemini-3.1-flash-tts-preview", "x-ai/grok-voice-tts-1.0" ],
+          AppSetting.fetch_openrouter_tts_models
+        )
+        assert_equal AppSetting.fetch_openrouter_tts_models, AppSetting.fetch_openrouter_tts_models
+      end
+    end
+
+    assert_equal [ "#{SupportedApi::OPENROUTER_BASE_URI}models?output_modalities=speech" ], requested_urls
+  end
+
+  test "fetch_openrouter_tts_voices returns supported voices for selected model" do
+    cache = ActiveSupport::Cache::MemoryStore.new
+    response = {
+      "data" => [
+        {
+          "id" => "x-ai/grok-voice-tts-1.0",
+          "supported_voices" => [ "rex", "eve", "ara" ]
+        },
+        {
+          "id" => "google/gemini-3.1-flash-tts-preview",
+          "supported_voices" => [ "Puck" ]
+        }
+      ]
+    }
+
+    Rails.stub(:cache, cache) do
+      HttpJsonService.stub(:get, response) do
+        assert_equal [ "ara", "eve", "rex" ], AppSetting.fetch_openrouter_tts_voices(model: "x-ai/grok-voice-tts-1.0")
+        assert_equal [], AppSetting.fetch_openrouter_tts_voices(model: "missing/model")
+      end
+    end
+  end
+
+  test "fetch_openrouter_stt_models caches transcription model ids" do
+    cache = ActiveSupport::Cache::MemoryStore.new
+    requested_urls = []
+    response = {
+      "data" => [
+        { "id" => "mistralai/voxtral-mini-transcribe" },
+        { "id" => "openai/whisper-1" }
+      ]
+    }
+
+    Rails.stub(:cache, cache) do
+      HttpJsonService.stub(:get, ->(url) {
+        requested_urls << url
+        response
+      }) do
+        assert_equal(
+          [ "mistralai/voxtral-mini-transcribe", "openai/whisper-1" ],
+          AppSetting.fetch_openrouter_stt_models
+        )
+        assert_equal AppSetting.fetch_openrouter_stt_models, AppSetting.fetch_openrouter_stt_models
+      end
+    end
+
+    assert_equal [ "#{SupportedApi::OPENROUTER_BASE_URI}models?output_modalities=transcription" ], requested_urls
+  end
+
   test "effective_token prefers token_override over provider token" do
     provider = supported_apis(:example_api)
     provider.update!(api_access_token: "provider-token")

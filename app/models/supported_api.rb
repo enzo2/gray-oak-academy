@@ -1,8 +1,10 @@
 class SupportedApi < ApplicationRecord
   OPENAI_BASE_URI = "https://api.openai.com/v1/".freeze
+  OPENROUTER_BASE_URI = "https://openrouter.ai/api/v1/".freeze
   OPENAI_CODEX_BASE_URI = "https://chatgpt.com/backend-api/codex/".freeze
   XAI_BASE_URI = "https://api.x.ai/v1/".freeze
   RESPONSES_AGENT_BASE_URIS = [ OPENAI_BASE_URI, XAI_BASE_URI ].freeze
+  SPEECH_PROVIDER_BASE_URIS = [ OPENAI_BASE_URI, OPENROUTER_BASE_URI ].freeze
 
   # Shared/supported OpenAI-compatible API configuration managed by superusers.
 
@@ -19,6 +21,7 @@ class SupportedApi < ApplicationRecord
   scope :with_token, -> { where.not(api_access_token: nil) }
   scope :selectable_for_teachers, -> { enabled.with_token }
   scope :responses_agent_compatible, -> { where(api_base_uri: RESPONSES_AGENT_BASE_URIS) }
+  scope :speech_compatible, -> { where(api_base_uri: SPEECH_PROVIDER_BASE_URIS) }
 
   def self.selectable_uris
     selectable_for_teachers.pluck(:api_base_uri)
@@ -30,6 +33,14 @@ class SupportedApi < ApplicationRecord
 
   def self.xai_supported
     find_by(api_base_uri: XAI_BASE_URI)
+  end
+
+  def self.openrouter_supported
+    find_by(api_base_uri: OPENROUTER_BASE_URI)
+  end
+
+  def self.speech_providers
+    speech_compatible.order(:api_base_uri)
   end
 
   def self.openai_selectable
@@ -63,7 +74,6 @@ class SupportedApi < ApplicationRecord
 
     value.end_with?("/") ? value : "#{value}/"
   end
-  private_class_method :normalize_base_uri
 
   private
 

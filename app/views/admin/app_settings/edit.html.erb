@@ -7,7 +7,37 @@
   <% end %>
 </h2>
 
-<%= form_with(model: @setting, url: admin_app_setting_path, method: :patch, class: "space-y-4") do |f| %>
+<% speech_providers = SupportedApi.speech_providers %>
+<% selected_speech_provider_id = @setting.provider_supported_api&.id %>
+<% selected_speech_provider_uri = @setting.provider_supported_api&.api_base_uri.to_s %>
+<% speech_provider_label_map = speech_providers.to_h do |provider|
+  label = case provider.api_base_uri
+  when SupportedApi::OPENAI_BASE_URI
+    "OpenAI"
+  when SupportedApi::OPENROUTER_BASE_URI
+    "OpenRouter"
+  else
+    "provider"
+  end
+  [ provider.id, label ]
+end %>
+<% speech_provider_token_map = speech_providers.to_h { |provider| [ provider.id, provider.api_access_token.present? ] } %>
+<% selected_speech_provider_label = speech_provider_label_map[selected_speech_provider_id] || "provider" %>
+
+<%= form_with(
+      model: @setting,
+      url: admin_app_setting_path,
+      method: :patch,
+      class: "space-y-4",
+      data: {
+        controller: "stt-settings",
+        stt_settings_speech_models_path_value: speech_models_admin_app_setting_path,
+        stt_settings_speech_voices_path_value: speech_voices_admin_app_setting_path,
+        stt_settings_provider_uri_map_value: speech_providers.pluck(:id, :api_base_uri).to_h.to_json,
+        stt_settings_provider_label_map_value: speech_provider_label_map.to_json,
+        stt_settings_provider_token_map_value: speech_provider_token_map.to_json
+      }
+    ) do |f| %>
   <% if @setting.errors.any? %>
     <div class="mb-4 text-danger-700 dark:text-danger-300">
       <%= pluralize(@setting.errors.count, "error") %> prevented saving:
@@ -22,10 +52,17 @@
   <div>
     <%= f.label :provider_supported_api_id, "Speech API Provider", class: "form-label" %>
     <%= f.collection_select :provider_supported_api_id, 
-      SupportedApi.order(:api_base_uri), :id, :api_base_uri, 
-      { include_blank: "Select a provider" }, { class: "form-select-primary" } %>
+      speech_providers, :id, :api_base_uri,
+      { include_blank: "Select a provider", selected: selected_speech_provider_id },
+      {
+        class: "form-select-primary",
+        data: {
+          action: "change->stt-settings#providerChanged",
+          stt_settings_target: "providerSelect"
+        }
+      } %>
     <p class="text-xs text-dim mt-1">
-      Choose which API will be used for TTS/STT. This must be OpenAI Speech endpoint compatible (<code>/audio/speech</code>).
+      Choose which API will be used for TTS/STT. Speech is currently supported through OpenAI or OpenRouter.
     </p>
   </div>
 
@@ -34,21 +71,38 @@
     <%= f.password_field :token_override, value: (@setting.token_override.present? ? AppSetting::MASKED_SECRET_VALUE : nil), class: "input-primary", autocomplete: "new-password", placeholder: "Paste token here (optional)" %>
     <p class="text-xs text-dim mt-1">
       When present, this token will be used instead of the provider's shared token for TTS/STT calls. Stored encrypted.
-      <% if @setting.provider_supported_api&.api_access_token.present? %>
-        <span class="text-success-600 dark:text-success-400">Shared OpenAI key is configured.</span>
-      <% end %>
+      <span
+        data-stt-settings-target="sharedTokenHint"
+        class="text-success-600 dark:text-success-400 <%= @setting.provider_supported_api&.api_access_token.present? ? "" : "hidden" %>"
+      >
+        Shared <span data-stt-settings-target="sharedTokenProviderName"><%= selected_speech_provider_label %></span> key is configured.
+      </span>
     </p>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <%= f.label :tts_model, "TTS model", class: "form-label" %>
-      <%= f.text_field :tts_model, class: "input-primary", placeholder: "gpt-4o-mini-tts" %>
+      <%= f.combobox "tts_model",
+            "#{speech_models_admin_app_setting_path}?kind=tts&api_uri=#{selected_speech_provider_uri}",
+            name_when_new: "app_setting[tts_model]",
+            placeholder: "gpt-4o-mini-tts",
+            data: {
+              action: "input->stt-settings#ttsModelChanged hw-combobox:selection->stt-settings#ttsModelChanged hw-combobox:clear->stt-settings#ttsModelChanged",
+              stt_settings_target: "ttsModelCombobox"
+            } %>
     </div>
 
     <div>
       <%= f.label :tts_voice, "TTS voice", class: "form-label" %>
-      <%= f.text_field :tts_voice, class: "input-primary", placeholder: "verse" %>
+      <%= f.combobox "tts_voice",
+            "#{speech_voices_admin_app_setting_path}?api_uri=#{selected_speech_provider_uri}&model=#{@setting.tts_model}",
+            name_when_new: "app_setting[tts_voice]",
+            placeholder: "verse",
+            data: {
+              action: "",
+              stt_settings_target: "ttsVoiceCombobox"
+            } %>
     </div>
   </div>
 
@@ -58,11 +112,11 @@
     <p class="text-xs text-dim">Instructions passed to the TTS model when generating speech.</p>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4" data-controller="stt-settings">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
       <%= f.label :stt_method, "STT method", class: "form-label" %>
       <%= f.select :stt_method,
-            [["OpenAI Speech API", "speech"], ["LLM", "chat"]],
+            [["Speech API", "speech"], ["LLM", "chat"]],
             {},
             class: "input-primary",
             data: { action: "change->stt-settings#update", stt_settings_target: "methodSelect" } %>
@@ -71,12 +125,15 @@
 
     <div data-stt-settings-target="speechWrapper">
       <%= f.label :stt_model, "STT model (Speech API)", class: "form-label" %>
-      <%= f.text_field :stt_model,
-            value: (@setting&.stt_method == "speech" ? @setting.stt_model : nil),
-            class: "input-primary",
+      <%= f.combobox "stt_model",
+            "#{speech_models_admin_app_setting_path}?kind=stt&api_uri=#{selected_speech_provider_uri}",
+            name_when_new: "app_setting[stt_model]",
             placeholder: "gpt-4o-mini-transcribe",
-            data: { stt_settings_target: "speechInput" } %>
-      <p class="text-xs text-dim mt-1">OpenAI Speech API model</p>
+            data: {
+              action: "",
+              stt_settings_target: "speechInput speechModelCombobox"
+            } %>
+      <p class="text-xs text-dim mt-1">Speech API model</p>
     </div>
 
     <div data-stt-settings-target="chatWrapper" class="hidden">

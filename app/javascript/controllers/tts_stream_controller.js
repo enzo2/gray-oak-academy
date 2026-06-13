@@ -18,6 +18,7 @@ export default class extends Controller {
   // Perform checks and initialize the controller
   initialize() {
     this.audioPlayer = null;
+    this.audioContext = null;
     this.mediaSource = null;
     this.sourceBuffer = null;
     this.fetchController = null;
@@ -29,6 +30,10 @@ export default class extends Controller {
     this.messageId = null; // Store message ID for context if needed
     this.audioWaitingHandler = null; // For removing listener
     this.audioProgressHandler = null; // For removing listener
+    this.prewarmSource = null;
+    this.prewarmGain = null;
+    this.prewarmStopTimeout = null;
+    this.prewarmRequested = false;
     this.mediaSourceClass = getMediaSourceClass();
     this.initialized = false;
 
@@ -92,6 +97,7 @@ export default class extends Controller {
     }
 
     this.stopPlayback(); // Stop any previous playback/loading
+    this.startAudioOutputPrewarm();
 
     this.setButtonState(button, 'loading', originalIconName);
     this.currentPlayingButton = button;
@@ -211,6 +217,7 @@ export default class extends Controller {
 
   handleAudioPlaying() {
     //console.log("Audio playback started (onplaying event).");
+    this.stopAudioOutputPrewarm(150);
     if (this.currentPlayingButton) {
         this.setButtonState(this.currentPlayingButton, 'playing', this.currentPlayingButton.dataset.originalIconName);
     }
@@ -239,6 +246,76 @@ export default class extends Controller {
     } else if (this.isStreamEnded) {
       this.endMediaSource();
     }
+  }
+
+  audioContextClass() {
+    return window.AudioContext || window.webkitAudioContext || null;
+  }
+
+  ensureAudioContext() {
+    if (this.audioContext && this.audioContext.state !== 'closed') return this.audioContext;
+
+    const AudioContextClass = this.audioContextClass();
+    if (!AudioContextClass) return null;
+
+    this.audioContext = new AudioContextClass();
+    return this.audioContext;
+  }
+
+  resumeAudioContext() {
+    const context = this.ensureAudioContext();
+    if (!context) return Promise.resolve();
+    if (context.state === 'suspended') {
+      return context.resume().catch(e => {
+        console.warn(`AudioContext resume failed: ${e.message}`);
+      });
+    }
+    return Promise.resolve();
+  }
+
+  startAudioOutputPrewarm() {
+    this.stopAudioOutputPrewarm();
+    const context = this.ensureAudioContext();
+    if (!context) return;
+
+    this.prewarmRequested = true;
+    this.resumeAudioContext().then(() => {
+      if (!this.prewarmRequested || !this.audioContext || this.audioContext.state === 'closed') return;
+
+      const source = this.audioContext.createOscillator();
+      const gain = this.audioContext.createGain();
+      source.frequency.value = 440;
+      gain.gain.value = 0.00001;
+      source.connect(gain).connect(this.audioContext.destination);
+      source.start();
+
+      this.prewarmSource = source;
+      this.prewarmGain = gain;
+      this.prewarmStopTimeout = window.setTimeout(() => this.stopAudioOutputPrewarm(), 5000);
+    });
+  }
+
+  stopAudioOutputPrewarm(delayMs = 0) {
+    if (delayMs > 0) {
+      if (this.prewarmStopTimeout) window.clearTimeout(this.prewarmStopTimeout);
+      this.prewarmStopTimeout = window.setTimeout(() => this.stopAudioOutputPrewarm(), delayMs);
+      return;
+    }
+
+    this.prewarmRequested = false;
+    if (this.prewarmStopTimeout) {
+      window.clearTimeout(this.prewarmStopTimeout);
+      this.prewarmStopTimeout = null;
+    }
+
+    const source = this.prewarmSource;
+    const gain = this.prewarmGain;
+    this.prewarmSource = null;
+    this.prewarmGain = null;
+
+    try { source?.stop(); } catch (e) {}
+    try { source?.disconnect(); } catch (e) {}
+    try { gain?.disconnect(); } catch (e) {}
   }
 
   // Pump function to read from the stream and append to the buffer
@@ -322,6 +399,7 @@ export default class extends Controller {
 
   stopPlayback() {
     //console.log("Stopping playback and cleaning up MSE...");
+    this.stopAudioOutputPrewarm();
 
     if (this.fetchController) {
       this.fetchController.abort();
@@ -448,6 +526,7 @@ export default class extends Controller {
       try { iconButton.setAttribute('name', autoName); } catch (e) {}
     }
     if (this.autoReadValue) {
+      this.resumeAudioContext();
       this.autoReadLatestMessage();
     }
   }
@@ -503,5 +582,11 @@ export default class extends Controller {
   disconnect() {
     //console.log("TTS Stream Controller (MSE) disconnected, stopping playback");
     this.stopPlayback();
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close().catch(e => {
+        console.warn(`AudioContext close failed: ${e.message}`);
+      });
+    }
+    this.audioContext = null;
   }
 }

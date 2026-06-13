@@ -213,6 +213,44 @@ class AppSetting < ApplicationRecord
     end
   end
 
+  def self.fetch_openrouter_tts_models
+    fetch_openrouter_speech_model_data(kind: :tts).map { |model| model["id"] }.compact.sort
+  end
+
+  def self.fetch_openrouter_stt_models
+    fetch_openrouter_speech_model_data(kind: :stt).map { |model| model["id"] }.compact.sort
+  end
+
+  def self.fetch_openrouter_tts_voices(model:)
+    return [] if model.blank?
+
+    model_data = fetch_openrouter_speech_model_data(kind: :tts).find { |entry| entry["id"] == model }
+    Array(model_data&.dig("supported_voices")).compact.sort
+  end
+
+  def self.fetch_openrouter_speech_model_data(kind:)
+    modality = case kind.to_s
+    when "tts"
+      "speech"
+    when "stt"
+      "transcription"
+    else
+      return []
+    end
+
+    # skip_nil ensures a transient fetch failure (HttpJsonService.get returns
+    # nil on any error) is NOT cached, so the next request retries instead of
+    # serving an empty list for up to an hour.
+    Array(
+      Rails.cache.fetch("openrouter_#{kind}_model_data", expires_in: 1.hour, skip_nil: true) do
+        url = "#{SupportedApi::OPENROUTER_BASE_URI}models?output_modalities=#{modality}"
+        Rails.logger.debug("Fetching OpenRouter #{kind} models from #{url}")
+        data = HttpJsonService.get(url)
+        data["data"] if data && data["data"].is_a?(Array)
+      end
+    )
+  end
+
   private
 
   def normalize_secret_fields

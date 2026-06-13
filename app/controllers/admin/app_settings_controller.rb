@@ -32,6 +32,39 @@ module Admin
       render turbo_stream: helpers.async_combobox_options(@models)
     end
 
+    # Returns TTS/STT model options for the selected speech provider.
+    def speech_models
+      api_uri = SupportedApi.normalize_base_uri(params[:api_uri])
+      kind = params[:kind].to_s
+      @models = []
+
+      if api_uri == SupportedApi::OPENROUTER_BASE_URI
+        @models = case kind
+        when "tts"
+          AppSetting.fetch_openrouter_tts_models
+        when "stt"
+          AppSetting.fetch_openrouter_stt_models
+        else
+          []
+        end
+        @models = @models.select { |model| model.downcase.include?(params[:q].to_s.downcase) } if params[:q].present?
+      end
+
+      render turbo_stream: helpers.async_combobox_options(@models)
+    end
+
+    def speech_voices
+      api_uri = SupportedApi.normalize_base_uri(params[:api_uri])
+      @voices = []
+
+      if api_uri == SupportedApi::OPENROUTER_BASE_URI
+        @voices = AppSetting.fetch_openrouter_tts_voices(model: params[:model].to_s)
+        @voices = @voices.select { |voice| voice.downcase.include?(params[:q].to_s.downcase) } if params[:q].present?
+      end
+
+      render turbo_stream: helpers.async_combobox_options(@voices)
+    end
+
     private
 
     def load_setting
