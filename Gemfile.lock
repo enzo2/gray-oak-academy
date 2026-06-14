@@ -11,7 +11,7 @@ GIT
 
 GIT
   remote: https://github.com/rails/rails.git
-  revision: b771269b60f63f2c55a4cdaa5a241a6ac18851a9
+  revision: 6b99afca72df3a62db9a49a86c3e68395200fd73
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -110,6 +110,17 @@ GIT
       thor (~> 1.0, >= 1.2.2)
       tsort (>= 0.2)
       zeitwerk (~> 2.6)
+
+GIT
+  remote: https://github.com/rails/solid_cable.git
+  revision: 5ea0f55505c0f4b491a988222bf4f5bc95574b30
+  branch: main
+  specs:
+    solid_cable (4.0.0)
+      actioncable (>= 7.2)
+      activejob (>= 7.2)
+      activerecord (>= 7.2)
+      railties (>= 7.2)
 
 GEM
   remote: https://rubygems.org/
@@ -369,7 +380,7 @@ GEM
     ruby-vips (2.3.0)
       ffi (~> 1.12)
       logger
-    rubyzip (3.3.1)
+    rubyzip (3.4.0)
     securerandom (0.4.1)
     selenium-webdriver (4.44.0)
       base64 (~> 0.2)
@@ -378,11 +389,6 @@ GEM
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
     simpleidn (0.2.3)
-    solid_cable (4.0.0)
-      actioncable (>= 7.2)
-      activejob (>= 7.2)
-      activerecord (>= 7.2)
-      railties (>= 7.2)
     solid_cache (1.0.10)
       activejob (>= 7.2)
       activerecord (>= 7.2)
@@ -474,7 +480,7 @@ DEPENDENCIES
   rubocop-rails-omakase
   ruby-vips
   selenium-webdriver
-  solid_cable
+  solid_cable!
   solid_cache
   solid_queue
   stimulus-rails

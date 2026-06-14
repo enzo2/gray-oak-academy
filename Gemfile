@@ -19,7 +19,7 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 
 # Rails adapters
 gem "solid_queue"
-gem "solid_cable"
+gem "solid_cable", github: "rails/solid_cable", branch: "main"  # revert upon next release
 gem "solid_cache"
 gem "image_processing", "~> 2.0"
 gem "ruby-vips"
