@@ -5,7 +5,7 @@ class TranscribeAudioJob < ApplicationJob
   # unique_until: :success, lock_ttl: 1.hour # Example, adjust as needed
 
   discard_on ActiveJob::DeserializationError # Ignore if the record is deleted before job runs
-  retry_on SpeechService::SpeechServiceError, wait: :exponentially_longer, attempts: 2 # Retry on STT API errors
+  retry_on SpeechService::SpeechServiceError, wait: :polynomially_longer, attempts: 2 # Retry on STT API errors
 
   def perform(audio:)
     unless audio && audio.file.attached?
