@@ -749,7 +749,7 @@ p.save!
 p = Prompt.find_or_initialize_by(category: 'generate_lesson_plan', teacher_id: nil)
 p.title = "Default Lesson Plan Content Generator"
 p.prompt = <<~PROMPT
-  You are creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
+  You are creating or revising a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
   The lesson goals are: "{goals}".
   The lesson is to be roughly {approx_duration_min} min long.
   Now, content for the lesson plan is needed. The content will be used by the LLM tutor to conduct the lesson in a semi-planned manner.
@@ -786,10 +786,13 @@ p.prompt = <<~PROMPT
   You may suggest external resources known to be readily available, e.g. Encyclopædia Britannica article, well-known lecture, famous image, standard diagram or infographic, household/school materials, open-source software.
   Do not include URLs. Just refer to internet resources by name, if you expect it to be readily available via search, and the actual resource will be located later.
   You may also suggest generally available teaching materials, e.g. microscope/slide set, demonstrations, safety equipment.
+  If web search is available for this run, use it sparingly and only to ground the lesson in accurate information: rely on your own knowledge for all well-known topics, and search only when you genuinely need current, specific, or verifiable facts. Do not include URLs.
+
   Once you have generated the content and optional suggested resources, the teacher will be able to:
     - Locate and validate suggested resources
     - Add local resources (e.g., specific textbooks, tool, material, workshop, human resources)
     - Refine the lesson content
+  {revision_context}
   The supervising teacher has already marked the following resources as validated and available as lesson content (may or may not be pertinent to the lesson):
   {linked_resources}
 

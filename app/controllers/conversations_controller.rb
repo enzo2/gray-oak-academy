@@ -103,6 +103,8 @@ class ConversationsController < ApplicationController
       seed_applet_revision_chat(conversation)
     when "course_lesson_discussion"
       seed_course_lesson_discussion_chat(conversation)
+    when "lesson_plan_discussion"
+      seed_lesson_plan_discussion_chat(conversation)
     end
   end
 
@@ -140,6 +142,20 @@ class ConversationsController < ApplicationController
     enqueue_llm_completion(conversation: conversation)
   rescue StandardError => e
     Rails.logger.error("Failed to seed course lesson discussion starter chat: #{e.message}")
+    flash[:warning] = "The chat was created, but the starter context could not be prepared."
+  end
+
+  def seed_lesson_plan_discussion_chat(conversation)
+    lesson = resolve_context_lesson
+    return unless lesson.is_a?(Lesson)
+
+    conversation.messages.create!(
+      role: "user",
+      content: lesson_plan_discussion_starter_prompt(lesson: lesson)
+    )
+    enqueue_llm_completion(conversation: conversation)
+  rescue StandardError => e
+    Rails.logger.error("Failed to seed lesson plan discussion starter chat: #{e.message}")
     flash[:warning] = "The chat was created, but the starter context could not be prepared."
   end
 
@@ -225,6 +241,24 @@ class ConversationsController < ApplicationController
       #{JSON.pretty_generate(context)}
 
       Please first call Get_Course_Details with this course_id so you can review the current summary, outline, and lessons. Then help me evaluate the lesson sequence, scope, pacing, gaps, redundancies, and possible revisions. Ask concise clarifying questions when needed. If I request concrete changes, use Edit_Course_Lessons and/or Generate_Course_Lessons as appropriate.
+    PROMPT
+  end
+
+  def lesson_plan_discussion_starter_prompt(lesson:)
+    context = {
+      lesson_id: lesson.id,
+      lesson_title: lesson.title,
+      course_id: lesson.course_id,
+      course_title: lesson.course.title
+    }
+
+    <<~PROMPT
+      I want to discuss and refine the lesson plan for this lesson.
+
+      Context:
+      #{JSON.pretty_generate(context)}
+
+      Please first call Get_Lesson_Details with this lesson_id so you can review the current lesson plan content, suggested resources, and settings. Then help me evaluate and improve the plan — its content, teaching methods, activities, resources, pacing, and any gaps. Ask concise clarifying questions when needed. If I request concrete changes, use Update_Lesson_Plan for manual edits or Generate_Lesson_Plan for regenerated draft content as appropriate.
     PROMPT
   end
 end

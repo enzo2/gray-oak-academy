@@ -27,6 +27,135 @@ module Admin
       # (The controller only builds it, it doesn't save it in 'edit')
     end
 
+    test "edit renders revise controls for existing lesson plan content" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan
+      lesson_plan.update!(content: [ { "Knowledge" => "Existing explanation." } ])
+
+      get edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson)
+
+      assert_response :success
+      assert_select "#generate-lesson-plan-button", text: /Revise with LLM/
+      assert_select "label", text: /Revision instruction/
+      assert_includes @response.body, "Shorten / Condense"
+      assert_includes @response.body, "Your current outline edits are included automatically."
+      assert_select "[data-lesson-plan-steering-target='contentSnapshot']"
+      assert_select "form[data-action*='submit->lesson-plan-steering#snapshotContent']"
+      assert_select "form[data-action*='formdata->lesson-plan-steering#appendContentSnapshot']"
+      assert_select "button[type='submit'][data-action*='click->lesson-plan-steering#snapshotContent']", count: 0
+    end
+
+    test "generate_content persists submitted outline before revising" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "idle", content: [ { "Knowledge" => "Old details." } ])
+
+      assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
+        post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+             params: {
+               preset: "other",
+               guidance: "Add a hands-on activity.",
+               lesson_plan: {
+                 content_keys: [ "Knowledge", "Activity" ],
+                 content_values: [ "Edited details.", "New hands-on activity." ]
+               }
+             },
+             as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal "true", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_equal(
+        [ { "Knowledge" => "Edited details." }, { "Activity" => "New hands-on activity." } ],
+        lesson_plan.reload.content
+      )
+    end
+
+    test "generate_content rejects an empty submitted outline before revising" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      original_content = [ { "Knowledge" => "Keep this saved content." } ]
+      lesson_plan.update!(generation_stage: "idle", content: original_content)
+
+      assert_enqueued_jobs 0, only: GenerateLessonPlanPipelineJob do
+        post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+             params: {
+               preset: "condense",
+               lesson_plan: { content_snapshot: "1" }
+             },
+             as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_equal original_content, lesson_plan.reload.content
+      assert_includes @response.body, "The current outline is empty, so revision was not started"
+    end
+
+    test "generate_content accepts the condense revise preset" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "idle", content: [ { "Knowledge" => "Long explanation." } ])
+
+      assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
+        post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+             params: { preset: "condense" },
+             as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal "true", response.headers["X-Lesson-Plan-Generation-Queued"]
+    end
+
+    test "edit renders propose resources button while suggested resources remain" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan
+      lesson_plan.update!(
+        content: [ { "Knowledge" => "Existing explanation." } ],
+        suggested_resources: [ { "Video" => "Equivalent fractions visual walkthrough." } ],
+        generation_stage: "completed"
+      )
+
+      AppSetting.stub(:openai_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson)
+        end
+      end
+
+      assert_response :success
+      assert_select "#resource-proposal-controls button", text: /Propose Resources/
+      assert_includes @response.body, "Use Propose Resources below to locate and link web-available items when ready."
+    end
+
+    test "edit renders collapsed sources-consulted block when generation research is present" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan
+      lesson_plan.update!(
+        content: [ { "Knowledge" => "Existing explanation." } ],
+        generation_metadata: {
+          "searches" => [ "current fractions standards" ],
+          "sources" => [ { "url" => "https://example.com/a", "title" => "Source A" } ]
+        }
+      )
+
+      get edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson)
+
+      assert_response :success
+      # Collapsed by default: a <details> without the open attribute.
+      assert_select "details:not([open]) > summary", text: /Sources consulted during generation/
+      assert_select "details a[href='https://example.com/a']", text: "Source A"
+      assert_includes @response.body, "current fractions standards"
+    end
+
     test "quick lesson plan editor links back to quick lessons" do
       teacher = users(:admin)
       sign_in(teacher)

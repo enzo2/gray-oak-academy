@@ -21,6 +21,94 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_instance_of OpenaiCodexResponsesService, service
   end
 
+  test "streamed web_search_call and citations survive into last_response_hash when finalize rebuilds from text deltas" do
+    # Codex (chatgpt.com) streams web_search_call items and citation annotations as
+    # discrete events but ships an empty `output` in response.completed, so the
+    # finalize fallback rebuilds output from accumulated text deltas. The captured
+    # research must be folded back in so downstream consumers can read it.
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      provider_native_tools: [ { type: "web_search" } ],
+      log_completion: false
+    )
+
+    service.send(:capture_stream_research, {
+      "type" => "response.output_item.done",
+      "item" => {
+        "type" => "web_search_call",
+        "status" => "completed",
+        "action" => { "type" => "search", "query" => "fractions number line standards" }
+      }
+    })
+    service.send(:capture_stream_research, {
+      "type" => "response.output_text.annotation.added",
+      "annotation" => { "type" => "url_citation", "url" => "https://example.org/x", "title" => "Frac Standards" }
+    })
+    # Non-research events are ignored.
+    service.send(:capture_stream_research, { "type" => "response.output_text.delta", "delta" => "ignored" })
+
+    service.instance_variable_set(:@stream_fallback_text, +'{"lesson_plan": []}')
+    service.instance_variable_set(:@last_response_hash, { "id" => "resp_x", "status" => "completed", "output" => [] })
+
+    service.send(:apply_stream_fallback_text_to_last_response)
+
+    output = service.last_response_hash["output"]
+    assert_equal [ "web_search_call", "message" ], output.map { |item| item["type"] }
+    assert_equal "fractions number line standards", output.first.dig("action", "query")
+
+    message_part = output.last["content"].first
+    assert_equal '{"lesson_plan": []}', message_part["text"]
+    assert_equal [ "https://example.org/x" ], message_part["annotations"].map { |a| a["url"] }
+  end
+
+  test "stream research capture resets between streamed completions" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      provider_native_tools: [ { type: "web_search" } ],
+      log_completion: false
+    )
+
+    streams = [
+      [
+        {
+          "type" => "response.output_item.done",
+          "item" => {
+            "type" => "web_search_call",
+            "status" => "completed",
+            "action" => { "type" => "search", "query" => "first query" }
+          }
+        },
+        {
+          "type" => "response.output_text.annotation.added",
+          "annotation" => { "type" => "url_citation", "url" => "https://example.org/first", "title" => "First" }
+        },
+        { "type" => "response.output_text.delta", "delta" => "First answer" },
+        { "type" => "response.completed", "response" => { "id" => "resp_first", "status" => "completed", "model" => @model, "output" => [], "usage" => {} } }
+      ],
+      [
+        { "type" => "response.output_text.delta", "delta" => "Second answer" },
+        { "type" => "response.completed", "response" => { "id" => "resp_second", "status" => "completed", "model" => @model, "output" => [], "usage" => {} } }
+      ]
+    ]
+
+    service.stub(:manual_codex_responses_stream, ->(_request_params, _request_options_param) { streams.shift.to_enum }) do
+      assert_equal "First answer", service.complete([ { role: "user", content: "First" } ])
+      assert_equal "Second answer", service.complete([ { role: "user", content: "Second" } ])
+    end
+
+    output = service.last_response_hash["output"]
+    assert_equal [ "message" ], output.map { |item| item["type"] }
+    message_part = output.first["content"].first
+    assert_equal "Second answer", message_part["text"]
+    assert_nil message_part["annotations"]
+  end
+
   test "initialize prefers OpenAI OAuth token over shared/API key for OpenAI provider" do
     @user.setting.update!(
       llm_api_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
@@ -272,6 +360,61 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_includes captured[:path], "/backend-api/codex/responses/resp_1"
     assert_includes captured[:path], "include%5B%5D=reasoning.encrypted_content"
     assert_equal "Bearer oauth-openai-token", captured[:auth]
+  end
+
+  test "retrieve_response with include logs raw response body in development" do
+    response_body = { "id" => "resp_raw", "status" => "completed" }.to_json
+
+    fake_http = Object.new
+    fake_http.define_singleton_method(:use_ssl=) { |_value| }
+    fake_http.define_singleton_method(:request) do |_request|
+      response = Net::HTTPOK.new("1.1", "200", "OK")
+      response.instance_variable_set(:@read, true)
+      response.define_singleton_method(:body) { response_body }
+      response
+    end
+
+    info_logs = []
+    debug_logs = []
+    warn_logs = []
+    error_logs = []
+    fake_logger = Object.new
+    fake_logger.define_singleton_method(:debug?) { true }
+    fake_logger.define_singleton_method(:info) { |message| info_logs << message }
+    fake_logger.define_singleton_method(:debug) { |message| debug_logs << message }
+    fake_logger.define_singleton_method(:warn) { |message| warn_logs << message }
+    fake_logger.define_singleton_method(:error) { |message| error_logs << message }
+
+    fake_client = build_responses_client { |_params| response_payload("Done") }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      Net::HTTP.stub(:new, ->(_host, _port) { fake_http }) do
+        Rails.env.stub(:development?, true) do
+          Rails.stub(:logger, fake_logger) do
+            service = OpenaiResponsesService.new(
+              current_user: @user,
+              access_token: @access_token,
+              base_uri: @base_uri,
+              model: @model,
+              log_completion: false
+            )
+
+            result = service.retrieve_response(
+              "resp_raw",
+              include: [ "reasoning.encrypted_content" ]
+            )
+            assert_equal "resp_raw", result["id"]
+          end
+        end
+      end
+    end
+
+    assert info_logs.any? { |message|
+      message.include?("Responses API raw response phase=poll_include") &&
+        message.include?(response_body)
+    }
+    assert warn_logs.none?
+    assert error_logs.none?
   end
 
   test "codex OAuth provider omits unsupported background and metadata request params" do
@@ -2147,6 +2290,99 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert info_logs.any? { |msg| msg.include?("Responses run tool call sequence run_id=run_log_1") }
     assert debug_logs.none? { |msg| msg.include?("Responses API response:") }
     assert error_logs.none?
+  end
+
+  test "development logs full response payloads" do
+    fake_client = build_responses_client do |_params|
+      response_payload("Done", id: "resp_dev_log")
+    end
+
+    info_logs = []
+    debug_logs = []
+    warn_logs = []
+    error_logs = []
+    fake_logger = Object.new
+    fake_logger.define_singleton_method(:debug?) { true }
+    fake_logger.define_singleton_method(:info) { |message| info_logs << message }
+    fake_logger.define_singleton_method(:debug) { |message| debug_logs << message }
+    fake_logger.define_singleton_method(:warn) { |message| warn_logs << message }
+    fake_logger.define_singleton_method(:error) { |message| error_logs << message }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      Rails.env.stub(:development?, true) do
+        Rails.stub(:logger, fake_logger) do
+          service = OpenaiResponsesService.new(
+            current_user: @user,
+            conversation: @conversation,
+            access_token: @access_token,
+            base_uri: @base_uri,
+            model: @model,
+            log_completion: false
+          )
+
+          assert_equal "Done", service.complete([ { role: "user", content: "Hello" } ])
+        end
+      end
+    end
+
+    assert info_logs.any? { |message|
+      message.include?("Responses API response phase=submit") &&
+        message.include?("resp_dev_log") &&
+        message.include?(%("output"))
+    }
+    assert warn_logs.none?
+    assert error_logs.none?
+  end
+
+  test "development logs API exception response details" do
+    error_class = Class.new(StandardError) do
+      def response
+        { status: 502, body: "unexpected end of input at line 178 column 1" }
+      end
+    end
+
+    fake_client = build_responses_client do |_params|
+      raise error_class, "unexpected end of input at line 178 column 1"
+    end
+
+    info_logs = []
+    debug_logs = []
+    warn_logs = []
+    error_logs = []
+    fake_logger = Object.new
+    fake_logger.define_singleton_method(:debug?) { true }
+    fake_logger.define_singleton_method(:info) { |message| info_logs << message }
+    fake_logger.define_singleton_method(:debug) { |message| debug_logs << message }
+    fake_logger.define_singleton_method(:warn) { |message| warn_logs << message }
+    fake_logger.define_singleton_method(:error) { |message| error_logs << message }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      Rails.env.stub(:development?, true) do
+        Rails.stub(:logger, fake_logger) do
+          service = OpenaiResponsesService.new(
+            current_user: @user,
+            conversation: @conversation,
+            access_token: @access_token,
+            base_uri: @base_uri,
+            model: @model,
+            log_completion: false
+          )
+
+          error = assert_raises(OpenAiError) do
+            service.complete([ { role: "user", content: "Hello" } ])
+          end
+          assert_includes error.message, "unexpected end of input"
+        end
+      end
+    end
+
+    assert error_logs.any? { |message|
+      message.include?("Responses API exception") &&
+        message.include?("502") &&
+        message.include?("unexpected end of input")
+    }
+    assert warn_logs.none?
+    assert info_logs.none? { |message| message.include?("Responses API response phase=submit") }
   end
 
   test "log_request_input_items skips payload serialization when debug logging is disabled" do

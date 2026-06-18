@@ -197,6 +197,8 @@ class OpenaiResponsesService
     @response_overview_log_state = {}
     @response_summary_log_state = {}
     @stream_fallback_text = +""
+    @stream_web_search_calls = []
+    @stream_annotations = []
 
     # Start with the full system prompt (base system prompt + teaching principles)
     @system_prompt = "Today's date: #{Time.current.strftime("%B %d, %Y")}\n\n" + Prompt.full_system_prompt(user: current_user)
@@ -302,9 +304,11 @@ class OpenaiResponsesService
         # We normalize each event to a hash and forward it to the handler.
         # When the "response.completed" event arrives, we log usage and update
         # previous_response_id for stateful follow-ups.
+        reset_stream_capture_state
         stream = responses_stream_for_provider(request_params, request_options_param)
         stream.each do |event|
           capture_stream_fallback_text(event)
+          capture_stream_research(event)
           handle_stream_event(event)
           @stream_handler.call(normalize_response_hash(event)) if @stream_handler
         end
@@ -333,6 +337,7 @@ class OpenaiResponsesService
       response = @client.responses.create(**request_params, **request_options_param)
       response_hash = normalize_response_hash(response)
 
+      log_development_api_response(response_hash, phase: "submit")
       set_last_response(response_hash, response)
       log_response_summary(response_hash, phase: "submit")
       log_response_overview(response_hash, phase: "submit")
@@ -379,6 +384,7 @@ class OpenaiResponsesService
         end
 
       response_hash = normalize_response_hash(response)
+      log_development_api_response(response_hash, phase: "poll")
       set_last_response(response_hash, response)
       log_response_summary(response_hash, phase: "poll")
       log_response_overview(response_hash, phase: "poll")
@@ -440,6 +446,7 @@ class OpenaiResponsesService
       request_options_param = request_options.present? ? { request_options: request_options } : {}
       response = @client.responses.cancel(response_id, **request_options_param)
       response_hash = normalize_response_hash(response)
+      log_development_api_response(response_hash, phase: "cancel")
       log_response_summary(response_hash, phase: "cancel")
       log_response_overview(response_hash, phase: "cancel")
       maybe_record_agent_run_terminal(response_hash)
@@ -483,41 +490,51 @@ class OpenaiResponsesService
     yield
   rescue OpenAI::Errors::BadRequestError, OpenAI::Errors::UnprocessableEntityError, OpenAI::Errors::ConflictError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "BadRequestError: #{e.message}: #{error_message}"
     raise OpenAiError, "The server rejected the request. #{error_message}"
   rescue OpenAI::Errors::AuthenticationError, OpenAI::Errors::PermissionDeniedError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "Auth error: #{e.message}: #{error_message}"
     raise OpenAiError, "The access key was unauthorized. Ask teacher to check it."
   rescue OpenAI::Errors::NotFoundError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "NotFoundError #{e.message}: #{error_message}"
     raise OpenAiError, "The requested service was not found. Details: #{error_message}"
   rescue OpenAI::Errors::RateLimitError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "RateLimitError #{e.message}: #{error_message}"
     raise OpenAiError, "Too many requests. Details: #{error_message}"
   rescue OpenAI::Errors::APITimeoutError => e
+    log_development_api_exception(e)
     Rails.logger.error "APITimeoutError #{e.message}"
     raise OpenAiError, "LLM did not respond in time. Ask your teacher to try a different model."
   rescue OpenAI::Errors::APIConnectionError => e
+    log_development_api_exception(e)
     Rails.logger.error "APIConnectionError #{e.message}"
     raise OpenAiError, "The connection to the LLM provider failed. Please try again."
   rescue OpenAI::Errors::ConversionError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "ConversionError #{e.message}: #{error_message}"
     raise OpenAiError, "The client encountered an error. Details: #{error_message}"
   rescue OpenAI::Errors::InternalServerError, OpenAI::Errors::APIStatusError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "APIStatusError #{e.message}: #{error_message}"
     raise OpenAiError, "The server encountered an error. Details: #{error_message}"
   rescue OpenAI::Errors::APIError => e
     error_message = extract_openai_error_message(e)
+    log_development_api_exception(e)
     Rails.logger.error "APIError #{e.message}: #{error_message}"
     raise OpenAiError, "The server encountered an error. Details: #{error_message}"
   rescue StandardError => e
     raise e if e.is_a?(OpenAiError)
 
+    log_development_api_exception(e)
     Rails.logger.error "StandardError #{e.inspect}"
     raise OpenAiError, "#{unexpected_message}: #{e.message}"
   end
@@ -725,6 +742,7 @@ class OpenaiResponsesService
 
     response = http.request(request)
     body = response.body.to_s
+    log_development_raw_api_response(phase: "poll_include", status: response.code, body: body)
     parsed = body.present? ? JSON.parse(body) : {}
 
     unless response.is_a?(Net::HTTPSuccess)
@@ -982,6 +1000,7 @@ class OpenaiResponsesService
     return if response_hash.blank?
 
     set_last_response(response_hash, event)
+    log_development_api_response(response_hash, phase: "stream_completed")
     log_response_summary(response_hash, phase: "stream_completed")
     log_completion(response_hash)
   end
@@ -997,6 +1016,7 @@ class OpenaiResponsesService
       response_hash = normalize_response_hash(final_response)
       if response_hash.present?
         set_last_response(response_hash, final_response)
+        log_development_api_response(response_hash, phase: "stream_completed_fallback")
         log_response_summary(response_hash, phase: "stream_completed_fallback")
         log_completion(response_hash)
       end
@@ -1023,6 +1043,12 @@ class OpenaiResponsesService
 
   def responses_stream_for_provider(request_params, request_options_param)
     @client.responses.stream(**request_params, **request_options_param)
+  end
+
+  def reset_stream_capture_state
+    @stream_fallback_text = +""
+    @stream_web_search_calls = []
+    @stream_annotations = []
   end
 
   def capture_stream_fallback_text(event)
@@ -1055,6 +1081,24 @@ class OpenaiResponsesService
     end
   end
 
+  # Codex (chatgpt.com) streams web_search_call items and citation annotations as
+  # events but ships an empty `output` in response.completed, so the finalize
+  # fallback rebuilds output from text deltas alone. Capture the search calls and
+  # citations here so they survive into last_response_hash for consumers that read
+  # research from the response (e.g. lesson-plan generation source tracking).
+  def capture_stream_research(event)
+    return unless event.is_a?(Hash)
+
+    case event["type"].to_s
+    when "response.output_item.done"
+      item = event["item"]
+      @stream_web_search_calls << item if item.is_a?(Hash) && item["type"].to_s == "web_search_call"
+    when "response.output_text.annotation.added"
+      annotation = event["annotation"]
+      @stream_annotations << annotation if annotation.is_a?(Hash)
+    end
+  end
+
   def apply_stream_fallback_text_to_last_response
     return if @stream_fallback_text.blank?
 
@@ -1079,15 +1123,14 @@ class OpenaiResponsesService
   end
 
   def response_hash_with_output_text(response_hash, text)
+    output_text_part = { "type" => "output_text", "text" => text }
+    annotations = Array(@stream_annotations)
+    output_text_part["annotations"] = annotations if annotations.present?
+
+    message = { "type" => "message", "content" => [ output_text_part ] }
+
     response_hash.to_h.merge(
-      "output" => [
-        {
-          "type" => "message",
-          "content" => [
-            { "type" => "output_text", "text" => text }
-          ]
-        }
-      ]
+      "output" => Array(@stream_web_search_calls) + [ message ]
     )
   end
 
@@ -1763,6 +1806,90 @@ class OpenaiResponsesService
       "function_calls=#{tool_calls} input_tokens=#{usage['input_tokens']} " \
       "output_tokens=#{usage['output_tokens']} total_tokens=#{usage['total_tokens']}"
     )
+  end
+
+  def log_development_raw_api_response(phase:, status:, body:)
+    return unless Rails.env.development?
+
+    Rails.logger.info(
+      "Responses API raw response phase=#{phase} provider=#{@base_uri} " \
+      "model=#{@model} status=#{status} payload=#{body}"
+    )
+  rescue StandardError => e
+    Rails.logger.warn "Failed to log raw Responses API response payload: #{e.message}"
+  end
+
+  def log_development_api_response(response_hash, phase:)
+    return unless Rails.env.development?
+
+    payload =
+      begin
+        JSON.pretty_generate(response_hash)
+      rescue StandardError
+        response_hash.inspect
+      end
+
+    Rails.logger.info(
+      "Responses API response phase=#{phase} provider=#{@base_uri} " \
+      "model=#{resolved_model_name(response_hash)} payload=#{payload}"
+    )
+  rescue StandardError => e
+    Rails.logger.warn "Failed to log Responses API response payload: #{e.message}"
+  end
+
+  def log_development_api_exception(error)
+    return unless Rails.env.development?
+
+    details = {
+      "class" => error.class.name,
+      "message" => error.message,
+      "response_status" => exception_response_status(error),
+      "response_body" => exception_response_body(error)
+    }.compact
+
+    Rails.logger.error(
+      "Responses API exception provider=#{@base_uri} model=#{@model} " \
+      "payload=#{JSON.pretty_generate(details)}"
+    )
+  rescue StandardError => e
+    Rails.logger.warn "Failed to log Responses API exception payload: #{e.message}"
+  end
+
+  def exception_response_body(error)
+    %i[response_body body].each do |method_name|
+      next unless error.respond_to?(method_name)
+
+      value = error.public_send(method_name)
+      return value if value.present?
+    end
+
+    response = error.response if error.respond_to?(:response)
+    return nil if response.blank?
+
+    return response[:body] if response.is_a?(Hash) && response[:body].present?
+    return response["body"] if response.is_a?(Hash) && response["body"].present?
+    return response.body if response.respond_to?(:body) && response.body.present?
+
+    nil
+  end
+
+  def exception_response_status(error)
+    %i[status status_code].each do |method_name|
+      next unless error.respond_to?(method_name)
+
+      value = error.public_send(method_name)
+      return value if value.present?
+    end
+
+    response = error.response if error.respond_to?(:response)
+    return nil if response.blank?
+
+    return response[:status] if response.is_a?(Hash) && response[:status].present?
+    return response["status"] if response.is_a?(Hash) && response["status"].present?
+    return response.status if response.respond_to?(:status) && response.status.present?
+    return response.code if response.respond_to?(:code) && response.code.present?
+
+    nil
   end
 
   def log_request_input_items(input_items)

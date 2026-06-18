@@ -12,11 +12,9 @@
   "features": {
     //"ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/rails/devcontainer/features/activestorage": {},
-    //"ghcr.io/devcontainers/features/docker-in-docker:2": {"moby": false},
-    //"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/rails/devcontainer/features/postgres-client": {},
     "ghcr.io/devcontainers/features/node:1": { //not included for the app, just for any dev tools like Gemini CLI
-      "version": "25"
+      "version": "26"
     },
     "ghcr.io/danzilberdan/devcontainers/opencode:0": {}
   },
@@ -26,6 +24,10 @@
     "SELENIUM_HOST": "selenium",
     "DB_HOST": "postgres",
     "RB_SYS_FORCE_INSTALL_RUST_TOOLCHAIN": "false"
+  },
+
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/bin:${containerEnv:PATH}"
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.

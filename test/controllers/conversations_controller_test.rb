@@ -105,6 +105,54 @@ class ConversationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes flash[:warning], "without starter context"
   end
 
+  test "teacher can create lesson plan discussion starter chat with auto-sent context" do
+    teacher = users(:admin)
+    lesson = lessons(:one)
+    sign_in(teacher)
+
+    with_prompt_stubs do
+      assert_enqueued_jobs 1, only: GetLlmCompletionJob do
+        post conversations_path, params: {
+          starter_template: "lesson_plan_discussion",
+          lesson_id: lesson.id
+        }
+      end
+    end
+
+    conversation = Conversation.order(:created_at).last
+    assert_redirected_to conversation_path(conversation)
+    assert_equal teacher.id, conversation.user_id
+    assert_equal 1, conversation.messages.count
+
+    starter = conversation.messages.last
+    assert_equal "user", starter.role
+    assert_includes starter.content, "\"lesson_id\": #{lesson.id}"
+    assert_includes starter.content, "\"lesson_title\": \"#{lesson.title}\""
+    assert_includes starter.content, "Get_Lesson_Details"
+    assert_includes starter.content, "Update_Lesson_Plan"
+    assert_includes starter.content, "Generate_Lesson_Plan"
+  end
+
+  test "invalid lesson plan discussion context falls back to plain new chat with warning" do
+    teacher = users(:admin)
+    sign_in(teacher)
+
+    with_prompt_stubs do
+      assert_enqueued_jobs 0, only: GetLlmCompletionJob do
+        post conversations_path, params: {
+          starter_template: "lesson_plan_discussion",
+          lesson_id: lessons(:two).id
+        }
+      end
+    end
+
+    conversation = Conversation.order(:created_at).last
+    assert_redirected_to conversation_path(conversation)
+    assert_equal teacher.id, conversation.user_id
+    assert_equal 0, conversation.messages.count
+    assert_includes flash[:warning], "without starter context"
+  end
+
   test "invalid applet revision context falls back to plain new chat with warning" do
     teacher = users(:admin)
     other_teacher = users(:admin2)

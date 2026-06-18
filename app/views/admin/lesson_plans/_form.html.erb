@@ -1,6 +1,46 @@
-<% if lesson_plan.content.blank? %>
-  <p class="mb-2"><i>You can use the LLM to generate lesson plan content and locate web-based resources. You should review and enhance with your own resources.</i></p>
-  <%= render "admin/lesson_plans/generate_lesson_plan_button", lesson: lesson, lesson_plan: lesson_plan %>
+<!-- <p class="mb-2">
+  <i>
+    <% if lesson_plan.content.present? %>
+      You can ask the LLM to revise the lesson plan in place. Your current outline edits are included automatically.
+    <% else %>
+      You can use the LLM to generate lesson plan content. You should review and enhance with resources.
+    <% end %>
+  </i>
+</p> -->
+<%= render "admin/lesson_plans/generate_lesson_plan_button", lesson: lesson, lesson_plan: lesson_plan %>
+
+<% if lesson_plan.generation_research? %>
+  <details class="block text-sm mb-4 pl-2">
+    <summary class="cursor-pointer">
+      Sources consulted during generation
+      <span class="text-dim">(<%= pluralize(lesson_plan.generation_searches.size, "search") %>, <%= pluralize(lesson_plan.generation_sources.size, "source") %>)</span>
+    </summary>
+    <div class="mt-2 pl-2 space-y-3 text-sm">
+      <p class="text-dim"><i>What the generator researched to ground this plan. These were cited by the model, not saved as resources.</i></p>
+      <% if lesson_plan.generation_searches.any? %>
+        <div>
+          <p class="font-semibold">Searches</p>
+          <ul class="list-disc pl-5">
+            <% lesson_plan.generation_searches.each do |query| %>
+              <li><%= query %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+      <% if lesson_plan.generation_sources.any? %>
+        <div>
+          <p class="font-semibold">Cited sources</p>
+          <ul class="list-disc pl-5">
+            <% lesson_plan.generation_sources.each do |source| %>
+              <li>
+                <%= link_to (source["title"].presence || source["url"]), source["url"], target: "_blank", rel: "noopener noreferrer", class: "underline wrap-break-word" %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+  </details>
 <% end %>
 
 <%= form_with(model: [:admin, lesson.course, lesson, lesson_plan], url: admin_course_lesson_lesson_plan_path(lesson.course, lesson), method: :patch, id: "lesson-plan-form") do |f| %>
@@ -67,6 +107,9 @@
       <p class="block text-sm mb-2">
         <i>Not included unless you obtain and add as a linked resource.</i>
       </p>
+      <p class="block text-sm text-dim mb-2">
+        Use Propose Resources below to locate and link web-available items when ready.
+      </p>
       <ul class="space-y-3">
         <% lesson_plan.suggested_resources.each_with_index do |resource, idx| %>
           <li class="flex items-start gap-2" id="suggested-resource-<%= idx %>">
@@ -118,14 +161,14 @@
         </div>
       <% end %>
     </div>
-    
+
     <% unless AppSetting.speech_configured? %>
       <p class="text-xs text-dim mt-2">
         Speech has not been configured. Contact the webmaster.
       </p>
     <% end %>
   </div>
-  
+
   <div class="mb-4">
     <%= f.label :status, class: "form-label" %>
     <p class="block text-sm mb-2"><i>The lesson will be available to students once it is published. Pending linked resources must be approved first.</i></p>

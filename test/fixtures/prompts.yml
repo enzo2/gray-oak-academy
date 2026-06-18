@@ -103,10 +103,12 @@ generate_lesson_plan:
   title: Default Lesson Plan Content Generator
   category: generate_lesson_plan
   prompt: |
-    I am creating a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
+    I am creating or revising a lesson plan for a lesson titled "{title}" which is part of the course "{course_title}" for grade level {grade_level}.
     The lesson goals are: "{goals}".
     The lesson is to be roughly {approx_duration_min} min long.
     Optionally, also include a "suggested_resources" array, following a similar format but with "type" and "description" keys.
+    If web search is available for this run, use it sparingly and only to ground the lesson in accurate information. Do not use search to fetch, link, download, or save resources — that happens later in a separate teacher-reviewed step.
+    {revision_context}
     The supervising teacher has already marked the following resources as validated and available as lesson content (may or may not be pertinent to the lesson):
     {linked_resources}
     Other lessons in this course, which do not need to overlap with this one, include:

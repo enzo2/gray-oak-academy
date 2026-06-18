@@ -20,6 +20,12 @@ class LlmTest < ActiveSupport::TestCase
     assert options.any? { |_display, uri| uri.to_s == SupportedApi::OPENAI_CODEX_BASE_URI }, "Should include ChatGPT Codex Responses URI"
   end
 
+  test "list_api_base_uris excludes non-LLM providers like Exa" do
+    Llm.create!(model: "exa-search", api_provider: ExaApiService::DEFAULT_BASE_URI, context_length: 1000)
+    uris = Llm.list_api_base_uris
+    refute_includes uris, ExaApiService::DEFAULT_BASE_URI, "Exa is not an LLM provider and should not be selectable"
+  end
+
   test "archive sets archived_at" do
     llm = Llm.create!(model: "test-model", api_provider: "https://example.com/", context_length: 1000)
     refute llm.archived?

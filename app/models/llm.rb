@@ -41,11 +41,17 @@ class Llm < ApplicationRecord
     SupportedApi::OPENAI_CODEX_BASE_URI
   ].freeze
 
+  # Non-LLM providers whose Llm rows exist only for cost/usage tracking (e.g. Exa
+  # web search) and should not appear as selectable chat/lesson LLM providers.
+  NON_LLM_API_BASE_URLS = [
+    ExaApiService::DEFAULT_BASE_URI
+  ].freeze
+
   # Returns the full list of API base URIs, including the defaults, and any others that have been used
   def self.list_api_base_uris
     custom_uris = Llm.pluck(:api_provider).uniq
     supported_uris = SupportedApi.selectable_uris
-    (DEFAULT_API_BASE_URLS + supported_uris + custom_uris).uniq
+    (DEFAULT_API_BASE_URLS + supported_uris + custom_uris).uniq - NON_LLM_API_BASE_URLS
   end
 
   # Options for the LLM API Base URI combobox with a visual marker for supported providers.

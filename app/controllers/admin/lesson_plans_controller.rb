@@ -92,6 +92,14 @@ module Admin
         return
       end
 
+      # When revising, persist the on-screen outline first so manual edits aren't
+      # lost and the revision operates on what the teacher currently sees.
+      unless persist_submitted_content
+        set_generation_submit_header(queued: false)
+        render :generate_content
+        return
+      end
+
       # Persist the lesson plan before generating content, since it may be new.
       @lesson_plan.save!
 
@@ -150,18 +158,47 @@ module Admin
     end
 
     def lesson_plan_params
-      # Extract `content_keys` and `content_values` from params, default to empty arrays if not present
-      content_keys = params[:lesson_plan].delete(:content_keys) || []
-      content_values = params[:lesson_plan].delete(:content_values) || []
-
-      # Zip the keys and values into an array of hashes
-      # The order is preserved as it comes from the form
-      content = content_keys.zip(content_values).map { |type, details| { type => details } }
+      # Build the content array, then drop the raw outline fields so permit stays clean.
+      content = content_from_params
+      params[:lesson_plan].delete(:content_keys)
+      params[:lesson_plan].delete(:content_values)
 
       # Permit lesson_plan attributes, include the content and chalkboard_enabled
       params.require(:lesson_plan).permit(:status, :chalkboard_enabled, :audio).tap do |whitelisted|
         whitelisted[:content] = content
       end
+    end
+
+    # Zip the submitted `content_keys`/`content_values` outline fields into the
+    # array-of-hashes shape stored in `content`. Order is preserved as submitted.
+    def content_from_params
+      content_keys = params.dig(:lesson_plan, :content_keys) || []
+      content_values = params.dig(:lesson_plan, :content_values) || []
+      content_keys.zip(content_values).map { |type, details| { type => details } }
+    end
+
+    # Revise submits the current outline alongside the steering form. Persist it
+    # before enqueuing so unsaved manual edits aren't discarded by the revision.
+    def persist_submitted_content
+      return true unless submitted_content_snapshot? || params.dig(:lesson_plan, :content_keys).present?
+
+      content = content_from_params
+      if content.blank?
+        flash.now[:warning] = "The current outline is empty, so revision was not started. " \
+          "Save the empty outline first, then use Generate Lesson Plan for a fresh generation."
+        return false
+      end
+
+      @lesson_plan.content = content
+      return true if @lesson_plan.save
+
+      flash.now[:warning] = @lesson_plan.errors.full_messages.to_sentence.presence ||
+        "Could not save the lesson plan content before revising."
+      false
+    end
+
+    def submitted_content_snapshot?
+      ActiveModel::Type::Boolean.new.cast(params.dig(:lesson_plan, :content_snapshot))
     end
 
     def find_linkable_resource!
@@ -189,6 +226,8 @@ module Admin
         "Prefer a speech/mobile-style lesson. Keep it suitable for a narrow-screen or walk-and-talk format, and favor conversational delivery over chalkboard-heavy structure unless clearly warranted."
       when "offline_debrief"
         "Prefer an offline/debrief lesson structure. Include a clear away-from-device activity, concise completion criteria or work product expectations, and a brief return-and-debrief or return-and-confirm phase."
+      when "condense"
+        "Shorten and condense the lesson plan: tighten wording, merge or remove redundant items, and reduce overall length while preserving the core learning goals and essential activities."
       when "other"
         return { error: "Enter lesson plan guidance when using the Other preset." } if custom_guidance.blank?
 

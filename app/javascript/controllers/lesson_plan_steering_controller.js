@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["closeButton", "customGuidanceSection", "customGuidanceInput"]
+  static targets = ["closeButton", "customGuidanceSection", "customGuidanceInput", "contentSnapshot"]
 
   connect() {
     this.syncCustomGuidance()
@@ -9,6 +9,53 @@ export default class extends Controller {
 
   presetChanged() {
     this.syncCustomGuidance()
+  }
+
+  // Copy the current outline (in the separate lesson plan form) into hidden
+  // inputs on the revise form so a revision operates on unsaved edits too.
+  // Runs on form submit, before Turbo serializes the request.
+  snapshotContent() {
+    if (!this.hasContentSnapshotTarget) return
+
+    const host = this.contentSnapshotTarget
+    host.replaceChildren()
+
+    this.contentSnapshotFields().forEach(({ name, value }) => {
+      host.appendChild(this.hiddenField(name, value))
+    })
+  }
+
+  appendContentSnapshot(event) {
+    if (!this.hasContentSnapshotTarget || !event.formData) return
+    if (event.formData.has("lesson_plan[content_snapshot]")) return
+
+    this.contentSnapshotFields().forEach(({ name, value }) => {
+      event.formData.append(name, value)
+    })
+  }
+
+  contentSnapshotFields() {
+    const outline = document.getElementById("lesson-plan-form")
+    if (!outline) return []
+
+    const fields = [{ name: "lesson_plan[content_snapshot]", value: "1" }]
+    const keyFields = outline.querySelectorAll('input[name="lesson_plan[content_keys][]"]')
+    const valueFields = outline.querySelectorAll('textarea[name="lesson_plan[content_values][]"]')
+
+    keyFields.forEach((keyField, index) => {
+      fields.push({ name: "lesson_plan[content_keys][]", value: keyField.value })
+      fields.push({ name: "lesson_plan[content_values][]", value: valueFields[index]?.value ?? "" })
+    })
+
+    return fields
+  }
+
+  hiddenField(name, value) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = name
+    input.value = value
+    return input
   }
 
   submitEnd(event) {

@@ -41,6 +41,20 @@ class LessonPlan < ApplicationRecord
     %w[completed failed].include?(generation_stage)
   end
 
+  # Web searches the model ran while drafting (query strings).
+  def generation_searches
+    Array((generation_metadata || {})["searches"])
+  end
+
+  # Sources the model cited while drafting ([{ "url" =>, "title" => }, ...]).
+  def generation_sources
+    Array((generation_metadata || {})["sources"])
+  end
+
+  def generation_research?
+    generation_searches.any? || generation_sources.any?
+  end
+
   private
 
   def no_pending_resources_when_published

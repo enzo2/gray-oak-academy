@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_06_12_000100) do
+ActiveRecord::Schema[8.2].define(version: 2026_06_18_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -251,6 +251,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_06_12_000100) do
     t.jsonb "suggested_resources", default: []
     t.string "generation_stage", default: "idle", null: false
     t.text "generation_error"
+    t.jsonb "generation_metadata", default: {}, null: false
     t.index ["generation_stage"], name: "index_lesson_plans_on_generation_stage"
     t.index ["lesson_id"], name: "index_lesson_plans_on_lesson_id", unique: true
   end

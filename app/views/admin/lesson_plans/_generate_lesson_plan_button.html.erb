@@ -1,7 +1,12 @@
 <div id="lesson-plan-generation-controls" class="mb-4">
   <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+  <% revising = lesson_plan.content.present? %>
+  <% action_label = revising ? "Revise with LLM" : "Generate Lesson Plan" %>
+  <% action_icon = revising ? "pencil-square" : "lightbulb" %>
+  <% default_preset = revising ? "other" : "llm_decides" %>
 
-  <div data-controller="modal"
+  <div class="flex flex-wrap items-center gap-3">
+    <div data-controller="modal"
        data-modal-wrapper-class-value="relative z-[70]"
        data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-stone-200 dark:border-stone-700">
     <button type="button"
@@ -12,9 +17,9 @@
       <% if lesson_plan.generation_in_progress? %>
         <sl-spinner></sl-spinner>
       <% else %>
-        <sl-icon name="lightbulb"></sl-icon>
+        <sl-icon name="<%= action_icon %>"></sl-icon>
       <% end %>
-      Generate Lesson Plan
+      <%= action_label %>
     </button>
 
     <div data-modal-target="content" class="hidden p-5 sm:p-6">
@@ -22,8 +27,14 @@
            data-action="turbo:submit-end->lesson-plan-steering#submitEnd">
         <div class="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100" id="modal-title">Generate Lesson Plan</h3>
-            <p class="mt-1 text-sm text-dim">Choose how much to steer generation before the background run starts.</p>
+            <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100" id="modal-title"><%= action_label %></h3>
+            <p class="mt-1 text-sm text-dim">
+              <% if revising %>
+                Describe the change to apply to the saved plan before the background run starts.
+              <% else %>
+                Choose how much to steer generation before the background run starts.
+              <% end %>
+            </p>
           </div>
           <button type="button"
                   class="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
@@ -33,24 +44,37 @@
           </button>
         </div>
 
+        <% generation_form_data = { controller: "button-loading" }
+           if revising
+             generation_form_data[:action] =
+               "submit->lesson-plan-steering#snapshotContent formdata->lesson-plan-steering#appendContentSnapshot"
+           end %>
         <%= form_with(
           url: generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
           method: :post,
-          data: { controller: "button-loading" },
+          data: generation_form_data,
           class: "space-y-5"
         ) do |form| %>
           <div>
             <label class="form-label">Preset</label>
             <div class="mt-2 space-y-3">
-              <% presets = [
-                   ["llm_decides", "LLM decides", "Let the generator infer the best format from lesson goals and context."],
-                   ["speech_mobile", "Speech / Mobile style", "Bias toward walk-and-talk, narrow-screen, or speech-first tutoring."],
-                   ["offline_debrief", "Offline/Debrief style", "Bias toward an offline activity with a concise return-and-debrief structure."],
-                   ["other", "Other", "Provide custom guidance for this lesson plan run."]
-                 ] %>
+              <% presets =
+                   if revising
+                     [
+                       ["condense", "Shorten / Condense", "Tighten and shorten the plan, merging or trimming items while preserving the core goals."],
+                       ["other", "Revision instruction", "Provide the specific change you want applied to this saved plan."]
+                     ]
+                   else
+                     [
+                       ["llm_decides", "LLM decides", "Let the generator infer the best format from lesson goals and context."],
+                       ["speech_mobile", "Speech / Mobile style", "Bias toward walk-and-talk, narrow-screen, or speech-first tutoring."],
+                       ["offline_debrief", "Offline/Debrief style", "Bias toward an offline activity with a concise return-and-debrief structure."],
+                       ["other", "Other", "Provide custom guidance for this lesson plan run."]
+                     ]
+                   end %>
               <% presets.each do |value, label, description| %>
                 <label class="flex items-start gap-3 rounded-lg border border-stone-200 p-3 dark:border-stone-700">
-                  <%= radio_button_tag :preset, value, value == "llm_decides",
+                  <%= radio_button_tag :preset, value, value == default_preset,
                         class: "radio-primary mt-1",
                         data: { action: "change->lesson-plan-steering#presetChanged" } %>
                   <span class="flex-1">
@@ -63,12 +87,15 @@
           </div>
 
           <div class="hidden" data-lesson-plan-steering-target="customGuidanceSection">
-            <%= label_tag :guidance, "Lesson plan guidance", class: "form-label" %>
+            <%= label_tag :guidance, revising ? "Revision instruction" : "Lesson plan guidance", class: "form-label" %>
             <%= text_area_tag :guidance, nil,
                   rows: 5,
                   class: "input-primary w-full",
-                  placeholder: "Example: Keep this highly conversational, avoid chalkboard-heavy activities, and end with a short oral recap.",
+                  placeholder: revising ? "Example: Add a hands-on activity with a quick formative check, but keep the existing sequence." : "Example: Keep this highly conversational, avoid chalkboard-heavy activities, and end with a short oral recap.",
                   data: { lesson_plan_steering_target: "customGuidanceInput" } %>
+            <% if revising %>
+              <p class="mt-2 text-sm text-dim">Your current outline edits are included automatically. Save other field changes (status, chalkboard, audio) first if needed.</p>
+            <% end %>
           </div>
 
           <% if resource_proposal_enabled %>
@@ -92,6 +119,10 @@
             </div>
           <% end %>
 
+          <% if revising %>
+            <div class="hidden" data-lesson-plan-steering-target="contentSnapshot"></div>
+          <% end %>
+
           <div class="flex items-center justify-end gap-3 pt-2">
             <button type="button"
                     class="btn-secondary"
@@ -99,11 +130,22 @@
                     data-lesson-plan-steering-target="closeButton">
               Cancel
             </button>
-            <button type="submit" class="btn-success">Start Generation</button>
+            <button type="submit" class="btn-success">
+              <%= revising ? "Start Revision" : "Start Generation" %>
+            </button>
           </div>
         <% end %>
       </div>
     </div>
+    </div>
+
+    <%= link_to conversations_path(starter_template: "lesson_plan_discussion", lesson_id: lesson.id),
+          id: "discuss-lesson-plan-button",
+          data: { turbo_method: :post },
+          class: "btn-secondary gap-2 w-fit" do %>
+      <sl-icon name="chat-dots"></sl-icon>
+      Discuss Lesson Plan
+    <% end %>
   </div>
 
   <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan %>
