@@ -20,13 +20,14 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 - Self-hostable with docker
 - All system prompts can be customized (opinionated defaults included)
 - Works with any OpenAI-compatible API (including local). OpenAI, OpenRouter, and xAI use Responses API. 
-- Image gen model support via OpenRouter
 - API + token management: Preload multiple LLM APIs for teachers to choose from
 - Auto model metadata fetching; actual cost tracking for OpenRouter and xAI
 - Automated memory saving and semantic consolidation, with choice of embeddings model
+- Applets can send results back to the chat
+- Image gen support via OpenRouter
 - If LLM supports raw audio input, it will be sent immediately, then transcribed in the background
 - Markdown and KaTeX support
-- In-app Python code execution tool
+- In-app/local Python code execution environment
 - App name can be customized via env variable
 - Dark/Light mode
 - Installable PWA
@@ -71,12 +72,12 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 - Experimental support for ChatGPT account use via Codex: select `https://chatgpt.com/backend-api/codex/` as the API base URI
 - Built-in support for OpenRouter makes it easy to: track actual costs, avoid token limits, display context window usage, try different providers/models easily. OpenRouter also supports BYOK and ZDR.
 - Make sure to use an API that supports automated prompt caching.
-- For background agent runs during curriculum design, OpenAI currently works best, and Exa is required for web search.
 
 ### Choosing LLMs: 
 - For the main chat/lesson LLM, choose a high-performing, adaptive-thinking model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs; however, avoid the largest frontier models, or chat will be too slow and expensive.) Model must support image input and function calling. Raw audio input is optional. A long context window is recommended. 
-- Add a dedicated frontier thinking model for better performance on curriculum generation tasks, applets, and more. Model must support structured outputs.
-- For image generation, gemini-3-pro-image or better is recommended. You can also enable 2-pass generation to allow a model to critique and regenerate its own output, for twice the cost.
+- Add a dedicated frontier thinking model for better performance on curriculum generation tasks, applets, and more. Model must support structured outputs. Image input not required.
+- **Background agent runs (course research, resource proposal):** For agent runs, API/model is configured by the superuser in App Settings, not per-teacher. These flows require a stateful API and high agentic performance, hence the centralized setting.
+- For image generation, a frontier model is recommended. You can also enable 2-pass generation to allow a model to critique and regenerate its own output, for twice the cost.
 
 ## Getting Started
 - Create a teacher account using the teacher signup code. 
