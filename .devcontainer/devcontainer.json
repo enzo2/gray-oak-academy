@@ -27,7 +27,7 @@
   },
 
   "remoteEnv": {
-    "PATH": "${containerWorkspaceFolder}/bin:/home/vscode/.local/share/mise/shims:${containerEnv:PATH}"
+    "PATH": "${containerWorkspaceFolder}/bin:/home/vscode/.local/bin:/home/vscode/.local/share/mise/shims:${containerEnv:PATH}"
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
