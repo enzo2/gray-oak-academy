@@ -73,13 +73,13 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
 
     patch admin_app_setting_path, params: {
       app_setting: {
-        openai_agent_supported_api_id: supported_apis(:xai).id,
-        openai_agent_model: "gpt-5.2"
+        background_agent_supported_api_id: supported_apis(:xai).id,
+        background_agent_model: "gpt-5.2"
       }
     }
 
     assert_redirected_to edit_admin_app_setting_path
-    assert_equal supported_apis(:xai).id.to_s, app_setting.reload.openai_agent_supported_api_id.to_s
+    assert_equal supported_apis(:xai).id.to_s, app_setting.reload.background_agent_supported_api_id.to_s
   end
 
   test "superuser can fetch llm models for selected provider" do
@@ -92,6 +92,51 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "xai-model-alpha"
     assert_not_includes response.body, "openai-model-beta"
+  end
+
+  test "edit warns when selected OpenRouter agent model lacks context metadata" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    AppSetting.first.update!(
+      background_agent_supported_api_id: openrouter.id,
+      background_agent_model: "anthropic/manual-agent-model"
+    )
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, []) do
+      get edit_admin_app_setting_path
+    end
+
+    assert_response :success
+    assert_includes response.body, "No local context metadata found for this OpenRouter agent model."
+  end
+
+  test "edit shows context metadata for selected OpenRouter agent model" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    Llm.create!(
+      model: "anthropic/context-agent-model",
+      api_provider: SupportedApi::OPENROUTER_BASE_URI,
+      context_length: 200_000
+    )
+    AppSetting.first.update!(
+      background_agent_supported_api_id: openrouter.id,
+      background_agent_model: "anthropic/context-agent-model"
+    )
+    sign_in users(:super_user)
+
+    AppSetting.stub(:fetch_openrouter_embedding_models, []) do
+      get edit_admin_app_setting_path
+    end
+
+    assert_response :success
+    assert_includes response.body, "Context metadata found: 200,000 tokens."
   end
 
   test "speech provider select includes only openai and openrouter" do

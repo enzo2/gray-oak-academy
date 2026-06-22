@@ -59,7 +59,7 @@ class LessonPlanAsyncGenerationService
   end
 
   def resource_proposal_enabled?
-    AppSetting.openai_agent_enabled? && AppSetting.exa_enabled?
+    AppSetting.background_agent_enabled? && AppSetting.exa_enabled?
   end
 
   def cooldown_active?(action:)

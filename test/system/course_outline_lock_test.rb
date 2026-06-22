@@ -31,7 +31,7 @@ class CourseOutlineLockTest < ApplicationSystemTestCase
       teacher: @admin
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         sign_in @admin
         visit edit_admin_course_path(course)

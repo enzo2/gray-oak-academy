@@ -145,68 +145,130 @@ class AppSettingTest < ActiveSupport::TestCase
     assert_equal "provider-token", @app.effective_token
   end
 
-  test "openai agent is enabled when model and shared OpenAI token are present" do
+  test "background agent is enabled when model and shared OpenAI token are present" do
     openai = supported_apis(:openai)
     openai.update!(enabled: true, api_access_token: "sk-test")
-    @app.update!(openai_agent_model: "gpt-5.2")
+    @app.update!(background_agent_model: "gpt-5.2")
 
-    assert_equal openai, @app.openai_agent_supported_api
-    assert_equal "sk-test", @app.openai_agent_access_token
-    assert @app.openai_agent_enabled?
-    assert AppSetting.openai_agent_enabled?
+    assert_equal openai, @app.background_agent_supported_api
+    assert_equal "sk-test", @app.background_agent_access_token
+    assert @app.background_agent_enabled?
+    assert AppSetting.background_agent_enabled?
   end
 
-  test "openai agent uses selected openai provider when configured" do
+  test "background agent uses selected openai provider when configured" do
     openai = supported_apis(:openai)
     openai.update!(enabled: true, api_access_token: "sk-openai")
-    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: openai.id)
+    @app.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: openai.id)
 
-    assert_equal openai, @app.openai_agent_supported_api
-    assert_equal "sk-openai", @app.openai_agent_access_token
-    assert @app.openai_agent_enabled?
+    assert_equal openai, @app.background_agent_supported_api
+    assert_equal "sk-openai", @app.background_agent_access_token
+    assert @app.background_agent_enabled?
   end
 
-  test "openai agent uses selected xai provider when configured" do
+  test "background agent uses selected xai provider when configured" do
     openai = supported_apis(:openai)
     xai = supported_apis(:xai)
     openai.update!(enabled: true, api_access_token: "sk-openai")
     xai.update!(enabled: true, api_access_token: "sk-xai")
-    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: xai.id)
+    @app.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: xai.id)
 
-    assert_equal xai, @app.openai_agent_supported_api
-    assert_equal "sk-xai", @app.openai_agent_access_token
-    assert @app.openai_agent_enabled?
+    assert_equal xai, @app.background_agent_supported_api
+    assert_equal "sk-xai", @app.background_agent_access_token
+    assert @app.background_agent_enabled?
   end
 
-  test "openai agent falls back to openai when selected provider id is invalid" do
+  test "background agent uses selected openrouter provider when configured" do
+    openrouter = create_openrouter_supported_api(token: "sk-openrouter")
+    @app.update!(background_agent_model: "anthropic/claude-sonnet-4.6", background_agent_supported_api_id: openrouter.id)
+
+    assert_equal openrouter, @app.background_agent_supported_api
+    assert_equal "sk-openrouter", @app.background_agent_access_token
+    assert @app.background_agent_enabled?
+  end
+
+  test "background agent reads and migrates legacy openai_agent settings" do
     openai = supported_apis(:openai)
     openai.update!(enabled: true, api_access_token: "sk-openai")
-    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: "999999")
+    legacy_settings = @app.settings.to_h.except(
+      "background_agent_model",
+      "background_agent_supported_api_id",
+      "background_agent_max_tool_turns"
+    ).merge(
+      "openai_agent_model" => "gpt-5.2",
+      "openai_agent_supported_api_id" => openai.id.to_s,
+      "openai_agent_max_tool_turns" => "17"
+    )
+    @app.settings = legacy_settings
+    @app.save!(validate: false)
+    @app.reload
 
-    assert_equal openai, @app.openai_agent_supported_api
-    assert_equal "sk-openai", @app.openai_agent_access_token
+    assert_equal "gpt-5.2", @app.background_agent_model
+    assert_equal openai, @app.background_agent_supported_api
+    assert_equal 17, @app.background_agent_max_tool_turns
+
+    assert @app.valid?
+    assert_nil @app.settings["openai_agent_model"]
+    assert_equal "gpt-5.2", @app.settings["background_agent_model"]
+
+    @app.save!
+    @app.reload
+    assert_nil @app.settings["openai_agent_model"]
+    assert_equal "gpt-5.2", @app.settings["background_agent_model"]
   end
 
-  test "openai agent falls back to openai when selected provider is not verified for agent runs" do
+  test "openrouter agent reports missing context metadata for manually entered model" do
+    openrouter = create_openrouter_supported_api(token: "sk-openrouter")
+    @app.update!(background_agent_model: "anthropic/manual-agent-model", background_agent_supported_api_id: openrouter.id)
+
+    assert_nil @app.background_agent_context_length
+    assert @app.background_agent_context_metadata_missing?
+  end
+
+  test "openrouter agent finds context metadata for selected model" do
+    openrouter = create_openrouter_supported_api(token: "sk-openrouter")
+    Llm.create!(
+      model: "anthropic/metadata-agent-model",
+      api_provider: SupportedApi::OPENROUTER_BASE_URI,
+      context_length: 200_000
+    )
+    @app.update!(background_agent_model: "anthropic/metadata-agent-model", background_agent_supported_api_id: openrouter.id)
+
+    assert_equal 200_000, @app.background_agent_context_length
+    assert_not @app.background_agent_context_metadata_missing?
+  end
+
+  test "background agent falls back to openai when selected provider id is invalid" do
     openai = supported_apis(:openai)
     openai.update!(enabled: true, api_access_token: "sk-openai")
-    @app.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: supported_apis(:example_api).id)
+    @app.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: "999999")
 
-    assert_equal openai, @app.openai_agent_supported_api
-    assert_equal "sk-openai", @app.openai_agent_access_token
+    assert_equal openai, @app.background_agent_supported_api
+    assert_equal "sk-openai", @app.background_agent_access_token
   end
 
-  test "openai agent is disabled when model is blank" do
+  test "background agent falls back to openai when selected provider is not verified for agent runs" do
+    openai = supported_apis(:openai)
+    openai.update!(enabled: true, api_access_token: "sk-openai")
+    @app.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: supported_apis(:example_api).id)
+
+    assert_equal openai, @app.background_agent_supported_api
+    assert_equal "sk-openai", @app.background_agent_access_token
+  end
+
+  test "background agent is disabled when model is blank" do
     supported_apis(:openai).update!(enabled: true, api_access_token: "sk-test")
-    @app.update!(openai_agent_model: nil)
+    @app.update!(background_agent_model: nil)
 
-    assert_not @app.openai_agent_enabled?
+    assert_not @app.background_agent_enabled?
   end
 
-  test "openai_agent_supported_apis includes only responses-compatible selectable providers" do
-    provider_ids = @app.openai_agent_supported_apis.pluck(:id)
+  test "background_agent_supported_apis includes only responses-compatible selectable providers" do
+    openrouter = create_openrouter_supported_api
+    provider_ids = @app.background_agent_supported_apis.pluck(:id)
 
     assert_includes provider_ids, supported_apis(:openai).id
+    assert_includes provider_ids, openrouter.id
     assert_includes provider_ids, supported_apis(:xai).id
     assert_not_includes provider_ids, supported_apis(:example_api).id
   end
@@ -237,31 +299,27 @@ class AppSettingTest < ActiveSupport::TestCase
     end
   end
 
-  test "openai_agent_max_tool_turns uses seeded setting value" do
-    assert_equal 20, @app.openai_agent_max_tool_turns
-    assert_equal 20, AppSetting.openai_agent_max_tool_turns
+  test "background_agent_max_tool_turns uses seeded setting value" do
+    assert_equal 20, @app.background_agent_max_tool_turns
+    assert_equal 20, AppSetting.background_agent_max_tool_turns
   end
 
-  test "openai_agent_max_tool_turns accepts positive values and returns nil when invalid" do
-    @app.update!(openai_agent_max_tool_turns: "25")
-    assert_equal 25, AppSetting.openai_agent_max_tool_turns
+  test "background_agent_max_tool_turns accepts positive values and returns nil when invalid" do
+    @app.update!(background_agent_max_tool_turns: "25")
+    assert_equal 25, AppSetting.background_agent_max_tool_turns
 
-    @app.update!(openai_agent_max_tool_turns: "1000")
-    assert_equal 50, AppSetting.openai_agent_max_tool_turns
+    @app.update!(background_agent_max_tool_turns: "1000")
+    assert_equal 50, AppSetting.background_agent_max_tool_turns
 
-    @app.update!(openai_agent_max_tool_turns: "0")
-    assert_nil AppSetting.openai_agent_max_tool_turns
+    @app.update!(background_agent_max_tool_turns: "0")
+    assert_nil AppSetting.background_agent_max_tool_turns
 
-    @app.update!(openai_agent_max_tool_turns: "not-a-number")
-    assert_nil AppSetting.openai_agent_max_tool_turns
+    @app.update!(background_agent_max_tool_turns: "not-a-number")
+    assert_nil AppSetting.background_agent_max_tool_turns
   end
 
   test "embedding model validation is skipped when embedding_model is unchanged" do
-    SupportedApi.create!(
-      api_base_uri: "https://openrouter.ai/api/v1/",
-      api_access_token: "openrouter-test-token",
-      enabled: true
-    )
+    create_openrouter_supported_api
 
     AppSetting.stub(:fetch_openrouter_embedding_models, [ "openai/text-embedding-3-small" ]) do
       @app.update!(embedding_model: "openai/text-embedding-3-small")
@@ -273,16 +331,22 @@ class AppSettingTest < ActiveSupport::TestCase
   end
 
   test "embedding model validation runs when embedding_model changes" do
-    SupportedApi.create!(
-      api_base_uri: "https://openrouter.ai/api/v1/",
-      api_access_token: "openrouter-test-token",
-      enabled: true
-    )
+    create_openrouter_supported_api
 
     AppSetting.stub(:fetch_openrouter_embedding_models, []) do
       assert_not @app.update(embedding_model: "invalid-embedding-model")
     end
 
     assert_includes @app.errors[:embedding_model], "must be a valid OpenRouter embedding model"
+  end
+
+  private
+
+  def create_openrouter_supported_api(token: "openrouter-test-token")
+    SupportedApi.create!(
+      api_base_uri: SupportedApi::OPENROUTER_BASE_URI,
+      api_access_token: token,
+      enabled: true
+    )
   end
 end

@@ -231,24 +231,24 @@ end %>
 
   <h2 class="text-xl font-semibold mt-4 mb-2">
     Background Agent Runs
-    <% if AppSetting.openai_agent_enabled? %>
+    <% if AppSetting.background_agent_enabled? %>
       <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
   <p class="text-dim text-sm mb-2">
-    Uses Responses background runs for backend agent tasks (independent of user LLM settings).
+    Uses Responses API runs for backend agent tasks (independent of user LLM settings). OpenRouter runs synchronously on a dedicated worker queue.
   </p>
-  <% agent_supported_apis = @setting.openai_agent_supported_apis.order(:api_base_uri) %>
-  <% selected_agent_provider_id = @setting.openai_agent_supported_api&.id %>
-  <% selected_agent_provider_uri = @setting.openai_agent_supported_api&.api_base_uri.to_s %>
+  <% agent_supported_apis = @setting.background_agent_supported_apis.order(:api_base_uri) %>
+  <% selected_agent_provider_id = @setting.background_agent_supported_api&.id %>
+  <% selected_agent_provider_uri = @setting.background_agent_supported_api&.api_base_uri.to_s %>
   <div
     data-controller="agent-model-settings"
     data-agent-model-settings-models-path-value="<%= llm_models_admin_app_setting_path %>"
     data-agent-model-settings-provider-uri-map-value="<%= agent_supported_apis.pluck(:id, :api_base_uri).to_h.to_json %>"
   >
     <div>
-      <%= f.label :openai_agent_supported_api_id, "Background agent runs provider (OpenAI or xAI)", class: "form-label" %>
-      <%= f.collection_select :openai_agent_supported_api_id,
+      <%= f.label :background_agent_supported_api_id, "Background agent runs provider", class: "form-label" %>
+      <%= f.collection_select :background_agent_supported_api_id,
         agent_supported_apis, :id, :api_base_uri,
         { selected: selected_agent_provider_id }, {
           class: "form-select-primary",
@@ -258,32 +258,44 @@ end %>
           }
         } %>
       <p class="text-xs text-dim mt-1">
-        Choose the shared provider for background agent runs.
+        Choose OpenAI or xAI for stateful runs, or OpenRouter for stateless full-history runs with sticky provider routing.
       </p>
     </div>
     <div>
-      <%= f.label :openai_agent_model, "Background agent model", class: "form-label" %>
-      <%= f.combobox "openai_agent_model",
+      <%= f.label :background_agent_model, "Background agent model", class: "form-label" %>
+      <%= f.combobox "background_agent_model",
         "#{llm_models_admin_app_setting_path}?api_uri=#{selected_agent_provider_uri}",
-        name_when_new: "app_setting[openai_agent_model]",
+        name_when_new: "app_setting[background_agent_model]",
         placeholder: "Select or enter model name",
         data: {
           action: "",
           agent_model_settings_target: "modelCombobox"
         } %>
       <p class="text-xs text-dim mt-1">
-        Runs are only enabled when this field is set and the selected provider has a shared key.
-        <% if @setting.openai_agent_access_token.present? %>
+        Runs are only enabled when this field is set and the selected provider has a shared key. Use a strongly agentic model with reliable tool use and structured output support.
+        <% if @setting.background_agent_access_token.present? %>
           <span class="text-success-600 dark:text-success-400">Shared provider key is configured.</span>
         <% else %>
-          <span class="text-danger-600 dark:text-danger-400">Add a shared key for OpenAI or xAI in LLM APIs to enable this pipeline.</span>
+          <span class="text-danger-600 dark:text-danger-400">Add a shared key for the selected provider in LLM APIs to enable this pipeline.</span>
         <% end %>
       </p>
+      <% if selected_agent_provider_uri == SupportedApi::OPENROUTER_BASE_URI && @setting.background_agent_model.present? %>
+        <% agent_context_length = @setting.background_agent_context_length %>
+        <% if agent_context_length.present? %>
+          <p class="text-xs text-success-600 dark:text-success-400 mt-1">
+            Context metadata found: <%= number_to_delimited(agent_context_length) %> tokens. Stateless OpenRouter runs will stop near 80% reported input-token usage.
+          </p>
+        <% else %>
+          <p class="text-xs text-warning-700 dark:text-warning-300 mt-1">
+            No local context metadata found for this OpenRouter agent model. Manual model names may need an OpenRouter metadata refresh or selection from fetched models before the 80% context guard is available.
+          </p>
+        <% end %>
+      <% end %>
     </div>
   </div>
   <div class="mt-3">
-    <%= f.label :openai_agent_max_tool_turns, "Background run max tool turns", class: "form-label" %>
-    <%= f.number_field :openai_agent_max_tool_turns, min: 1, step: 1, class: "input-primary", placeholder: @setting.openai_agent_max_tool_turns %>
+    <%= f.label :background_agent_max_tool_turns, "Background run max tool turns", class: "form-label" %>
+    <%= f.number_field :background_agent_max_tool_turns, min: 1, step: 1, class: "input-primary", placeholder: @setting.background_agent_max_tool_turns %>
     <p class="text-xs text-dim mt-1">
       Caps tool-call loop iterations for Responses background runs (agent jobs).
     </p>

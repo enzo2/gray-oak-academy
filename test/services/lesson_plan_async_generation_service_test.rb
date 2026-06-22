@@ -108,7 +108,7 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
       )
 
       captured_kwargs = nil
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           ProposeResourcesJob.stub(:perform_later, ->(*_args, **kwargs) { captured_kwargs = kwargs }) do
             result = service.enqueue_propose_resources
@@ -131,7 +131,7 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
         source: "lesson_plan_button"
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
             result = service.enqueue_generate_content(propose_resources: false)

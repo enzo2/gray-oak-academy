@@ -5,7 +5,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
     app_setting = AppSetting.settings
-    app_setting.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: supported_apis(:openai).id)
+    app_setting.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: supported_apis(:openai).id)
 
     complete_calls = []
     wait_calls = []
@@ -73,7 +73,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     teacher = users(:admin)
     lesson_plan.update!(content: [ { "Intro" => "Ready" } ], status: "published")
     app_setting = AppSetting.settings
-    app_setting.update!(openai_agent_model: "gpt-5.2")
+    app_setting.update!(background_agent_model: "gpt-5.2")
 
     fake_client = Object.new
     fake_client.define_singleton_method(:complete) do |_messages = nil, **_kwargs|
@@ -114,7 +114,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
     app_setting = AppSetting.settings
-    app_setting.update!(openai_agent_model: "gpt-5.2", openai_agent_supported_api_id: supported_apis(:openai).id)
+    app_setting.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: supported_apis(:openai).id)
 
     complete_calls = []
     wait_calls = []
@@ -223,7 +223,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     superuser = users(:super_user)
     superuser.create_setting! if superuser.setting.nil?
     app_setting = AppSetting.settings
-    app_setting.update!(openai_agent_model: "gpt-5.2")
+    app_setting.update!(background_agent_model: "gpt-5.2")
 
     tool_calls = Array.new(ProposeResourcesJob::HIGH_TOOL_CALL_WARNING_THRESHOLD + 3) do |idx|
       {
@@ -305,7 +305,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
     app_setting = AppSetting.settings
-    app_setting.update!(openai_agent_model: "gpt-5.2", openai_agent_max_tool_turns: "1")
+    app_setting.update!(background_agent_model: "gpt-5.2", background_agent_max_tool_turns: "1")
 
     complete_calls = 0
     failure_calls = []
@@ -352,6 +352,69 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal 1, failure_calls.size
     assert_includes failure_calls.first[:error_message], "Resource proposal exceeded tool-call limit (1)"
     assert_equal "resp_2", failure_calls.first[:response_hash]["id"]
+  end
+
+  test "stateless provider replays native response items and tool outputs" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    AppSetting.settings.update!(background_agent_model: "anthropic/claude-sonnet-4.6")
+    responses = [
+      {
+        "id" => "resp_stateless_1", "status" => "completed", "usage" => { "input_tokens" => 20 },
+        "output" => [
+          { "type" => "reasoning", "signature" => "signed", "format" => "anthropic-claude-v1" },
+          { "type" => "function_call", "id" => "fc_1", "name" => "exa_search", "call_id" => "call_1", "arguments" => { query: "refraction" }.to_json }
+        ]
+      },
+      {
+        "id" => "resp_stateless_2", "status" => "completed", "usage" => { "input_tokens" => 40 },
+        "output" => [ { "type" => "message", "content" => [ { "type" => "output_text", "text" => '{"suggested_resources":[]}' } ] } ]
+      }
+    ]
+    complete_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { false }
+    fake_client.define_singleton_method(:model) { "anthropic/claude-sonnet-4.6" }
+    fake_client.define_singleton_method(:base_uri) { SupportedApi::OPENROUTER_BASE_URI }
+    fake_client.define_singleton_method(:last_input_items) { @last_input_items.deep_dup }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      complete_calls << { messages: messages, kwargs: kwargs }
+      @last_input_items = if messages.present?
+        [ { "role" => "developer", "content" => "system" }, { "role" => "user", "content" => messages.first[:content] } ]
+      else
+        kwargs.fetch(:input).deep_dup
+      end
+      { "id" => responses.fetch(complete_calls.size - 1)["id"] }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **_kwargs|
+      responses.find { |response| response["id"] == response_id }
+    end
+    fake_client.define_singleton_method(:output_text) do |response_hash|
+      response_hash["id"] == "resp_stateless_2" ? '{"suggested_resources":[]}' : ""
+    end
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:execute) do |call|
+      { type: "function_call_output", call_id: call["call_id"], output: '{"results":[]}' }
+    end
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+    captured_new_kwargs = nil
+
+    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          assert ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+        end
+      end
+    end
+
+    assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
+    assert_equal 2, complete_calls.size
+    assert_nil complete_calls.second[:messages]
+    replay = complete_calls.second.dig(:kwargs, :input)
+    assert_equal responses.first["output"], replay[2, 2]
+    assert_equal "function_call_output", replay.last[:type]
+    assert_nil complete_calls.second.dig(:kwargs, :previous_response_id)
   end
 end
 

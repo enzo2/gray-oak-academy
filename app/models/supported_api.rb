@@ -3,7 +3,7 @@ class SupportedApi < ApplicationRecord
   OPENROUTER_BASE_URI = "https://openrouter.ai/api/v1/".freeze
   OPENAI_CODEX_BASE_URI = "https://chatgpt.com/backend-api/codex/".freeze
   XAI_BASE_URI = "https://api.x.ai/v1/".freeze
-  RESPONSES_AGENT_BASE_URIS = [ OPENAI_BASE_URI, XAI_BASE_URI ].freeze
+  RESPONSES_AGENT_BASE_URIS = [ OPENAI_BASE_URI, OPENROUTER_BASE_URI, XAI_BASE_URI ].freeze
   SPEECH_PROVIDER_BASE_URIS = [ OPENAI_BASE_URI, OPENROUTER_BASE_URI ].freeze
 
   # Shared/supported OpenAI-compatible API configuration managed by superusers.

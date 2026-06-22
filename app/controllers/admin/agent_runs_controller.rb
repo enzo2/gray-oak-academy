@@ -33,7 +33,7 @@ module Admin
       service = OpenaiResponsesService.new(
         current_user: current_user,
         base_uri: run[:provider_base_uri].to_s.presence,
-        model: run[:model].presence || app_setting&.openai_agent_model,
+        model: run[:model].presence || app_setting&.background_agent_model,
         agent_run: true,
         agent_run_require_stateful: false,
         log_completion: false,

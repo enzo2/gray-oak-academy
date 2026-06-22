@@ -4,7 +4,7 @@ class DelegateToFrontierLlmJobTest < ActiveJob::TestCase
   test "uses the standard reasoning-model routing pipeline" do
     teacher = users(:admin)
     teacher.setting.update!(llm_api_access_token: "test-user-key", reasoning_model_name: "reasoning-model-x")
-    AppSetting.first.update!(openai_agent_model: "gpt-5.2", exa_api_key: "exa-key")
+    AppSetting.first.update!(background_agent_model: "gpt-5.2", exa_api_key: "exa-key")
 
     fake_client = Object.new
     captured_new_kwargs = nil

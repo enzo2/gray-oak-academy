@@ -515,6 +515,71 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal({ effort: "low" }, captured[:reasoning])
   end
 
+  test "complete replays provider-native reasoning fields from persisted chat history" do
+    captured = nil
+    messages = [
+      { "role" => "user", "content" => "Find answer" },
+      {
+        "role" => "assistant",
+        "reasoning_details" => [
+          {
+            "type" => "reasoning",
+            "id" => "rs_native",
+            "format" => "anthropic-claude-v1",
+            "signature" => "opaque-signature",
+            "provider_extension" => { "untouched" => true }
+          }
+        ],
+        "tool_calls" => [
+          { "id" => "call_1", "function" => { "name" => "Lookup", "arguments" => "{}" } }
+        ]
+      },
+      { "role" => "tool", "tool_call_id" => "call_1", "content" => "tool output" }
+    ]
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENROUTER_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+      service.complete(messages)
+    end
+
+    reasoning = captured[:input].find { |item| item["type"] == "reasoning" }
+    assert_equal "anthropic-claude-v1", reasoning["format"]
+    assert_equal "opaque-signature", reasoning["signature"]
+    assert_equal({ "untouched" => true }, reasoning["provider_extension"])
+  end
+
+  test "SDK normalization keeps undocumented OpenRouter reasoning fields" do
+    item = OpenAI::Models::Responses::ResponseReasoningItem.new(
+      id: "rs_sdk",
+      summary: [],
+      type: :reasoning,
+      format: "anthropic-claude-v1",
+      signature: "opaque-signature"
+    )
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENROUTER_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+
+    normalized = service.send(:normalize_response_hash, item)
+
+    assert_equal "anthropic-claude-v1", normalized["format"]
+    assert_equal "opaque-signature", normalized["signature"]
+  end
+
   test "complete ignores id-only reasoning details when converting history" do
     captured = nil
     messages = [
@@ -1216,8 +1281,8 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
   test "agent_run mode resolves provider, token, and model from app settings" do
     AppSetting.first.update!(
-      openai_agent_supported_api_id: supported_apis(:xai).id,
-      openai_agent_model: "grok-4-0709"
+      background_agent_supported_api_id: supported_apis(:xai).id,
+      background_agent_model: "grok-4-0709"
     )
 
     captured_client_kwargs = nil
@@ -1245,8 +1310,126 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal "grok-4-0709", captured_request[:model]
   end
 
+  test "openrouter agent run uses metadata run id as sticky session header" do
+    openrouter = create_openrouter_supported_api
+    AppSetting.first.update!(
+      background_agent_supported_api_id: openrouter.id,
+      background_agent_model: "anthropic/claude-sonnet-4.6"
+    )
+    captured = nil
+    run_id = "sticky-" + ("x" * 300)
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done", id: "resp_openrouter_agent").merge("status" => "completed")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        agent_run: true,
+        log_completion: false
+      )
+      service.complete(
+        [ { role: "user", content: "Hello" } ],
+        background: true,
+        metadata: { run_id: run_id, run_type: "test" }
+      )
+    end
+
+    assert_equal run_id.first(256), captured.dig(:request_options, :extra_headers, "x-session-id")
+  end
+
+  test "agent run can still explicitly require a stateful provider" do
+    openrouter = create_openrouter_supported_api
+    AppSetting.first.update!(
+      background_agent_supported_api_id: openrouter.id,
+      background_agent_model: "anthropic/claude-sonnet-4.6"
+    )
+
+    error = assert_raises(OpenAiError) do
+      OpenaiResponsesService.new(
+        current_user: @user,
+        agent_run: true,
+        agent_run_require_stateful: true,
+        log_completion: false
+      )
+    end
+
+    assert_includes error.message, "does not support required stateful Responses behavior"
+  end
+
+  test "openrouter ordinary requests omit sticky agent session header" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENROUTER_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+      service.complete([ { role: "user", content: "Hello" } ])
+    end
+
+    assert_nil captured.dig(:request_options, :extra_headers, "x-session-id")
+  end
+
+  test "complete exposes an isolated copy of fully resolved input items" do
+    fake_client = build_responses_client { |_params| response_payload("Done") }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENROUTER_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+      service.complete([ { role: "user", content: "Hello" } ])
+
+      first_copy = service.last_input_items
+      assert_equal "developer", first_copy.first["role"]
+      assert_equal "user", first_copy.second["role"]
+      first_copy << { "role" => "user", "content" => "mutated" }
+      assert_equal 2, service.last_input_items.size
+    end
+  end
+
+  test "explicitly disabled reasoning omits encrypted reasoning include" do
+    captured = nil
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENROUTER_BASE_URI,
+        model: @model,
+        reasoning_model: true,
+        log_completion: false
+      )
+      service.complete(
+        [ { role: "user", content: "Hello" } ],
+        reasoning: { effort: "none" },
+        request_timeout_seconds: 12
+      )
+    end
+
+    assert_equal({ enabled: false }, captured[:reasoning])
+    assert_nil captured[:include]
+    assert_equal 12.0, captured.dig(:request_options, :timeout)
+  end
+
   test "agent_run mode rejects unsupported provider overrides" do
-    AppSetting.first.update!(openai_agent_model: "gpt-5.2")
+    AppSetting.first.update!(background_agent_model: "gpt-5.2")
 
     error = assert_raises(OpenAiError) do
       OpenaiResponsesService.new(
@@ -2414,6 +2597,14 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
   end
 
   private
+
+  def create_openrouter_supported_api
+    SupportedApi.create!(
+      api_base_uri: SupportedApi::OPENROUTER_BASE_URI,
+      api_access_token: "openrouter-test-token",
+      enabled: true
+    )
+  end
 
   def build_responses_client(retrieve_proc: nil, &create_proc)
     responses = Object.new

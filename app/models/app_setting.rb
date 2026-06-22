@@ -1,6 +1,11 @@
 class AppSetting < ApplicationRecord
   MASKED_SECRET_VALUE = "__STORED_SECRET__".freeze
-  MAX_OPENAI_AGENT_TOOL_TURNS = 50
+  MAX_BACKGROUND_AGENT_TOOL_TURNS = 50
+  LEGACY_BACKGROUND_AGENT_SETTING_KEYS = {
+    "background_agent_supported_api_id" => "openai_agent_supported_api_id",
+    "background_agent_model" => "openai_agent_model",
+    "background_agent_max_tool_turns" => "openai_agent_max_tool_turns"
+  }.freeze
 
   # Singleton app-wide settings stored in a JSONB `settings` column
   encrypts :settings
@@ -20,9 +25,9 @@ class AppSetting < ApplicationRecord
                  :image_generation_two_pass,
                  :user_daily_budget,
                  :max_chat_cost,
-                 :openai_agent_supported_api_id,
-                 :openai_agent_model,
-                 :openai_agent_max_tool_turns,
+                 :background_agent_supported_api_id,
+                 :background_agent_model,
+                 :background_agent_max_tool_turns,
                  :exa_api_key,
                  :exa_research_model,
                  :course_outline_research_stub_enabled
@@ -61,6 +66,7 @@ class AppSetting < ApplicationRecord
   end
 
   validates :singleton, inclusion: { in: [ true, false ] }
+  before_validation :migrate_legacy_background_agent_settings
   before_validation :normalize_secret_fields
   validate :llms_not_archived, on: :update
   validate :embedding_model_validity, on: :update, if: :embedding_model_changed_in_settings?
@@ -156,41 +162,68 @@ class AppSetting < ApplicationRecord
     SupportedApi.openai_supported
   end
 
-  def openai_agent_supported_api
-    if openai_agent_supported_api_id.present?
-      selected_api = SupportedApi.find_responses_agent_selectable_by_id(openai_agent_supported_api_id)
+  def background_agent_supported_api
+    if background_agent_supported_api_id.present?
+      selected_api = SupportedApi.find_responses_agent_selectable_by_id(background_agent_supported_api_id)
       return selected_api if selected_api.present?
     end
 
     SupportedApi.openai_selectable
   end
 
-  def openai_agent_supported_apis
+  def background_agent_supported_api_id
+    background_agent_setting_value("background_agent_supported_api_id")
+  end
+
+  def background_agent_model
+    background_agent_setting_value("background_agent_model")
+  end
+
+  def background_agent_supported_apis
     SupportedApi.responses_agent_selectable
   end
 
-  def openai_agent_access_token
-    openai_agent_supported_api&.api_access_token
+  def background_agent_access_token
+    background_agent_supported_api&.api_access_token
   end
 
-  def openai_agent_base_uri
-    openai_agent_supported_api&.api_base_uri
+  def background_agent_base_uri
+    background_agent_supported_api&.api_base_uri
   end
 
-  def openai_agent_enabled?
-    openai_agent_model.present? && openai_agent_access_token.present?
+  def background_agent_llm
+    return nil if background_agent_base_uri.blank? || background_agent_model.blank?
+
+    Llm.find_by(
+      api_provider: SupportedApi.normalize_base_uri(background_agent_base_uri),
+      model: background_agent_model
+    )
   end
 
-  def self.openai_agent_enabled?
-    settings&.openai_agent_enabled? || false
+  def background_agent_context_length
+    background_agent_llm&.context_length
   end
 
-  def openai_agent_max_tool_turns
-    coerce_tool_turn_limit(super)
+  def background_agent_context_metadata_missing?
+    background_agent_model.present? &&
+      background_agent_base_uri == SupportedApi::OPENROUTER_BASE_URI &&
+      background_agent_context_length.blank?
   end
 
-  def self.openai_agent_max_tool_turns
-    settings&.openai_agent_max_tool_turns
+  def background_agent_enabled?
+    background_agent_model.present? && background_agent_access_token.present?
+  end
+
+  def self.background_agent_enabled?
+    settings&.background_agent_enabled? || false
+  end
+
+  def background_agent_max_tool_turns
+    coerce_tool_turn_limit(background_agent_setting_value("background_agent_max_tool_turns"))
+  end
+
+  def self.background_agent_max_tool_turns
+    settings&.background_agent_max_tool_turns
   end
 
   def self.course_outline_research_stub_enabled?
@@ -253,6 +286,29 @@ class AppSetting < ApplicationRecord
 
   private
 
+  def background_agent_setting_value(key)
+    value = settings.to_h[key]
+    return value if value.present?
+
+    legacy_key = LEGACY_BACKGROUND_AGENT_SETTING_KEYS.fetch(key)
+    settings.to_h[legacy_key]
+  end
+
+  def migrate_legacy_background_agent_settings
+    payload = settings
+    return unless payload.is_a?(Hash)
+
+    changed = false
+    LEGACY_BACKGROUND_AGENT_SETTING_KEYS.each do |new_key, legacy_key|
+      next unless payload.key?(legacy_key)
+
+      legacy_value = payload.delete(legacy_key)
+      payload[new_key] = legacy_value if payload[new_key].blank? && legacy_value.present?
+      changed = true
+    end
+    settings_will_change! if changed
+  end
+
   def normalize_secret_fields
     self.token_override = token_override.to_s.strip.presence
     self.exa_api_key = exa_api_key.to_s.strip.presence
@@ -262,7 +318,7 @@ class AppSetting < ApplicationRecord
     parsed = Integer(value, exception: false)
     return nil unless parsed&.positive?
 
-    [ parsed, MAX_OPENAI_AGENT_TOOL_TURNS ].min
+    [ parsed, MAX_BACKGROUND_AGENT_TOOL_TURNS ].min
   end
 
   def llms_not_archived

@@ -8,8 +8,8 @@ one:
     tts_instructions: "Speak in a calm and friendly tone."
     stt_method: "speech"
     stt_model: "transcribe-1"
-    openai_agent_model: "gpt-5.2"
-    openai_agent_max_tool_turns: "20"
+    background_agent_model: "gpt-5.2"
+    background_agent_max_tool_turns: "20"
     exa_research_model: "exa-research"
   singleton: true
   created_at: <%= Time.now %>

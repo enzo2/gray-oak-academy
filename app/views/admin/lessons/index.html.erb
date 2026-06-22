@@ -1,4 +1,4 @@
-<% outline_research_available = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+<% outline_research_available = AppSetting.background_agent_enabled? && AppSetting.exa_enabled? %>
 <% outline_research_recommended = outline_research_available && @course.outline_drafted_not_researched? %>
 
 <div class="flex flex-wrap items-start justify-between gap-3">

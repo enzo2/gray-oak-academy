@@ -8,7 +8,7 @@ module Admin
       sign_in(teacher)
       course.update!(outline: [])
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -31,7 +31,7 @@ module Admin
       sign_in(teacher)
       course.update!(outline: [ { "Topic" => "Details" } ])
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -40,7 +40,7 @@ module Admin
       assert_includes response.body, "Outline Research"
       assert_not_includes response.body, "Generate Outline"
 
-      AppSetting.stub(:openai_agent_enabled?, false) do
+      AppSetting.stub(:background_agent_enabled?, false) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -76,7 +76,7 @@ module Admin
         }
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -123,7 +123,7 @@ module Admin
         }
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -155,7 +155,7 @@ module Admin
         }
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -175,7 +175,7 @@ module Admin
         outline_research_response_id: nil
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end
@@ -195,7 +195,7 @@ module Admin
         outline_research_response_id: "resp_123"
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_path(course)
         end

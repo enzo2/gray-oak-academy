@@ -93,7 +93,7 @@ module Admin
       )
       sign_in(teacher)
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get admin_course_lessons_path(course)
         end

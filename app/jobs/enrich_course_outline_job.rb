@@ -1,7 +1,7 @@
 require "json/repair"
 
 class EnrichCourseOutlineJob < ApplicationJob
-  queue_as :default
+  queue_as :agent
 
   EXA_OUTPUT_SCHEMA = {
     type: "object",
@@ -359,7 +359,8 @@ class EnrichCourseOutlineJob < ApplicationJob
       reasoning_model: true,
       enable_tools: false,
       store: true,
-      agent_run: true
+      agent_run: true,
+      agent_run_require_stateful: false
     )
 
     submitted = client.complete(

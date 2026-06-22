@@ -1,5 +1,5 @@
 <div id="lesson-plan-generation-controls" class="mb-4">
-  <% resource_proposal_enabled = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+  <% resource_proposal_enabled = AppSetting.background_agent_enabled? && AppSetting.exa_enabled? %>
   <% revising = lesson_plan.content.present? %>
   <% action_label = revising ? "Revise with LLM" : "Generate Lesson Plan" %>
   <% action_icon = revising ? "pencil-square" : "lightbulb" %>

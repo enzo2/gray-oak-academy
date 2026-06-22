@@ -113,6 +113,8 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
           {
             "type" => "reasoning",
             "id" => "rs_1",
+            "format" => "anthropic-claude-v1",
+            "signature" => "opaque-signature",
             "summary" => [ { "type" => "summary_text", "text" => "Need lookup first." } ],
             "encrypted_content" => "enc_turn_1"
           },
@@ -135,6 +137,12 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     ]
 
     fake_client.define_singleton_method(:stateful_supported?) { false }
+    fake_client.define_singleton_method(:last_input_items) do
+      [
+        { "role" => "developer", "content" => "system prompt" },
+        { "role" => "user", "content" => "Please help" }
+      ]
+    end
     fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
       calls << { messages: messages, kwargs: kwargs }
       response_index += 1
@@ -176,19 +184,21 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal 2, calls.size
     assert_equal [ { role: "user", content: "Please help" } ], calls[0][:messages]
     assert_equal({ effort: "low" }, calls[0][:kwargs][:reasoning])
-    assert_equal({ input: nil, previous_response_id: nil, reasoning: { effort: "low" } }, calls[1][:kwargs])
+    assert_equal({ input: calls[1][:kwargs][:input], previous_response_id: nil, reasoning: { effort: "low" } }, calls[1][:kwargs])
     assert_nil calls[1][:kwargs][:previous_response_id]
-    assert_nil calls[1][:kwargs][:input]
+    assert_nil calls[1][:messages]
     assert_equal({ effort: "low" }, calls[1][:kwargs][:reasoning])
 
-    second_messages = calls[1][:messages]
-    assert_equal "user", second_messages[0][:role]
-    assert_equal "assistant", second_messages[1][:role]
-    assert second_messages[1][:tool_calls].present?
-    assert_equal "enc_turn_1", second_messages[1][:reasoning_details][0]["encrypted_content"]
-    assert_equal "tool", second_messages[2][:role]
-    assert_equal "call_1", second_messages[2][:tool_call_id]
-    assert_equal "tool output", second_messages[2][:content]
+    second_input = calls[1][:kwargs][:input]
+    assert_equal [ "developer", "user" ], second_input.first(2).map { |item| item["role"] }
+    assert_equal responses.first["output"], second_input[2, 2]
+    assert_equal "function_call_output", second_input.last[:type]
+    assert_equal "call_1", second_input.last[:call_id]
+    assert_equal "tool output", second_input.last[:output]
+
+    persisted_reasoning = conversation.reload.messages.role_assistant.first.reasoning_details.first
+    assert_equal "anthropic-claude-v1", persisted_reasoning["format"]
+    assert_equal "opaque-signature", persisted_reasoning["signature"]
   end
 
   test "does not persist reasoning details when assistant turn has no tool calls" do
@@ -261,6 +271,19 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
         "id" => "resp_2",
         "status" => "completed",
         "output" => [
+          {
+            "type" => "function_call",
+            "id" => "fc_2",
+            "name" => "list_courses",
+            "call_id" => "call_2",
+            "arguments" => {}.to_json
+          }
+        ]
+      },
+      {
+        "id" => "resp_3",
+        "status" => "completed",
+        "output" => [
           { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Final assistant reply" } ] }
         ]
       }
@@ -268,6 +291,12 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     calls = []
 
     fake_client.define_singleton_method(:stateful_supported?) { false }
+    fake_client.define_singleton_method(:last_input_items) do
+      [
+        { "role" => "developer", "content" => "system prompt" },
+        { "role" => "user", "content" => "Please help" }
+      ]
+    end
     fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
       calls << { messages: messages, kwargs: kwargs }
       response_index += 1
@@ -276,7 +305,7 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
       responses[response_index - 1]
     end
     fake_client.define_singleton_method(:output_text) do |response_hash|
-      response_hash["id"] == "resp_2" ? "Final assistant reply" : ""
+      response_hash["id"] == "resp_3" ? "Final assistant reply" : ""
     end
 
     fake_adapter = Object.new
@@ -285,7 +314,8 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
       Array(response_hash["output"]).select { |item| item["type"] == "function_call" }
     end
     fake_adapter.define_singleton_method(:function_call_outputs) do |_calls|
-      [ { id: "fco_1", type: "function_call_output", call_id: "call_1", output: "tool output" } ]
+      call = _calls.first
+      [ { id: "fco_#{call['call_id']}", type: "function_call_output", call_id: call["call_id"], output: "tool output" } ]
     end
     fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) do |calls_for_message|
       calls_for_message.map do |call|
@@ -310,9 +340,11 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert first_assistant.tool_calls.present?
     assert_nil first_assistant.reasoning_details
 
-    second_messages = calls[1][:messages]
-    assert_equal "assistant", second_messages[1][:role]
-    assert_nil second_messages[1][:reasoning_details]
+    assert_equal 3, calls.size
+    assert_equal({ effort: "none" }, calls.second.dig(:kwargs, :reasoning))
+    assert_nil calls.second[:kwargs][:input]
+    assert_equal({ effort: "none" }, calls.third.dig(:kwargs, :reasoning))
+    assert_equal "function_call", calls.third.dig(:kwargs, :input, 2, "type")
   end
 
   test "stateful chained conversations send only trailing user messages on initial request" do

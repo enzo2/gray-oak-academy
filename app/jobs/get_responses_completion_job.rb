@@ -38,7 +38,7 @@ class GetResponsesCompletionJob < ApplicationJob
 
     stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
     chained_state = stateful_supported && client.respond_to?(:previous_response_id) && client.previous_response_id.present?
-    history_messages = stateful_supported ? nil : deep_dup_messages(messages)
+    reasoning_options = reasoning_options_for(stateful_supported: stateful_supported)
 
     initial_messages = chained_state ? trailing_user_messages(messages) : messages
     if chained_state && initial_messages.blank?
@@ -49,10 +49,37 @@ class GetResponsesCompletionJob < ApplicationJob
     response_hash = complete_and_capture_response(
       client,
       messages: initial_messages,
-      reasoning: reasoning_options_for(stateful_supported: stateful_supported),
+      reasoning: reasoning_options,
       stream_state: stream_state
     )
     flush_stream_content!(conversation: conversation, state: stream_state, force: true)
+    native_transcript = nil
+    unless stateful_supported
+      native_transcript = ResponsesNativeTranscript.new(initial_input_items: client.last_input_items)
+      unless native_transcript.reasoning_replayable_for_tool_boundary?(response_hash)
+        Rails.logger.warn(
+          "Stateless Responses chat reasoning fallback used conversation=#{conversation.id} user=#{user.id} " \
+          "provider=#{client.respond_to?(:base_uri) ? client.base_uri : 'unknown'} " \
+          "model=#{client.respond_to?(:model) ? client.model : 'unknown'} response_id=#{response_hash['id']}"
+        )
+        discard_streamed_assistant_message!(conversation: conversation, state: stream_state)
+        reasoning_options = { effort: "none" }
+        start_stream_turn!(state: stream_state)
+        response_hash = complete_and_capture_response(
+          client,
+          messages: initial_messages,
+          reasoning: reasoning_options,
+          stream_state: stream_state
+        )
+        flush_stream_content!(conversation: conversation, state: stream_state, force: true)
+        native_transcript = ResponsesNativeTranscript.new(initial_input_items: client.last_input_items)
+      end
+      append_stateless_response!(
+        transcript: native_transcript,
+        response_hash: response_hash,
+        reasoning_options: reasoning_options
+      )
+    end
     final_message_id = nil
     turns = 0
 
@@ -65,7 +92,6 @@ class GetResponsesCompletionJob < ApplicationJob
         stream_message: stream_state[:message]
       )
       assistant_message = persisted[:message]
-      history_messages << persisted[:payload] if history_messages && persisted[:payload].present?
 
       function_calls = function_call_adapter.function_calls(response_hash)
       if function_calls.blank?
@@ -86,20 +112,29 @@ class GetResponsesCompletionJob < ApplicationJob
           client,
           input: tool_outputs,
           previous_response_id: response_hash["id"],
-          reasoning: reasoning_options_for(stateful_supported: stateful_supported),
+          reasoning: reasoning_options,
           stream_state: stream_state
         )
         flush_stream_content!(conversation: conversation, state: stream_state, force: true)
       else
-        history_messages.concat(function_call_outputs_to_tool_messages(tool_outputs))
+        native_transcript.append_function_call_outputs!(tool_outputs)
         start_stream_turn!(state: stream_state)
         response_hash = complete_and_capture_response(
           client,
-          messages: history_messages,
-          reasoning: reasoning_options_for(stateful_supported: stateful_supported),
+          input: native_transcript.input_items,
+          reasoning: reasoning_options,
           stream_state: stream_state
         )
         flush_stream_content!(conversation: conversation, state: stream_state, force: true)
+        unless reasoning_options[:effort] == "none" || native_transcript.reasoning_replayable_for_tool_boundary?(response_hash)
+          raise OpenAiError,
+                "Stateless Responses reasoning became unreplayable after tools had executed; refusing an unsafe restart."
+        end
+        append_stateless_response!(
+          transcript: native_transcript,
+          response_hash: response_hash,
+          reasoning_options: reasoning_options
+        )
       end
     end
 
@@ -134,6 +169,17 @@ class GetResponsesCompletionJob < ApplicationJob
   end
 
   private
+
+  def append_stateless_response!(transcript:, response_hash:, reasoning_options:)
+    omit_reasoning = reasoning_options[:effort] == "none" &&
+      !transcript.reasoning_replayable_for_tool_boundary?(response_hash)
+    if omit_reasoning
+      Rails.logger.warn(
+        "Provider returned unreplayable reasoning after reasoning was disabled; omitting reasoning items from stateless chat replay."
+      )
+    end
+    transcript.append_response!(response_hash, omit_reasoning: omit_reasoning)
+  end
 
   def complete_and_capture_response(client, messages: nil, input: nil, previous_response_id: nil, reasoning: nil, stream_state: nil)
     client.complete(
@@ -208,23 +254,6 @@ class GetResponsesCompletionJob < ApplicationJob
     { message: message, payload: payload }
   end
 
-  def function_call_outputs_to_tool_messages(function_call_outputs)
-    Array(function_call_outputs).filter_map do |function_call_output|
-      call_id = function_call_output[:call_id] || function_call_output["call_id"]
-      next if call_id.blank?
-
-      {
-        role: "tool",
-        tool_call_id: call_id,
-        content: function_call_output[:output] || function_call_output["output"] || ""
-      }
-    end
-  end
-
-  def deep_dup_messages(messages)
-    Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
-  end
-
   # Persist reasoning items only for assistant turns that include tool calls.
   # This mirrors Chat Completions policy and avoids storing hidden chain-of-thought
   # on ordinary conversational replies.
@@ -233,59 +262,12 @@ class GetResponsesCompletionJob < ApplicationJob
 
     details = Array(response_hash["output"]).filter_map do |item|
       next unless item["type"].to_s == "reasoning"
+      next unless ResponsesNativeTranscript::OPAQUE_REASONING_KEYS.any? { |key| item[key].present? }
 
-      normalize_reasoning_detail(item)
+      item.deep_dup
     end
 
     details.presence
-  end
-
-  def normalize_reasoning_detail(item)
-    encrypted_content = item["encrypted_content"].to_s
-    summary = normalize_reasoning_summary(item["summary"])
-    return nil if encrypted_content.blank? && summary.blank?
-
-    id = item["id"].to_s
-    status = item["status"].to_s
-
-    detail = {
-      "type" => "reasoning",
-      "id" => id.presence,
-      "status" => status.presence,
-      "summary" => summary.presence,
-      "encrypted_content" => encrypted_content.presence
-    }.compact
-
-    detail.except("type").present? ? detail : nil
-  end
-
-  def normalize_reasoning_summary(summary)
-    case summary
-    when String
-      text = summary.strip
-      return [] if text.blank?
-
-      [ { "type" => "summary_text", "text" => text } ]
-    when Array
-      summary.filter_map { |entry| normalize_reasoning_summary_entry(entry) }
-    when Hash
-      entry = normalize_reasoning_summary_entry(summary)
-      entry.present? ? [ entry ] : []
-    else
-      []
-    end
-  end
-
-  def normalize_reasoning_summary_entry(entry)
-    return nil unless entry.is_a?(Hash)
-
-    type = entry["type"].to_s.presence || "summary_text"
-    text = entry["text"].to_s
-    text = entry["summary_text"].to_s if text.blank?
-    text = text.strip
-    return nil if text.blank?
-
-    { "type" => type, "text" => text }
   end
 
   def raise_on_response_refusal!(response_hash)
@@ -354,6 +336,17 @@ class GetResponsesCompletionJob < ApplicationJob
     state[:message] = nil
     state[:content_buffer] = +""
     state[:last_update_time] = Time.current
+  end
+
+  def discard_streamed_assistant_message!(conversation:, state:)
+    message = state[:message]
+    return unless message&.persisted?
+
+    target = dom_id(message)
+    message.destroy!
+    Turbo::StreamsChannel.broadcast_remove_to(dom_id(conversation), target: target)
+  ensure
+    start_stream_turn!(state: state)
   end
 
   def responses_stream_handler(conversation:, state:)

@@ -3,9 +3,13 @@ default: &default
     - polling_interval: 0.1
       batch_size: 50
   workers:
-    - queues: "*"
+    - queues: [ default, mailers ]
       threads: 3
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
+      polling_interval: 0.05
+    - queues: agent
+      threads: 1
+      processes: <%= ENV.fetch("AGENT_JOB_CONCURRENCY", 1) %>
       polling_interval: 0.05
 
 development:

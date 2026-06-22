@@ -30,7 +30,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       conversation_id: conversation.id
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         emitted_events = []
         service.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
@@ -82,7 +82,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         emitted_events = []
         service.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
@@ -120,7 +120,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 0, only: ResumeCourseOutlineResearchJob do
           result = service.enqueue_resume(permission_granted: true)
@@ -154,7 +154,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 1, only: ResumeCourseOutlineResearchJob do
           result = service.enqueue_resume(permission_granted: true)
@@ -184,7 +184,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 0, only: ResumeCourseOutlineResearchJob do
           result = service.enqueue_resume(permission_granted: true)
@@ -204,7 +204,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 0, only: EnrichCourseOutlineJob do
           result = service.enqueue_start
@@ -228,7 +228,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 1, only: EnrichCourseOutlineJob do
           result = service.enqueue_start
@@ -251,7 +251,7 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
       source: "course_edit_page"
     )
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 0, only: EnrichCourseOutlineJob do
           result = service.enqueue_start

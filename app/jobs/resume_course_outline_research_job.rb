@@ -1,11 +1,12 @@
 class ResumeCourseOutlineResearchJob < ApplicationJob
-  queue_as :default
+  queue_as :agent
 
   def perform(course_id:, user_id:, permission_granted:, source: "course_edit")
     current_user = User.find(user_id)
     course = Course.find(course_id)
     failure_phase = "initialize"
     client = nil
+    stateless_loop = nil
 
     permission = ActiveModel::Type::Boolean.new.cast(permission_granted)
     raise OpenAiError, "Teacher permission is required before applying research updates." unless permission
@@ -32,18 +33,22 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       enable_tools: false,
       reasoning_model: true,
       store: true,
-      agent_run: true
+      agent_run: true,
+      agent_run_require_stateful: false
     )
 
-    max_tool_turns = AppSetting.openai_agent_max_tool_turns
+    max_tool_turns = AppSetting.background_agent_max_tool_turns
     raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
 
+    stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
+    stateless_loop = ResponsesAgentLoop.new(client: client) unless stateful_supported
     response_hash = submit_initial_resume_prompt(
       client: client,
       course: course,
       run_id: run_id,
       source: source,
-      previous_response_id: course.outline_research_response_id
+      previous_response_id: course.outline_research_response_id,
+      stateless_loop: stateless_loop
     )
 
     turns = 0
@@ -58,15 +63,23 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       end
 
       outputs = function_calls.map { |function_call| executor.execute(function_call) }
-      response_hash = continue_run(
-        client: client,
-        input: outputs,
-        previous_response_id: response_hash["id"],
+      tool_metadata = run_metadata(
         run_id: run_id,
         source: source,
         course: course,
-        current_user: current_user
+        teacher_id: current_user.id,
+        phase: "tool_turn"
       )
+      response_hash = if stateless_loop
+        stateless_loop.continue_with_tool_outputs(outputs: outputs, metadata: tool_metadata)
+      else
+        continue_run(
+          client: client,
+          input: outputs,
+          previous_response_id: response_hash["id"],
+          metadata: tool_metadata
+        )
+      end
     end
 
     final_status = response_hash["status"].to_s
@@ -85,6 +98,10 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       outline_research_run_id: run_id,
       outline_research_response_id: response_hash["id"].to_s
     )
+    Rails.logger.info(
+      "ResumeCourseOutlineResearchJob completed course=#{course.id} run_id=#{run_id} turns=#{turns} " \
+      "reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false}"
+    )
     emit_analytics_event(
       Events::CourseOutlineResearchApplyCompleted,
       course: course,
@@ -97,7 +114,10 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     )
     broadcast_editor_state(course, current_user)
   rescue StandardError => e
-    Rails.logger.error("ResumeCourseOutlineResearchJob failed for course=#{course_id}: #{e.message}")
+    Rails.logger.error(
+      "ResumeCourseOutlineResearchJob failed for course=#{course_id} " \
+      "reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false}: #{e.message}"
+    )
     client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
     course&.update(
       outline_research_stage: "failed",
@@ -161,21 +181,26 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     broadcast_editor_state(course, current_user)
   end
 
-  def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:)
+  def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:, stateless_loop: nil)
+    prompt = build_resume_prompt(course)
+    metadata = run_metadata(
+      run_id: run_id,
+      source: source,
+      course: course,
+      teacher_id: course.teacher_id,
+      phase: "submitted"
+    )
+    if stateless_loop
+      return stateless_loop.start(messages: [ { role: "user", content: prompt } ], metadata: metadata)
+    end
+
     raise OpenAiError, "No previous response id is available to resume outline research run." if previous_response_id.to_s.blank?
 
-    prompt = build_resume_prompt(course)
     submitted = client.complete(
       [ { role: "user", content: prompt } ],
       previous_response_id: previous_response_id,
       background: true,
-      metadata: run_metadata(
-        run_id: run_id,
-        source: source,
-        course: course,
-        teacher_id: course.teacher_id,
-        phase: "submitted"
-      )
+      metadata: metadata
     )
 
     response_id = submitted["id"].to_s
@@ -184,19 +209,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     client.wait_for_response(response_id, timeout_seconds: 900, poll_interval_seconds: 2)
   end
 
-  def continue_run(client:, input:, previous_response_id:, run_id:, source:, course:, current_user:)
+  def continue_run(client:, input:, previous_response_id:, metadata:)
     submitted = client.complete(
       nil,
       input: input,
       previous_response_id: previous_response_id,
       background: true,
-      metadata: run_metadata(
-        run_id: run_id,
-        source: source,
-        course: course,
-        teacher_id: current_user.id,
-        phase: "tool_turn"
-      )
+      metadata: metadata
     )
     response_id = submitted["id"].to_s
     raise OpenAiError, "Responses API did not return a response id while continuing outline research apply run." if response_id.blank?

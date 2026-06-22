@@ -80,7 +80,7 @@ module Admin
         outline_research_stage: "idle"
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get admin_courses_path
         end
@@ -136,7 +136,7 @@ module Admin
         outline_research_stage: "idle"
       )
 
-      AppSetting.stub(:openai_agent_enabled?, false) do
+      AppSetting.stub(:background_agent_enabled?, false) do
         AppSetting.stub(:exa_enabled?, false) do
           get admin_courses_path
         end

@@ -1,0 +1,91 @@
+require "test_helper"
+require "erb"
+require "yaml"
+
+class AgentQueueTest < ActiveSupport::TestCase
+  test "long-running agent jobs use the isolated agent queue" do
+    assert_equal "agent", ProposeResourcesJob.new.queue_name
+    assert_equal "agent", ResumeCourseOutlineResearchJob.new.queue_name
+    assert_equal "agent", EnrichCourseOutlineJob.new.queue_name
+    assert_equal "agent", GenerateLessonPlanPipelineJob.new.queue_name
+    assert_equal "default", GetResponsesCompletionJob.new.queue_name
+  end
+
+  test "solid queue gives agent work a dedicated single-thread worker" do
+    workers = production_queue_config.fetch("workers")
+    interactive_worker = workers.find { |worker| worker["queues"] == [ "default", "mailers" ] }
+    agent_worker = workers.find { |worker| worker["queues"] == "agent" }
+
+    assert_equal 3, interactive_worker.fetch("threads")
+    assert_equal 1, agent_worker.fetch("threads")
+    assert_equal 1, agent_worker.fetch("processes")
+  end
+
+  test "solid queue workers cover every app and framework queue" do
+    missing = required_queue_names.reject { |queue| serviced_queue?(queue) }
+
+    assert_empty missing, "Missing Solid Queue workers for queues: #{missing.join(', ')}"
+  end
+
+  private
+
+  def required_queue_names
+    (app_job_queue_names + framework_queue_names).compact.uniq.sort
+  end
+
+  def app_job_queue_names
+    app_job_classes.map { |job_class| job_class.new.queue_name.to_s }
+  end
+
+  def app_job_classes
+    Dir[Rails.root.join("app/jobs/**/*_job.rb")].filter_map do |path|
+      relative = Pathname.new(path).relative_path_from(Rails.root.join("app/jobs")).to_s.delete_suffix(".rb")
+      next if relative == "application_job"
+
+      relative.camelize.safe_constantize
+    end
+  end
+
+  def framework_queue_names
+    active_storage_queues = %w[
+      ActiveStorage::AnalyzeJob
+      ActiveStorage::PurgeJob
+      ActiveStorage::TransformJob
+      ActiveStorage::CreateVariantsJob
+      ActiveStorage::MirrorJob
+      ActiveStorage::SyncMetadataJob
+    ].filter_map do |class_name|
+      constantize_framework_job(class_name)&.new&.queue_name&.to_s
+    end
+
+    mailer_queue = ApplicationMailer.deliver_later_queue_name || ActionMailer::Base.deliver_later_queue_name || :mailers
+    [ mailer_queue.to_s ] + active_storage_queues
+  end
+
+  def constantize_framework_job(class_name)
+    class_name.split("::").reduce(Object) do |namespace, constant_name|
+      return nil unless namespace.const_defined?(constant_name, false)
+
+      namespace.const_get(constant_name, false)
+    end
+  rescue NameError
+    nil
+  end
+
+  def serviced_queue?(queue)
+    serviced_queue_names.include?("*") || serviced_queue_names.include?(queue.to_s)
+  end
+
+  def serviced_queue_names
+    @serviced_queue_names ||= production_queue_config.fetch("workers").flat_map do |worker|
+      Array(worker.fetch("queues"))
+    end.map(&:to_s).uniq
+  end
+
+  def production_queue_config
+    @production_queue_config ||= YAML.safe_load(
+      ERB.new(Rails.root.join("config/queue.yml").read).result,
+      aliases: true
+    ).fetch("production")
+  end
+end

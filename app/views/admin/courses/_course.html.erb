@@ -16,7 +16,7 @@
   <div class="col-span-1 flex flex-col justify-center md:items-center">
     <span class="mb-1 block text-sm font-bold uppercase text-stone-500 dark:text-stone-400 md:hidden">Status</span>
     <div class="w-full md:text-left text-stone-700 dark:text-stone-300">
-      <% outline_research_available = AppSetting.openai_agent_enabled? && AppSetting.exa_enabled? %>
+      <% outline_research_available = AppSetting.background_agent_enabled? && AppSetting.exa_enabled? %>
       <% if course.enrollments.any? %>
         <% count = course.enrollments.count %>
         <%= count %> <%= "student".pluralize(count) %> enrolled

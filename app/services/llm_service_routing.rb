@@ -16,7 +16,7 @@ class LlmServiceRouting
     host.present? && RESPONSES_API_PROVIDER_HOSTS.include?(host)
   end
 
-  def self.build_completion_client(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, image_generation: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: true)
+  def self.build_completion_client(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, image_generation: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: false)
     if responses_api_routing_enabled_for?(user: current_user, base_uri: base_uri)
       OpenaiResponsesService.new(
         current_user: current_user,

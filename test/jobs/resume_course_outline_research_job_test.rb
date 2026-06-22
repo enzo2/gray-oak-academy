@@ -127,6 +127,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Additional comments:"
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Tighten tone and add one local source."
     assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
     assert_nil captured_new_kwargs[:base_uri]
     assert_nil captured_new_kwargs[:access_token]
     assert_nil captured_new_kwargs[:model]
@@ -241,7 +242,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       outline_research_response_id: "resp_previous"
     )
     ensure_prompt("apply_course_outline_research", "Teacher responses:\n{teacher_answers}")
-    AppSetting.settings.update!(openai_agent_model: "gpt-5.2", openai_agent_max_tool_turns: "1")
+    AppSetting.settings.update!(background_agent_model: "gpt-5.2", background_agent_max_tool_turns: "1")
 
     complete_calls = 0
     failure_calls = []
@@ -297,6 +298,78 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_equal 1, failure_calls.size
     assert_includes failure_calls.first[:error_message], "Outline research apply run exceeded tool-call limit (1)"
     assert_equal "resp_apply_2", failure_calls.first[:response_hash]["id"]
+  end
+
+  test "stateless provider resumes from persisted artifacts without a previous response id" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      summary: "Original summary",
+      outline: [ { "Original" => "Details" } ],
+      outline_research_stage: "awaiting_teacher_input",
+      outline_guidance_report_md: "Use inquiry learning.",
+      outline_guidance_questions: [],
+      outline_guidance_answers: {},
+      outline_research: { "source_anchors" => [], "coverage_gaps" => [], "factual_notes" => [], "alternative_approaches" => [] },
+      outline_research_run_id: "run_stateless_resume",
+      outline_research_response_id: nil,
+      course_prior_state: {}
+    )
+    ensure_prompt("apply_course_outline_research", "Report: {outline_guidance_report_md}\nOutline: {outline}\nAnswers: {teacher_answers}")
+    responses = [
+      {
+        "id" => "resp_stateless_apply_1", "status" => "completed", "usage" => { "input_tokens" => 20 },
+        "output" => [
+          { "type" => "reasoning", "content" => "plan update", "format" => "unknown" },
+          {
+            "type" => "function_call", "id" => "fc_apply", "name" => "apply_course_research_update", "call_id" => "call_apply",
+            "arguments" => { summary: "Updated stateless summary", outline: [ { topic: "Inquiry", description: "Lab" } ] }.to_json
+          }
+        ]
+      },
+      {
+        "id" => "resp_stateless_apply_2", "status" => "completed", "usage" => { "input_tokens" => 40 },
+        "output" => [ { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Applied from artifacts." } ] } ]
+      }
+    ]
+    complete_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { false }
+    fake_client.define_singleton_method(:model) { "moonshotai/kimi-k2.6" }
+    fake_client.define_singleton_method(:base_uri) { SupportedApi::OPENROUTER_BASE_URI }
+    fake_client.define_singleton_method(:last_input_items) { @last_input_items.deep_dup }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      complete_calls << { messages: messages, kwargs: kwargs }
+      @last_input_items = if messages.present?
+        [ { "role" => "developer", "content" => "system" }, { "role" => "user", "content" => messages.first[:content] } ]
+      else
+        kwargs.fetch(:input).deep_dup
+      end
+      { "id" => responses.fetch(complete_calls.size - 1)["id"] }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **_kwargs|
+      responses.find { |response| response["id"] == response_id }
+    end
+    fake_client.define_singleton_method(:mark_current_agent_run_failed) { |**_kwargs| nil }
+
+    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+      CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
+        ResumeCourseOutlineResearchJob.perform_now(
+          course_id: course.id,
+          user_id: teacher.id,
+          permission_granted: true,
+          source: "course_edit_page"
+        )
+      end
+    end
+
+    course.reload
+    assert_equal "completed", course.outline_research_stage
+    assert_equal "Updated stateless summary", course.summary
+    assert_equal "Applied from artifacts.", course.outline_research_hash["apply_agent_summary_md"]
+    assert_nil complete_calls.first.dig(:kwargs, :previous_response_id)
+    assert_nil complete_calls.second.dig(:kwargs, :previous_response_id)
+    assert_includes complete_calls.first.dig(:messages, 0, :content), "Use inquiry learning."
   end
 
   private

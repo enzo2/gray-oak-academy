@@ -1,5 +1,5 @@
 class GenerateLessonPlanPipelineJob < ApplicationJob
-  queue_as :default
+  queue_as :agent
   limits_concurrency to: 1, key: ->(lesson_plan_id:, **) { "lesson-plan-pipeline-#{lesson_plan_id}" }, duration: 10.minutes
 
   def perform(lesson_plan_id:, user_id:, propose_resources: false, steering_guidance: nil, source: "lesson_plan_pipeline")

@@ -90,9 +90,9 @@ module Admin
         :image_generation_two_pass,
         :user_daily_budget,
         :max_chat_cost,
-        :openai_agent_supported_api_id,
-        :openai_agent_model,
-        :openai_agent_max_tool_turns,
+        :background_agent_supported_api_id,
+        :background_agent_model,
+        :background_agent_max_tool_turns,
         :exa_api_key,
         :exa_research_model
       ]

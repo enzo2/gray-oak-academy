@@ -142,6 +142,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal true, captured_responses[:background]
     assert_equal "resp_guidance_1", captured_responses[:response_id]
     assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
     assert_nil captured_new_kwargs[:base_uri]
     assert_nil captured_new_kwargs[:access_token]
     assert_nil captured_new_kwargs[:model]

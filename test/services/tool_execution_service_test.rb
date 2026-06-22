@@ -634,7 +634,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     lesson.lesson_plan.update!(generation_stage: "completed")
     service = ToolExecutionService.new(conversation: conversation, message: nil)
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 1, only: ProposeResourcesJob do
           assert_difference "Message.count", 1 do
@@ -661,7 +661,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     lesson.lesson_plan.update!(generation_stage: "idle")
     service = ToolExecutionService.new(conversation: conversation, message: nil)
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_enqueued_jobs 1, only: GenerateLessonPlanPipelineJob do
           assert_difference "Message.count", 1 do
@@ -688,7 +688,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     lesson.lesson_plan.update!(generation_stage: "idle")
     service = ToolExecutionService.new(conversation: conversation, message: nil)
 
-    AppSetting.stub(:openai_agent_enabled?, false) do
+    AppSetting.stub(:background_agent_enabled?, false) do
       AppSetting.stub(:exa_enabled?, false) do
         assert_difference "Message.count", 1 do
           service.execute_tool_call(
@@ -701,7 +701,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     end
     assert_includes Message.order(:created_at).last.content.to_s, "Configure OpenAI Agent Runs and Exa API before proposing resources."
 
-    AppSetting.stub(:openai_agent_enabled?, true) do
+    AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
         assert_difference "Message.count", 1 do
           service.execute_tool_call(

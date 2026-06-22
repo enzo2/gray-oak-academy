@@ -1,7 +1,7 @@
 require "json/repair"
 
 class ProposeResourcesJob < ApplicationJob
-  queue_as :default
+  queue_as :agent
   include Rails.application.routes.url_helpers
   HIGH_TOOL_CALL_WARNING_THRESHOLD = 80
   RESOURCES_SCHEMA = {
@@ -34,6 +34,7 @@ class ProposeResourcesJob < ApplicationJob
     retry_prompt_sent = false
     client = nil
     executor = nil
+    stateless_loop = nil
     lesson_plan.update!(status: "draft") if lesson_plan.status_published?
 
     set_generation_state(lesson_plan, "proposing_resources", nil) if track_stage
@@ -52,21 +53,25 @@ class ProposeResourcesJob < ApplicationJob
       enable_tools: false,
       reasoning_model: true,
       store: true,
-      agent_run: true
+      agent_run: true,
+      agent_run_require_stateful: false
     )
 
-    response_hash = complete_and_capture(
-      client,
-      messages: messages,
-      metadata: run_metadata(
-        run_id: run_id,
-        current_user: current_user,
-        lesson_plan: lesson_plan,
-        source: source,
-        phase: "submitted"
-      )
+    stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
+    stateless_loop = ResponsesAgentLoop.new(client: client) unless stateful_supported
+    initial_metadata = run_metadata(
+      run_id: run_id,
+      current_user: current_user,
+      lesson_plan: lesson_plan,
+      source: source,
+      phase: "submitted"
     )
-    max_tool_turns = AppSetting.openai_agent_max_tool_turns
+    response_hash = if stateless_loop
+      stateless_loop.start(messages: messages, metadata: initial_metadata)
+    else
+      complete_and_capture(client, messages: messages, metadata: initial_metadata)
+    end
+    max_tool_turns = AppSetting.background_agent_max_tool_turns
     raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
 
     loop do
@@ -74,19 +79,25 @@ class ProposeResourcesJob < ApplicationJob
       if function_calls.blank?
         if pending_retryable_tool_errors.present? && !retry_prompt_sent
           retry_prompt_sent = true
-          response_hash = complete_and_capture(
-            client,
-            messages: [ { role: "user", content: build_tool_error_retry_prompt(pending_retryable_tool_errors) } ],
-            previous_response_id: response_hash["id"],
-            metadata: run_metadata(
-              run_id: run_id,
-              current_user: current_user,
-              lesson_plan: lesson_plan,
-              source: source,
-              phase: "retry",
-              retry_reason: "tool_error"
-            )
+          retry_prompt = build_tool_error_retry_prompt(pending_retryable_tool_errors)
+          retry_metadata = run_metadata(
+            run_id: run_id,
+            current_user: current_user,
+            lesson_plan: lesson_plan,
+            source: source,
+            phase: "retry",
+            retry_reason: "tool_error"
           )
+          response_hash = if stateless_loop
+            stateless_loop.continue_with_user_message(content: retry_prompt, metadata: retry_metadata)
+          else
+            complete_and_capture(
+              client,
+              messages: [ { role: "user", content: retry_prompt } ],
+              previous_response_id: response_hash["id"],
+              metadata: retry_metadata
+            )
+          end
           next
         end
 
@@ -104,7 +115,7 @@ class ProposeResourcesJob < ApplicationJob
       outputs = function_calls.map { |fc| executor.execute(fc) }
       pending_retryable_tool_errors = extract_retryable_tool_errors(outputs)
       retry_prompt_sent = false if pending_retryable_tool_errors.blank?
-      run_model = client.respond_to?(:model) ? client.model : AppSetting.settings&.openai_agent_model
+      run_model = client.respond_to?(:model) ? client.model : AppSetting.settings&.background_agent_model
       high_tool_call_warning_notified = log_turn_diagnostics(
         lesson_plan: lesson_plan,
         teacher: current_user,
@@ -117,18 +128,23 @@ class ProposeResourcesJob < ApplicationJob
         warning_notified: high_tool_call_warning_notified,
         source: source
       )
-      response_hash = complete_and_capture(
-        client,
-        input: outputs,
-        previous_response_id: response_hash["id"],
-        metadata: run_metadata(
-          run_id: run_id,
-          current_user: current_user,
-          lesson_plan: lesson_plan,
-          source: source,
-          phase: "tool_turn"
-        )
+      tool_metadata = run_metadata(
+        run_id: run_id,
+        current_user: current_user,
+        lesson_plan: lesson_plan,
+        source: source,
+        phase: "tool_turn"
       )
+      response_hash = if stateless_loop
+        stateless_loop.continue_with_tool_outputs(outputs: outputs, metadata: tool_metadata)
+      else
+        complete_and_capture(
+          client,
+          input: outputs,
+          previous_response_id: response_hash["id"],
+          metadata: tool_metadata
+        )
+      end
     end
 
     parsed = parse_output(client.output_text(response_hash))
@@ -142,7 +158,7 @@ class ProposeResourcesJob < ApplicationJob
     )
     Rails.logger.info(
       "ProposeResourcesJob completed source=#{source} lesson_plan=#{lesson_plan.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
-      "suggested_resources=#{suggested_resources.size}"
+      "suggested_resources=#{suggested_resources.size} reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false}"
     )
     set_generation_state(lesson_plan, "completed", nil) if track_stage
     broadcast_refresh(current_user)
@@ -150,7 +166,7 @@ class ProposeResourcesJob < ApplicationJob
   rescue StandardError => e
     Rails.logger.error(
       "ProposeResourcesJob failed source=#{source} lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
-      "last_response_id=#{response_hash&.dig('id')} error=#{e.message}"
+      "last_response_id=#{response_hash&.dig('id')} reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false} error=#{e.message}"
     )
     client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
     set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{e.message}") if track_stage && lesson_plan.present?

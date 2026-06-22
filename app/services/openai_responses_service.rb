@@ -70,7 +70,7 @@ class OpenaiResponsesService
       if base_uri.present?
         base_uri
       elsif agent_run
-        AppSetting.settings&.openai_agent_supported_api&.api_base_uri
+        AppSetting.settings&.background_agent_supported_api&.api_base_uri
       else
         current_user.settings&.effective_llm_api_base_uri.presence || ENV["OPENAI_API_BASE_URL"].presence
       end
@@ -145,7 +145,7 @@ class OpenaiResponsesService
   # - previous_response_id: optional; allows chaining stateful Responses calls
   # - agent_run: when true, use AppSetting background agent provider/model config
   # - agent_run_require_stateful: when true, fail fast unless provider supports stateful runs
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: true)
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: false)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
@@ -221,7 +221,7 @@ class OpenaiResponsesService
   # - Call once with store: true (default) and no previous_response_id.
   # - Reuse the same instance and it will set previous_response_id automatically
   #   based on the last response id, allowing you to send only new inputs.
-  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil, reasoning: nil, auto_compaction: true)
+  def complete(messages = nil, input: nil, instructions: nil, response_format: nil, schema: nil, temperature: 1, store: nil, previous_response_id: nil, include: nil, background: false, metadata: nil, max_output_tokens: nil, max_tool_calls: nil, parallel_tool_calls: nil, tool_choice: nil, reasoning: nil, auto_compaction: true, request_timeout_seconds: nil)
     sanitized_metadata = sanitize_responses_metadata(metadata)
     agent_run_context = prepare_agent_run_context(
       background: background,
@@ -239,7 +239,12 @@ class OpenaiResponsesService
       state_params = build_state_params(store: store, previous_response_id: previous_response_id)
       @active_store = stateful_supported? ? state_params.fetch(:store, @store) : false
       chained_state = state_params[:previous_response_id].present?
-      include_fields = build_include_fields(include: include, state_params: state_params)
+      reasoning_options = build_reasoning_options(reasoning)
+      include_fields = build_include_fields(
+        include: include,
+        state_params: state_params,
+        reasoning_options: reasoning_options
+      )
 
       effective_instructions = instructions
 
@@ -252,8 +257,8 @@ class OpenaiResponsesService
         input_items = prepend_default_developer_input(input_items, messages: messages, chained_state: chained_state)
         effective_instructions = fallback_instructions
       end
+      @last_input_items = input_items.deep_dup
 
-      reasoning_options = build_reasoning_options(reasoning)
       context_management = build_context_management(auto_compaction: auto_compaction)
 
       sync_background_fallback = agent_run_synchronous_background?(background: background)
@@ -295,7 +300,7 @@ class OpenaiResponsesService
 
       request_params.merge!(state_params) if state_params.present?
 
-      request_options = build_request_options
+      request_options = build_request_options(timeout_seconds: request_timeout_seconds)
       request_options_param = request_options.present? ? { request_options: request_options } : {}
       log_request_summary(request_params: request_params, request_options: request_options, streaming: @stream_handler.present?)
 
@@ -462,6 +467,10 @@ class OpenaiResponsesService
     extract_output_text(target)
   end
 
+  def last_input_items
+    @last_input_items&.deep_dup
+  end
+
   def mark_current_agent_run_failed(error_message:, response_hash: nil)
     record_agent_run_failed(error_message: error_message, response_hash: response_hash)
   end
@@ -586,14 +595,14 @@ class OpenaiResponsesService
       raise OpenAiError, "Background agent runs are not configured. Ask a superuser to set App Settings."
     end
 
-    model_name = model_override.to_s.presence || app_setting.openai_agent_model.to_s.presence
+    model_name = model_override.to_s.presence || app_setting.background_agent_model.to_s.presence
     if model_name.blank?
       raise OpenAiError, "Background agent runs model is not configured. Set it in App Settings."
     end
 
     provider = resolve_agent_run_provider(app_setting: app_setting, base_uri_override: base_uri_override)
     unless provider
-      raise OpenAiError, "Background agent runs provider is not configured. Select OpenAI or xAI with a shared token in App Settings."
+      raise OpenAiError, "Background agent runs provider is not configured. Select a supported provider with a shared token in App Settings."
     end
 
     provider_base_uri = provider.api_base_uri.to_s
@@ -604,7 +613,7 @@ class OpenaiResponsesService
 
     if require_stateful && !self.class.stateful_supported_base_uri?(provider_base_uri)
       raise OpenAiError,
-            "Background agent runs provider #{provider_base_uri} does not support required stateful Responses behavior. Select OpenAI or xAI in App Settings."
+            "Background agent runs provider #{provider_base_uri} does not support required stateful Responses behavior. Select a stateful provider in App Settings."
     end
 
     {
@@ -619,7 +628,7 @@ class OpenaiResponsesService
       return SupportedApi.find_responses_agent_selectable_by_base_uri(base_uri_override)
     end
 
-    app_setting.openai_agent_supported_api
+    app_setting.background_agent_supported_api
   end
 
   def create_client
@@ -640,16 +649,20 @@ class OpenaiResponsesService
 
   def attribution_headers
     return {} unless @base_uri.include?("openrouter.ai")
-    {
+    headers = {
       "X-Title" => "Gray Oak Academy",
       "HTTP-Referer" => Rails.env.production? ? "https://#{ENV.fetch('APP_HOST')}" : nil
     }.compact
+    session_id = openrouter_agent_session_id
+    headers["x-session-id"] = session_id if session_id.present?
+    headers
   end
 
-  def build_request_options
+  def build_request_options(timeout_seconds: nil)
     options = {}
     headers = attribution_headers
     options[:extra_headers] = headers if headers.present?
+    options[:timeout] = timeout_seconds.to_f if timeout_seconds.present?
 
     options.presence
   end
@@ -658,15 +671,28 @@ class OpenaiResponsesService
     options = reasoning.is_a?(Hash) ? reasoning.deep_dup.deep_symbolize_keys : {}
     options[:effort] = @reasoning_model_flag ? "high" : "low" if options[:effort].blank?
 
+    if @base_uri.include?("openrouter.ai") && options[:effort].to_s == "none"
+      options.delete(:effort)
+      options[:enabled] = false
+    end
+
     # xAI rejects the Responses reasoning effort parameter for some models.
     options.delete(:effort) if self.class.base_uri_host(@base_uri) == "api.x.ai"
 
     # OpenRouter defaults to hidden reasoning; request summaries/tokens unless caller opted out.
-    if @reasoning_model_flag && @base_uri.include?("openrouter.ai") && !options.key?(:exclude)
+    reasoning_disabled = options[:effort].to_s == "none" || options[:enabled] == false
+    if @reasoning_model_flag && @base_uri.include?("openrouter.ai") && !reasoning_disabled && !options.key?(:exclude)
       options[:exclude] = false
     end
 
     options.presence
+  end
+
+
+  def openrouter_agent_session_id
+    return nil unless @agent_run
+
+    current_agent_run_context[:run_id].to_s.presence&.first(256)
   end
 
   def build_context_management(auto_compaction:)
@@ -769,17 +795,20 @@ class OpenaiResponsesService
     params
   end
 
-  def build_include_fields(include:, state_params:)
+  def build_include_fields(include:, state_params:, reasoning_options: nil)
     include_fields = Array(include).flatten.compact.map(&:to_s).reject(&:blank?)
-    include_fields << "reasoning.encrypted_content" if stateless_reasoning_include_required?(state_params: state_params)
+    if stateless_reasoning_include_required?(state_params: state_params, reasoning_options: reasoning_options)
+      include_fields << "reasoning.encrypted_content"
+    end
     include_fields.uniq.presence
   end
 
   # For stateless runs (including providers that do not support state chaining),
   # request encrypted reasoning so it can be replayed on subsequent tool-call turns.
-  def stateless_reasoning_include_required?(state_params:)
+  def stateless_reasoning_include_required?(state_params:, reasoning_options: nil)
     effective_store = state_params.key?(:store) ? state_params[:store] : false
-    !effective_store
+    reasoning_disabled = reasoning_options.to_h[:effort].to_s == "none" || reasoning_options.to_h[:enabled] == false
+    !effective_store && !reasoning_disabled
   end
 
   # For non-chained requests, prepend a developer message so prompt context
@@ -875,13 +904,20 @@ class OpenaiResponsesService
     Array(reasoning_details).filter_map do |detail|
       next unless detail.is_a?(Hash)
 
+      if reasoning_item_replay_payload?(detail)
+        item = detail.deep_dup.deep_stringify_keys
+        item["type"] = "reasoning"
+        next item
+      end
+
       encrypted_content = hash_value(detail, :encrypted_content).to_s
       summary = normalize_reasoning_summary(hash_value(detail, :summary))
       id = hash_value(detail, :id).to_s
       status = hash_value(detail, :status).to_s
       # Responses providers reject bare reasoning IDs. Replay only when
-      # the turn includes concrete reasoning payload (encrypted or summary).
-      next if encrypted_content.blank? && summary.blank?
+      # the turn includes a concrete opaque payload. A text summary alone is
+      # not enough to reconstruct provider-signed reasoning.
+      next if encrypted_content.blank?
 
       {
         "type" => "reasoning",
@@ -890,6 +926,12 @@ class OpenaiResponsesService
         "summary" => summary.presence,
         "encrypted_content" => encrypted_content.presence
       }.compact
+    end
+  end
+
+  def reasoning_item_replay_payload?(detail)
+    ResponsesNativeTranscript::OPAQUE_REASONING_KEYS.any? do |key|
+      hash_value(detail, key).present?
     end
   end
 

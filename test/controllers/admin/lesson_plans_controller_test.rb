@@ -123,7 +123,7 @@ module Admin
         generation_stage: "completed"
       )
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           get edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson)
         end
@@ -455,7 +455,7 @@ module Admin
       lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
       lesson_plan.update!(generation_stage: "idle")
 
-      AppSetting.stub(:openai_agent_enabled?, false) do
+      AppSetting.stub(:background_agent_enabled?, false) do
         AppSetting.stub(:exa_enabled?, false) do
           assert_enqueued_jobs 0, only: GenerateLessonPlanPipelineJob do
             post generate_content_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
@@ -520,7 +520,7 @@ module Admin
       lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
       lesson_plan.update!(generation_stage: "completed")
 
-      AppSetting.stub(:openai_agent_enabled?, true) do
+      AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           assert_enqueued_jobs 1, only: ProposeResourcesJob do
             post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
