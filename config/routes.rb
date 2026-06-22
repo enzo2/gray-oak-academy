@@ -159,6 +159,7 @@ Rails.application.routes.draw do
       get :llm_models, on: :collection
       get :speech_models, on: :collection
       get :speech_voices, on: :collection
+      get :background_agent_model_status, on: :collection
     end
 
     resources :llms, only: [ :index, :update ] do

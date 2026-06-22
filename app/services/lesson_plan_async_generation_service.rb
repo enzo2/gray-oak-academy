@@ -13,7 +13,7 @@ class LessonPlanAsyncGenerationService
       return failure(cooldown_message(action: :generate_content)) if cooldown_active?(action: :generate_content)
 
       if propose_resources && !resource_proposal_enabled?
-        return failure("Configure OpenAI Agent Runs and Exa API before proposing resources.")
+        return failure("Configure Background Agent Runs and Exa API before proposing resources.")
       end
 
       @lesson_plan.update!(generation_stage: "generating_content", generation_error: nil)
@@ -35,7 +35,7 @@ class LessonPlanAsyncGenerationService
 
   def enqueue_propose_resources
     run_with_lock do
-      return failure("Configure OpenAI Agent Runs and Exa API before proposing resources.") unless resource_proposal_enabled?
+      return failure("Configure Background Agent Runs and Exa API before proposing resources.") unless resource_proposal_enabled?
       return failure("Generation is already in progress for this lesson plan.") if @lesson_plan.generation_in_progress?
       return failure(cooldown_message(action: :propose_resources)) if cooldown_active?(action: :propose_resources)
       return failure("Generate the lesson plan once before proposing resources.") unless @lesson_plan.initial_generation_completed?

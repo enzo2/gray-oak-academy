@@ -467,7 +467,7 @@ module Admin
 
       assert_response :success
       assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
-      assert_includes @response.body, "Configure OpenAI Agent Runs and Exa API before proposing resources."
+      assert_includes @response.body, "Configure Background Agent Runs and Exa API before proposing resources."
     end
 
     test "generate_content requires custom guidance when preset is other" do

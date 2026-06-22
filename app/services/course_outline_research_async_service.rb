@@ -13,7 +13,7 @@ class CourseOutlineResearchAsyncService
       if @course.outline_research_restart_blocked?
         return failure("Outline research review is currently open. Resume or reset the existing review workflow before starting a new run.")
       end
-      return failure("Configure OpenAI Agent Runs and Exa API before starting outline research.") unless research_pipeline_enabled?
+      return failure("Configure Background Agent Runs and Exa API before starting outline research.") unless research_pipeline_enabled?
 
       @course.update!(
         outline_research_stage: "researching_outline",
@@ -48,7 +48,7 @@ class CourseOutlineResearchAsyncService
 
     run_with_lock do
       return failure("You must explicitly allow the agent to modify this course before resuming.") unless permission
-      return failure("Configure OpenAI Agent Runs and Exa API before resuming outline research.") unless research_pipeline_enabled?
+      return failure("Configure Background Agent Runs and Exa API before resuming outline research.") unless research_pipeline_enabled?
       return failure("Outline research is currently in progress.") if @course.outline_research_in_progress?
       return failure("Outline research must be awaiting teacher input or failed after apply before it can resume.") unless @course.outline_research_input_open?
       unless @course.outline_research_resumable_run?

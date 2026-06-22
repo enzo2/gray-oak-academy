@@ -76,7 +76,7 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 ### Choosing LLMs: 
 - For the main chat/lesson LLM, choose a high-performing, adaptive-thinking model, or you may encounter issues related to tool use, generative applets, and lesson pacing. (This app is quite demanding of LLMs; however, avoid the largest frontier models, or chat will be too slow and expensive.) Model must support image input and function calling. Raw audio input is optional. A long context window is recommended. 
 - Add a dedicated frontier thinking model for better performance on curriculum generation tasks, applets, and more. Model must support structured outputs. Image input not required.
-- **Background agent runs (course research, resource proposal):** For these lengthy flows, API/model is configured by the superuser in App Settings, not per-teacher, as they require a very strong agentic model. For OpenRouter agent models, App Settings surfaces whether local context-window metadata is present; manually entered models may need an OpenRouter metadata refresh or selection from fetched models before the 80% stateless-run context guard is available.
+- **Background agent runs (course research, resource proposal):** For these lengthy flows, API/model is configured by the superuser in App Settings, not per-teacher, as they require a very strong agentic model.
 - For image generation, a frontier model is recommended. You can also enable 2-pass generation to allow a model to critique and regenerate its own output, for twice the cost.
 
 ## Getting Started

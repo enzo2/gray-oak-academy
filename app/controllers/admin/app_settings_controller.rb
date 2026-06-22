@@ -65,6 +65,27 @@ module Admin
       render turbo_stream: helpers.async_combobox_options(@voices)
     end
 
+    def background_agent_model_status
+      provider = SupportedApi.find_responses_agent_selectable_by_id(params[:provider_id])
+      api_uri = provider&.api_base_uri.to_s
+      model = params[:model].to_s.strip
+      context_length = nil
+
+      if api_uri == SupportedApi::OPENROUTER_BASE_URI && model.present?
+        context_length = Llm.find_by(
+          api_provider: SupportedApi.normalize_base_uri(api_uri),
+          model: model
+        )&.context_length
+      end
+
+      render json: {
+        provider_key_present: provider&.api_access_token.present? || false,
+        openrouter: api_uri == SupportedApi::OPENROUTER_BASE_URI,
+        model_present: model.present?,
+        context_length: context_length
+      }
+    end
+
     private
 
     def load_setting

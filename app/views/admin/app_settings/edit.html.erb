@@ -203,7 +203,7 @@ end %>
         <span class="text-success-600 dark:text-success-400">OpenRouter token is configured.</span>
       <% else %>
         <span class="text-danger-600 dark:text-danger-400">Please add an OpenRouter shared access token in the LLM API settings.</span>
-      <% end %> 
+      <% end %>
     </p>
   </div>
 
@@ -244,6 +244,7 @@ end %>
   <div
     data-controller="agent-model-settings"
     data-agent-model-settings-models-path-value="<%= llm_models_admin_app_setting_path %>"
+    data-agent-model-settings-status-path-value="<%= background_agent_model_status_admin_app_setting_path %>"
     data-agent-model-settings-provider-uri-map-value="<%= agent_supported_apis.pluck(:id, :api_base_uri).to_h.to_json %>"
   >
     <div>
@@ -257,9 +258,6 @@ end %>
             agent_model_settings_target: "providerSelect"
           }
         } %>
-      <p class="text-xs text-dim mt-1">
-        Choose OpenAI or xAI for stateful runs, or OpenRouter for stateless full-history runs with sticky provider routing.
-      </p>
     </div>
     <div>
       <%= f.label :background_agent_model, "Background agent model", class: "form-label" %>
@@ -268,29 +266,29 @@ end %>
         name_when_new: "app_setting[background_agent_model]",
         placeholder: "Select or enter model name",
         data: {
-          action: "",
+          action: "input->agent-model-settings#modelChanged hw-combobox:selection->agent-model-settings#modelChanged hw-combobox:clear->agent-model-settings#modelChanged",
           agent_model_settings_target: "modelCombobox"
         } %>
-      <p class="text-xs text-dim mt-1">
+      <p class="text-xs text-dim mt-1" data-agent-model-settings-target="status">
         Runs are only enabled when this field is set and the selected provider has a shared key. Use a strongly agentic model with reliable tool use and structured output support.
         <% if @setting.background_agent_access_token.present? %>
           <span class="text-success-600 dark:text-success-400">Shared provider key is configured.</span>
         <% else %>
           <span class="text-danger-600 dark:text-danger-400">Add a shared key for the selected provider in LLM APIs to enable this pipeline.</span>
         <% end %>
-      </p>
-      <% if selected_agent_provider_uri == SupportedApi::OPENROUTER_BASE_URI && @setting.background_agent_model.present? %>
-        <% agent_context_length = @setting.background_agent_context_length %>
-        <% if agent_context_length.present? %>
-          <p class="text-xs text-success-600 dark:text-success-400 mt-1">
-            Context metadata found: <%= number_to_delimited(agent_context_length) %> tokens. Stateless OpenRouter runs will stop near 80% reported input-token usage.
-          </p>
-        <% else %>
-          <p class="text-xs text-warning-700 dark:text-warning-300 mt-1">
-            No local context metadata found for this OpenRouter agent model. Manual model names may need an OpenRouter metadata refresh or selection from fetched models before the 80% context guard is available.
-          </p>
+        <% if selected_agent_provider_uri == SupportedApi::OPENROUTER_BASE_URI && @setting.background_agent_model.present? %>
+          <% agent_context_length = @setting.background_agent_context_length %>
+          <% if agent_context_length.present? %>
+            <span class="block text-success-600 dark:text-success-400 mt-1">
+              Context metadata found: <%= number_to_delimited(agent_context_length) %> tokens. Stateless OpenRouter runs will stop near 80% reported input-token usage.
+            </span>
+          <% else %>
+            <span class="block text-warning-700 dark:text-warning-300 mt-1">
+              No local context metadata found for this OpenRouter agent model. Try adding the model first in LLM API settings.
+            </span>
+          <% end %>
         <% end %>
-      <% end %>
+      </p>
     </div>
   </div>
   <div class="mt-3">

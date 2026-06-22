@@ -94,6 +94,53 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "openai-model-beta"
   end
 
+  test "superuser can fetch background agent model status" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    Llm.create!(
+      model: "anthropic/status-agent-model",
+      api_provider: SupportedApi::OPENROUTER_BASE_URI,
+      context_length: 200_000
+    )
+    sign_in users(:super_user)
+
+    get background_agent_model_status_admin_app_setting_path, params: {
+      provider_id: openrouter.id,
+      model: "anthropic/status-agent-model"
+    }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["provider_key_present"]
+    assert_equal true, payload["openrouter"]
+    assert_equal true, payload["model_present"]
+    assert_equal 200_000, payload["context_length"]
+  end
+
+  test "background agent model status warns when OpenRouter context metadata is missing" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
+      api.api_access_token = "openrouter-test-token"
+      api.enabled = true
+    end
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    sign_in users(:super_user)
+
+    get background_agent_model_status_admin_app_setting_path, params: {
+      provider_id: openrouter.id,
+      model: "anthropic/manual-agent-model"
+    }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["provider_key_present"]
+    assert_equal true, payload["openrouter"]
+    assert_equal true, payload["model_present"]
+    assert_nil payload["context_length"]
+  end
+
   test "edit warns when selected OpenRouter agent model lacks context metadata" do
     openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI) do |api|
       api.api_access_token = "openrouter-test-token"

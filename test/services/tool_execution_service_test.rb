@@ -699,7 +699,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
         end
       end
     end
-    assert_includes Message.order(:created_at).last.content.to_s, "Configure OpenAI Agent Runs and Exa API before proposing resources."
+    assert_includes Message.order(:created_at).last.content.to_s, "Configure Background Agent Runs and Exa API before proposing resources."
 
     AppSetting.stub(:background_agent_enabled?, true) do
       AppSetting.stub(:exa_enabled?, true) do
