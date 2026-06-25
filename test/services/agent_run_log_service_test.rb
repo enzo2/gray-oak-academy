@@ -15,7 +15,8 @@ class AgentRunLogServiceTest < ActiveSupport::TestCase
       model: "gpt-5.2",
       source: "tool_call",
       prompt: "Build a thing",
-      provider_base_uri: "https://api.x.ai/v1/"
+      provider_base_uri: "https://api.x.ai/v1/",
+      credential_source: "user_codex_oauth",
     )
 
     response_hash = {
@@ -37,6 +38,8 @@ class AgentRunLogServiceTest < ActiveSupport::TestCase
     assert_equal "resp_1", run[:response_id]
     assert_equal "completed", run[:status]
     assert_equal "https://api.x.ai/v1/", run[:provider_base_uri]
+    assert_equal "user_codex_oauth", run[:credential_source]
+    assert_equal "user_codex_oauth", run[:events].first[:credential_source]
     assert_equal "Build a thing", run[:task_prompt]
     assert_equal 1, run[:assistant_turns]
     assert_equal 1, run[:tool_call_count]

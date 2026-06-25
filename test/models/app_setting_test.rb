@@ -273,6 +273,57 @@ class AppSettingTest < ActiveSupport::TestCase
     assert_not_includes provider_ids, supported_apis(:example_api).id
   end
 
+  test "per-teacher Codex preference defaults off and requires a model when enabled" do
+    assert_not @app.background_agent_prefer_user_codex?
+
+    @app.background_agent_prefer_user_codex = "1"
+    @app.background_agent_codex_model = nil
+
+    assert_not @app.valid?
+    assert_includes @app.errors[:background_agent_codex_model], "must be set when per-teacher Codex is enabled"
+  end
+
+  test "background agent availability uses only a teacher's own OAuth credentials" do
+    supported_apis(:openai).update!(api_access_token: nil)
+    teacher = users(:admin)
+    student = users(:student)
+    teacher.setting.openai_oauth_access_token = "teacher-codex-token"
+    teacher.setting.openai_oauth_expires_at = 1.hour.from_now.iso8601
+    teacher.setting.save!(validate: false)
+    @app.update!(
+      background_agent_prefer_user_codex: "1",
+      background_agent_codex_model: "gpt-5.4-codex"
+    )
+
+    assert @app.background_agent_enabled_for?(teacher)
+    assert AppSetting.background_agent_enabled_for?(teacher)
+    assert_not @app.background_agent_enabled_for?(student)
+    assert_not AppSetting.background_agent_enabled_for?(student)
+    assert_not AppSetting.background_agent_enabled_for?(users(:admin2))
+  end
+
+  test "expired access-only OAuth credentials do not enable background agents" do
+    supported_apis(:openai).update!(api_access_token: nil)
+    teacher = users(:admin)
+    teacher.setting.openai_oauth_access_token = "expired-codex-token"
+    teacher.setting.openai_oauth_refresh_token = nil
+    teacher.setting.openai_oauth_expires_at = 1.hour.ago.iso8601
+    teacher.setting.save!(validate: false)
+    @app.update!(
+      background_agent_prefer_user_codex: "1",
+      background_agent_codex_model: "gpt-5.4-codex"
+    )
+
+    assert_not @app.background_agent_enabled_for?(teacher)
+    assert_not AppSetting.background_agent_enabled_for?(teacher)
+
+    teacher.setting.openai_oauth_refresh_token = "refresh-token"
+    teacher.setting.save!(validate: false)
+
+    assert @app.background_agent_enabled_for?(teacher)
+    assert AppSetting.background_agent_enabled_for?(teacher)
+  end
+
   test "exa defaults are applied and key controls enabled state" do
     @app.update!(exa_research_model: nil, exa_api_key: nil)
     @app.reload

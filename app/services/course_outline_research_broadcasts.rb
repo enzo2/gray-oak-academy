@@ -11,7 +11,7 @@ class CourseOutlineResearchBroadcasts
         channel,
         target: dom_id(course),
         partial: "admin/courses/course",
-        locals: { course: course }
+        locals: { course: course, current_user: current_user }
       )
       Turbo::StreamsChannel.broadcast_replace_to(
         channel,

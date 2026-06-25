@@ -3,7 +3,7 @@
 
   <h2 class="text-2xl my-2">Edit Course: <b><%= @course.title %></b></h2>
   <% outline_present = @course.outline.present? %>
-  <% outline_research_available = AppSetting.background_agent_enabled? && AppSetting.exa_enabled? %>
+  <% outline_research_available = AppSetting.background_agent_enabled_for?(current_user) && AppSetting.exa_enabled? %>
 
   <% if outline_present && outline_research_available %>
     <%= render "admin/courses/outline_research_panel_container", course: @course %>

@@ -1,6 +1,8 @@
 require "json/repair"
 
 class ProposeResourcesJob < ApplicationJob
+  include BackgroundAgentJob
+
   queue_as :agent
   include Rails.application.routes.url_helpers
   HIGH_TOOL_CALL_WARNING_THRESHOLD = 80
@@ -24,7 +26,10 @@ class ProposeResourcesJob < ApplicationJob
     additionalProperties: false
   }.freeze
 
-  def perform(lesson_plan, current_user, track_stage: true, raise_on_error: false, source: "propose_resources")
+  def perform(lesson_plan_id:, user_id:, track_stage: true, raise_on_error: false, source: "propose_resources", skip_user_codex: false)
+    current_user = User.find(user_id)
+    lesson_plan = LessonPlan.find(lesson_plan_id)
+    authorize_teacher_access!(current_user, lesson_plan)
     run_id = SecureRandom.uuid
     turns = 0
     total_tool_calls = 0
@@ -47,14 +52,14 @@ class ProposeResourcesJob < ApplicationJob
     )
 
     executor = ProposeResourcesToolExecutor.new(lesson_plan: lesson_plan, current_user: current_user)
-    client = OpenaiResponsesService.new(
-      current_user: current_user,
+    client = OpenaiResponsesService.for_agent_run(
+      user: current_user,
       flow_tools: executor.tool_definitions,
       enable_tools: false,
       reasoning_model: true,
       store: true,
-      agent_run: true,
-      agent_run_require_stateful: false
+      agent_run_require_stateful: false,
+      skip_user_codex: skip_user_codex
     )
 
     stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
@@ -163,21 +168,91 @@ class ProposeResourcesJob < ApplicationJob
     set_generation_state(lesson_plan, "completed", nil) if track_stage
     broadcast_refresh(current_user)
     true
-  rescue StandardError => e
-    Rails.logger.error(
-      "ProposeResourcesJob failed source=#{source} lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
-      "last_response_id=#{response_hash&.dig('id')} reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false} error=#{e.message}"
+  rescue ActiveRecord::RecordNotFound
+    raise
+  rescue BackgroundAgentConfigResolver::TransientOauthError => e
+    if oauth_retries_exhausted?
+      handle_failure(
+        e,
+        lesson_plan: lesson_plan,
+        current_user: current_user,
+        source: source,
+        track_stage: track_stage,
+        client: client,
+        response_hash: response_hash,
+        stateless_loop: stateless_loop,
+        turns: turns,
+        total_tool_calls: total_tool_calls
+      )
+    end
+    raise
+  rescue BackgroundAgentConfigResolver::CodexUsageLimitError => e
+    if codex_fallback_available?(skip_user_codex: skip_user_codex)
+      Rails.logger.warn(
+        "ProposeResourcesJob Codex usage limit reached; re-running on shared provider lesson_plan=#{lesson_plan&.id}"
+      )
+      ProposeResourcesJob.perform_later(
+        lesson_plan_id: lesson_plan_id,
+        user_id: user_id,
+        track_stage: track_stage,
+        source: source,
+        skip_user_codex: true
+      )
+      return false
+    end
+    handle_failure(
+      e,
+      lesson_plan: lesson_plan,
+      current_user: current_user,
+      source: source,
+      track_stage: track_stage,
+      client: client,
+      response_hash: response_hash,
+      stateless_loop: stateless_loop,
+      turns: turns,
+      total_tool_calls: total_tool_calls
     )
-    client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
-    set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{e.message}") if track_stage && lesson_plan.present?
-    broadcast_refresh(current_user) if current_user.present?
+    raise if raise_on_error
+    false
+  rescue StandardError => e
+    handle_failure(
+      e,
+      lesson_plan: lesson_plan,
+      current_user: current_user,
+      source: source,
+      track_stage: track_stage,
+      client: client,
+      response_hash: response_hash,
+      stateless_loop: stateless_loop,
+      turns: turns,
+      total_tool_calls: total_tool_calls
+    )
     raise if raise_on_error
     false
   ensure
     executor&.cleanup_tempfiles
   end
 
+
   private
+
+  def handle_failure(error, lesson_plan:, current_user:, source:, track_stage:, client:, response_hash:, stateless_loop:, turns:, total_tool_calls:)
+    Rails.logger.error(
+      "ProposeResourcesJob failed source=#{source} lesson_plan=#{lesson_plan&.id} turns=#{turns} total_tool_calls=#{total_tool_calls} " \
+      "last_response_id=#{response_hash&.dig('id')} reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false} error=#{error.message}"
+    )
+    client&.mark_current_agent_run_failed(error_message: error.message, response_hash: response_hash)
+    set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{error.message}") if track_stage && lesson_plan.present?
+
+    broadcast_refresh(current_user) if current_user.present?
+  end
+
+  def authorize_teacher_access!(current_user, lesson_plan)
+    owner_id = lesson_plan.lesson.course.teacher_id
+    return if current_user.role_teacher? && (current_user.role_superuser? || owner_id == current_user.id)
+
+    raise ActiveRecord::RecordNotFound
+  end
 
   def complete_and_capture(client, messages: nil, input: nil, previous_response_id: nil, metadata: nil)
     submitted = client.complete(

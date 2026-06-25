@@ -32,7 +32,8 @@
     <div data-llm-settings-target="oauthSection" class="mb-4 rounded-md border border-stone-300/80 bg-stone-100/60 p-3 dark:border-stone-700 dark:bg-stone-900/40 <%= show_oauth_for_selected_base ? '' : 'hidden' %>">
       <p class="form-label mb-1">OpenAI OAuth</p>
       <p class="text-sm text-dim mb-1">
-        If you have ChatGPT Plus, connect your OpenAI account to use ChatGPT Codex for chat.
+        Connect your own OpenAI account to use ChatGPT Codex for chat.
+        When the experimental app setting is enabled, teacher-initiated background tasks may also use this credential.
       </p>
       <% if oauth_enabled %>
         <p class="text-sm mb-2">

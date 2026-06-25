@@ -113,6 +113,8 @@ module Admin
         :max_chat_cost,
         :background_agent_supported_api_id,
         :background_agent_model,
+        :background_agent_prefer_user_codex,
+        :background_agent_codex_model,
         :background_agent_max_tool_turns,
         :exa_api_key,
         :exa_research_model

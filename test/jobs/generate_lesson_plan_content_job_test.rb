@@ -330,4 +330,31 @@ class GenerateLessonPlanContentJobTest < ActiveJob::TestCase
       lesson_plan.generation_sources
     )
   end
+
+  test "failure broadcast renders generation controls without a Warden request" do
+    teacher = users(:admin)
+    lesson_plan = lessons(:one).lesson_plan
+    replace_call = nil
+
+    LlmServiceRouting.stub(:build_completion_client, ->(**_kwargs) { raise OpenAiError, "provider unavailable" }) do
+      Turbo::StreamsChannel.stub(:broadcast_append_to, true) do
+        Turbo::StreamsChannel.stub(:broadcast_replace_to, ->(*args, **kwargs) {
+          replace_call = { args: args, kwargs: kwargs }
+        }) do
+          assert_equal false, GenerateLessonPlanContentJob.perform_now(lesson_plan, teacher)
+        end
+      end
+    end
+
+    lesson_plan.reload
+    assert_equal "failed", lesson_plan.generation_stage
+    assert_includes lesson_plan.generation_error, "provider unavailable"
+    assert_equal teacher, replace_call.dig(:kwargs, :locals, :current_user)
+
+    html = ApplicationController.render(
+      partial: replace_call.dig(:kwargs, :partial),
+      locals: replace_call.dig(:kwargs, :locals)
+    )
+    assert_includes html, "lesson-plan-generation-controls"
+  end
 end

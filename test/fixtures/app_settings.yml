@@ -10,6 +10,7 @@ one:
     stt_model: "transcribe-1"
     background_agent_model: "gpt-5.2"
     background_agent_max_tool_turns: "20"
+    background_agent_prefer_user_codex: "0"
     exa_research_model: "exa-research"
   singleton: true
   created_at: <%= Time.now %>

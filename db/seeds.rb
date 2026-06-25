@@ -1271,6 +1271,7 @@ AppSetting.first_or_create!(
   max_chat_cost: "5.00",
   background_agent_model: "gpt-5.5",
   background_agent_supported_api_id: openai.id,
+  background_agent_prefer_user_codex: "0",
   background_agent_max_tool_turns: "30",
   exa_research_model: "exa-research"
 )

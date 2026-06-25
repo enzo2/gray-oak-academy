@@ -1,5 +1,5 @@
 <div id="resource-proposal-controls" class="mb-3">
-  <% resource_proposal_enabled = AppSetting.background_agent_enabled? && AppSetting.exa_enabled? %>
+  <% resource_proposal_enabled = AppSetting.background_agent_enabled_for?(current_user) && AppSetting.exa_enabled? %>
   <% show_propose_resources_button = lesson_plan.resource_proposal_available? || lesson_plan.generation_stage == "proposing_resources" %>
 
   <% if show_propose_resources_button && resource_proposal_enabled %>

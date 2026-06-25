@@ -82,6 +82,22 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal supported_apis(:xai).id.to_s, app_setting.reload.background_agent_supported_api_id.to_s
   end
 
+  test "superuser can enable per-teacher Codex background runs" do
+    app_setting = AppSetting.first
+    sign_in users(:super_user)
+
+    patch admin_app_setting_path, params: {
+      app_setting: {
+        background_agent_prefer_user_codex: "1",
+        background_agent_codex_model: "gpt-5.4-codex"
+      }
+    }
+
+    assert_redirected_to edit_admin_app_setting_path
+    assert app_setting.reload.background_agent_prefer_user_codex?
+    assert_equal "gpt-5.4-codex", app_setting.background_agent_codex_model
+  end
+
   test "superuser can fetch llm models for selected provider" do
     sign_in users(:super_user)
     Llm.create!(model: "xai-model-alpha", api_provider: supported_apis(:xai).api_base_uri)

@@ -53,6 +53,7 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
           teacher_name: "Admin User",
           teacher_id: users(:admin).id,
           model: "gpt-5.2",
+          provider_base_uri: SupportedApi::OPENAI_BASE_URI,
           source: "tool_call",
           task_preview: "Preview text",
           tool_calls: [
@@ -97,15 +98,15 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
     end
 
     captured_new_kwargs = nil
-    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_service }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**kwargs) { captured_new_kwargs = kwargs; fake_service }) do
       get admin_agent_runs_path(trace_response_id: "resp_1")
     end
 
     assert_response :success
-    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal users(:admin), captured_new_kwargs[:user]
     assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
     assert_equal "gpt-5.2", captured_new_kwargs[:model]
-    assert_nil captured_new_kwargs[:base_uri]
+    assert_equal SupportedApi::OPENAI_BASE_URI, captured_new_kwargs[:base_uri]
     assert_equal [ { response_id: "resp_1", kwargs: {} } ], calls
     assert_includes response.body, "Tool Calls"
     assert_includes response.body, "exa_search"
@@ -141,15 +142,43 @@ class Admin::AgentRunsControllerTest < ActionDispatch::IntegrationTest
     end
 
     captured_new_kwargs = nil
-    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_service }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**kwargs) { captured_new_kwargs = kwargs; fake_service }) do
       get admin_agent_runs_path(trace_response_id: "resp_provider")
     end
 
     assert_response :success
     assert_equal "https://api.x.ai/v1/", captured_new_kwargs[:base_uri]
-    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal users(:admin), captured_new_kwargs[:user]
     assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
   end
+  test "stateless Codex traces use locally recorded details without viewer credentials" do
+    sign_in users(:super_user)
+    seed_agent_run_logs(
+      [
+        {
+          run_id: "run_codex",
+          response_id: "resp_codex",
+          status: "completed",
+          submitted_at: Time.current.iso8601,
+          teacher_name: "Admin User",
+          teacher_id: users(:admin).id,
+          model: "gpt-5.4-codex",
+          provider_base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+          source: "tool_call",
+          task_prompt: "Locally saved Codex task"
+        }
+      ]
+    )
+
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { flunk("stateless Codex trace should not make a remote request") }) do
+      get admin_agent_runs_path(trace_response_id: "resp_codex")
+    end
+
+    assert_response :success
+    assert_includes response.body, "stateless provider"
+    assert_includes response.body, "Locally saved Codex task"
+  end
+
 
   test "admin is blocked from agent runs dashboard" do
     sign_in users(:admin)

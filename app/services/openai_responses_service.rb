@@ -23,9 +23,20 @@ class OpenaiResponsesService
   include OpenaiErrorHelper
   include OpenaiOauthTokenResolver
 
-  attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id, :model, :base_uri
+  attr_reader :last_response_id, :last_response, :last_response_hash, :previous_response_id, :model, :base_uri,
+              :credential_source, :agent_run_config
+
+  # Provider capability lists for the Responses API. These intentionally answer
+  # narrower questions than "can this host use Responses at all?"
+  #
+  # - STATEFUL_RESPONSES_HOSTS: supports store/previous_response_id chaining.
+  # - ASYNC_BACKGROUND_RESPONSES_HOSTS: supports provider-side `background: true`
+  #   submission plus later polling/retrieval. This is not the same as running a
+  #   Rails job on the `agent` queue. OpenRouter agent runs are Rails-backgrounded
+  #   synchronous requests, so OpenRouter should not be added here unless it
+  #   supports Responses `background: true` itself.
   STATEFUL_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
-  BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
+  ASYNC_BACKGROUND_RESPONSES_HOSTS = %w[api.openai.com].freeze
   METADATA_RESPONSES_HOSTS = %w[api.openai.com openrouter.ai].freeze
   COMPACTION_RESPONSES_HOSTS = %w[api.openai.com].freeze
   PROMPT_CACHE_KEY_RESPONSES_HOSTS = %w[api.openai.com api.x.ai].freeze
@@ -44,7 +55,35 @@ class OpenaiResponsesService
     def new(*args, **kwargs, &block)
       return instantiate_without_provider_routing(*args, **kwargs, &block) if self != OpenaiResponsesService
 
+      if kwargs[:agent_run] && kwargs[:agent_run_config].nil?
+        current_user = kwargs.fetch(:current_user)
+        agent_kwargs = kwargs.except(:current_user, :agent_run)
+        return for_agent_run(user: current_user, **agent_kwargs, &block)
+      end
+
       service_class_for(**kwargs).instantiate_without_provider_routing(*args, **kwargs, &block)
+    end
+
+    def for_agent_run(user:, **kwargs, &block)
+      kwargs.delete(:agent_run)
+      skip_user_codex = kwargs.delete(:skip_user_codex) || false
+      config = kwargs.delete(:agent_run_config) || BackgroundAgentConfigResolver.resolve(
+        user: user,
+        base_uri: kwargs[:base_uri],
+        access_token: kwargs[:access_token],
+        model: kwargs[:model],
+        require_stateful: kwargs[:agent_run_require_stateful],
+        skip_user_codex: skip_user_codex
+      )
+      service_class = service_class_for(current_user: user, base_uri: config.base_uri)
+
+      service_class.instantiate_without_provider_routing(
+        current_user: user,
+        agent_run: true,
+        agent_run_config: config,
+        **kwargs,
+        &block
+      )
     end
   end
 
@@ -83,9 +122,9 @@ class OpenaiResponsesService
     host.present? && STATEFUL_RESPONSES_HOSTS.include?(host)
   end
 
-  def self.background_supported_base_uri?(base_uri)
+  def self.async_background_supported_base_uri?(base_uri)
     host = base_uri_host(base_uri)
-    host.present? && BACKGROUND_RESPONSES_HOSTS.include?(host)
+    host.present? && ASYNC_BACKGROUND_RESPONSES_HOSTS.include?(host)
   end
 
   def self.metadata_supported_base_uri?(base_uri)
@@ -116,8 +155,8 @@ class OpenaiResponsesService
     self.class.stateful_supported_base_uri?(@base_uri)
   end
 
-  def background_supported?
-    self.class.background_supported_base_uri?(@base_uri)
+  def async_background_supported?
+    self.class.async_background_supported_base_uri?(@base_uri)
   end
 
   def metadata_supported?
@@ -145,7 +184,7 @@ class OpenaiResponsesService
   # - previous_response_id: optional; allows chaining stateful Responses calls
   # - agent_run: when true, use AppSetting background agent provider/model config
   # - agent_run_require_stateful: when true, fail fast unless provider supports stateful runs
-  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: false)
+  def initialize(current_user:, conversation: nil, access_token: nil, base_uri: nil, model: nil, stream_handler: nil, task_system_prompt: nil, enable_tools: false, provider_native_tools: nil, flow_tools: nil, reasoning_model: false, log_completion: true, store: true, previous_response_id: nil, agent_run: false, agent_run_require_stateful: false, agent_run_config: nil, skip_user_codex: false)
     # Don't initialize for orphaned student accounts.
     raise OpenAiError, "Students can only use LLMs if they are adopted by a teacher." if current_user.role_student? && current_user.teacher.nil?
 
@@ -156,15 +195,21 @@ class OpenaiResponsesService
     @reasoning_model_flag = reasoning_model
 
     if @agent_run
-      config = resolve_agent_run_config(
-        base_uri_override: base_uri,
-        access_token_override: access_token,
-        model_override: model,
-        require_stateful: agent_run_require_stateful
+      @agent_run_config = agent_run_config || BackgroundAgentConfigResolver.resolve(
+        user: current_user,
+        base_uri: base_uri,
+        access_token: access_token,
+        model: model,
+        require_stateful: agent_run_require_stateful,
+        skip_user_codex: skip_user_codex
       )
-      @base_uri = config.fetch(:base_uri)
-      @access_token = config.fetch(:access_token)
-      @model = config.fetch(:model)
+      @base_uri = @agent_run_config.base_uri
+      @access_token = @agent_run_config.access_token
+      @model = @agent_run_config.model
+      @credential_source = @agent_run_config.credential_source
+      Rails.logger.info(
+        "Background agent route teacher_id=#{current_user.id} provider=#{@base_uri} model=#{@model} credential_source=#{@credential_source}"
+      )
     else
       # Raise error if called with any API overrides without all three present.
       if base_uri.present? || access_token.present? || model.present?
@@ -197,7 +242,7 @@ class OpenaiResponsesService
     @response_overview_log_state = {}
     @response_summary_log_state = {}
     @stream_fallback_text = +""
-    @stream_web_search_calls = []
+    @stream_output_items = []
     @stream_annotations = []
 
     # Start with the full system prompt (base system prompt + teaching principles)
@@ -262,7 +307,7 @@ class OpenaiResponsesService
       context_management = build_context_management(auto_compaction: auto_compaction)
 
       sync_background_fallback = agent_run_synchronous_background?(background: background)
-      request_background = background && !sync_background_fallback && background_supported?
+      request_background = background && !sync_background_fallback && async_background_supported?
       request_metadata = metadata_supported? ? sanitized_metadata : nil
       if sync_background_fallback
         Rails.logger.info(
@@ -313,7 +358,7 @@ class OpenaiResponsesService
         stream = responses_stream_for_provider(request_params, request_options_param)
         stream.each do |event|
           capture_stream_fallback_text(event)
-          capture_stream_research(event)
+          capture_stream_output(event)
           handle_stream_event(event)
           @stream_handler.call(normalize_response_hash(event)) if @stream_handler
         end
@@ -478,7 +523,7 @@ class OpenaiResponsesService
   private
 
   def agent_run_synchronous_background?(background:)
-    background && @agent_run && !background_supported?
+    background && @agent_run && !async_background_supported?
   end
 
   def terminal_cached_response_for(response_id)
@@ -589,47 +634,6 @@ class OpenaiResponsesService
     raise OpenAiError, "No LLM model is configured. Ask your teacher to set one in Settings."
   end
 
-  def resolve_agent_run_config(base_uri_override:, access_token_override:, model_override:, require_stateful:)
-    app_setting = AppSetting.settings
-    unless app_setting
-      raise OpenAiError, "Background agent runs are not configured. Ask a superuser to set App Settings."
-    end
-
-    model_name = model_override.to_s.presence || app_setting.background_agent_model.to_s.presence
-    if model_name.blank?
-      raise OpenAiError, "Background agent runs model is not configured. Set it in App Settings."
-    end
-
-    provider = resolve_agent_run_provider(app_setting: app_setting, base_uri_override: base_uri_override)
-    unless provider
-      raise OpenAiError, "Background agent runs provider is not configured. Select a supported provider with a shared token in App Settings."
-    end
-
-    provider_base_uri = provider.api_base_uri.to_s
-    access_token = access_token_override.to_s.presence || provider.api_access_token.to_s.presence
-    unless access_token
-      raise OpenAiError, "Background agent runs provider key is missing. Add a shared key for #{provider_base_uri} in LLM APIs."
-    end
-
-    if require_stateful && !self.class.stateful_supported_base_uri?(provider_base_uri)
-      raise OpenAiError,
-            "Background agent runs provider #{provider_base_uri} does not support required stateful Responses behavior. Select a stateful provider in App Settings."
-    end
-
-    {
-      base_uri: provider_base_uri,
-      access_token: access_token,
-      model: model_name
-    }
-  end
-
-  def resolve_agent_run_provider(app_setting:, base_uri_override:)
-    if base_uri_override.present?
-      return SupportedApi.find_responses_agent_selectable_by_base_uri(base_uri_override)
-    end
-
-    app_setting.background_agent_supported_api
-  end
 
   def create_client
     # Future optimization: Reuse by adding client cache keyed by base_url + api_key, as each client has a connection pool of 99
@@ -1049,7 +1053,7 @@ class OpenaiResponsesService
 
   def finalize_stream_response(stream)
     if @last_response_hash.present?
-      apply_stream_fallback_text_to_last_response if extract_output_text(@last_response_hash).blank?
+      apply_stream_fallback_output_to_last_response if Array(@last_response_hash["output"]).blank?
       return
     end
 
@@ -1089,7 +1093,7 @@ class OpenaiResponsesService
 
   def reset_stream_capture_state
     @stream_fallback_text = +""
-    @stream_web_search_calls = []
+    @stream_output_items = []
     @stream_annotations = []
   end
 
@@ -1123,35 +1127,33 @@ class OpenaiResponsesService
     end
   end
 
-  # Codex (chatgpt.com) streams web_search_call items and citation annotations as
-  # events but ships an empty `output` in response.completed, so the finalize
-  # fallback rebuilds output from text deltas alone. Capture the search calls and
-  # citations here so they survive into last_response_hash for consumers that read
-  # research from the response (e.g. lesson-plan generation source tracking).
-  def capture_stream_research(event)
+  # Codex (chatgpt.com) can stream completed output items and citation annotations
+  # while shipping an empty `output` in response.completed. Preserve every item,
+  # especially function calls and reasoning needed by stateless agent loops.
+  def capture_stream_output(event)
     return unless event.is_a?(Hash)
 
     case event["type"].to_s
     when "response.output_item.done"
       item = event["item"]
-      @stream_web_search_calls << item if item.is_a?(Hash) && item["type"].to_s == "web_search_call"
+      @stream_output_items << item if item.is_a?(Hash) && item["type"].present?
     when "response.output_text.annotation.added"
       annotation = event["annotation"]
       @stream_annotations << annotation if annotation.is_a?(Hash)
     end
   end
 
-  def apply_stream_fallback_text_to_last_response
-    return if @stream_fallback_text.blank?
+  def apply_stream_fallback_output_to_last_response
+    return if @stream_output_items.blank? && @stream_fallback_text.blank?
 
     @last_response_hash = response_hash_with_output_text(@last_response_hash, @stream_fallback_text.to_s)
     @last_response = @last_response_hash
-    Rails.logger.warn("OpenaiResponsesService: used streamed text deltas because final response output was blank.")
+    Rails.logger.warn("OpenaiResponsesService: used streamed output items because final response output was blank.")
   end
 
   def synthesize_stream_fallback_response_hash
     text = @stream_fallback_text.to_s
-    return nil if text.blank?
+    return nil if @stream_output_items.blank? && text.blank?
 
     response_hash_with_output_text(
       {
@@ -1165,15 +1167,25 @@ class OpenaiResponsesService
   end
 
   def response_hash_with_output_text(response_hash, text)
-    output_text_part = { "type" => "output_text", "text" => text }
-    annotations = Array(@stream_annotations)
-    output_text_part["annotations"] = annotations if annotations.present?
-
-    message = { "type" => "message", "content" => [ output_text_part ] }
+    output_items = Array(@stream_output_items).deep_dup
+    unless stream_output_contains_text?(output_items) || text.blank?
+      output_text_part = { "type" => "output_text", "text" => text }
+      annotations = Array(@stream_annotations)
+      output_text_part["annotations"] = annotations if annotations.present?
+      output_items << { "type" => "message", "content" => [ output_text_part ] }
+    end
 
     response_hash.to_h.merge(
-      "output" => Array(@stream_web_search_calls) + [ message ]
+      "output" => output_items
     )
+  end
+
+  def stream_output_contains_text?(output_items)
+    output_items.any? do |item|
+      item["type"].to_s == "message" && Array(item["content"]).any? do |content|
+        content["type"].to_s == "output_text" && content["text"].present?
+      end
+    end
   end
 
   # Record the last response so callers can chain stateful requests.
@@ -1687,6 +1699,7 @@ class OpenaiResponsesService
     @agent_run_context_by_response_id[response_id] = context[:run_id].to_s
     agent_run_log_service.record_submitted(
       run_id: context[:run_id],
+      credential_source: @credential_source,
       response_id: response_id,
       teacher: @user,
       model: resolved_model_name(response_hash),

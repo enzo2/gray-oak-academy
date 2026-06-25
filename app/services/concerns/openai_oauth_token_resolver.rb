@@ -33,7 +33,7 @@ module OpenaiOauthTokenResolver
       owner_setting.openai_oauth_access_token
     end
   rescue OpenaiOauthService::Error => e
-    if invalid_oauth_refresh_error?(e)
+    if OpenaiOauthService.invalid_refresh_error?(e)
       Rails.logger.warn("#{self.class.name}: OpenAI OAuth refresh failed (#{e.message}); clearing OAuth credentials.")
       clear_openai_oauth_credentials_safely(owner_setting)
     else
@@ -55,14 +55,5 @@ module OpenaiOauthTokenResolver
     normalized = base_uri.to_s.strip
     normalized = "#{normalized}/" if normalized.present? && !normalized.end_with?("/")
     normalized == SupportedApi::OPENAI_CODEX_BASE_URI
-  end
-
-  def invalid_oauth_refresh_error?(error)
-    message = error.message.to_s.downcase
-    message.include?("invalid_grant") ||
-      message.include?("invalid refresh token") ||
-      message.include?("refresh token is invalid") ||
-      message.include?("refresh token is expired") ||
-      message.include?("missing refresh token")
   end
 end

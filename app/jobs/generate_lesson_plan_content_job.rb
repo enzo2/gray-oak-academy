@@ -223,11 +223,6 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
   def broadcast_error(current_user, lesson_plan, message)
     channel = "teacher_#{current_user.id}-dashboard"
-    renderer = ApplicationController.renderer_with_signed_in_user(current_user)
-    html = renderer.render(
-      partial: "admin/lesson_plans/form",
-      locals: { lesson: lesson_plan.lesson, lesson_plan: lesson_plan }
-    )
     # Broadcast an error message via Turbo Streams
     Turbo::StreamsChannel.broadcast_append_to(
       channel,
@@ -240,7 +235,7 @@ class GenerateLessonPlanContentJob < ApplicationJob
       channel,
       target: "lesson-plan-generation-controls",
       partial: "admin/lesson_plans/generate_lesson_plan_button",
-      locals: { lesson: lesson_plan.lesson, lesson_plan: lesson_plan }
+      locals: { lesson: lesson_plan.lesson, lesson_plan: lesson_plan, current_user: current_user }
     )
   end
 end

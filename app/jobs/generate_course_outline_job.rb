@@ -60,7 +60,7 @@ class GenerateCourseOutlineJob < ApplicationJob
     channel = "teacher_#{current_user.id}-dashboard"
     renderer = ApplicationController.renderer_with_signed_in_user(current_user)
     html = renderer.render(
-      partial: "admin/courses/course", locals: { course: course }, layout: false
+      partial: "admin/courses/course", locals: { course: course, current_user: current_user }, layout: false
     )
 
     # Broadcast the updated course row so the button is back to normal, in case user navigates back
@@ -83,7 +83,7 @@ class GenerateCourseOutlineJob < ApplicationJob
       channel,
       target: course,
       partial: "admin/courses/course",
-      locals: { course: course }
+      locals: { course: course, current_user: current_user }
     )
 
     # Broadcast an error message via Turbo Streams

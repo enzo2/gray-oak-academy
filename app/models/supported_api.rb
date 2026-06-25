@@ -3,6 +3,12 @@ class SupportedApi < ApplicationRecord
   OPENROUTER_BASE_URI = "https://openrouter.ai/api/v1/".freeze
   OPENAI_CODEX_BASE_URI = "https://chatgpt.com/backend-api/codex/".freeze
   XAI_BASE_URI = "https://api.x.ai/v1/".freeze
+  # Shared-key providers selectable for Background Agent Runs. This is not the
+  # same as every chat-capable Responses host: agent runs require validated
+  # stateful or stateless replay behavior across tool calls.
+  # OpenRouter is included here even though it is not in
+  # OpenaiResponsesService::ASYNC_BACKGROUND_RESPONSES_HOSTS; Rails runs
+  # OpenRouter agent requests synchronously on the dedicated agent queue.
   RESPONSES_AGENT_BASE_URIS = [ OPENAI_BASE_URI, OPENROUTER_BASE_URI, XAI_BASE_URI ].freeze
   SPEECH_PROVIDER_BASE_URIS = [ OPENAI_BASE_URI, OPENROUTER_BASE_URI ].freeze
 

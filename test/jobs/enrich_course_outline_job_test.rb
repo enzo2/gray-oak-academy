@@ -85,7 +85,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
 
     captured_new_kwargs = nil
     ExaApiService.stub(:new, ->(**_kwargs) { fake_exa }) do
-      OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
+      OpenaiResponsesService.stub(:for_agent_run, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
         emitted_events = []
         chalkboard_broadcasts = []
         job = EnrichCourseOutlineJob.new
@@ -141,7 +141,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal 3, captured_exa[:poll_interval_seconds]
     assert_equal true, captured_responses[:background]
     assert_equal "resp_guidance_1", captured_responses[:response_id]
-    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal teacher, captured_new_kwargs[:user]
     assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
     assert_nil captured_new_kwargs[:base_uri]
     assert_nil captured_new_kwargs[:access_token]
@@ -160,6 +160,122 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal false, called
   end
 
+  test "reuses completed Exa research when guidance generation is retried" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      outline: [ { "Origins" => "How the city began" } ],
+      outline_research_stage: "failed",
+      outline_research: {
+        "source_anchors" => [ { "id" => "anchor_1", "url" => "https://example.com/source" } ],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => [],
+        "research_id" => "research_existing",
+        "exa_research" => { "research_id" => "research_existing", "status" => "completed" }
+      }
+    )
+    ensure_prompt("analyze_course_outline_research", "Course: {title}\nResearch: {outline_research}")
+
+    guidance_json = {
+      report_markdown: "## Guidance\nReuse the completed research.",
+      research_questions: [ { id: "q1", question: "Keep the current scope?" } ]
+    }.to_json
+    fake_client = Object.new
+    fake_client.define_singleton_method(:complete) { |_messages = nil, **_kwargs| { "id" => "resp_retry" } }
+    fake_client.define_singleton_method(:wait_for_response) do |_response_id, **_kwargs|
+      { "id" => "resp_retry", "status" => "completed", "output" => [] }
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| guidance_json }
+
+    ExaApiService.stub(:new, ->(**_kwargs) { flunk("completed Exa research should be reused") }) do
+      OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
+        CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
+          job = EnrichCourseOutlineJob.new
+          job.stub(:emit_analytics_event, true) do
+            job.perform(course_id: course.id, user_id: teacher.id)
+          end
+        end
+      end
+    end
+
+    course.reload
+    assert_equal "awaiting_teacher_input", course.outline_research_stage
+    assert_equal "research_existing", course.outline_research["research_id"]
+    assert_equal "resp_retry", course.outline_research_response_id
+  end
+
+  test "transient OAuth failures keep guidance generation in progress" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      outline_research_stage: "failed",
+      outline_research: {
+        "source_anchors" => [ { "id" => "anchor_1", "url" => "https://example.com/source" } ],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => [],
+        "exa_research" => { "research_id" => "research_existing", "status" => "completed" }
+      }
+    )
+    transient_error = BackgroundAgentConfigResolver::TransientOauthError.new("temporary OAuth failure")
+    job = EnrichCourseOutlineJob.new
+
+    job.stub(:generate_guidance_questions, ->(**_kwargs) { raise transient_error }) do
+      job.stub(:emit_analytics_event, true) do
+        CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
+          assert_raises(BackgroundAgentConfigResolver::TransientOauthError) do
+            job.perform(course_id: course.id, user_id: teacher.id)
+          end
+        end
+      end
+    end
+
+    course.reload
+    assert_equal "generating_guidance_questions", course.outline_research_stage
+    assert_nil course.outline_research_error
+  end
+
+  test "codex usage limit re-runs guidance generation on the shared provider" do
+    teacher = users(:admin)
+    course = courses(:one)
+    AppSetting.settings.update!(
+      background_agent_model: "gpt-5.2",
+      background_agent_supported_api_id: supported_apis(:openai).id
+    )
+    course.update!(
+      outline_research_stage: "failed",
+      outline_research: {
+        "source_anchors" => [ { "id" => "anchor_1", "url" => "https://example.com/source" } ],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => [],
+        "exa_research" => { "research_id" => "research_existing", "status" => "completed" }
+      }
+    )
+    usage_limit_error = BackgroundAgentConfigResolver::CodexUsageLimitError.new("The usage limit has been reached")
+    job = EnrichCourseOutlineJob.new
+    enqueued = []
+
+    job.stub(:generate_guidance_questions, ->(**_kwargs) { raise usage_limit_error }) do
+      job.stub(:emit_analytics_event, true) do
+        EnrichCourseOutlineJob.stub(:perform_later, ->(**kwargs) { enqueued << kwargs }) do
+          CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
+            job.perform(course_id: course.id, user_id: teacher.id)
+          end
+        end
+      end
+    end
+
+    assert_equal 1, enqueued.size
+    assert_equal true, enqueued.first[:skip_user_codex]
+    assert_equal course.id, enqueued.first[:course_id]
+
+    course.reload
+    assert_not_equal "failed", course.outline_research_stage
+    assert_nil course.outline_research_error
+  end
+
   test "uses development stub pipeline and pre-fills guidance answers" do
     teacher = users(:admin)
     course = courses(:one)
@@ -171,7 +287,7 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
 
     CourseOutlineResearchStubService.stub(:enabled?, true) do
       ExaApiService.stub(:new, ->(**_kwargs) { raise "Exa should not run in stub mode" }) do
-        OpenaiResponsesService.stub(:new, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
+        OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
           CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
             EnrichCourseOutlineJob.perform_now(
               course_id: course.id,

@@ -1,6 +1,8 @@
 require "json/repair"
 
 class EnrichCourseOutlineJob < ApplicationJob
+  include BackgroundAgentJob
+
   queue_as :agent
 
   EXA_OUTPUT_SCHEMA = {
@@ -48,9 +50,10 @@ class EnrichCourseOutlineJob < ApplicationJob
     schema: LlmSchemas::CourseOutlineResearchGuidanceSchema.to_json_schema.deep_stringify_keys
   }.freeze
 
-  def perform(course_id:, user_id:, source: "course_edit", conversation_id: nil)
+  def perform(course_id:, user_id:, source: "course_edit", conversation_id: nil, skip_user_codex: false)
     current_user = User.find(user_id)
     course = Course.find(course_id)
+    authorize_teacher_access!(current_user, course)
     failure_phase = "initialize"
 
     course.update!(outline_research_stage: "researching_outline", outline_research_error: nil)
@@ -66,19 +69,27 @@ class EnrichCourseOutlineJob < ApplicationJob
     end
 
     failure_phase = "exa_research"
-    research_payload = run_exa_research(course: course, current_user: current_user)
-    emit_analytics_event(
-      Events::CourseOutlineResearchExaCompleted,
-      course: course,
-      current_user: current_user,
-      source: source,
-      stage: "researching_outline",
-      research_id: research_payload["research_id"].to_s,
-      source_anchor_count: Array(research_payload["source_anchors"]).size,
-      coverage_gap_count: Array(research_payload["coverage_gaps"]).size,
-      factual_note_count: Array(research_payload["factual_notes"]).size,
-      alternative_approach_count: Array(research_payload["alternative_approaches"]).size
-    )
+    research_payload = reusable_exa_research_payload(course)
+    if research_payload
+      Rails.logger.info(
+        "EnrichCourseOutlineJob reusing completed Exa research course=#{course.id} " \
+        "research_id=#{research_payload['research_id'].presence || 'unknown'}"
+      )
+    else
+      research_payload = run_exa_research(course: course, current_user: current_user)
+      emit_analytics_event(
+        Events::CourseOutlineResearchExaCompleted,
+        course: course,
+        current_user: current_user,
+        source: source,
+        stage: "researching_outline",
+        research_id: research_payload["research_id"].to_s,
+        source_anchor_count: Array(research_payload["source_anchors"]).size,
+        coverage_gap_count: Array(research_payload["coverage_gaps"]).size,
+        factual_note_count: Array(research_payload["factual_notes"]).size,
+        alternative_approach_count: Array(research_payload["alternative_approaches"]).size
+      )
+    end
 
     course.update!(
       outline_research: research_payload,
@@ -93,7 +104,8 @@ class EnrichCourseOutlineJob < ApplicationJob
       course: course,
       current_user: current_user,
       run_id: run_id,
-      source: source
+      source: source,
+      skip_user_codex: skip_user_codex
     )
 
     course.update!(
@@ -118,11 +130,39 @@ class EnrichCourseOutlineJob < ApplicationJob
     )
     broadcast_chalkboard_research_input(course: course, conversation_id: conversation_id)
     broadcast_editor_state(course, current_user)
+  rescue ActiveRecord::RecordNotFound
+    raise
+  rescue BackgroundAgentConfigResolver::TransientOauthError => e
+    handle_failure(e, course: course, current_user: current_user, source: source, failure_phase: failure_phase) if oauth_retries_exhausted?
+    raise
+  rescue BackgroundAgentConfigResolver::CodexUsageLimitError => e
+    if codex_fallback_available?(skip_user_codex: skip_user_codex)
+      Rails.logger.warn(
+        "EnrichCourseOutlineJob Codex usage limit reached; re-running on shared provider course=#{course&.id}"
+      )
+      EnrichCourseOutlineJob.perform_later(
+        course_id: course_id,
+        user_id: user_id,
+        source: source,
+        conversation_id: conversation_id,
+        skip_user_codex: true
+      )
+      return
+    end
+    handle_failure(e, course: course, current_user: current_user, source: source, failure_phase: failure_phase)
+    raise
   rescue StandardError => e
-    Rails.logger.error("EnrichCourseOutlineJob failed for course=#{course_id}: #{e.message}")
+    handle_failure(e, course: course, current_user: current_user, source: source, failure_phase: failure_phase)
+    raise
+  end
+
+  private
+
+  def handle_failure(error, course:, current_user:, source:, failure_phase:)
+    Rails.logger.error("EnrichCourseOutlineJob failed for course=#{course&.id}: #{error.message}")
     course&.update(
       outline_research_stage: "failed",
-      outline_research_error: "Failed to run outline research: #{e.message}"
+      outline_research_error: "Failed to run outline research: #{error.message}"
     )
     emit_analytics_event(
       Events::CourseOutlineResearchPipelineFailed,
@@ -133,13 +173,24 @@ class EnrichCourseOutlineJob < ApplicationJob
       phase: failure_phase,
       run_id: course&.outline_research_run_id.to_s,
       response_id: course&.outline_research_response_id.to_s,
-      error_message: e.message.to_s.truncate(500)
+      error_message: error.message.to_s.truncate(500)
     )
     broadcast_editor_state(course, current_user) if current_user.present? && course.present?
-    raise
   end
 
-  private
+  def authorize_teacher_access!(current_user, course)
+    return if current_user.role_teacher? && (current_user.role_superuser? || course.teacher_id == current_user.id)
+
+    raise ActiveRecord::RecordNotFound
+  end
+
+  def reusable_exa_research_payload(course)
+    payload = course.outline_research_hash
+    return unless payload.dig("exa_research", "status").to_s.casecmp?("completed")
+    return unless research_payload?(payload)
+
+    payload.deep_dup
+  end
 
   def run_stub_pipeline(course:, current_user:, source:, conversation_id:)
     research_payload = CourseOutlineResearchStubService.research_payload(course: course)
@@ -346,7 +397,7 @@ class EnrichCourseOutlineJob < ApplicationJob
     nil
   end
 
-  def generate_guidance_questions(course:, current_user:, run_id:, source:)
+  def generate_guidance_questions(course:, current_user:, run_id:, source:, skip_user_codex: false)
     prompt = Prompt.get_prompt(category: "analyze_course_outline_research", user: current_user)
       .gsub("{title}", course.title.to_s)
       .gsub("{summary}", course.summary.to_s)
@@ -354,13 +405,13 @@ class EnrichCourseOutlineJob < ApplicationJob
       .gsub("{outline}", course.outline.to_json)
       .gsub("{outline_research}", course.outline_research.to_json)
 
-    client = OpenaiResponsesService.new(
-      current_user: current_user,
+    client = OpenaiResponsesService.for_agent_run(
+      user: current_user,
       reasoning_model: true,
       enable_tools: false,
       store: true,
-      agent_run: true,
-      agent_run_require_stateful: false
+      agent_run_require_stateful: false,
+      skip_user_codex: skip_user_codex
     )
 
     submitted = client.complete(

@@ -45,8 +45,11 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
         if !response.is_a?(Net::HTTPSuccess)
           error_body = +""
           response.read_body { |chunk| error_body << chunk }
-          raise OpenAiError,
-                "Codex stream request failed: status=#{response.code} content_type=#{response['Content-Type']} body=#{error_body.first(240).inspect}"
+          raise codex_stream_error(
+            status: response.code,
+            content_type: response["Content-Type"],
+            body: error_body
+          )
         end
 
         content_type = response["Content-Type"].to_s
@@ -74,6 +77,27 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
         end
       end
     end
+  end
+
+  # Classify a failed Codex stream response. A 429 usage_limit_reached means the
+  # teacher's ChatGPT subscription is temporarily exhausted; surface a dedicated
+  # error so callers can fall back to the shared background-agent provider.
+  def codex_stream_error(status:, content_type:, body:)
+    message = "Codex stream request failed: status=#{status} content_type=#{content_type} body=#{body.first(240).inspect}"
+    if codex_usage_limit_response?(status: status, body: body)
+      BackgroundAgentConfigResolver::CodexUsageLimitError.new(message)
+    else
+      OpenAiError.new(message)
+    end
+  end
+
+  def codex_usage_limit_response?(status:, body:)
+    return false unless status.to_s == "429"
+
+    parsed = JSON.parse(body.to_s)
+    parsed.is_a?(Hash) && parsed.dig("error", "type").to_s == "usage_limit_reached"
+  rescue JSON::ParserError
+    body.to_s.include?("usage_limit_reached")
   end
 
   def drain_sse_events!(buffer, flush: false)

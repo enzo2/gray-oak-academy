@@ -42,6 +42,16 @@ class OpenaiOauthService
     "OpenAI OAuth is not configured."
   end
 
+  def self.invalid_refresh_error?(error)
+    message = error.message.to_s.downcase
+    message.include?("invalid_grant") ||
+      message.include?("invalid refresh token") ||
+      message.include?("refresh token is invalid") ||
+      message.include?("refresh token is expired") ||
+      message.include?("missing refresh token")
+  end
+
+
   class AuthorizationPendingError < Error; end
   class SlowDownError < Error; end
   class ExpiredTokenError < Error; end

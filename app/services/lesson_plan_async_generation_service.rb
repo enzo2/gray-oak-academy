@@ -41,7 +41,7 @@ class LessonPlanAsyncGenerationService
       return failure("Generate the lesson plan once before proposing resources.") unless @lesson_plan.initial_generation_completed?
 
       @lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
-      ProposeResourcesJob.perform_later(@lesson_plan, @current_user, source: @source)
+      ProposeResourcesJob.perform_later(lesson_plan_id: @lesson_plan.id, user_id: @current_user.id, source: @source)
       mark_cooldown!(action: :propose_resources)
 
       success(stage: "proposing_resources", message: "Queued resource proposal.")
@@ -59,7 +59,7 @@ class LessonPlanAsyncGenerationService
   end
 
   def resource_proposal_enabled?
-    AppSetting.background_agent_enabled? && AppSetting.exa_enabled?
+    AppSetting.background_agent_enabled_for?(@current_user) && AppSetting.exa_enabled?
   end
 
   def cooldown_active?(action:)

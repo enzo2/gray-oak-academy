@@ -16,7 +16,7 @@ class AgentRunLogService
     AgentRun.delete_all
   end
 
-  def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:, provider_base_uri: nil, metadata_version: nil, phase: nil)
+  def record_submitted(run_id:, response_id:, teacher:, model:, source:, prompt:, provider_base_uri: nil, credential_source: nil, metadata_version: nil, phase: nil)
     upsert_run!(
       run_id: run_id,
       response_id: response_id,
@@ -25,6 +25,7 @@ class AgentRunLogService
       teacher_id: teacher.id,
       model: model.to_s,
       provider_base_uri: provider_base_uri.to_s,
+      credential_source: credential_source.to_s.presence,
       source: source.to_s,
       task_preview: truncate_prompt(prompt),
       task_prompt: normalize_task_prompt(prompt),
@@ -84,7 +85,7 @@ class AgentRunLogService
       AgentRun.transaction do
         run = AgentRun.lock.find_by(run_id: run_id)
         run ||= AgentRun.new(run_id: run_id)
-        run.assign_attributes(attrs_hash.except("run_id"))
+        run.assign_attributes(attrs_hash.except("run_id", "credential_source"))
         run.events = append_run_event(run.events, attrs_hash)
         run.save!
       end
@@ -96,7 +97,11 @@ class AgentRunLogService
   end
 
   def serialize_run(run)
-    run.attributes.deep_symbolize_keys
+    serialized = run.attributes.deep_symbolize_keys
+    credential_source = Array(serialized[:events]).reverse_each.filter_map do |event|
+      event[:credential_source].to_s.presence if event.is_a?(Hash)
+    end.first
+    serialized.merge(credential_source: credential_source)
   end
 
   def truncate_prompt(prompt)
@@ -115,6 +120,13 @@ class AgentRunLogService
       "phase" => attrs_hash["phase"].to_s.presence,
       "response_id" => attrs_hash["response_id"].to_s.presence
     }.compact
+
+    if attrs_hash["status"] == "submitted"
+      event["provider_base_uri"] = attrs_hash["provider_base_uri"].to_s.presence
+      event["model"] = attrs_hash["model"].to_s.presence
+      event["credential_source"] = attrs_hash["credential_source"].to_s.presence
+      event.compact!
+    end
 
     last = events.last
     signature = event.slice("status", "phase", "response_id")

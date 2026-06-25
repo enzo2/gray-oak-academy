@@ -92,7 +92,7 @@ class CourseOutlineResearchAsyncService
   def research_pipeline_enabled?
     return true if CourseOutlineResearchStubService.enabled?
 
-    AppSetting.background_agent_enabled? && AppSetting.exa_enabled?
+    AppSetting.background_agent_enabled_for?(@current_user) && AppSetting.exa_enabled?
   end
 
   def success(stage:, message:)

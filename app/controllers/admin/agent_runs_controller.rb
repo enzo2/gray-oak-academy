@@ -28,13 +28,30 @@ module Admin
     def fetch_run_trace(run)
       tool_calls = normalize_tool_calls(run[:tool_calls])
       tool_call_summary = summarize_tool_calls(tool_calls)
-      app_setting = AppSetting.settings
+      provider_base_uri = SupportedApi.normalize_base_uri(run[:provider_base_uri])
+      unless OpenaiResponsesService.stateful_supported_base_uri?(provider_base_uri)
+        return local_trace_data(
+          run: run,
+          tool_calls: tool_calls,
+          tool_call_summary: tool_call_summary,
+          error: "Remote trace retrieval is unavailable for this run's stateless provider; showing locally recorded details."
+        )
+      end
 
-      service = OpenaiResponsesService.new(
-        current_user: current_user,
-        base_uri: run[:provider_base_uri].to_s.presence,
-        model: run[:model].presence || app_setting&.background_agent_model,
-        agent_run: true,
+      initiating_teacher = User.find_by(id: run[:teacher_id])
+      unless initiating_teacher&.role_teacher?
+        return local_trace_data(
+          run: run,
+          tool_calls: tool_calls,
+          tool_call_summary: tool_call_summary,
+          error: "The initiating teacher is unavailable; showing locally recorded details."
+        )
+      end
+
+      service = OpenaiResponsesService.for_agent_run(
+        user: initiating_teacher,
+        base_uri: provider_base_uri,
+        model: run[:model].presence || AppSetting.settings&.background_agent_model,
         agent_run_require_stateful: false,
         log_completion: false,
         store: false
@@ -54,19 +71,23 @@ module Admin
         response_json: JSON.pretty_generate(response)
       }
     rescue OpenAiError => e
-      {
+      local_trace_data(
+        run: run,
         tool_calls: tool_calls,
         tool_call_summary: tool_call_summary,
-        task_prompt: run[:task_prompt].to_s,
-        task_preview: run[:task_preview].to_s,
-        input_text: "",
-        instructions_text: "",
-        output_text: "",
-        response_json: "",
         error: e.message
-      }
+      )
     rescue StandardError => e
       Rails.logger.error "Failed to fetch run trace for #{run[:response_id]}: #{e.message}"
+      local_trace_data(
+        run: run,
+        tool_calls: tool_calls,
+        tool_call_summary: tool_call_summary,
+        error: "Failed to fetch run trace: #{e.message}"
+      )
+    end
+
+    def local_trace_data(run:, tool_calls:, tool_call_summary:, error:)
       {
         tool_calls: tool_calls,
         tool_call_summary: tool_call_summary,
@@ -76,70 +97,70 @@ module Admin
         instructions_text: "",
         output_text: "",
         response_json: "",
-        error: "Failed to fetch run trace: #{e.message}"
+        error: error
       }
     end
 
-  def resolved_task_prompt(run:, response:)
-    run[:task_prompt].to_s.presence || response_metadata_value(response, "task_prompt", "task_full")
-  end
-
-  def resolved_task_preview(run:, response:)
-    run[:task_preview].to_s.presence || response_metadata_value(response, "task_preview")
-  end
-
-  def response_metadata_value(response, *keys)
-    metadata = response["metadata"]
-    return "" unless metadata.is_a?(Hash)
-
-    keys.each do |key|
-      value = metadata[key] || metadata[key.to_sym]
-      return value.to_s if value.present?
+    def resolved_task_prompt(run:, response:)
+      run[:task_prompt].to_s.presence || response_metadata_value(response, "task_prompt", "task_full")
     end
 
-    ""
-  end
+    def resolved_task_preview(run:, response:)
+      run[:task_preview].to_s.presence || response_metadata_value(response, "task_preview")
+    end
 
-  def run_sort_timestamp(run)
-    value = run[:submitted_at].presence || run[:finished_at].presence
-    return 0 if value.blank?
-    return value.to_time.to_f if value.respond_to?(:to_time)
+    def response_metadata_value(response, *keys)
+      metadata = response["metadata"]
+      return "" unless metadata.is_a?(Hash)
 
-    Time.zone.parse(value.to_s).to_f
-  rescue ArgumentError, TypeError
-    0
-  end
+      keys.each do |key|
+        value = metadata[key] || metadata[key.to_sym]
+        return value.to_s if value.present?
+      end
 
-  def extract_output_text(response)
-    Array(response["output"]).flat_map do |item|
-      next [] unless item["type"].to_s == "message"
+      ""
+    end
+
+    def run_sort_timestamp(run)
+      value = run[:submitted_at].presence || run[:finished_at].presence
+      return 0 if value.blank?
+      return value.to_time.to_f if value.respond_to?(:to_time)
+
+      Time.zone.parse(value.to_s).to_f
+    rescue ArgumentError, TypeError
+      0
+    end
+
+    def extract_output_text(response)
+      Array(response["output"]).flat_map do |item|
+        next [] unless item["type"].to_s == "message"
 
         Array(item["content"]).filter_map do |part|
           part["text"] if part["type"].to_s == "output_text"
-      end
-    end.join("\n\n")
-  end
-
-  def extract_input_text(response)
-    Array(response["input"]).flat_map do |item|
-      next item.to_s unless item.is_a?(Hash)
-
-      extract_text_from_content(item["content"])
-    end.join("\n\n")
-  end
-
-  def extract_text_from_content(content)
-    case content
-    when String
-      content
-    when Array
-      content.filter_map { |part| extract_text_from_content(part) }.join(" ")
-    when Hash
-      content["text"] || content["input_text"] || content["output_text"] || content["content"]&.to_s
-    else
-      content.to_s
+        end
+      end.join("\n\n")
     end
-  end
+
+    def extract_input_text(response)
+      Array(response["input"]).flat_map do |item|
+        next item.to_s unless item.is_a?(Hash)
+
+        extract_text_from_content(item["content"])
+      end.join("\n\n")
+    end
+
+    def extract_text_from_content(content)
+      case content
+      when String
+        content
+      when Array
+        content.filter_map { |part| extract_text_from_content(part) }.join(" ")
+      when Hash
+        content["text"] || content["input_text"] || content["output_text"] || content["content"]&.to_s
+      else
+        content.to_s
+      end
+    end
 
     def normalize_tool_calls(tool_calls)
       Array(tool_calls).filter_map do |tool_call|

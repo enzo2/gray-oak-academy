@@ -1,6 +1,10 @@
 class LlmServiceRouting
   require "uri"
 
+  # Hosts where normal interactive chat/lesson completions should use the Responses API
+  # transport. This is deliberately broader than Background Agent Run selection:
+  # e.g. Codex/ChatGPT can be useful for user chat, but is not a shared-key
+  # backend agent provider.
   RESPONSES_API_PROVIDER_HOSTS = %w[api.openai.com chatgpt.com openrouter.ai api.x.ai].freeze
 
   def self.enqueue_completion(conversation:)

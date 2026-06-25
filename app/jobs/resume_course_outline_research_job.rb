@@ -1,9 +1,12 @@
 class ResumeCourseOutlineResearchJob < ApplicationJob
+  include BackgroundAgentJob
+
   queue_as :agent
 
-  def perform(course_id:, user_id:, permission_granted:, source: "course_edit")
+  def perform(course_id:, user_id:, permission_granted:, source: "course_edit", skip_user_codex: false)
     current_user = User.find(user_id)
     course = Course.find(course_id)
+    authorize_teacher_access!(current_user, course)
     failure_phase = "initialize"
     client = nil
     stateless_loop = nil
@@ -27,14 +30,14 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     end
 
     executor = CourseResearchToolExecutor.new(course: course, current_user: current_user)
-    client = OpenaiResponsesService.new(
-      current_user: current_user,
+    client = OpenaiResponsesService.for_agent_run(
+      user: current_user,
       flow_tools: executor.tool_definitions,
       enable_tools: false,
       reasoning_model: true,
       store: true,
-      agent_run: true,
-      agent_run_require_stateful: false
+      agent_run_require_stateful: false,
+      skip_user_codex: skip_user_codex
     )
 
     max_tool_turns = AppSetting.background_agent_max_tool_turns
@@ -47,8 +50,9 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       course: course,
       run_id: run_id,
       source: source,
-      previous_response_id: course.outline_research_response_id,
-      stateless_loop: stateless_loop
+      previous_response_id: reusable_previous_response_id(client: client, response_id: course.outline_research_response_id),
+      stateless_loop: stateless_loop,
+      teacher_id: current_user.id
     )
 
     turns = 0
@@ -113,15 +117,73 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       tool_turns: turns.to_i
     )
     broadcast_editor_state(course, current_user)
-  rescue StandardError => e
-    Rails.logger.error(
-      "ResumeCourseOutlineResearchJob failed for course=#{course_id} " \
-      "reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false}: #{e.message}"
+  rescue ActiveRecord::RecordNotFound
+    raise
+  rescue BackgroundAgentConfigResolver::TransientOauthError => e
+    if oauth_retries_exhausted?
+      handle_failure(
+        e,
+        course: course,
+        current_user: current_user,
+        source: source,
+        failure_phase: failure_phase,
+        client: client,
+        response_hash: response_hash,
+        stateless_loop: stateless_loop
+      )
+    end
+    raise
+  rescue BackgroundAgentConfigResolver::CodexUsageLimitError => e
+    if codex_fallback_available?(skip_user_codex: skip_user_codex)
+      Rails.logger.warn(
+        "ResumeCourseOutlineResearchJob Codex usage limit reached; re-running on shared provider course=#{course&.id}"
+      )
+      ResumeCourseOutlineResearchJob.perform_later(
+        course_id: course_id,
+        user_id: user_id,
+        permission_granted: permission_granted,
+        source: source,
+        skip_user_codex: true
+      )
+      return
+    end
+    handle_failure(
+      e,
+      course: course,
+      current_user: current_user,
+      source: source,
+      failure_phase: failure_phase,
+      client: client,
+      response_hash: response_hash,
+      stateless_loop: stateless_loop
     )
-    client&.mark_current_agent_run_failed(error_message: e.message, response_hash: response_hash)
+    raise
+  rescue StandardError => e
+    handle_failure(
+      e,
+      course: course,
+      current_user: current_user,
+      source: source,
+      failure_phase: failure_phase,
+      client: client,
+      response_hash: response_hash,
+      stateless_loop: stateless_loop
+    )
+    raise
+  end
+
+
+  private
+
+  def handle_failure(error, course:, current_user:, source:, failure_phase:, client:, response_hash:, stateless_loop:)
+    Rails.logger.error(
+      "ResumeCourseOutlineResearchJob failed for course=#{course&.id} " \
+      "reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false}: #{error.message}"
+    )
+    client&.mark_current_agent_run_failed(error_message: error.message, response_hash: response_hash)
     course&.update(
       outline_research_stage: "failed",
-      outline_research_error: "Failed to apply outline research guidance: #{e.message}"
+      outline_research_error: "Failed to apply outline research guidance: #{error.message}"
     )
     emit_analytics_event(
       Events::CourseOutlineResearchPipelineFailed,
@@ -132,13 +194,32 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       phase: failure_phase,
       run_id: course&.outline_research_run_id.to_s,
       response_id: course&.outline_research_response_id.to_s,
-      error_message: e.message.to_s.truncate(500)
+      error_message: error.message.to_s.truncate(500)
     )
     broadcast_editor_state(course, current_user) if current_user.present? && course.present?
-    raise
   end
 
-  private
+  def authorize_teacher_access!(current_user, course)
+    return if current_user.role_teacher? && (current_user.role_superuser? || course.teacher_id == current_user.id)
+
+    raise ActiveRecord::RecordNotFound
+  end
+
+  def reusable_previous_response_id(client:, response_id:)
+    response_id = response_id.to_s.presence
+    return if response_id.blank?
+
+    prior_run = AgentRun.find_by(response_id: response_id)
+    prior_provider = SupportedApi.normalize_base_uri(prior_run&.provider_base_uri)
+    current_provider = SupportedApi.normalize_base_uri(client.respond_to?(:base_uri) ? client.base_uri : nil)
+    return response_id if prior_provider.present? && prior_provider == current_provider
+
+    Rails.logger.info(
+      "Starting outline research resume without previous_response_id because provider affinity was not established " \
+      "response_id=#{response_id} prior_provider=#{prior_provider.presence || 'unknown'} current_provider=#{current_provider}"
+    )
+    nil
+  end
 
   def run_stub_apply_phase(course:, current_user:, source:, run_id:)
     executor = CourseResearchToolExecutor.new(course: course, current_user: current_user)
@@ -181,27 +262,22 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     broadcast_editor_state(course, current_user)
   end
 
-  def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:, stateless_loop: nil)
+  def submit_initial_resume_prompt(client:, course:, run_id:, source:, previous_response_id:, stateless_loop: nil, teacher_id:)
     prompt = build_resume_prompt(course)
     metadata = run_metadata(
       run_id: run_id,
       source: source,
       course: course,
-      teacher_id: course.teacher_id,
+      teacher_id: teacher_id,
       phase: "submitted"
     )
     if stateless_loop
       return stateless_loop.start(messages: [ { role: "user", content: prompt } ], metadata: metadata)
     end
 
-    raise OpenAiError, "No previous response id is available to resume outline research run." if previous_response_id.to_s.blank?
-
-    submitted = client.complete(
-      [ { role: "user", content: prompt } ],
-      previous_response_id: previous_response_id,
-      background: true,
-      metadata: metadata
-    )
+    completion_params = { background: true, metadata: metadata }
+    completion_params[:previous_response_id] = previous_response_id if previous_response_id.present?
+    submitted = client.complete([ { role: "user", content: prompt } ], **completion_params)
 
     response_id = submitted["id"].to_s
     raise OpenAiError, "Responses API did not return a response id when resuming outline research." if response_id.blank?

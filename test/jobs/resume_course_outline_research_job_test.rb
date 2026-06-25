@@ -40,10 +40,17 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       course_prior_state: {}
     )
 
+    AgentRun.create!(
+      run_id: "run_123",
+      response_id: "resp_previous",
+      provider_base_uri: SupportedApi::OPENAI_BASE_URI
+    )
+
     ensure_prompt("apply_course_outline_research", "Teacher responses:\n{teacher_answers}\nAdditional comments:\n{additional_comments}")
 
     complete_calls = []
     fake_client = Object.new
+    fake_client.define_singleton_method(:base_uri) { SupportedApi::OPENAI_BASE_URI }
     fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
       complete_calls << { messages: messages, kwargs: kwargs }
       id = complete_calls.length == 1 ? "resp_apply_1" : "resp_apply_2"
@@ -95,7 +102,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     end
 
     captured_new_kwargs = nil
-    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
       emitted_events = []
       job = ResumeCourseOutlineResearchJob.new
       job.stub(:emit_analytics_event, ->(event_class, **_kwargs) { emitted_events << event_class }) do
@@ -126,11 +133,28 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Choice B: Tighten tone and emphasize evidence."
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Additional comments:"
     assert_includes complete_calls.first.dig(:messages, 0, :content), "Tighten tone and add one local source."
-    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal teacher, captured_new_kwargs[:user]
     assert_equal false, captured_new_kwargs[:agent_run_require_stateful]
     assert_nil captured_new_kwargs[:base_uri]
     assert_nil captured_new_kwargs[:access_token]
     assert_nil captured_new_kwargs[:model]
+  end
+
+  test "does not reuse a response id from a different provider" do
+    AgentRun.create!(
+      run_id: "run_provider_affinity",
+      response_id: "resp_openai",
+      provider_base_uri: SupportedApi::OPENAI_BASE_URI
+    )
+    client = Struct.new(:base_uri).new(SupportedApi::XAI_BASE_URI)
+
+    response_id = ResumeCourseOutlineResearchJob.new.send(
+      :reusable_previous_response_id,
+      client: client,
+      response_id: "resp_openai"
+    )
+
+    assert_nil response_id
   end
 
   test "fails when prerequisites are not met" do
@@ -164,6 +188,83 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     assert_includes course.outline_research_error.to_s, "Failed to apply outline research guidance"
   end
 
+  test "transient OAuth failures keep guidance application in progress" do
+    teacher = users(:admin)
+    course = courses(:one)
+    course.update!(
+      outline_research_stage: "awaiting_teacher_input",
+      outline_guidance_questions: [],
+      outline_guidance_answers: {},
+      outline_research: {
+        "source_anchors" => [],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => []
+      }
+    )
+    transient_error = BackgroundAgentConfigResolver::TransientOauthError.new("temporary OAuth failure")
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+
+    CourseResearchToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+      OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise transient_error }) do
+        CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
+          job = ResumeCourseOutlineResearchJob.new
+          assert_raises(BackgroundAgentConfigResolver::TransientOauthError) do
+            job.perform(course_id: course.id, user_id: teacher.id, permission_granted: true)
+          end
+        end
+      end
+    end
+
+    course.reload
+    assert_equal "applying_guidance_updates", course.outline_research_stage
+    assert_nil course.outline_research_error
+  end
+
+  test "codex usage limit re-runs guidance application on the shared provider" do
+    teacher = users(:admin)
+    course = courses(:one)
+    AppSetting.settings.update!(
+      background_agent_model: "gpt-5.2",
+      background_agent_supported_api_id: supported_apis(:openai).id
+    )
+    course.update!(
+      outline_research_stage: "awaiting_teacher_input",
+      outline_guidance_questions: [],
+      outline_guidance_answers: {},
+      outline_research: {
+        "source_anchors" => [],
+        "coverage_gaps" => [],
+        "factual_notes" => [],
+        "alternative_approaches" => []
+      }
+    )
+    usage_limit_error = BackgroundAgentConfigResolver::CodexUsageLimitError.new("The usage limit has been reached")
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    enqueued = []
+
+    CourseResearchToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+      OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise usage_limit_error }) do
+        ResumeCourseOutlineResearchJob.stub(:perform_later, ->(**kwargs) { enqueued << kwargs }) do
+          CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
+            ResumeCourseOutlineResearchJob.new.perform(course_id: course.id, user_id: teacher.id, permission_granted: true)
+          end
+        end
+      end
+    end
+
+    assert_equal 1, enqueued.size
+    assert_equal true, enqueued.first[:skip_user_codex]
+    assert_equal course.id, enqueued.first[:course_id]
+    assert_equal true, enqueued.first[:permission_granted]
+
+    course.reload
+    assert_equal "applying_guidance_updates", course.outline_research_stage
+    assert_nil course.outline_research_error
+  end
+
   test "uses development stub apply phase when enabled" do
     teacher = users(:admin)
     course = courses(:one)
@@ -195,7 +296,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     )
 
     CourseOutlineResearchStubService.stub(:enabled?, true) do
-      OpenaiResponsesService.stub(:new, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
+      OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise "Responses API should not run in stub mode" }) do
         CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
           ResumeCourseOutlineResearchJob.perform_now(
             course_id: course.id,
@@ -278,7 +379,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       { type: "function_call_output", call_id: function_call["call_id"], output: "{\"ok\":true}" }
     end
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
       CourseResearchToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         error = assert_raises(OpenAiError) do
           CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
@@ -352,7 +453,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
     end
     fake_client.define_singleton_method(:mark_current_agent_run_failed) { |**_kwargs| nil }
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
       CourseOutlineResearchBroadcasts.stub(:broadcast_editor_state, true) do
         ResumeCourseOutlineResearchJob.perform_now(
           course_id: course.id,

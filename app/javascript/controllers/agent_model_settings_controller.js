@@ -58,20 +58,20 @@ export default class extends Controller {
       .catch(() => {
         if (this.statusRequestId !== requestId) return
         this.statusTarget.innerHTML = `
-          Runs are only enabled when this field is set and the selected provider has a shared key. Use a strongly agentic model with reliable tool use and structured output support.
+          The shared fallback requires this model and a provider key. Use a strongly agentic model with reliable tool use and structured output support.
         `
       })
   }
 
   renderStatus(payload) {
     const parts = [
-      "Runs are only enabled when this field is set and the selected provider has a shared key. Use a strongly agentic model with reliable tool use and structured output support."
+      "The shared fallback requires this model and a provider key. Use a strongly agentic model with reliable tool use and structured output support."
     ]
 
     if (payload.provider_key_present) {
       parts.push(`<span class="text-success-600 dark:text-success-400">Shared provider key is configured.</span>`)
     } else {
-      parts.push(`<span class="text-danger-600 dark:text-danger-400">Add a shared key for the selected provider in LLM APIs to enable this pipeline.</span>`)
+      parts.push(`<span class="text-warning-700 dark:text-warning-300">Add a shared key for this provider if background runs should have a fallback.</span>`)
     }
 
     if (payload.openrouter && payload.model_present) {

@@ -21,6 +21,53 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_instance_of OpenaiCodexResponsesService, service
   end
 
+  test "codex 429 usage_limit_reached is classified as a recoverable usage limit error" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+
+    body = '{"error":{"type":"usage_limit_reached","message":"The usage limit has been reached","plan_type":"plus"}}'
+    error = service.send(:codex_stream_error, status: "429", content_type: "application/json", body: body)
+
+    assert_instance_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
+    assert_includes error.message, "status=429"
+  end
+
+  test "codex non-429 stream failure remains a generic OpenAiError" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+
+    error = service.send(:codex_stream_error, status: "500", content_type: "text/plain", body: "boom")
+
+    assert_instance_of OpenAiError, error
+    assert_not_kind_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
+  end
+
+  test "codex 429 without usage_limit marker stays a generic OpenAiError" do
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+
+    body = '{"error":{"type":"rate_limit_exceeded","message":"Slow down"}}'
+    error = service.send(:codex_stream_error, status: "429", content_type: "application/json", body: body)
+
+    assert_instance_of OpenAiError, error
+    assert_not_kind_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
+  end
+
   test "streamed web_search_call and citations survive into last_response_hash when finalize rebuilds from text deltas" do
     # Codex (chatgpt.com) streams web_search_call items and citation annotations as
     # discrete events but ships an empty `output` in response.completed, so the
@@ -35,7 +82,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       log_completion: false
     )
 
-    service.send(:capture_stream_research, {
+    service.send(:capture_stream_output, {
       "type" => "response.output_item.done",
       "item" => {
         "type" => "web_search_call",
@@ -43,17 +90,17 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
         "action" => { "type" => "search", "query" => "fractions number line standards" }
       }
     })
-    service.send(:capture_stream_research, {
+    service.send(:capture_stream_output, {
       "type" => "response.output_text.annotation.added",
       "annotation" => { "type" => "url_citation", "url" => "https://example.org/x", "title" => "Frac Standards" }
     })
     # Non-research events are ignored.
-    service.send(:capture_stream_research, { "type" => "response.output_text.delta", "delta" => "ignored" })
+    service.send(:capture_stream_output, { "type" => "response.output_text.delta", "delta" => "ignored" })
 
     service.instance_variable_set(:@stream_fallback_text, +'{"lesson_plan": []}')
     service.instance_variable_set(:@last_response_hash, { "id" => "resp_x", "status" => "completed", "output" => [] })
 
-    service.send(:apply_stream_fallback_text_to_last_response)
+    service.send(:apply_stream_fallback_output_to_last_response)
 
     output = service.last_response_hash["output"]
     assert_equal [ "web_search_call", "message" ], output.map { |item| item["type"] }
@@ -62,6 +109,65 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     message_part = output.last["content"].first
     assert_equal '{"lesson_plan": []}', message_part["text"]
     assert_equal [ "https://example.org/x" ], message_part["annotations"].map { |a| a["url"] }
+  end
+
+  test "codex background response preserves streamed function calls when completed output is empty" do
+    responses = Object.new
+    responses.define_singleton_method(:create) do |**_params|
+      flunk("SDK create should not be used for Codex responses")
+    end
+
+    client = Object.new
+    client.define_singleton_method(:responses) { responses }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+        model: @model,
+        flow_tools: [
+          {
+            type: "function",
+            name: "add_and_link_resource",
+            description: "Add a resource",
+            parameters: { type: "object", properties: {}, additionalProperties: false }
+          }
+        ],
+        log_completion: false
+      )
+
+      function_call = {
+        "type" => "function_call",
+        "id" => "fc_1",
+        "call_id" => "call_1",
+        "name" => "add_and_link_resource",
+        "arguments" => "{}"
+      }
+      completed_response = {
+        "id" => "resp_codex_tool_call",
+        "status" => "completed",
+        "model" => @model,
+        "output" => [],
+        "usage" => {}
+      }
+
+      service.stub(:manual_codex_responses_stream, ->(_request_params, _request_options_param) {
+        [
+          { "type" => "response.output_item.done", "item" => function_call },
+          { "type" => "response.completed", "response" => completed_response }
+        ].to_enum
+      }) do
+        submitted = service.complete(
+          [ { role: "user", content: "Find resources" } ],
+          background: true
+        )
+        completed = service.wait_for_response(submitted["id"])
+
+        assert_equal [ function_call ], submitted["output"]
+        assert_equal [ function_call ], completed["output"]
+      end
+    end
   end
 
   test "stream research capture resets between streamed completions" do
@@ -1440,7 +1546,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       )
     end
 
-    assert_includes error.message, "Background agent runs provider is not configured"
+    assert_includes error.message, "Background agent runs provider https://api.example.com/ is unavailable"
   end
 
   test "stateful provider helper accepts openai and xai hosts only" do

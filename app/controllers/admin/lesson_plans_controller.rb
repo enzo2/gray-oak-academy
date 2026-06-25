@@ -248,7 +248,7 @@ module Admin
     end
 
     def resource_proposal_enabled?
-      AppSetting.background_agent_enabled? && AppSetting.exa_enabled?
+      AppSetting.background_agent_enabled_for?(current_user) && AppSetting.exa_enabled?
     end
 
     def authorize_generation_access!

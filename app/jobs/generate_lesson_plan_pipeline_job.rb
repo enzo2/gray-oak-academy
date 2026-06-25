@@ -5,6 +5,7 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
   def perform(lesson_plan_id:, user_id:, propose_resources: false, steering_guidance: nil, source: "lesson_plan_pipeline")
     current_user = User.find(user_id)
     lesson_plan = LessonPlan.find(lesson_plan_id)
+    authorize_teacher_access!(current_user, lesson_plan)
     Rails.logger.info(
       "GenerateLessonPlanPipelineJob start source=#{source} lesson_plan=#{lesson_plan_id} propose_resources=#{propose_resources} steering=#{steering_guidance.present?}"
     )
@@ -25,17 +26,19 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
       broadcast_refresh(current_user)
 
       ProposeResourcesJob.perform_now(
-        lesson_plan,
-        current_user,
-        track_stage: false,
+        lesson_plan_id: lesson_plan.id,
+        user_id: current_user.id,
+        track_stage: true,
         raise_on_error: true,
         source: source
       )
+    else
+      lesson_plan.update!(generation_stage: "completed", generation_error: nil)
     end
-
-    lesson_plan.update!(generation_stage: "completed", generation_error: nil)
     broadcast_refresh(current_user)
-    Rails.logger.info("GenerateLessonPlanPipelineJob completed source=#{source} lesson_plan=#{lesson_plan_id}")
+    Rails.logger.info("GenerateLessonPlanPipelineJob finished source=#{source} lesson_plan=#{lesson_plan_id} stage=#{lesson_plan.reload.generation_stage}")
+  rescue ActiveRecord::RecordNotFound
+    raise
   rescue StandardError => e
     Rails.logger.error("GenerateLessonPlanPipelineJob failed for lesson_plan #{lesson_plan_id} source=#{source}: #{e.message}")
     lesson_plan&.update(generation_stage: "failed", generation_error: e.message)
@@ -44,6 +47,13 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
   end
 
   private
+
+  def authorize_teacher_access!(current_user, lesson_plan)
+    owner_id = lesson_plan.lesson.course.teacher_id
+    return if current_user.role_teacher? && (current_user.role_superuser? || owner_id == current_user.id)
+
+    raise ActiveRecord::RecordNotFound
+  end
 
   def broadcast_refresh(current_user)
     Turbo::StreamsChannel.broadcast_refresh_to("teacher_#{current_user.id}-dashboard")

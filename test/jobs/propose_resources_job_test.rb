@@ -42,10 +42,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
 
     captured_new_kwargs = nil
 
-    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "teacher_chat_tool")
         end
       end
     end
@@ -53,8 +53,7 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     lesson_plan.reload
     assert_equal "completed", lesson_plan.generation_stage
     assert_equal "NASA refraction demonstration video", lesson_plan.suggested_resources.first["Video"]
-    assert_equal teacher, captured_new_kwargs[:current_user]
-    assert_equal true, captured_new_kwargs[:agent_run]
+    assert_equal teacher, captured_new_kwargs[:user]
     assert_nil captured_new_kwargs[:base_uri]
     assert_nil captured_new_kwargs[:access_token]
     assert_nil captured_new_kwargs[:model]
@@ -99,10 +98,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     fake_executor.define_singleton_method(:tool_definitions) { [] }
     fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "teacher_chat_tool")
         end
       end
     end
@@ -195,10 +194,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     end
     fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "teacher_chat_tool")
         end
       end
     end
@@ -272,10 +271,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
 
     app_setting.update!(log: (app_setting.log || {}).merge("analytics_events" => []))
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "teacher_chat_tool")
         end
       end
     end
@@ -339,10 +338,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     end
     fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
 
-    OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          result = ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          result = ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "teacher_chat_tool")
           assert_equal false, result
         end
       end
@@ -400,10 +399,10 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
     captured_new_kwargs = nil
 
-    OpenaiResponsesService.stub(:new, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
+    OpenaiResponsesService.stub(:for_agent_run, ->(**kwargs) { captured_new_kwargs = kwargs; fake_client }) do
       ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
-          assert ProposeResourcesJob.perform_now(lesson_plan, teacher, source: "teacher_chat_tool")
+          assert ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "teacher_chat_tool")
         end
       end
     end
@@ -416,6 +415,106 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal "function_call_output", replay.last[:type]
     assert_nil complete_calls.second.dig(:kwargs, :previous_response_id)
   end
+
+  test "codex usage limit re-runs on the shared provider and stays in progress" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    AppSetting.settings.update!(
+      background_agent_model: "gpt-5.2",
+      background_agent_supported_api_id: supported_apis(:openai).id
+    )
+    usage_limit_error = BackgroundAgentConfigResolver::CodexUsageLimitError.new("The usage limit has been reached")
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    enqueued = []
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise usage_limit_error }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        ProposeResourcesJob.stub(:perform_later, ->(**kwargs) { enqueued << kwargs }) do
+          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+            result = ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+            assert_equal false, result
+          end
+        end
+      end
+    end
+
+    assert_equal 1, enqueued.size
+    assert_equal true, enqueued.first[:skip_user_codex]
+    assert_equal lesson_plan.id, enqueued.first[:lesson_plan_id]
+
+    lesson_plan.reload
+    assert_equal "proposing_resources", lesson_plan.generation_stage
+    assert_nil lesson_plan.generation_error
+  end
+
+  test "codex usage limit without a shared provider fails the lesson plan" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    AppSetting.settings.update!(
+      background_agent_model: nil,
+      background_agent_supported_api_id: nil,
+      background_agent_prefer_user_codex: "0"
+    )
+    usage_limit_error = BackgroundAgentConfigResolver::CodexUsageLimitError.new("The usage limit has been reached")
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    enqueued = []
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise usage_limit_error }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        ProposeResourcesJob.stub(:perform_later, ->(**kwargs) { enqueued << kwargs }) do
+          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+            result = ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+            assert_equal false, result
+          end
+        end
+      end
+    end
+
+    assert_empty enqueued
+    lesson_plan.reload
+    assert_equal "failed", lesson_plan.generation_stage
+    assert_includes lesson_plan.generation_error, "usage limit"
+  end
+
+  test "transient OAuth failures remain in progress until retries are exhausted" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    transient_error = BackgroundAgentConfigResolver::TransientOauthError.new("temporary OAuth failure")
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise transient_error }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          job = ProposeResourcesJob.new
+          assert_raises(BackgroundAgentConfigResolver::TransientOauthError) do
+            job.perform(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+          end
+
+          lesson_plan.reload
+          assert_equal "proposing_resources", lesson_plan.generation_stage
+          assert_nil lesson_plan.generation_error
+
+          final_job = ProposeResourcesJob.new
+          final_job.executions = ProposeResourcesJob::OAUTH_RETRY_ATTEMPTS
+          assert_raises(BackgroundAgentConfigResolver::TransientOauthError) do
+            final_job.perform(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+          end
+        end
+      end
+    end
+
+    lesson_plan.reload
+    assert_equal "failed", lesson_plan.generation_stage
+    assert_includes lesson_plan.generation_error, "temporary OAuth failure"
+  end
 end
 
 class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase
@@ -425,10 +524,13 @@ class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase
     order = []
 
     captured_source = nil
+    captured_track_stage = nil
     GenerateLessonPlanContentJob.stub(:perform_now, ->(*_args, **_kwargs) { order << :content }) do
-      ProposeResourcesJob.stub(:perform_now, ->(*_args, **kwargs) {
+      ProposeResourcesJob.stub(:perform_now, ->(**kwargs) {
         order << :resources
         captured_source = kwargs[:source]
+        captured_track_stage = kwargs[:track_stage]
+        lesson_plan.update!(generation_stage: "completed", generation_error: nil)
       }) do
         Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
           GenerateLessonPlanPipelineJob.perform_now(
@@ -444,6 +546,52 @@ class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase
     lesson_plan.reload
     assert_equal [ :content, :resources ], order
     assert_equal "teacher_chat_tool", captured_source
+    assert_equal true, captured_track_stage
     assert_equal "completed", lesson_plan.generation_stage
+  end
+
+  test "pipeline does not overwrite a detached resource proposal retry state" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+
+    GenerateLessonPlanContentJob.stub(:perform_now, true) do
+      ProposeResourcesJob.stub(:perform_now, ->(**) {
+        lesson_plan.update!(
+          generation_stage: "proposing_resources",
+          generation_error: nil
+        )
+        true
+      }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          GenerateLessonPlanPipelineJob.perform_now(
+            lesson_plan_id: lesson_plan.id,
+            user_id: teacher.id,
+            propose_resources: true
+          )
+        end
+      end
+    end
+
+    lesson_plan.reload
+    assert_equal "proposing_resources", lesson_plan.generation_stage
+    assert_nil lesson_plan.generation_error
+  end
+
+  test "authorization failures do not mutate another teacher's lesson plan" do
+    lesson_plan = lesson_plans(:one)
+    other_teacher = users(:admin2)
+    lesson_plan.update!(generation_stage: "completed", generation_error: nil)
+
+    assert_raises(ActiveRecord::RecordNotFound) do
+      GenerateLessonPlanPipelineJob.perform_now(
+        lesson_plan_id: lesson_plan.id,
+        user_id: other_teacher.id,
+        propose_resources: false
+      )
+    end
+
+    lesson_plan.reload
+    assert_equal "completed", lesson_plan.generation_stage
+    assert_nil lesson_plan.generation_error
   end
 end

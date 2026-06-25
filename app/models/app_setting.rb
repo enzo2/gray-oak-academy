@@ -27,6 +27,8 @@ class AppSetting < ApplicationRecord
                  :max_chat_cost,
                  :background_agent_supported_api_id,
                  :background_agent_model,
+                 :background_agent_prefer_user_codex,
+                 :background_agent_codex_model,
                  :background_agent_max_tool_turns,
                  :exa_api_key,
                  :exa_research_model,
@@ -65,12 +67,18 @@ class AppSetting < ApplicationRecord
     Rails.env.development? && course_outline_research_stub_enabled
   end
 
+  def background_agent_prefer_user_codex
+    ActiveModel::Type::Boolean.new.cast(super)
+  end
+
+  alias_method :background_agent_prefer_user_codex?, :background_agent_prefer_user_codex
+
   validates :singleton, inclusion: { in: [ true, false ] }
   before_validation :migrate_legacy_background_agent_settings
   before_validation :normalize_secret_fields
   validate :llms_not_archived, on: :update
   validate :embedding_model_validity, on: :update, if: :embedding_model_changed_in_settings?
-
+  validate :background_agent_codex_model_present_when_preferred
   after_save :clear_embeddings_if_model_changed
 
   # Convenience accessor to always return the single app setting
@@ -218,6 +226,30 @@ class AppSetting < ApplicationRecord
     settings&.background_agent_enabled? || false
   end
 
+  def background_agent_user_codex_available_for?(user)
+    setting = user&.setting
+
+    background_agent_prefer_user_codex? &&
+      background_agent_codex_model.present? &&
+      user&.role_teacher? &&
+      setting.present? &&
+      (setting.openai_oauth_refresh_token.present? ||
+        (setting.openai_oauth_access_token.present? && !setting.openai_oauth_expired?))
+  end
+
+  def background_agent_enabled_for?(user)
+    return false unless user&.role_teacher?
+
+    background_agent_enabled? || background_agent_user_codex_available_for?(user)
+  end
+
+  def self.background_agent_enabled_for?(user)
+    return false unless user&.role_teacher?
+    return true if background_agent_enabled?
+
+    settings&.background_agent_user_codex_available_for?(user) || false
+  end
+
   def background_agent_max_tool_turns
     coerce_tool_turn_limit(background_agent_setting_value("background_agent_max_tool_turns"))
   end
@@ -319,6 +351,13 @@ class AppSetting < ApplicationRecord
     return nil unless parsed&.positive?
 
     [ parsed, MAX_BACKGROUND_AGENT_TOOL_TURNS ].min
+  end
+
+  def background_agent_codex_model_present_when_preferred
+    return unless background_agent_prefer_user_codex?
+    return if background_agent_codex_model.present?
+
+    errors.add(:background_agent_codex_model, "must be set when per-teacher Codex is enabled")
   end
 
   def llms_not_archived

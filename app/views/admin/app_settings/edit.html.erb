@@ -231,13 +231,36 @@ end %>
 
   <h2 class="text-xl font-semibold mt-4 mb-2">
     Background Agent Runs
-    <% if AppSetting.background_agent_enabled? %>
+    <% if AppSetting.background_agent_enabled_for?(current_user) %>
       <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
   <p class="text-dim text-sm mb-2">
-    Uses Responses API runs for backend agent tasks (independent of user LLM settings). OpenRouter runs synchronously on a dedicated worker queue.
+    Uses Responses API runs for agent runs like Course Outline Research and Propose Resources.
   </p>
+  <div class="mb-4">
+    <%= f.label :background_agent_prefer_user_codex, class: "flex items-start cursor-pointer" do %>
+      <%= f.check_box :background_agent_prefer_user_codex, class: "checkbox-primary mt-1 mr-2" %>
+      <div>
+        <span class="font-medium text-stone-700 dark:text-stone-300">
+          Experimental: prefer each teacher's Codex login
+        </span>
+        <p class="text-xs text-dim mt-1">
+          Teacher-initiated background tasks use that teacher's own connected OpenAI OAuth credential when valid.
+        </p>
+      </div>
+    <% end %>
+    <div class="mt-3">
+      <%= f.label :background_agent_codex_model, "Codex background model", class: "form-label" %>
+      <%= f.combobox "background_agent_codex_model",
+        "#{llm_models_admin_app_setting_path}?api_uri=#{SupportedApi::OPENAI_CODEX_BASE_URI}",
+        name_when_new: "app_setting[background_agent_codex_model]",
+        placeholder: "Select or enter Codex model name" %>
+      <p class="text-xs text-dim mt-1">
+        Required when the experimental preference is enabled. This model is global; credentials remain per teacher.
+      </p>
+    </div>
+  </div>
   <% agent_supported_apis = @setting.background_agent_supported_apis.order(:api_base_uri) %>
   <% selected_agent_provider_id = @setting.background_agent_supported_api&.id %>
   <% selected_agent_provider_uri = @setting.background_agent_supported_api&.api_base_uri.to_s %>
@@ -248,7 +271,7 @@ end %>
     data-agent-model-settings-provider-uri-map-value="<%= agent_supported_apis.pluck(:id, :api_base_uri).to_h.to_json %>"
   >
     <div>
-      <%= f.label :background_agent_supported_api_id, "Background agent runs provider", class: "form-label" %>
+      <%= f.label :background_agent_supported_api_id, "Shared fallback provider", class: "form-label" %>
       <%= f.collection_select :background_agent_supported_api_id,
         agent_supported_apis, :id, :api_base_uri,
         { selected: selected_agent_provider_id }, {
@@ -260,7 +283,7 @@ end %>
         } %>
     </div>
     <div>
-      <%= f.label :background_agent_model, "Background agent model", class: "form-label" %>
+      <%= f.label :background_agent_model, "Shared fallback model", class: "form-label" %>
       <%= f.combobox "background_agent_model",
         "#{llm_models_admin_app_setting_path}?api_uri=#{selected_agent_provider_uri}",
         name_when_new: "app_setting[background_agent_model]",
@@ -270,11 +293,11 @@ end %>
           agent_model_settings_target: "modelCombobox"
         } %>
       <p class="text-xs text-dim mt-1" data-agent-model-settings-target="status">
-        Runs are only enabled when this field is set and the selected provider has a shared key. Use a strongly agentic model with reliable tool use and structured output support.
+        The shared fallback requires this model and a provider key. Use a strongly agentic model with reliable tool use and structured output support.
         <% if @setting.background_agent_access_token.present? %>
           <span class="text-success-600 dark:text-success-400">Shared provider key is configured.</span>
         <% else %>
-          <span class="text-danger-600 dark:text-danger-400">Add a shared key for the selected provider in LLM APIs to enable this pipeline.</span>
+          <span class="text-warning-700 dark:text-warning-300">Add a shared key for this provider if background runs should have a fallback.</span>
         <% end %>
         <% if selected_agent_provider_uri == SupportedApi::OPENROUTER_BASE_URI && @setting.background_agent_model.present? %>
           <% agent_context_length = @setting.background_agent_context_length %>
