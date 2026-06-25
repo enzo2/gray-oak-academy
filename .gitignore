@@ -9,6 +9,7 @@
 /private
 
 /.claude/settings.local.json
+kickbacks.vsix
 
 # Ignore bundler config.
 /.bundle
