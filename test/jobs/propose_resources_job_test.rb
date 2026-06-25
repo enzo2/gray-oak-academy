@@ -594,4 +594,88 @@ class GenerateLessonPlanPipelineJobTest < ActiveSupport::TestCase
     assert_equal "completed", lesson_plan.generation_stage
     assert_nil lesson_plan.generation_error
   end
+
+  # Regression: a failure used to only broadcast a morph refresh, which did not
+  # reliably re-render the inline generation status on the open edit page, so the
+  # failure stayed hidden until a manual reload. The failure path must replace the
+  # generation controls directly so "Generation failed." surfaces live.
+  test "failure replaces both generation controls so neither status is stranded" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    replace_calls = []
+
+    GenerateLessonPlanContentJob.stub(:perform_now, ->(*_args, **_kwargs) {
+      raise OpenAiError, "Codex stream request failed: status=429 usage_limit_reached"
+    }) do
+      Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+        Turbo::StreamsChannel.stub(:broadcast_replace_to, ->(*_args, **kwargs) {
+          replace_calls << kwargs
+        }) do
+          assert_raises(OpenAiError) do
+            GenerateLessonPlanPipelineJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+          end
+        end
+      end
+    end
+
+    lesson_plan.reload
+    assert_equal "failed", lesson_plan.generation_stage
+    assert_includes lesson_plan.generation_error, "status=429"
+
+    targets = replace_calls.map { |kwargs| kwargs[:target] }
+    assert_includes targets, "lesson-plan-generation-controls"
+    assert_includes targets, "resource-proposal-controls"
+
+    generation_call = replace_calls.find { |kwargs| kwargs[:target] == "lesson-plan-generation-controls" }
+    assert_equal teacher, generation_call.dig(:locals, :current_user)
+
+    html = ApplicationController.render(
+      partial: generation_call[:partial],
+      locals: generation_call[:locals]
+    )
+    assert_includes html, "lesson-plan-generation-controls"
+    assert_includes html, "Generation failed."
+
+    # The resource-proposal control must not echo the content-generation status.
+    proposal_call = replace_calls.find { |kwargs| kwargs[:target] == "resource-proposal-controls" }
+    proposal_html = ApplicationController.render(
+      partial: proposal_call[:partial],
+      locals: proposal_call[:locals]
+    )
+    refute_includes proposal_html, "Generating lesson plan content"
+    refute_includes proposal_html, "Generation failed."
+  end
+
+  # A per-teacher Codex usage limit must reach the inline status as parsed,
+  # teacher-facing text rather than the raw "status=429 ..." provider body.
+  test "codex usage limit failure renders friendly text in the generation status" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+
+    usage_error = BackgroundAgentConfigResolver::CodexUsageLimitError.new(
+      "Codex stream request failed: status=429 usage_limit_reached",
+      resets_at: 90.minutes.from_now,
+      plan_type: "plus"
+    )
+
+    GenerateLessonPlanContentJob.stub(:perform_now, ->(*_args, **_kwargs) { raise usage_error }) do
+      Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+        Turbo::StreamsChannel.stub(:broadcast_replace_to, true) do
+          assert_raises(BackgroundAgentConfigResolver::CodexUsageLimitError) do
+            GenerateLessonPlanPipelineJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+          end
+        end
+      end
+    end
+
+    lesson_plan.reload
+    assert_equal "failed", lesson_plan.generation_stage
+    assert_includes lesson_plan.generation_error, "ChatGPT Plus usage limit"
+    assert_includes lesson_plan.generation_error, "resets in about"
+    refute_includes lesson_plan.generation_error, "status=429"
+    # Content generation runs on the teacher's own model, so the advice points there
+    # rather than at the shared background-agent provider.
+    assert_includes lesson_plan.generation_error, "Settings > LLMs"
+    refute_includes lesson_plan.generation_error, "shared background-agent provider"
+  end
 end

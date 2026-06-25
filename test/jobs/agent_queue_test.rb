@@ -21,6 +21,29 @@ class AgentQueueTest < ActiveSupport::TestCase
     assert_equal 1, agent_worker.fetch("processes")
   end
 
+  test "development uses solid queue through the puma plugin" do
+    development = database_config.fetch("development")
+    puma_config = Rails.root.join("config/puma.rb").read
+
+    assert development.key?("queue")
+    assert_equal "db/queue_migrate", development.dig("queue", "migrations_paths")
+    assert_includes Rails.root.join("config/environments/development.rb").read, "config.active_job.queue_adapter = :solid_queue"
+    assert_includes puma_config, "plugin :solid_queue"
+    assert_includes puma_config, "development production"
+  end
+
+  test "development uses solid_cable so cross-process job broadcasts reach the browser" do
+    # Agent jobs run in forked Solid Queue processes, so the in-process `async`
+    # cable adapter would only surface Turbo broadcasts after a manual refresh.
+    development_cable = cable_config.fetch("development")
+    development_db = database_config.fetch("development")
+
+    assert_equal "solid_cable", development_cable["adapter"]
+    assert_equal "cable", development_cable.dig("connects_to", "database", "writing")
+    assert development_db.key?("cable"), "development needs a cable database for solid_cable"
+    assert_equal "db/cable_migrate", development_db.dig("cable", "migrations_paths")
+  end
+
   test "solid queue workers cover every app and framework queue" do
     missing = required_queue_names.reject { |queue| serviced_queue?(queue) }
 
@@ -87,5 +110,19 @@ class AgentQueueTest < ActiveSupport::TestCase
       ERB.new(Rails.root.join("config/queue.yml").read).result,
       aliases: true
     ).fetch("production")
+  end
+
+  def database_config
+    @database_config ||= YAML.safe_load(
+      ERB.new(Rails.root.join("config/database.yml").read).result,
+      aliases: true
+    )
+  end
+
+  def cable_config
+    @cable_config ||= YAML.safe_load(
+      ERB.new(Rails.root.join("config/cable.yml").read).result,
+      aliases: true
+    )
   end
 end

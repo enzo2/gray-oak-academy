@@ -10,6 +10,10 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
       "GenerateLessonPlanPipelineJob start source=#{source} lesson_plan=#{lesson_plan_id} propose_resources=#{propose_resources} steering=#{steering_guidance.present?}"
     )
 
+    # Tracks which phase is running so a failure is described in the right terms:
+    # content generation uses the teacher's own model (:personal) while resource
+    # proposal is a background agent run (:background_agent).
+    phase = :content
     lesson_plan.update!(generation_stage: "generating_content", generation_error: nil)
     broadcast_refresh(current_user)
 
@@ -22,6 +26,7 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
     )
 
     if propose_resources
+      phase = :resources
       lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
       broadcast_refresh(current_user)
 
@@ -41,8 +46,12 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
     raise
   rescue StandardError => e
     Rails.logger.error("GenerateLessonPlanPipelineJob failed for lesson_plan #{lesson_plan_id} source=#{source}: #{e.message}")
-    lesson_plan&.update(generation_stage: "failed", generation_error: e.message)
-    broadcast_refresh(current_user) if current_user.present?
+    error_scope = phase == :resources ? :background_agent : :personal
+    lesson_plan&.update(generation_stage: "failed", generation_error: GenerationErrorPresenter.friendly(e, scope: error_scope))
+    # A morph refresh does not reliably re-render the inline generation status on
+    # the lesson-plan edit page, so the failure would otherwise stay hidden until a
+    # manual reload. Replace the controls directly so the "failed" status surfaces live.
+    broadcast_failure(current_user, lesson_plan) if current_user.present? && lesson_plan.present?
     raise
   end
 
@@ -57,5 +66,28 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
 
   def broadcast_refresh(current_user)
     Turbo::StreamsChannel.broadcast_refresh_to("teacher_#{current_user.id}-dashboard")
+  end
+
+  # Targeted replacement of the generation controls (rather than a page refresh) so
+  # the now-"failed" generation status renders live on the open edit page. Re-rendering
+  # the button partials also re-enables the actions for retry. Both controls are
+  # refreshed because they share generation_stage: the resource-proposal control must
+  # be re-rendered too, or it strands an earlier "Proposing..." status after a failure.
+  def broadcast_failure(current_user, lesson_plan)
+    channel = "teacher_#{current_user.id}-dashboard"
+    lesson = lesson_plan.lesson
+
+    Turbo::StreamsChannel.broadcast_replace_to(
+      channel,
+      target: "lesson-plan-generation-controls",
+      partial: "admin/lesson_plans/generate_lesson_plan_button",
+      locals: { lesson: lesson, lesson_plan: lesson_plan, current_user: current_user }
+    )
+    Turbo::StreamsChannel.broadcast_replace_to(
+      channel,
+      target: "resource-proposal-controls",
+      partial: "admin/lesson_plans/propose_resources_button",
+      locals: { lesson: lesson, lesson_plan: lesson_plan, current_user: current_user }
+    )
   end
 end

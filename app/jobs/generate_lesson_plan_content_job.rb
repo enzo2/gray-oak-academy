@@ -98,8 +98,11 @@ class GenerateLessonPlanContentJob < ApplicationJob
 
     rescue StandardError => e
       Rails.logger.error "Error: #{e.message}"
-      set_generation_state(lesson_plan, "failed", "Failed to generate lesson plan content: #{e.message}") if track_stage
-      broadcast_error(current_user, lesson_plan, "Failed to generate lesson plan content: #{e.message}")
+      # Content generation runs on the teacher's own configured model, so usage-limit
+      # recovery advice points them at their personal model settings (:personal).
+      friendly_error = "Failed to generate lesson plan content: #{GenerationErrorPresenter.friendly(e, scope: :personal)}"
+      set_generation_state(lesson_plan, "failed", friendly_error) if track_stage
+      broadcast_error(current_user, lesson_plan, friendly_error)
       raise if raise_on_error
       false
     end

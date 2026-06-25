@@ -26,8 +26,17 @@ default: &default
 
 
 development:
-  <<: *default
-  database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_development
+  primary: &primary_development
+    <<: *default
+    database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_development
+  queue:
+    <<: *default
+    database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_development_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: <%= (ENV["APP_NAME"] || "gray_oak_academy").downcase.gsub(/[\s-]/, "_") %>_development_cable
+    migrations_paths: db/cable_migrate
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.

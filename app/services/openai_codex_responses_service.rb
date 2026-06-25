@@ -85,7 +85,12 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
   def codex_stream_error(status:, content_type:, body:)
     message = "Codex stream request failed: status=#{status} content_type=#{content_type} body=#{body.first(240).inspect}"
     if codex_usage_limit_response?(status: status, body: body)
-      BackgroundAgentConfigResolver::CodexUsageLimitError.new(message)
+      details = codex_usage_limit_details(body)
+      BackgroundAgentConfigResolver::CodexUsageLimitError.new(
+        message,
+        resets_at: details[:resets_at],
+        plan_type: details[:plan_type]
+      )
     else
       OpenAiError.new(message)
     end
@@ -98,6 +103,25 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
     parsed.is_a?(Hash) && parsed.dig("error", "type").to_s == "usage_limit_reached"
   rescue JSON::ParserError
     body.to_s.include?("usage_limit_reached")
+  end
+
+  # Pull the reset time and plan tier out of a usage-limit body so callers can
+  # render teacher-facing text. Prefer the absolute resets_at; fall back to the
+  # relative resets_in_seconds. Best-effort: a malformed body yields no details.
+  def codex_usage_limit_details(body)
+    parsed = JSON.parse(body.to_s)
+    error = parsed.is_a?(Hash) ? parsed["error"].to_h : {}
+
+    resets_at =
+      if error["resets_at"].present?
+        Time.zone.at(error["resets_at"].to_i)
+      elsif error["resets_in_seconds"].present?
+        Time.current + error["resets_in_seconds"].to_i.seconds
+      end
+
+    { resets_at: resets_at, plan_type: error["plan_type"].to_s.presence }
+  rescue JSON::ParserError
+    {}
   end
 
   def drain_sse_events!(buffer, flush: false)

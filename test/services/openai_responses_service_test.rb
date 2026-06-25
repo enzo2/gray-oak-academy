@@ -30,11 +30,14 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       log_completion: false
     )
 
-    body = '{"error":{"type":"usage_limit_reached","message":"The usage limit has been reached","plan_type":"plus"}}'
+    resets_at = 1.hour.from_now.to_i
+    body = %({"error":{"type":"usage_limit_reached","message":"The usage limit has been reached","plan_type":"plus","resets_at":#{resets_at},"resets_in_seconds":3600}})
     error = service.send(:codex_stream_error, status: "429", content_type: "application/json", body: body)
 
     assert_instance_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
     assert_includes error.message, "status=429"
+    assert_equal "plus", error.plan_type
+    assert_equal resets_at, error.resets_at.to_i
   end
 
   test "codex non-429 stream failure remains a generic OpenAiError" do

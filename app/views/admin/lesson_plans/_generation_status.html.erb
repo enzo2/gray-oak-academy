@@ -1,20 +1,39 @@
-<% show_completed = local_assigns.fetch(:show_completed, true) %>
+<%#
+  Both the "Generate Lesson Plan" control and the "Propose Resources" control
+  render this partial off the same shared generation_stage, so `scope` selects
+  which slice of the lifecycle each one reports — otherwise both echo the same
+  message (e.g. the resources control showing "Generating lesson plan content...").
 
-<% if lesson_plan.generation_in_progress? %>
-  <p class="mt-2 text-sm text-moss-700 dark:text-moss-300">
-    <% if lesson_plan.generation_stage == "proposing_resources" %>
+    :content  -> content generation phase plus the terminal failed/completed states
+    :resources -> only the resource-proposal phase
+%>
+<% scope = local_assigns.fetch(:scope, :content).to_sym %>
+<% show_completed = local_assigns.fetch(:show_completed, true) %>
+<% stage = lesson_plan.generation_stage %>
+
+<% if scope == :resources %>
+  <% if stage == "proposing_resources" %>
+    <p class="mt-2 text-sm text-moss-700 dark:text-moss-300">
       Proposing and validating resources...
-    <% else %>
+    </p>
+  <% end %>
+<% else %>
+  <% if stage == "generating_content" %>
+    <p class="mt-2 text-sm text-moss-700 dark:text-moss-300">
       Generating lesson plan content...
-    <% end %>
-  </p>
-<% elsif lesson_plan.generation_stage == "failed" %>
-  <p class="mt-2 text-sm text-danger-700 dark:text-danger-300">
-    <b>Generation failed.</b>
-    <%= lesson_plan.generation_error %>
-  </p>
-<% elsif show_completed && lesson_plan.generation_stage == "completed" %>
-  <p class="mt-2 text-sm text-success-700 dark:text-success-300">
-    Last generation completed.
-  </p>
+    </p>
+  <% elsif stage == "proposing_resources" %>
+    <p class="mt-2 text-sm text-moss-700 dark:text-moss-300">
+      Lesson content ready — proposing resources below...
+    </p>
+  <% elsif stage == "failed" %>
+    <p class="mt-2 text-sm text-danger-700 dark:text-danger-300">
+      <b>Generation failed.</b>
+      <%= lesson_plan.generation_error %>
+    </p>
+  <% elsif show_completed && stage == "completed" %>
+    <p class="mt-2 text-sm text-success-700 dark:text-success-300">
+      Last generation completed.
+    </p>
+  <% end %>
 <% end %>

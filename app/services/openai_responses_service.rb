@@ -366,6 +366,13 @@ class OpenaiResponsesService
         response_hash = @last_response_hash
         raise OpenAiError, "Responses API did not return a valid response payload." if response_hash.blank?
 
+        # Stream-transport providers (e.g. Codex/ChatGPT OAuth) never reach the
+        # non-streaming `responses.create` branch below, so without this the agent
+        # run is only logged once it fully completes — an in-progress or interrupted
+        # run would be invisible in the Agent Runs dashboard. Record it as submitted
+        # here so it shows up immediately, mirroring the create path.
+        record_agent_run_submitted(response_hash: response_hash, context: agent_run_context)
+
         if background
           return response_hash
         end

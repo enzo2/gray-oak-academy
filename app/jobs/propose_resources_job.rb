@@ -242,7 +242,7 @@ class ProposeResourcesJob < ApplicationJob
       "last_response_id=#{response_hash&.dig('id')} reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false} error=#{error.message}"
     )
     client&.mark_current_agent_run_failed(error_message: error.message, response_hash: response_hash)
-    set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{error.message}") if track_stage && lesson_plan.present?
+    set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{GenerationErrorPresenter.friendly(error)}") if track_stage && lesson_plan.present?
 
     broadcast_refresh(current_user) if current_user.present?
   end

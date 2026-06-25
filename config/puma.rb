@@ -45,8 +45,9 @@ end
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
-# solid queue supervisor inside of Puma
-plugin :solid_queue if ENV.fetch("RAILS_ENV") == "production"
+# Solid Queue supervisor inside of Puma. In fork mode, the supervisor forks
+# separate worker/dispatcher processes, keeping long jobs out of Puma threads.
+plugin :solid_queue if %w[development production].include?(ENV.fetch("RAILS_ENV"))
 
 # live rebuild
 plugin :tailwindcss if ENV.fetch("RAILS_ENV") == "development"

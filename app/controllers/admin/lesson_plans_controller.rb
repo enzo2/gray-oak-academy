@@ -5,7 +5,10 @@ module Admin
     before_action :set_lesson_plan, only: [ :edit, :update, :destroy, :link_resource, :unlink_resource, :delete_resource, :new_resource, :generate_content, :propose_resources, :remove_suggested_resource ]
 
     def edit
-      # Render the edit form for the lesson plan
+      # Self-heal a generation whose worker was killed: Solid Queue reaps the job
+      # without running its rescue, leaving generation_stage stranded in-progress and
+      # the controls spinning. Flip it to failed when no live job still backs it.
+      LessonPlanGenerationReconciler.reconcile(@lesson_plan)
     end
 
     def update

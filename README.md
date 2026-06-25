@@ -55,7 +55,7 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 ### Development: 
 - Create `/.devcontainer/.env.development` following `/.devcontainer/.env.development.example`. 
 - Open with VSCode, etc., and open the dev container. (If using Windows, use the WSL extension and 'Connect to WSL' first.)
-- Run `rails server`. Visit http://localhost:3000. To access from other devices over the same LAN, visit https://your-machine-ip:3001 (note: you will get a self-signed root CA warning).
+- Run `bin/dev`. Visit http://localhost:3000. To access from other devices over the same LAN, visit https://your-machine-ip:3001 (note: you will get a self-signed root CA warning).
 
 ### Production:
 - *Note: The default setup serves plain HTTP via Puma, fine for LAN use. One caveat: browsers require HTTPS (or localhost) for microphone/webcam input and PWA install, so to use those from other devices, front the app with something you likely already run — Tailscale, a Cloudflare tunnel, or a reverse proxy.*

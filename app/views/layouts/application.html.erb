@@ -40,7 +40,10 @@
 
   <%# Height is left to the main content, eg. max-h-[calc(100dvh-2.5rem)] %>
   <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
-    <div data-controller="toast">
+    <%# Permanent so Turbo morphs/visits (e.g. a Turbo Stream refresh broadcast
+        landing just after a toast appears) preserve the rack instead of tearing
+        down the controller and dismissing live toasts. %>
+    <div id="toast-rack" data-turbo-permanent data-controller="toast">
       <ol
         class="fixed z-[1000] w-[calc(100vw-2rem)] max-w-sm pointer-events-none"
         data-toast-target="container"

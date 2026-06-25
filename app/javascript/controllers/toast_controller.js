@@ -7,7 +7,7 @@ export default class extends Controller {
     position: { type: String, default: "top-center" },
     layout: { type: String, default: "default" }, // "default" (stacked) or "expanded" (all visible)
     gap: { type: Number, default: 14 }, // Gap between toasts in expanded mode
-    autoDismissDuration: { type: Number, default: 4000 },
+    autoDismissDuration: { type: Number, default: 10000 },
     limit: { type: Number, default: 3 }, // Maximum number of visible toasts
   };
 
@@ -158,9 +158,9 @@ export default class extends Controller {
   }
 
   beforeCache() {
-    // Clear all toasts before the page is cached to prevent stale toasts on navigation
-    this.clearAllToasts();
-    // Reset position to default on navigation
+    // The rack is data-turbo-permanent, so it carries across visits/morphs with its
+    // live toasts and timers intact. Clearing here would dismiss a toast that was
+    // shown moments before an in-flight page refresh resolves, so only reset position.
     window.currentToastPosition = this.element.dataset.toastPositionValue || "top-center";
   }
 
