@@ -205,35 +205,21 @@ class AppSettingTest < ActiveSupport::TestCase
     assert AppSetting.background_agent_enabled?
   end
 
-  test "background agent uses selected openai provider when configured" do
-    openai = supported_apis(:openai)
-    openai.update!(enabled: true, api_access_token: "sk-openai")
-    @app.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: openai.id)
+  test "background agent uses the selected provider and token when configured" do
+    cases = [
+      { provider: supported_apis(:openai), model: "gpt-5.2", token: "sk-openai" },
+      { provider: supported_apis(:xai), model: "gpt-5.2", token: "sk-xai" },
+      { provider: create_openrouter_supported_api(token: "sk-openrouter"), model: "anthropic/claude-sonnet-4.6", token: "sk-openrouter" }
+    ]
 
-    assert_equal openai, @app.background_agent_supported_api
-    assert_equal "sk-openai", @app.background_agent_access_token
-    assert @app.background_agent_enabled?
-  end
+    cases.each do |c|
+      c[:provider].update!(enabled: true, api_access_token: c[:token])
+      @app.update!(background_agent_model: c[:model], background_agent_supported_api_id: c[:provider].id)
 
-  test "background agent uses selected xai provider when configured" do
-    openai = supported_apis(:openai)
-    xai = supported_apis(:xai)
-    openai.update!(enabled: true, api_access_token: "sk-openai")
-    xai.update!(enabled: true, api_access_token: "sk-xai")
-    @app.update!(background_agent_model: "gpt-5.2", background_agent_supported_api_id: xai.id)
-
-    assert_equal xai, @app.background_agent_supported_api
-    assert_equal "sk-xai", @app.background_agent_access_token
-    assert @app.background_agent_enabled?
-  end
-
-  test "background agent uses selected openrouter provider when configured" do
-    openrouter = create_openrouter_supported_api(token: "sk-openrouter")
-    @app.update!(background_agent_model: "anthropic/claude-sonnet-4.6", background_agent_supported_api_id: openrouter.id)
-
-    assert_equal openrouter, @app.background_agent_supported_api
-    assert_equal "sk-openrouter", @app.background_agent_access_token
-    assert @app.background_agent_enabled?
+      assert_equal c[:provider], @app.background_agent_supported_api, "provider #{c[:provider].api_base_uri}"
+      assert_equal c[:token], @app.background_agent_access_token, "token for #{c[:provider].api_base_uri}"
+      assert @app.background_agent_enabled?, "enabled for #{c[:provider].api_base_uri}"
+    end
   end
 
   test "background agent reads and migrates legacy openai_agent settings" do

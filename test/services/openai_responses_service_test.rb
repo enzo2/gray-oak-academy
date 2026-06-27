@@ -21,7 +21,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_instance_of OpenaiCodexResponsesService, service
   end
 
-  test "codex 429 usage_limit_reached is classified as a recoverable usage limit error" do
+  test "codex_stream_error classifies failures by status and usage-limit marker" do
     service = OpenaiResponsesService.new(
       current_user: @user,
       access_token: @access_token,
@@ -30,45 +30,27 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
       log_completion: false
     )
 
+    # 429 with a usage_limit_reached marker -> recoverable usage-limit error
     resets_at = 1.hour.from_now.to_i
-    body = %({"error":{"type":"usage_limit_reached","message":"The usage limit has been reached","plan_type":"plus","resets_at":#{resets_at},"resets_in_seconds":3600}})
-    error = service.send(:codex_stream_error, status: "429", content_type: "application/json", body: body)
+    usage_limit_body = %({"error":{"type":"usage_limit_reached","message":"The usage limit has been reached","plan_type":"plus","resets_at":#{resets_at},"resets_in_seconds":3600}})
+    usage_error = service.send(:codex_stream_error, status: "429", content_type: "application/json", body: usage_limit_body)
 
-    assert_instance_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
-    assert_includes error.message, "status=429"
-    assert_equal "plus", error.plan_type
-    assert_equal resets_at, error.resets_at.to_i
-  end
+    assert_instance_of BackgroundAgentConfigResolver::CodexUsageLimitError, usage_error
+    assert_includes usage_error.message, "status=429"
+    assert_equal "plus", usage_error.plan_type
+    assert_equal resets_at, usage_error.resets_at.to_i
 
-  test "codex non-429 stream failure remains a generic OpenAiError" do
-    service = OpenaiResponsesService.new(
-      current_user: @user,
-      access_token: @access_token,
-      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
-      model: @model,
-      log_completion: false
-    )
+    # Non-429 failures and 429s without the marker stay generic OpenAiErrors
+    generic_cases = [
+      { status: "500", content_type: "text/plain", body: "boom" },
+      { status: "429", content_type: "application/json", body: '{"error":{"type":"rate_limit_exceeded","message":"Slow down"}}' }
+    ]
 
-    error = service.send(:codex_stream_error, status: "500", content_type: "text/plain", body: "boom")
-
-    assert_instance_of OpenAiError, error
-    assert_not_kind_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
-  end
-
-  test "codex 429 without usage_limit marker stays a generic OpenAiError" do
-    service = OpenaiResponsesService.new(
-      current_user: @user,
-      access_token: @access_token,
-      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
-      model: @model,
-      log_completion: false
-    )
-
-    body = '{"error":{"type":"rate_limit_exceeded","message":"Slow down"}}'
-    error = service.send(:codex_stream_error, status: "429", content_type: "application/json", body: body)
-
-    assert_instance_of OpenAiError, error
-    assert_not_kind_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
+    generic_cases.each do |params|
+      error = service.send(:codex_stream_error, **params)
+      assert_instance_of OpenAiError, error, "expected generic OpenAiError for #{params[:status]} #{params[:body]}"
+      assert_not_kind_of BackgroundAgentConfigResolver::CodexUsageLimitError, error
+    end
   end
 
   test "streamed web_search_call and citations survive into last_response_hash when finalize rebuilds from text deltas" do
