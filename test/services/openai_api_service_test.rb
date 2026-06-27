@@ -409,6 +409,49 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     assert_nil captured[:reasoning]
   end
 
+  test "complete sets no reasoning effort for Groq chat calls" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.groq.com/openai/v1/",
+        model: @model
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal "none", captured[:reasoning_effort]
+    assert_nil captured[:reasoning]
+  end
+
+  test "complete sets default reasoning effort for Groq reasoning-model calls" do
+    captured = nil
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: "https://api.groq.com/openai/v1/",
+        model: @model,
+        reasoning_model: true
+      )
+      service.complete(@messages)
+    end
+
+    assert_equal "default", captured[:reasoning_effort]
+    assert_nil captured[:reasoning]
+  end
+
   test "complete uses standard reasoning_effort for unknown providers" do
     captured = nil
     fake_client = build_chat_client do |params|

@@ -6,6 +6,7 @@ class OpenaiApiService
   include OpenaiErrorHelper
   PREFILL_UNSUPPORTED_HOSTS = %w[api.openai.com api.x.ai].freeze
   XAI_HOSTS = %w[api.x.ai].freeze
+  GROQ_HOSTS = %w[api.groq.com].freeze
 
   # To enable streaming, provide a stream_handler Proc that processes the streamed data as it arrives, including tool calls and content.
   # Each chunk's choices[0] will be passed to the Proc as a JSON object.
@@ -77,6 +78,7 @@ class OpenaiApiService
         # - default Chat Completions: reasoning_effort (high for reasoning model, low otherwise)
         # - OpenRouter correction: use reasoning object (+exclude toggle when reasoning model)
         # - xAI correction: omit effort (all-or-nothing reasoning behavior)
+        # - Groq correction: reasoning_effort accepts none/default only
         **build_reasoning_params,
 
         # Set image generation for OpenRouter
@@ -378,6 +380,10 @@ class OpenaiApiService
     host = base_uri_host
     effort = (@reasoning_model_flag ? "high" : "low")
     return {} if host == "api.x.ai"
+
+    if GROQ_HOSTS.include?(host)
+      return { reasoning_effort: (@reasoning_model_flag ? "default" : "none") }
+    end
 
     if host == "openrouter.ai"
       options = { effort: effort }
