@@ -1,4 +1,6 @@
 class GenerateImageJob < ApplicationJob
+  SUCCESS_MESSAGE = "Generated image and attached it to this tool result."
+
   queue_as :default
   limits_concurrency to: 1, key: ->(conversation_id:, **) { "generate-image-#{conversation_id}" }, duration: 2.minutes
 
@@ -42,7 +44,7 @@ class GenerateImageJob < ApplicationJob
       tool_message = Message.create!(
         conversation: conversation,
         role: "tool",
-        content: "Image generation done.",
+        content: SUCCESS_MESSAGE,
         tool_call_id: tool_call_id
       )
 
@@ -55,6 +57,7 @@ class GenerateImageJob < ApplicationJob
         content_type: "image/jpeg"
       )
       image.save!
+      tool_message
     end
   rescue StandardError => e
     raise StandardError, "Error saving generated image: #{e.message}"

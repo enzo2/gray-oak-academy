@@ -260,7 +260,7 @@ class ToolHandlerServiceTest < ActiveSupport::TestCase
     msg = Message.last
     assert_equal "tool", msg.role
     assert_equal "tc-img-1", msg.tool_call_id
-    assert_equal "Image generation done.", msg.content
+    assert_equal GenerateImageJob::SUCCESS_MESSAGE, msg.content
     assert msg.images.any?
     assert_equal 1, msg.images.count
 

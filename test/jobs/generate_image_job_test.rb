@@ -23,7 +23,7 @@ class GenerateImageJobTest < ActiveJob::TestCase
     msg = @conversation.messages.role_tool.last
     assert_not_nil msg
     assert_equal "tc-job-1", msg.tool_call_id
-    assert_equal "Image generation done.", msg.content
+    assert_equal GenerateImageJob::SUCCESS_MESSAGE, msg.content
     assert_equal 1, msg.images.count
     temp_image.close
     temp_image.unlink

@@ -624,6 +624,45 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal({ effort: "low" }, captured[:reasoning])
   end
 
+  test "complete keeps full-history tool output images for Responses providers" do
+    captured = nil
+    messages = [
+      {
+        "role" => "tool",
+        "tool_call_id" => "call_img",
+        "content" => [
+          { "type" => "text", "text" => GenerateImageJob::SUCCESS_MESSAGE },
+          {
+            "type" => "image_url",
+            "image_url" => { "url" => "https://example.com/generated.png", "detail" => "high" }
+          }
+        ]
+      }
+    ]
+
+    fake_client = build_responses_client do |params|
+      captured = params
+      response_payload("Done")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiResponsesService.new(
+        current_user: @user,
+        access_token: @access_token,
+        base_uri: SupportedApi::OPENROUTER_BASE_URI,
+        model: @model,
+        log_completion: false
+      )
+      service.complete(messages)
+    end
+
+    output = captured[:input].find { |item| item["type"] == "function_call_output" }["output"]
+    assert_equal [ "input_text", "input_image" ], output.map { |part| part["type"] }
+    assert_equal GenerateImageJob::SUCCESS_MESSAGE, output.first["text"]
+    assert_equal "https://example.com/generated.png", output.second["image_url"]
+    assert_equal "high", output.second["detail"]
+  end
+
   test "complete replays provider-native reasoning fields from persisted chat history" do
     captured = nil
     messages = [

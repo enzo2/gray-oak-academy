@@ -898,14 +898,16 @@ class ToolExecutionService
     prompt = @args["prompt"]
     raise ToolExecutionError, "Missing required parameter: prompt" unless prompt.present?
 
-    # Perform job synchronously.
-    GenerateImageJob.perform_now(
+    # Perform job synchronously so the tool message and attachment are available to the current turn.
+    result = GenerateImageJob.perform_now(
       conversation_id: @conversation.id,
       user_id: @user.id,
       prompt: prompt,
       tool_call_id: @tool_call_id
     )
-    # Tool message is created by the job.
+    return result if result.respond_to?(:role_tool?) && result.role_tool?
+
+    @conversation.messages.where(role: "tool", tool_call_id: @tool_call_id).reorder(created_at: :desc, id: :desc).first
   rescue StandardError => e
     raise ToolExecutionError, "Image generation failed: #{e.message}"
   end

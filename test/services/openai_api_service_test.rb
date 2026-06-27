@@ -213,6 +213,47 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     assert_equal "system", captured[:messages].first[:role]
   end
 
+  test "complete strips image content parts from tool messages only" do
+    captured = nil
+    input_messages = [
+      {
+        "role" => "user",
+        "content" => [
+          { "type" => "text", "text" => "Look at this." },
+          { "type" => "image_url", "image_url" => { "url" => "http://example.com/user.png" } }
+        ]
+      },
+      {
+        "role" => "tool",
+        "tool_call_id" => "call_image",
+        "content" => [
+          { "type" => "text", "text" => GenerateImageJob::SUCCESS_MESSAGE },
+          { "type" => "image_url", "image_url" => { "url" => "http://example.com/generated.png" } }
+        ]
+      }
+    ]
+    original = Marshal.load(Marshal.dump(input_messages))
+    fake_client = build_chat_client do |params|
+      captured = params
+      { "choices" => [ { "message" => { "content" => "ok" } } ] }
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = OpenaiApiService.new(current_user: @user, access_token: @access_token, base_uri: @base_uri, model: @model)
+      assert_equal "ok", service.complete(input_messages)
+    end
+
+    user_message = captured[:messages].find { |message| (message[:role] || message["role"]).to_s == "user" }
+    tool_message = captured[:messages].find { |message| (message[:role] || message["role"]).to_s == "tool" }
+
+    user_content = user_message[:content] || user_message["content"]
+    assert_includes user_content.to_json, "http://example.com/user.png"
+    assert_equal GenerateImageJob::SUCCESS_MESSAGE, tool_message["content"]
+    refute_includes tool_message.to_json, "http://example.com/generated.png"
+    refute_includes tool_message.to_json, "image_url"
+    assert_equal original, input_messages
+  end
+
   test "complete preserves tool call metadata as provided" do
     captured = nil
     input_messages = [

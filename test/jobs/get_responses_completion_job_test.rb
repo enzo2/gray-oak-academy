@@ -398,6 +398,59 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     )
   end
 
+  test "stateful chained conversations do not encode prior image attachments before slicing history" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.messages.delete_all
+    prior_user = conversation.messages.create!(role: :user, content: "First turn with image")
+    prior_image = prior_user.images.build
+    prior_image.file.attach(
+      io: StringIO.new("fake image bytes"),
+      filename: "prior.png",
+      content_type: "image/png"
+    )
+    prior_image.save!
+    conversation.messages.create!(role: :assistant, content: "Prior assistant reply")
+    conversation.messages.create!(role: :user, content: "New turn")
+
+    fake_client = Object.new
+    calls = []
+    fake_client.define_singleton_method(:stateful_supported?) { true }
+    fake_client.define_singleton_method(:previous_response_id) { "resp_prev_123" }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      calls << { messages: messages, kwargs: kwargs }
+      nil
+    end
+    fake_client.define_singleton_method(:last_response_hash) do
+      {
+        "id" => "resp_new_1",
+        "status" => "completed",
+        "output" => [
+          { "type" => "message", "content" => [ { "type" => "output_text", "text" => "Done" } ] }
+        ]
+      }
+    end
+    fake_client.define_singleton_method(:output_text) { |_response_hash| "Done" }
+
+    fake_adapter = Object.new
+    fake_adapter.define_singleton_method(:conversation_flow_tools) { [] }
+    fake_adapter.define_singleton_method(:function_calls) { |_response_hash| [] }
+    fake_adapter.define_singleton_method(:function_call_outputs) { |_calls| [] }
+    fake_adapter.define_singleton_method(:function_calls_as_chat_tool_calls) { |_calls| [] }
+
+    encoded_image_ids = with_tracked_image_base64_encoding do
+      OpenaiResponsesService.stub(:new, ->(**_kwargs) { fake_client }) do
+        ResponsesFunctionCallAdapter.stub(:new, ->(**_kwargs) { fake_adapter }) do
+          Turbo::StreamsChannel.stub(:broadcast_action_to, true) do
+            GetResponsesCompletionJob.perform_now(conversation: conversation)
+          end
+        end
+      end
+    end
+
+    assert_empty encoded_image_ids
+    assert_equal [ { role: "user", content: "New turn" } ], calls.first[:messages]
+  end
+
   test "preserves whitespace-only streaming deltas in assistant message" do
     conversation = conversations(:teacher_generic_conversation)
     conversation.messages.delete_all
@@ -779,5 +832,19 @@ class GetResponsesCompletionJobTest < ActiveJob::TestCase
     assert_equal conversation.id, payload["conversation_id"]
     assert_equal false, payload["tool_call_pending"]
     assert payload["message_id"].present?
+  end
+
+  def with_tracked_image_base64_encoding
+    original_to_base64 = Image.instance_method(:to_base64)
+    encoded_image_ids = []
+    Image.send(:define_method, :to_base64) do
+      encoded_image_ids << id
+      "tracked-base64"
+    end
+
+    yield
+    encoded_image_ids
+  ensure
+    Image.send(:define_method, :to_base64, original_to_base64)
   end
 end

@@ -96,7 +96,7 @@ class ResponsesFunctionCallAdapterTest < ActiveSupport::TestCase
     Message.create!(
       conversation: conversation,
       role: "tool",
-      content: "Image generation done.",
+      content: GenerateImageJob::SUCCESS_MESSAGE,
       tool_call_id: call_id
     )
 
@@ -123,7 +123,98 @@ class ResponsesFunctionCallAdapterTest < ActiveSupport::TestCase
 
       assert_equal "function_call_output", outputs.first[:type]
       assert_equal call_id, outputs.first[:call_id]
-      assert_equal "Image generation done.", outputs.first[:output]
+      assert_equal GenerateImageJob::SUCCESS_MESSAGE, outputs.first[:output]
+    end
+  end
+
+  test "returns generated image tool results as Responses image content when model supports image input" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.define_singleton_method(:image_input_supported?) { true }
+    call_id = "call_image_visible"
+    tool_message = Message.create!(
+      conversation: conversation,
+      role: "tool",
+      content: GenerateImageJob::SUCCESS_MESSAGE,
+      tool_call_id: call_id
+    )
+    tool_message.images.create!(
+      uri: "https://example.com/generated.png",
+      content_type: "image/png"
+    )
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:execute_tool_call) do |_tool_call|
+      true
+    end
+
+    adapter = ResponsesFunctionCallAdapter.new(
+      current_user: users(:admin),
+      conversation: conversation,
+      exa_enabled: false
+    )
+
+    ToolExecutionService.stub(:new, ->(**_kwargs) { fake_executor }) do
+      outputs = adapter.function_call_outputs([
+        {
+          "type" => "function_call",
+          "name" => "generate_image",
+          "call_id" => call_id,
+          "arguments" => { prompt: "water cycle infographic" }.to_json
+        }
+      ])
+
+      output = outputs.first[:output]
+      assert_equal "function_call_output", outputs.first[:type]
+      assert_equal call_id, outputs.first[:call_id]
+      assert_instance_of Array, output
+      assert_equal "input_text", output.first["type"]
+      assert_equal GenerateImageJob::SUCCESS_MESSAGE, output.first["text"]
+      assert_equal "input_image", output.second["type"]
+      assert_equal "https://example.com/generated.png", output.second["image_url"]
+      assert_equal "auto", output.second["detail"]
+    end
+  end
+
+  test "returns text-only generated image result when model does not support image input" do
+    conversation = conversations(:teacher_generic_conversation)
+    conversation.define_singleton_method(:image_input_supported?) { false }
+    call_id = "call_image_text_only"
+    tool_message = Message.create!(
+      conversation: conversation,
+      role: "tool",
+      content: GenerateImageJob::SUCCESS_MESSAGE,
+      tool_call_id: call_id
+    )
+    tool_message.images.create!(
+      uri: "https://example.com/generated.png",
+      content_type: "image/png"
+    )
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:execute_tool_call) do |_tool_call|
+      true
+    end
+
+    adapter = ResponsesFunctionCallAdapter.new(
+      current_user: users(:admin),
+      conversation: conversation,
+      exa_enabled: false
+    )
+
+    ToolExecutionService.stub(:new, ->(**_kwargs) { fake_executor }) do
+      outputs = adapter.function_call_outputs([
+        {
+          "type" => "function_call",
+          "name" => "generate_image",
+          "call_id" => call_id,
+          "arguments" => { prompt: "water cycle infographic" }.to_json
+        }
+      ])
+
+      output = outputs.first[:output]
+      assert_instance_of String, output
+      assert_includes output, GenerateImageJob::SUCCESS_MESSAGE
+      assert_includes output, "does not support image input"
     end
   end
 end

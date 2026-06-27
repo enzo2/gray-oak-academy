@@ -5,6 +5,7 @@ class ResponsesFunctionCallAdapter
   EXA_TOOL_NAMES = %w[exa_websearch exa_answer].freeze
   EXA_WEBSEARCH_NUM_RESULTS = 10
   EXA_WEBSEARCH_HIGHLIGHT_MAX_CHARS = 2_000
+  IMAGE_INPUT_UNSUPPORTED_SUFFIX = "The current chat model does not support image input, so it cannot inspect the generated image.".freeze
 
   def initialize(current_user:, conversation: nil, message: nil, exa_enabled: false, allow_app_tools: true)
     @current_user = current_user
@@ -107,10 +108,10 @@ class ResponsesFunctionCallAdapter
       end
 
     {
-      id: "fco_#{Digest::SHA256.hexdigest("#{call_id}:#{output}")[0, 24]}",
+      id: "fco_#{Digest::SHA256.hexdigest("#{call_id}:#{function_call_output_digest(output)}")[0, 24]}",
       type: "function_call_output",
       call_id: call_id,
-      output: output.to_s
+      output: output
     }
   end
 
@@ -144,15 +145,70 @@ class ResponsesFunctionCallAdapter
     raise OpenAiError, "App tool calls require an active conversation." if @conversation.blank?
     raise OpenAiError, "Tool execution is disabled for this adapter." unless @allow_app_tools
 
-    tool_message = tool_execution_service.execute_tool_call(
+    result = tool_execution_service.execute_tool_call(
       id: call_id,
       name: name,
       arguments: function_call["arguments"].presence || "{}"
     )
 
-    content = tool_message.content if tool_message.respond_to?(:content)
-    content ||= @conversation.messages.where(role: "tool", tool_call_id: call_id).reorder(created_at: :desc).pick(:content)
+    tool_message = tool_message_from_result(result) || latest_tool_message(call_id)
+    return function_call_output_for_tool_message(tool_message) if tool_message
+
+    content = result.content if result.respond_to?(:content)
     content.presence || "Tool execution completed."
+  end
+
+  def function_call_output_for_tool_message(tool_message)
+    content = tool_message.content.to_s.presence || "Tool execution completed."
+    return content if tool_message.images.blank?
+
+    if (invisible_reason = generated_image_invisible_reason)
+      return [ content, invisible_reason ].join(" ")
+    end
+
+    image_items = image_function_call_output_items(tool_message)
+    return content if image_items.blank?
+
+    [
+      { "type" => "input_text", "text" => content },
+      *image_items
+    ]
+  end
+
+  def image_function_call_output_items(tool_message)
+    tool_message.images.filter_map do |image|
+      image_url = image.image_for_LLM
+      next if image_url.blank?
+
+      { "type" => "input_image", "image_url" => image_url, "detail" => "auto" }
+    rescue StandardError => e
+      Rails.logger.error("Failed to serialize generated image for Responses tool output: #{e.message}")
+      nil
+    end
+  end
+
+  def generated_image_invisible_reason
+    return IMAGE_INPUT_UNSUPPORTED_SUFFIX unless @conversation&.image_input_supported?
+
+    nil
+  end
+
+  def tool_message_from_result(result)
+    return result if result.respond_to?(:role_tool?) && result.role_tool?
+
+    nil
+  end
+
+  def latest_tool_message(call_id)
+    @conversation.messages.where(role: "tool", tool_call_id: call_id).reorder(created_at: :desc, id: :desc).first
+  end
+
+  def function_call_output_digest(output)
+    return output if output.is_a?(String)
+
+    JSON.generate(output)
+  rescue StandardError
+    output.to_s
   end
 
   def parse_function_call_arguments(function_call)

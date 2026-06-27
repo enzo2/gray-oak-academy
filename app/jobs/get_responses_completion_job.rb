@@ -30,20 +30,19 @@ class GetResponsesCompletionJob < ApplicationJob
       flow_tools: function_call_adapter.conversation_flow_tools
     )
 
-    messages = Message.for_completion(
-      messages: conversation.messages,
-      audio: conversation.audio_input_permitted?,
-      images: include_images
-    )
-
     stateful_supported = !client.respond_to?(:stateful_supported?) || client.stateful_supported?
     chained_state = stateful_supported && client.respond_to?(:previous_response_id) && client.previous_response_id.present?
     reasoning_options = reasoning_options_for(stateful_supported: stateful_supported)
 
-    initial_messages = chained_state ? trailing_user_messages(messages) : messages
-    if chained_state && initial_messages.blank?
+    message_records = chained_state ? trailing_user_message_records(conversation.messages) : conversation.messages
+    if chained_state && message_records.blank?
       raise OpenAiError, "No new user messages available for chained Responses request."
     end
+    initial_messages = Message.for_completion(
+      messages: message_records,
+      audio: conversation.audio_input_permitted?,
+      images: include_images
+    )
 
     start_stream_turn!(state: stream_state)
     response_hash = complete_and_capture_response(
@@ -295,9 +294,9 @@ class GetResponsesCompletionJob < ApplicationJob
   end
 
   # In stateful mode with previous_response_id, send only new user turns.
-  # This avoids duplicate item IDs when replaying assistant/tool history.
-  def trailing_user_messages(messages)
-    Array(messages).reverse.take_while { |message| (message[:role] || message["role"]).to_s == "user" }.reverse
+  # Slice records before serializing media so old images are not base64-encoded locally.
+  def trailing_user_message_records(messages)
+    Array(messages).reverse.take_while { |message| message.role.to_s == "user" }.reverse
   end
 
   def build_stream_state

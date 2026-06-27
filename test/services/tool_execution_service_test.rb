@@ -98,6 +98,40 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
     assert_includes tool_message.content, "Invalid JSON in tool arguments, unable to repair."
   end
 
+  test "generate_image returns latest persisted tool message when job returns non-message" do
+    conversation = conversations(:teacher_generic_conversation)
+    tool = Tool.find_or_initialize_by(name: "generate_image")
+    tool.specifications = {
+      "name" => "generate_image",
+      "description" => "Generate an image",
+      "parameters" => {
+        "type" => "object",
+        "properties" => { "prompt" => { "type" => "string", "description" => "The prompt" } },
+        "required" => [ "prompt" ]
+      }
+    }
+    tool.save!
+
+    created_tool_message = nil
+    GenerateImageJob.stub(:perform_now, ->(**kwargs) {
+      created_tool_message = Message.create!(
+        conversation: conversation,
+        role: "tool",
+        content: GenerateImageJob::SUCCESS_MESSAGE,
+        tool_call_id: kwargs.fetch(:tool_call_id)
+      )
+      true
+    }) do
+      result = ToolExecutionService.new(conversation: conversation, message: nil).execute_tool_call(
+        id: "tc-image-fallback",
+        name: "generate_image",
+        arguments: { prompt: "A labeled water cycle diagram" }.to_json
+      )
+
+      assert_equal created_tool_message, result
+    end
+  end
+
   test "teacher assistant can list active quick lessons without archived ones" do
     create_quick_lesson_tool!
     teacher = users(:admin)

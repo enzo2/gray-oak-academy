@@ -49,7 +49,7 @@ class OpenaiApiService
 
   def complete(messages, response_format: nil, schema: nil, prefill: nil, temperature: 1)
     check_cost_limits
-    messages = deep_dup_messages(Array(messages))
+    messages = sanitize_tool_message_content_for_chat(deep_dup_messages(Array(messages)))
 
     # Inject system prompt to messages if it's not already included
     unless messages.any? { |message| [ message[:role], message["role"] ].compact.first == "system" }
@@ -297,6 +297,40 @@ class OpenaiApiService
 
   def deep_dup_messages(messages)
     Array(messages).map { |message| message.is_a?(Hash) ? message.deep_dup : message }
+  end
+
+  def sanitize_tool_message_content_for_chat(messages)
+    Array(messages).map do |message|
+      next message unless message.is_a?(Hash)
+
+      role = message[:role] || message["role"]
+      next message unless role.to_s == "tool"
+
+      message = message.deep_dup
+      content = message[:content] || message["content"]
+      sanitized_content = chat_tool_message_text_content(content)
+      if message.key?(:content)
+        message[:content] = sanitized_content
+      else
+        message["content"] = sanitized_content
+      end
+      message
+    end
+  end
+
+  def chat_tool_message_text_content(content)
+    return content if content.is_a?(String)
+    return "" if content.nil?
+
+    parts = content.is_a?(Array) ? content : [ content ]
+    text = parts.filter_map do |part|
+      next part.to_s unless part.is_a?(Hash)
+      next unless (part[:type] || part["type"]).to_s == "text"
+
+      part[:text] || part["text"]
+    end.join("\n")
+
+    text.presence || content.to_s
   end
 
   def ensure_trailing_slash(url)
