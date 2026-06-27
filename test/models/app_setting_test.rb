@@ -75,6 +75,55 @@ class AppSettingTest < ActiveSupport::TestCase
     assert_equal [ "#{SupportedApi::OPENROUTER_BASE_URI}models?output_modalities=speech" ], requested_urls
   end
 
+  test "fetch_openrouter_image_model_data uses images models endpoint with token" do
+    cache = ActiveSupport::Cache::MemoryStore.new
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI)
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    calls = []
+    response = {
+      "data" => [
+        {
+          "id" => "openai/gpt-image-1",
+          "architecture" => {
+            "input_modalities" => [ "text", "image" ],
+            "output_modalities" => [ "image" ]
+          }
+        }
+      ]
+    }
+
+    Rails.stub(:cache, cache) do
+      HttpJsonService.stub(:get, ->(url, headers: {}) {
+        calls << { url: url, headers: headers }
+        response
+      }) do
+        assert_equal response["data"], AppSetting.fetch_openrouter_image_model_data
+        assert_equal response["data"], AppSetting.fetch_openrouter_image_model_data
+      end
+    end
+
+    assert_equal 1, calls.length
+    assert_equal "#{SupportedApi::OPENROUTER_BASE_URI}images/models", calls.first[:url]
+    assert_equal "Bearer openrouter-test-token", calls.first[:headers]["Authorization"]
+  end
+
+  test "image_generation_configured? requires image input when two pass is enabled" do
+    openrouter = SupportedApi.find_or_create_by!(api_base_uri: SupportedApi::OPENROUTER_BASE_URI)
+    openrouter.update!(api_access_token: "openrouter-test-token", enabled: true)
+    llm = Llm.create!(
+      model: "openrouter/output-only-image",
+      api_provider: SupportedApi::OPENROUTER_BASE_URI,
+      supports_image_output: true,
+      supports_image_input: false
+    )
+
+    @app.update!(image_llm_id: llm.id, image_generation_two_pass: true)
+    refute AppSetting.image_generation_configured?
+
+    @app.update!(image_generation_two_pass: false)
+    assert AppSetting.image_generation_configured?
+  end
+
   test "fetch_openrouter_tts_voices returns supported voices for selected model" do
     cache = ActiveSupport::Cache::MemoryStore.new
     response = {

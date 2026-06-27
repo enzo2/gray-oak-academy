@@ -144,9 +144,12 @@ class AppSetting < ApplicationRecord
 
   def self.image_generation_configured?
     app_setting = self.first
-    app_setting&.image_llm.present? &&
-    app_setting.image_llm.supports_image_output? &&
-    app_setting.image_effective_token.present?
+    return false unless app_setting&.image_llm.present?
+
+    llm = app_setting.image_llm
+    llm.supports_image_output? &&
+      (!app_setting.image_generation_two_pass || llm.supports_image_input?) &&
+      app_setting.image_effective_token.present?
   end
 
   def self.embeddings_configured?
@@ -276,6 +279,21 @@ class AppSetting < ApplicationRecord
         []
       end
     end
+  end
+
+  def self.fetch_openrouter_image_model_data
+    openrouter = SupportedApi.find_by(api_base_uri: SupportedApi::OPENROUTER_BASE_URI)
+    token = openrouter&.api_access_token
+    return [] if token.blank?
+
+    Array(
+      Rails.cache.fetch("openrouter_image_model_data", expires_in: 1.hour, skip_nil: true) do
+        url = "#{SupportedApi::OPENROUTER_BASE_URI}images/models"
+        Rails.logger.debug("Fetching OpenRouter image models from #{url}")
+        data = HttpJsonService.get(url, headers: { "Authorization" => "Bearer #{token}" })
+        data["data"] if data && data["data"].is_a?(Array)
+      end
+    )
   end
 
   def self.fetch_openrouter_tts_models

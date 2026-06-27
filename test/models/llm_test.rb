@@ -26,6 +26,18 @@ class LlmTest < ActiveSupport::TestCase
     refute_includes uris, ExaApiService::DEFAULT_BASE_URI, "Exa is not an LLM provider and should not be selectable"
   end
 
+  test "capability predicates preserve unknown metadata as nil" do
+    llm = Llm.new(
+      supports_audio_input: nil,
+      supports_image_input: nil,
+      supports_image_output: nil
+    )
+
+    assert_nil llm.supports_audio_input?
+    assert_nil llm.supports_image_input?
+    assert_nil llm.supports_image_output?
+  end
+
   test "archive sets archived_at" do
     llm = Llm.create!(model: "test-model", api_provider: "https://example.com/", context_length: 1000)
     refute llm.archived?

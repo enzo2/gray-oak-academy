@@ -2,11 +2,12 @@ require "net/http"
 require "uri"
 
 class HttpJsonService
-  def self.get(url)
+  def self.get(url, headers: {})
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == "https")
     request = Net::HTTP::Get.new(uri.request_uri)
+    headers.each { |key, value| request[key] = value }
     response = http.request(request)
     JSON.parse(response.body)
   rescue StandardError => e

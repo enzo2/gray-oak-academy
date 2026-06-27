@@ -1,7 +1,12 @@
 class ImageGenerationService
-  # Generates images using an OpenRouter image-capable LLM in a two-pass flow:
+  require "net/http"
+  require "uri"
+
+  MAX_IMAGE_BYTES = 10_000_000
+
+  # Generates images using the OpenRouter Images API in a two-pass flow:
   # 1) Generate initial image from prompt
-  # 2) Re-prompt to check/regenerate for misspellings or factual errors
+  # 2) Optionally pass the first image back as a reference and regenerate
   #
   # Returns a Tempfile containing the processed JPEG image.
 
@@ -23,74 +28,118 @@ class ImageGenerationService
     end
 
     # Build an explicit prompt including size/count hints to encourage single image output
-    prompt_with_hints = prompt + "Return exactly 1 image. If you include any text in the image, ensure it is spelled correctly."
-
-    client = OpenaiApiService.new(
-      current_user: user,
-      conversation: conversation,
-      base_uri: llm.api_provider,
-      access_token: token,
-      model: llm.model,
-      image_generation: true
-    )
+    prompt_with_hints = "#{prompt}\n\nReturn exactly 1 image. If you include any text in the image, ensure it is spelled correctly."
 
     # First pass
-    messages = [
-      { role: "user", content: prompt_with_hints }
-    ]
     Rails.logger.debug "ImageGenerationService: sending first-pass generation to #{llm.model}"
-    msg1 = client.complete(messages)
-    unless msg1.is_a?(Hash)
-      raise OpenAiError, "Unexpected response from image model"
-    end
-
-    images1 = msg1["images"] || []
-    img1 = images1.first
-    img1_url = img1.dig("image_url", "url")
-    content1 = msg1["content"].to_s
-
-    unless img1_url.present? && img1_url.start_with?("data:image/")
-      raise OpenAiError, "Image model returned no images on first pass."
-    end
+    response1 = create_openrouter_image(
+      user: user,
+      conversation: conversation,
+      token: token,
+      model: llm.model,
+      prompt: prompt_with_hints
+    )
+    image1_data_url = first_image_data_url(response1)
 
     if two_pass
-      # Second pass: ask the model to check and regenerate if needed.
-      critique_instructions = "Thanks. Please review the image you just generated for errors such as misspellings, incorrect labels, or factual mistakes relative to the original prompt. Regenerate a corrected and improved image (even if you think the original is OK)."
-      content_json = [ { "type": "text", "text": content1 } ]
-      content_json << { "type": "image_url", "image_url": { "url": img1_url } }
-      messages << { role: "assistant", content: content_json }
-      messages << { role: "user", content: critique_instructions }
+      critique_prompt = <<~PROMPT.squish
+        Review the reference image for misspellings, incorrect labels, or factual mistakes relative to this original prompt:
+        #{prompt}
+        Regenerate a corrected and improved image, even if the reference image is already acceptable.
+      PROMPT
 
       Rails.logger.debug "ImageGenerationService: sending second-pass critique/regeneration to #{llm.model}"
-      Rails.logger.debug "messages: #{messages}"
-      msg2 = client.complete(messages)
-      unless msg2.is_a?(Hash)
-        Rails.logger.warn "ImageGenerationService: second pass returned no image; falling back to first pass images"
-        final_images = images1
-        final_content = content1
-      else
-        images2 = msg2["images"] || []
-        final_images = images2.any? ? images2 : images1
-        final_content = msg2["content"].to_s.presence || content1
-      end
+      response2 = create_openrouter_image(
+        user: user,
+        conversation: conversation,
+        token: token,
+        model: llm.model,
+        prompt: critique_prompt,
+        input_references: [ image1_data_url ]
+      )
+      final_image_data_url = maybe_first_image_data_url(response2) || image1_data_url
     else
-      final_images = images1
-      final_content = content1
+      final_image_data_url = image1_data_url
     end
 
-    Rails.logger.debug "Content from image generation: #{final_content}"
+    process_image_data_url(final_image_data_url)
+  rescue OpenAiError => e
+    Rails.logger.error "ImageGenerationService OpenAiError: #{e.message}"
+    raise
+  rescue StandardError => e
+    Rails.logger.error "ImageGenerationService Error: #{e.class}: #{e.message}"
+    raise OpenAiError, "Image generation failed: #{e.message}"
+  end
 
-    # Process and return a single Tempfile for the final image
-    base64_url = final_images.first&.dig("image_url", "url")
-    unless base64_url.present? && base64_url.start_with?("data:image/")
-      raise OpenAiError, "Image generation failed: invalid image data"
+  def self.create_openrouter_image(user:, conversation:, token:, model:, prompt:, input_references: nil)
+    check_cost_limits(user: user, conversation: conversation)
+
+    payload = {
+      model: model,
+      prompt: prompt,
+      n: 1
+    }
+
+    if input_references.present?
+      payload[:input_references] = input_references.map do |url|
+        {
+          type: "image_url",
+          image_url: { url: url }
+        }
+      end
     end
 
-    # Extract mime and base64 payload
-    match = base64_url.match(/\Adata:(image\/[a-zA-Z0-9.+-]+);base64,(.+)/)
-    unless match
-      raise OpenAiError, "Malformed data URL"
+    response = post_openrouter_images(token: token, payload: payload)
+    log_completion(user: user, conversation: conversation, model: model, usage: response["usage"])
+    response
+  end
+
+  def self.post_openrouter_images(token:, payload:)
+    uri = URI.join(SupportedApi::OPENROUTER_BASE_URI, "images")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = OpenaiClientDefaults.timeout_seconds
+    http.read_timeout = OpenaiClientDefaults.timeout_seconds
+
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request["Authorization"] = "Bearer #{token}"
+    request["Content-Type"] = "application/json"
+    openrouter_attribution_headers.each { |key, value| request[key] = value }
+    request.body = payload.to_json
+
+    response = http.request(request)
+    parsed = JSON.parse(response.body)
+
+    unless response.is_a?(Net::HTTPSuccess)
+      raise OpenAiError, "OpenRouter Images API request failed: #{extract_error_message(parsed).presence || response.message}"
     end
+
+    parsed
+  rescue JSON::ParserError => e
+    raise OpenAiError, "OpenRouter Images API returned invalid JSON: #{e.message}"
+  rescue OpenAiError
+    raise
+  rescue StandardError => e
+    raise OpenAiError, "OpenRouter Images API request failed: #{e.message}"
+  end
+
+  def self.first_image_data_url(response)
+    maybe_first_image_data_url(response) || raise(OpenAiError, "Image model returned no images.")
+  end
+
+  def self.maybe_first_image_data_url(response)
+    image = response&.dig("data", 0)
+    base64_data = image&.dig("b64_json")
+    media_type = image&.dig("media_type").presence || "image/png"
+
+    return nil unless base64_data.present? && media_type.start_with?("image/")
+
+    "data:#{media_type};base64,#{base64_data}"
+  end
+
+  def self.process_image_data_url(base64_url)
+    match = base64_url.match(/\Adata:(image\/[a-zA-Z0-9.+-]+);base64,(.+)\z/m)
+    raise OpenAiError, "Malformed data URL" unless match
 
     base64_data = match.captures.second
 
@@ -101,7 +150,7 @@ class ImageGenerationService
       end
 
       # Size check to prevent huge images
-      if decoded_data.length > 10_000_000 # ~10MB limit
+      if decoded_data.length > MAX_IMAGE_BYTES
         raise OpenAiError, "Oversized image payload: #{decoded_data.length} bytes"
       end
 
@@ -142,11 +191,45 @@ class ImageGenerationService
       temp_original&.unlink
       raise OpenAiError, "Error processing image: #{e.message}"
     end
-  rescue OpenAiError => e
-    Rails.logger.error "ImageGenerationService OpenAiError: #{e.message}"
-    raise
-  rescue StandardError => e
-    Rails.logger.error "ImageGenerationService Error: #{e.class}: #{e.message}"
-    raise OpenAiError, "Image generation failed: #{e.message}"
+  end
+
+  def self.log_completion(user:, conversation:, model:, usage:)
+    Completion.create(
+      conversation: conversation,
+      user: conversation ? nil : user,
+      model: model,
+      api_provider: SupportedApi::OPENROUTER_BASE_URI,
+      prompt_tokens: usage&.dig("prompt_tokens")&.to_i,
+      cached_tokens: usage&.dig("prompt_tokens_details", "cached_tokens")&.to_i,
+      completion_tokens: usage&.dig("completion_tokens")&.to_i,
+      reasoning_tokens: usage&.dig("completion_tokens_details", "reasoning_tokens")&.to_i,
+      total_tokens: usage&.dig("total_tokens")&.to_i,
+      total_cost: usage_total_cost(usage)
+    )
+  end
+
+  def self.usage_total_cost(usage)
+    LlmUsageAccountingService.usage_total_cost(usage)
+  end
+
+  def self.check_cost_limits(user:, conversation:)
+    LlmUsageAccountingService.enforce_cost_limits!(user: user, conversation: conversation)
+  end
+
+  def self.openrouter_attribution_headers
+    {
+      "X-Title" => "Gray Oak Academy",
+      "HTTP-Referer" => Rails.env.production? ? "https://#{ENV.fetch('APP_HOST')}" : nil
+    }.compact
+  end
+
+  def self.extract_error_message(response)
+    return nil unless response.is_a?(Hash)
+
+    error = response["error"]
+    return error if error.is_a?(String)
+    return error["message"] if error.is_a?(Hash)
+
+    nil
   end
 end

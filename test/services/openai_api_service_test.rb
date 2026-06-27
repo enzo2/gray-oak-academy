@@ -711,7 +711,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
       @user.stub(:daily_budget, BigDecimal("1.00")) do
         stub_completion_sums(daily_sum: BigDecimal("1.10")) do
-          service.stub(:notify_admins_of_limit, nil) do
+          LlmUsageAccountingService.stub(:notify_admins_of_limit, nil) do
             assert_raises(OpenAiError) { service.send(:check_cost_limits) }
           end
         end
@@ -726,7 +726,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
       @user.stub(:daily_budget, BigDecimal("1.00")) do
         stub_completion_sums(daily_sum: BigDecimal("1.20")) do
-          service.stub(:notify_admins_of_limit, nil) do
+          LlmUsageAccountingService.stub(:notify_admins_of_limit, nil) do
             assert_nothing_raised { service.send(:check_cost_limits) }
           end
         end
@@ -741,7 +741,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
       @user.stub(:daily_budget, BigDecimal("1.00")) do
         stub_completion_sums(daily_sum: BigDecimal("1.30")) do
-          service.stub(:notify_admins_of_limit, nil) do
+          LlmUsageAccountingService.stub(:notify_admins_of_limit, nil) do
             assert_raises(OpenAiError) { service.send(:check_cost_limits) }
           end
         end
@@ -756,7 +756,7 @@ class OpenaiApiServiceTest < ActiveSupport::TestCase
     AppSetting.stub(:settings, OpenStruct.new(max_chat_cost: nil)) do
       @user.stub(:daily_budget, BigDecimal("1.00")) do
         stub_completion_sums(daily_sum: BigDecimal("1.10")) do
-          service.stub(:notify_admins_of_limit, nil) do
+          LlmUsageAccountingService.stub(:notify_admins_of_limit, nil) do
             assert_raises(OpenAiError) { service.send(:check_cost_limits) }
           end
         end
