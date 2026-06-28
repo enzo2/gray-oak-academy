@@ -1,30 +1,29 @@
-<% if message.role_assistant? && effectively_present_text?(message.content) # use helper since !.blank? doesn't cover ZWSP character %>
+<%# Use helper since !.blank? doesn't cover ZWSP character. %>
+<% if AppSetting.tts_configured? && message.role_assistant? && effectively_present_text?(message.content) %>
   <div id="<%= dom_id(message) %>_buttons"
        class="message-buttons-wrapper
-              my-2 
-              flex justify-start gap-2">
+              mt-0.5 mb-3
+              flex h-5 items-center justify-start gap-2">
 
-    <% if AppSetting.tts_configured? %>
-      <%# TTS button %>
-      <%# Will be hidden by default, and enabled by the TTS Stimulus controller if the browser requirements are met %>
-      <sl-icon-button 
-        disabled
-        name="volume-up" 
-        label="Read aloud" 
-        data-tts-stream-target="button" 
-        data-action="click->tts-stream#play"
-        data-message-id-param="<%= message.id %>" 
-        data-tts-stream-state="idle" 
-        class="hidden
-              [&::part(base)]:p-0 [&::part(base)]:pb-1
-              text-stone-500 hover:text-stone-700 
-              dark:text-stone-400 dark:hover:text-stone-200 
-              align-middle">
-      </sl-icon-button>
-      <sl-spinner 
-        data-tts-stream-target="spinner"
-        class="hidden p-0">
-      </sl-spinner>
-    <% end %>
+    <%# TTS button %>
+    <%# Will be hidden by default, and enabled by the TTS Stimulus controller if the browser requirements are met %>
+    <sl-icon-button
+      disabled
+      name="volume-up"
+      label="Read aloud"
+      data-tts-stream-target="button"
+      data-action="click->tts-stream#play"
+      data-message-id-param="<%= message.id %>"
+      data-tts-stream-state="idle"
+      class="hidden text-base leading-none
+            [&::part(base)]:h-5 [&::part(base)]:w-5 [&::part(base)]:p-0
+            text-stone-500 hover:text-stone-700
+            dark:text-stone-400 dark:hover:text-stone-200
+            align-middle">
+    </sl-icon-button>
+    <sl-spinner
+      data-tts-stream-target="spinner"
+      class="hidden size-4 p-0">
+    </sl-spinner>
   </div>
 <% end %>

@@ -121,8 +121,11 @@ class AppSetting < ApplicationRecord
   end
 
   def self.tts_configured?
-    # Currently, Speech API is the only way to provide TTS.
-    self.speech_configured?
+    app_setting = self.first
+    app_setting&.provider_base_uri.present? &&
+      app_setting&.effective_token.present? &&
+      app_setting&.tts_model.present? &&
+      app_setting&.tts_voice.present?
   end
 
   # STT can be done via Speech API, or audio LLMs. Webmaster must choose.

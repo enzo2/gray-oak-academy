@@ -57,21 +57,30 @@ class ConversationTest < ActiveSupport::TestCase
     assert @conversation.audio_input_permitted?
   end
 
-  test "auto_read_default returns true only when audio_setting is 'only' and speech configured" do
+  test "auto_read_default returns true only when audio_setting is 'only' and TTS configured" do
     # Create an LLM that supports audio and set user to use it
     llm = Llm.create!(model: "audio-only", api_provider: "https://api.example.com/", supports_audio_input: true)
     user = @conversation.user
     user.setting.update!(llm_model_name: llm.model, llm_api_base_uri: llm.api_provider)
 
-    # Ensure AppSetting is configured for speech
+    # Ensure AppSetting is configured for TTS
     app = AppSetting.first
-    app.update!(stt_method: "speech", stt_model: "transcribe-1", provider_supported_api_id: supported_apis(:example_api).id)
+    app.update!(
+      stt_method: "speech",
+      stt_model: "transcribe-1",
+      provider_supported_api_id: supported_apis(:example_api).id,
+      tts_model: "tts-1",
+      tts_voice: "alloy"
+    )
 
     # Force lesson-less conversation (generic) to return "only" via audio_setting override
     # Stub lesson_progress to be nil and audio_input_supported to true
     Conversation.stub(:find, ->(id) { @conversation }) do
       @conversation.define_singleton_method(:audio_setting) { "only" }
       assert @conversation.auto_read_default
+
+      app.update!(tts_model: nil)
+      refute @conversation.auto_read_default
     end
   end
 

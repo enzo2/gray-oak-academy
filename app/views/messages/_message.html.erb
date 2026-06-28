@@ -1,5 +1,7 @@
-<div id="<%= dom_id(message) %>" 
-     class="w-full"
+<%# Assistant turns end with mb-3 of breathing room. When the TTS buttons row is
+    present it owns that gap (its own mb-3); otherwise this wrapper provides it. %>
+<div id="<%= dom_id(message) %>"
+     class="w-full mt-2<%= " [&:not(:has(+_.message-buttons-wrapper))]:mb-3" if message.role_assistant? %>"
      <%= "data-conversation-target=userMessage" if message.role_user? %>
      <%= "data-conversation-target=assistantMessage data-tts-stream-target=assistantMessage" if message.role_assistant? && message.persisted? %>
      data-message-id-param="<%= message.id %>"

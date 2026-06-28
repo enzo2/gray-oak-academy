@@ -8,8 +8,8 @@ class MessagesTtsStreamTest < ActionDispatch::IntegrationTest
     sign_in @user
   end
 
-  test "GET /messages/:id/tts_stream returns not_implemented when speech is not configured" do
-    AppSetting.stub(:speech_configured?, false) do
+  test "GET /messages/:id/tts_stream returns not_implemented when TTS is not configured" do
+    AppSetting.stub(:tts_configured?, false) do
       get tts_stream_message_path(@message)
       assert_response :not_implemented
     end

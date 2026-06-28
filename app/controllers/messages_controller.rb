@@ -183,8 +183,8 @@ class MessagesController < ApplicationController
     message = authorized_message_scope.find_by(id: params[:id])
     return head :not_found unless message
 
-    unless AppSetting.speech_configured?
-      Rails.logger.warn "Streaming speech requested but not configured!"
+    unless AppSetting.tts_configured?
+      Rails.logger.warn "Streaming TTS requested but not configured!"
       return head :not_implemented
     end
     unless message.role_assistant? && (message.content.present? || message.tool_calls.present?)

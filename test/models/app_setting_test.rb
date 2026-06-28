@@ -5,7 +5,7 @@ class AppSettingTest < ActiveSupport::TestCase
     @app = AppSetting.first
   end
 
-  test "tts_configured? is true when provider and token exist" do
+  test "tts_configured? is true when provider token model and voice exist" do
     @app.update!(
       provider_supported_api_id: supported_apis(:example_api).id,
       token_override: nil,
@@ -15,6 +15,23 @@ class AppSettingTest < ActiveSupport::TestCase
 
     assert AppSetting.speech_configured?
     assert AppSetting.tts_configured?
+  end
+
+  test "tts_configured? is false when model or voice is missing" do
+    @app.update!(
+      provider_supported_api_id: supported_apis(:example_api).id,
+      token_override: nil,
+      tts_model: nil,
+      tts_voice: "alloy"
+    )
+
+    assert AppSetting.speech_configured?
+    refute AppSetting.tts_configured?
+
+    @app.update!(tts_model: "tts-1", tts_voice: nil)
+
+    assert AppSetting.speech_configured?
+    refute AppSetting.tts_configured?
   end
 
   test "stt_configured? returns true for speech method when provider, token, and model present" do

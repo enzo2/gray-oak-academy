@@ -135,6 +135,32 @@ class AudioAndTtsTest < ApplicationSystemTestCase
     end
   end
 
+  test "TTS playback button is hidden when TTS model or voice is missing" do
+    AppSetting.first.update!(
+      stt_method: "speech",
+      stt_model: "stt-model",
+      provider_supported_api_id: supported_apis(:example_api).id,
+      token_override: nil,
+      tts_model: nil,
+      tts_voice: nil
+    )
+
+    assert AppSetting.speech_configured?
+    refute AppSetting.tts_configured?
+
+    message = Message.create!(
+      conversation: @conversation,
+      role: :assistant,
+      content: "This message should not offer playback."
+    )
+
+    visit conversation_path(@conversation)
+
+    assert_selector "#message_#{message.id}", wait: 5
+    assert_no_selector "#message_#{message.id}_buttons"
+    assert_no_selector "#message_#{message.id} sl-icon-button[label='Read aloud']"
+  end
+
   private
 
   def wait_for_enqueued_job(job_class, timeout: 5)

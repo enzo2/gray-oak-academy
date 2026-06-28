@@ -41,7 +41,7 @@
         <sl-dropdown class="" placement="bottom-end">
           <sl-icon-button name="three-dots-vertical" label="Additional chat options" slot="trigger" class="text-lg"></sl-icon-button>
           <sl-menu>
-            <% if AppSetting.speech_configured? %>
+            <% if AppSetting.tts_configured? %>
               <sl-menu-item data-dispatch-event="toggleAutoRead">
                 <div class="flex items-center justify-start">
                   <sl-icon-button 
