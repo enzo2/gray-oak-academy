@@ -450,6 +450,40 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_nil lesson_plan.generation_error
   end
 
+  test "codex auth failure re-runs on the shared provider and stays in progress" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    AppSetting.settings.update!(
+      background_agent_model: "gpt-5.2",
+      background_agent_supported_api_id: supported_apis(:openai).id
+    )
+    auth_error = BackgroundAgentConfigResolver::CodexAuthenticationError.new("Codex stream request failed: status=401")
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    enqueued = []
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise auth_error }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        ProposeResourcesJob.stub(:perform_later, ->(**kwargs) { enqueued << kwargs }) do
+          Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+            result = ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+            assert_equal false, result
+          end
+        end
+      end
+    end
+
+    assert_equal 1, enqueued.size
+    assert_equal true, enqueued.first[:skip_user_codex]
+    assert_equal lesson_plan.id, enqueued.first[:lesson_plan_id]
+
+    lesson_plan.reload
+    assert_equal "proposing_resources", lesson_plan.generation_stage
+    assert_nil lesson_plan.generation_error
+  end
+
   test "codex usage limit without a shared provider fails the lesson plan" do
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)

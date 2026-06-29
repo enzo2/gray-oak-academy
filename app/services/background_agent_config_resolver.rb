@@ -1,12 +1,15 @@
 class BackgroundAgentConfigResolver
   class TransientOauthError < OpenAiError; end
-  # Raised when a per-teacher Codex run is rejected because the teacher's ChatGPT
-  # subscription usage limit has been reached. Callers can recover by re-running
-  # the background job with skip_user_codex: true, which routes to the shared
-  # provider fallback. Carries the structured reset/plan details parsed from the
-  # upstream body so callers can render teacher-facing text instead of the raw
-  # message (see GenerationErrorPresenter).
-  class CodexUsageLimitError < OpenAiError
+  # Raised when a per-teacher Codex run fails in a way callers can recover from
+  # by re-running the background job with skip_user_codex: true, which routes to
+  # the shared provider fallback.
+  class CodexFallbackError < OpenAiError; end
+
+  # Raised when the teacher's ChatGPT subscription usage limit has been reached.
+  # Carries structured reset/plan details parsed from the upstream body so
+  # callers can render teacher-facing text instead of the raw message (see
+  # GenerationErrorPresenter).
+  class CodexUsageLimitError < CodexFallbackError
     attr_reader :resets_at, :plan_type
 
     def initialize(message = nil, resets_at: nil, plan_type: nil)
@@ -15,6 +18,10 @@ class BackgroundAgentConfigResolver
       @plan_type = plan_type
     end
   end
+
+  # Raised when the teacher's Codex OAuth token is rejected by ChatGPT. The
+  # shared provider can still complete the background run if it is configured.
+  class CodexAuthenticationError < CodexFallbackError; end
 
   Configuration = Data.define(
     :provider,

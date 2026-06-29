@@ -79,9 +79,8 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
     end
   end
 
-  # Classify a failed Codex stream response. A 429 usage_limit_reached means the
-  # teacher's ChatGPT subscription is temporarily exhausted; surface a dedicated
-  # error so callers can fall back to the shared background-agent provider.
+  # Classify failed Codex stream responses that should fall back to the shared
+  # background-agent provider.
   def codex_stream_error(status:, content_type:, body:)
     message = "Codex stream request failed: status=#{status} content_type=#{content_type} body=#{body.first(240).inspect}"
     if codex_usage_limit_response?(status: status, body: body)
@@ -91,6 +90,9 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
         resets_at: details[:resets_at],
         plan_type: details[:plan_type]
       )
+    elsif codex_authentication_failure_response?(status: status, body: body)
+      clear_invalid_codex_oauth_credentials!
+      BackgroundAgentConfigResolver::CodexAuthenticationError.new(message)
     else
       OpenAiError.new(message)
     end
@@ -103,6 +105,27 @@ class OpenaiCodexResponsesService < OpenaiResponsesService
     parsed.is_a?(Hash) && parsed.dig("error", "type").to_s == "usage_limit_reached"
   rescue JSON::ParserError
     body.to_s.include?("usage_limit_reached")
+  end
+
+  def codex_authentication_failure_response?(status:, body:)
+    return false unless status.to_s == "401"
+
+    parsed = JSON.parse(body.to_s)
+    return false unless parsed.is_a?(Hash)
+
+    code = parsed.dig("error", "code").to_s
+    type = parsed.dig("error", "type").to_s
+    code == "token_invalidated" || type == "authentication_error"
+  rescue JSON::ParserError
+    body.to_s.include?("token_invalidated")
+  end
+
+  def clear_invalid_codex_oauth_credentials!
+    setting = @user.setting&.credential_owner_setting
+    return unless setting
+
+    Rails.logger.warn("OpenaiResponsesService: Codex OAuth token was rejected; clearing stored OpenAI OAuth credentials.")
+    clear_openai_oauth_credentials_safely(setting)
   end
 
   # Pull the reset time and plan tier out of a usage-limit body so callers can

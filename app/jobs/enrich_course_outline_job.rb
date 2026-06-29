@@ -135,10 +135,11 @@ class EnrichCourseOutlineJob < ApplicationJob
   rescue BackgroundAgentConfigResolver::TransientOauthError => e
     handle_failure(e, course: course, current_user: current_user, source: source, failure_phase: failure_phase) if oauth_retries_exhausted?
     raise
-  rescue BackgroundAgentConfigResolver::CodexUsageLimitError => e
+  rescue BackgroundAgentConfigResolver::CodexFallbackError => e
     if codex_fallback_available?(skip_user_codex: skip_user_codex)
       Rails.logger.warn(
-        "EnrichCourseOutlineJob Codex usage limit reached; re-running on shared provider course=#{course&.id}"
+        "EnrichCourseOutlineJob Codex provider failed recoverably (#{e.class.name.demodulize}); " \
+        "re-running on shared provider course=#{course&.id}"
       )
       EnrichCourseOutlineJob.perform_later(
         course_id: course_id,

@@ -53,6 +53,36 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "codex_stream_error classifies invalidated tokens as fallback auth errors" do
+    @user.setting.update!(
+      openai_oauth_access_token: "invalidated-token",
+      openai_oauth_refresh_token: "refresh-token",
+      openai_oauth_expires_at: 1.hour.from_now.iso8601
+    )
+    service = OpenaiResponsesService.new(
+      current_user: @user,
+      access_token: @access_token,
+      base_uri: SupportedApi::OPENAI_CODEX_BASE_URI,
+      model: @model,
+      log_completion: false
+    )
+    body = {
+      error: {
+        message: "Your authentication token has been invalidated. Please try signing in again.",
+        type: "invalid_request_error",
+        code: "token_invalidated"
+      },
+      status: 401
+    }.to_json
+
+    error = service.send(:codex_stream_error, status: "401", content_type: "text/plain", body: body)
+
+    assert_instance_of BackgroundAgentConfigResolver::CodexAuthenticationError, error
+    assert_kind_of BackgroundAgentConfigResolver::CodexFallbackError, error
+    assert_includes error.message, "status=401"
+    assert_not @user.setting.reload.openai_oauth_connected?
+  end
+
   test "streamed web_search_call and citations survive into last_response_hash when finalize rebuilds from text deltas" do
     # Codex (chatgpt.com) streams web_search_call items and citation annotations as
     # discrete events but ships an empty `output` in response.completed, so the

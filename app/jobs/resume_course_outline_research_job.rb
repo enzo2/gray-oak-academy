@@ -133,10 +133,11 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       )
     end
     raise
-  rescue BackgroundAgentConfigResolver::CodexUsageLimitError => e
+  rescue BackgroundAgentConfigResolver::CodexFallbackError => e
     if codex_fallback_available?(skip_user_codex: skip_user_codex)
       Rails.logger.warn(
-        "ResumeCourseOutlineResearchJob Codex usage limit reached; re-running on shared provider course=#{course&.id}"
+        "ResumeCourseOutlineResearchJob Codex provider failed recoverably (#{e.class.name.demodulize}); " \
+        "re-running on shared provider course=#{course&.id}"
       )
       ResumeCourseOutlineResearchJob.perform_later(
         course_id: course_id,

@@ -19,7 +19,7 @@ module BackgroundAgentJob
     executions >= BackgroundAgentJob::OAUTH_RETRY_ATTEMPTS
   end
 
-  # CodexUsageLimitError is only ever raised by the per-teacher Codex provider, so
+  # CodexFallbackError is only ever raised by the per-teacher Codex provider, so
   # receiving it already proves this run used Codex. Fall back only when a shared
   # provider is configured to take over; skip_user_codex guards the re-run against
   # an infinite Codex -> shared loop.

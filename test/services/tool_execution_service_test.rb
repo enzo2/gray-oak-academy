@@ -746,7 +746,7 @@ class ToolExecutionServiceTest < ActiveSupport::TestCase
         end
       end
     end
-    assert_includes Message.order(:created_at).last.content.to_s, "Generate the lesson plan once before proposing resources."
+    assert_includes Message.order(:created_at).last.content.to_s, "Add or generate lesson plan content before proposing resources."
   end
 
   test "generate_course_outline action research_outline queues outline research asynchronously" do

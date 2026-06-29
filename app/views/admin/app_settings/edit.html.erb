@@ -238,7 +238,7 @@ end %>
   <p class="text-dim text-sm mb-2">
     Uses Responses API runs for agent runs like Course Outline Research and Propose Resources.
   </p>
-  <div class="mb-4">
+  <div class="mb-4 rounded-md border border-warning-300/70 bg-warning-50/40 p-3 dark:border-warning-700/70 dark:bg-warning-950/20">
     <%= f.label :background_agent_prefer_user_codex, class: "flex items-start cursor-pointer" do %>
       <%= f.check_box :background_agent_prefer_user_codex, class: "checkbox-primary mt-1 mr-2" %>
       <div>
@@ -246,18 +246,18 @@ end %>
           Experimental: prefer each teacher's Codex login
         </span>
         <p class="text-xs text-dim mt-1">
-          Teacher-initiated background tasks use that teacher's own connected OpenAI OAuth credential when valid.
+          This optional Codex route uses the teacher's connected OpenAI OAuth credential and the Codex model below. If the teacher's Codex token or usage limit fails, background jobs retry on the shared fallback provider.
         </p>
       </div>
     <% end %>
-    <div class="mt-3">
-      <%= f.label :background_agent_codex_model, "Codex background model", class: "form-label" %>
+    <div class="mt-3 ml-7">
+      <%= f.label :background_agent_codex_model, "Codex model", class: "form-label" %>
       <%= f.combobox "background_agent_codex_model",
         "#{llm_models_admin_app_setting_path}?api_uri=#{SupportedApi::OPENAI_CODEX_BASE_URI}",
         name_when_new: "app_setting[background_agent_codex_model]",
         placeholder: "Select or enter Codex model name" %>
       <p class="text-xs text-dim mt-1">
-        Required when the experimental preference is enabled. This model is global; credentials remain per teacher.
+        Required only when the experimental Codex preference is enabled. This model is part of that Codex route; the shared fallback model is configured separately below.
       </p>
     </div>
   </div>
@@ -293,7 +293,7 @@ end %>
           agent_model_settings_target: "modelCombobox"
         } %>
       <p class="text-xs text-dim mt-1" data-agent-model-settings-target="status">
-        The shared fallback requires this model and a provider key. Use a strongly agentic model with reliable tool use and structured output support.
+        Used for background runs by default, and as the retry target when the experimental per-teacher Codex route is unavailable. Use a strongly agentic model with reliable tool use and structured output support.
         <% if @setting.background_agent_access_token.present? %>
           <span class="text-success-600 dark:text-success-400">Shared provider key is configured.</span>
         <% else %>
