@@ -57,6 +57,31 @@ class CodeExecutorTest < ApplicationSystemTestCase
     end
   end
 
+  test "chalkboard generated applet shell follows dark mode" do
+    visit conversation_path(@conversation)
+    enable_dark_mode_for_page
+
+    message_content = <<~HTML
+      ```javascript {executable="true" renderTarget="chalkboard" autoRun="true"}
+      document.getElementById('sandbox').innerHTML = '<h2>Dark Chalkboard Applet Output</h2>';
+      ```
+    HTML
+
+    perform_enqueued_jobs do
+      message = Message.create!(conversation: @conversation, role: :assistant, content: message_content)
+      message.broadcast_created
+    end
+
+    iframe = find("#chalkboard iframe", visible: true)
+    assert_equal "rgb(28, 25, 23)", iframe_background_color
+
+    within_frame(iframe) do
+      assert_selector "h2", text: "Dark Chalkboard Applet Output", wait: 10
+      assert_equal true, evaluate_script("document.documentElement.classList.contains('dark')")
+      assert_equal "rgb(28, 25, 23)", evaluate_script("getComputedStyle(document.body).backgroundColor")
+    end
+  end
+
   test "saved applet runs on chalkboard from registered run url" do
     applet = Applet.create!(
       user: @admin,
@@ -87,6 +112,58 @@ class CodeExecutorTest < ApplicationSystemTestCase
     iframe = find("#panel-applets iframe", visible: true)
     within_frame(iframe) do
       assert_selector "h2", text: "Saved Chalkboard Applet Output", wait: 10
+    end
+  end
+
+  test "saved applet launched on dark chalkboard receives dark shell" do
+    applet = Applet.create!(
+      user: @admin,
+      title: "Saved Dark Chalkboard Applet",
+      code: "document.getElementById('sandbox').innerHTML = '<h2>Saved Dark Chalkboard Applet Output</h2>';"
+    )
+
+    visit conversation_path(@conversation)
+    enable_dark_mode_for_page
+
+    execute_script <<~JS
+      window.dispatchEvent(new CustomEvent("chalkboard:register-applet", {
+        detail: {
+          event_type: "register_applet",
+          source: "linked",
+          key: "linked_dark_#{applet.id}",
+          applet_id: #{applet.id},
+          title: "Saved Dark Chalkboard Applet",
+          launch_url: "#{run_applet_path(applet)}",
+          embed_src: "#{run_applet_path(applet)}",
+          embed_srcdoc: null,
+          shareable: true,
+          share_url: "#{run_applet_path(applet)}",
+          auto_open_in_board: true
+        }
+      }));
+    JS
+
+    iframe = find("#panel-applets iframe", visible: true)
+    assert_includes iframe[:src], "theme=dark"
+    assert_equal "rgb(28, 25, 23)", iframe_background_color("#panel-applets iframe")
+
+    within_frame(iframe) do
+      assert_selector "h2", text: "Saved Dark Chalkboard Applet Output", wait: 10
+      assert_equal true, evaluate_script("document.documentElement.classList.contains('dark')")
+      assert_equal "rgb(28, 25, 23)", evaluate_script("getComputedStyle(document.body).backgroundColor")
+    end
+
+    execute_script <<~JS
+      const iframe = document.querySelector("#panel-applets iframe");
+      iframe.src = iframe.src.replace("theme=dark", "theme=light");
+    JS
+
+    iframe = find("#panel-applets iframe", visible: true)
+    assert_includes iframe[:src], "theme=light"
+    within_frame(iframe) do
+      assert_selector "h2", text: "Saved Dark Chalkboard Applet Output", wait: 10
+      assert_selector "html.dark", visible: :all, wait: 5
+      assert_equal "rgb(28, 25, 23)", evaluate_script("getComputedStyle(document.body).backgroundColor")
     end
   end
 
@@ -184,5 +261,19 @@ class CodeExecutorTest < ApplicationSystemTestCase
     within_frame(iframe) do
       assert_selector "h3", text: "Clicked Applet Output", wait: 10
     end
+  end
+
+  private
+
+  def enable_dark_mode_for_page
+    page.execute_script(<<~JS)
+      localStorage.theme = 'dark';
+      document.documentElement.classList.add('dark', 'sl-theme-dark', 'wa-dark');
+      window.dispatchEvent(new CustomEvent('goa:theme-change', { detail: { theme: 'dark' } }));
+    JS
+  end
+
+  def iframe_background_color(selector = "#chalkboard iframe")
+    evaluate_script("getComputedStyle(document.querySelector(#{selector.to_json})).backgroundColor")
   end
 end

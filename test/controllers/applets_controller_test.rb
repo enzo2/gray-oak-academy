@@ -144,4 +144,13 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     assert_select "link[rel='icon'][href*='logo_icon_negative']"
     assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1']"
   end
+
+  test "run renders dark preview shell when requested by chalkboard" do
+    sign_in @teacher
+
+    get run_applet_path(@teacher_applet, theme: "dark")
+
+    assert_response :success
+    assert_select "html.dark"
+  end
 end

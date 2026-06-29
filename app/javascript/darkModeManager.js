@@ -7,6 +7,19 @@ function setDarkModeIcon(iconButton, isDarkMode) {
   iconButton.name = isDarkMode ? 'sun' : 'moon-stars';
 }
 
+let lastNotifiedTheme = null;
+const systemDarkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+function notifyThemeChange(isDarkMode, options = {}) {
+  const theme = isDarkMode ? 'dark' : 'light';
+  if (!options.force && lastNotifiedTheme === theme) return;
+
+  lastNotifiedTheme = theme;
+  window.dispatchEvent(new CustomEvent('goa:theme-change', {
+    detail: { theme }
+  }));
+}
+
 window.toggleDarkMode = function() {
   const isDarkMode = document.documentElement.classList.contains('dark');
   const iconButton = document.querySelector('.dark-mode-toggle');
@@ -22,6 +35,7 @@ window.toggleDarkMode = function() {
   }
 
   setDarkModeIcon(iconButton, !isDarkMode);
+  notifyThemeChange(!isDarkMode);
 }
 
 function initializeDarkMode() {
@@ -38,6 +52,7 @@ function initializeDarkMode() {
   }
 
   setDarkModeIcon(iconButton, shouldUseDark);
+  notifyThemeChange(shouldUseDark, { force: true });
 
   if (iconButton) {
     // Turbo cache restores DOM without event listeners; ensure we always rebind.
@@ -46,5 +61,10 @@ function initializeDarkMode() {
   }
 }
 
+function handleSystemThemeChange() {
+  if (!('theme' in localStorage)) initializeDarkMode();
+}
+
 document.addEventListener('turbo:load', initializeDarkMode);
 document.addEventListener('DOMContentLoaded', initializeDarkMode);
+systemDarkModeQuery.addEventListener('change', handleSystemThemeChange);

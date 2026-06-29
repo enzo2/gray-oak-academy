@@ -1,6 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 import { isMobileDevice } from "controllers/utils/device_utils"
 import { attachAppletResultChannel } from "applet_result_channel"
+import {
+  appletFrameBackgroundColor,
+  attachAppletThemeRequestResponder,
+  syncAppletIframeTheme,
+  themedAppletUrl
+} from "applet_theme"
 
 export default class extends Controller {
   static targets = [
@@ -54,6 +60,7 @@ export default class extends Controller {
 
     this._registerAppletHandler = (event) => this.registerApplet(event.detail || {})
     this._openPushTabHandler = (event) => this.openPushTab(event.detail || {})
+    this._boundThemeChangeHandler = () => this.syncAppletFrameThemes()
     this._boundEscapeHandler = (event) => {
       if (event.key === "Escape" && this.isMobileOpen()) this.closeMobile()
     }
@@ -67,7 +74,9 @@ export default class extends Controller {
     this._boundScreenshotModalClose = (event) => this.handleScreenshotModalClose(event)
     window.addEventListener("chalkboard:register-applet", this._registerAppletHandler)
     window.addEventListener("chalkboard:open-push-tab", this._openPushTabHandler)
+    window.addEventListener("goa:theme-change", this._boundThemeChangeHandler)
     window.addEventListener("resize", this._boundResizeHandler)
+    this._detachThemeRequestResponder = attachAppletThemeRequestResponder(() => this.appletIframes())
     if (this.hasScreenshotModalTarget) {
       this.screenshotModalTarget.addEventListener("modal:close", this._boundScreenshotModalClose)
     }
@@ -77,8 +86,10 @@ export default class extends Controller {
     // clean up listeners
     window.removeEventListener("chalkboard:register-applet", this._registerAppletHandler)
     window.removeEventListener("chalkboard:open-push-tab", this._openPushTabHandler)
+    window.removeEventListener("goa:theme-change", this._boundThemeChangeHandler)
     window.removeEventListener("resize", this._boundResizeHandler)
     window.removeEventListener("keydown", this._boundEscapeHandler)
+    this._detachThemeRequestResponder?.()
     if (this.hasScreenshotModalTarget) {
       this.screenshotModalTarget.removeEventListener("modal:close", this._boundScreenshotModalClose)
     }
@@ -268,13 +279,14 @@ export default class extends Controller {
       iframe.style.width = "100%"
       iframe.style.height = "100%"
       iframe.style.border = "0"
+      iframe.style.backgroundColor = appletFrameBackgroundColor()
       iframe.dataset.chalkboardCacheKey = `applet:${appletKey}`
       if (entry.embed_srcdoc) {
         iframe.srcdoc = entry.embed_srcdoc
       } else if (entry.embed_src) {
-        iframe.src = entry.embed_src
+        iframe.src = themedAppletUrl(entry.embed_src)
       } else if (entry.launch_url) {
-        iframe.src = entry.launch_url
+        iframe.src = themedAppletUrl(entry.launch_url)
       }
 
       panel.appendChild(iframe)
@@ -434,6 +446,15 @@ export default class extends Controller {
     } catch (_err) {
       return url
     }
+  }
+
+  syncAppletFrameThemes() {
+    this.appletIframes().forEach((iframe) => syncAppletIframeTheme(iframe))
+  }
+
+  appletIframes() {
+    if (!this.hasAppletViewportTarget) return []
+    return Array.from(this.appletViewportTarget.querySelectorAll("iframe"))
   }
 
   async shareCurrentApplet() {
