@@ -29,6 +29,7 @@ class CodeExecutorTest < ApplicationSystemTestCase
     # Wait for the message to appear and the applet to run
     iframe = find("#message_#{message.id}_content iframe", visible: true)
     within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell='v1']", visible: :all, wait: 1
       assert_selector "h1", text: "Inline Applet Output", wait: 1
       assert_selector "div.console-log span", text: "console log!", wait: 1
     end
@@ -76,6 +77,7 @@ class CodeExecutorTest < ApplicationSystemTestCase
     assert_equal "rgb(28, 25, 23)", iframe_background_color
 
     within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell='v1']", visible: :all, wait: 1
       assert_selector "h2", text: "Dark Chalkboard Applet Output", wait: 10
       assert_equal true, evaluate_script("document.documentElement.classList.contains('dark')")
       assert_equal "rgb(28, 25, 23)", evaluate_script("getComputedStyle(document.body).backgroundColor")
@@ -111,6 +113,7 @@ class CodeExecutorTest < ApplicationSystemTestCase
 
     iframe = find("#panel-applets iframe", visible: true)
     within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell='v1']", visible: :all, wait: 1
       assert_selector "h2", text: "Saved Chalkboard Applet Output", wait: 10
     end
   end
@@ -148,6 +151,7 @@ class CodeExecutorTest < ApplicationSystemTestCase
     assert_equal "rgb(28, 25, 23)", iframe_background_color("#panel-applets iframe")
 
     within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell='v1']", visible: :all, wait: 1
       assert_selector "h2", text: "Saved Dark Chalkboard Applet Output", wait: 10
       assert_equal true, evaluate_script("document.documentElement.classList.contains('dark')")
       assert_equal "rgb(28, 25, 23)", evaluate_script("getComputedStyle(document.body).backgroundColor")

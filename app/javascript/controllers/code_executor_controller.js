@@ -397,248 +397,63 @@ export default class extends Controller {
     if (this._inlineIframe) syncAppletIframeTheme(this._inlineIframe, { border: true });
   }
 
-  // Basic HTML structure for the iframe content, including an importmap, and the code to be executed
-  // Includes a simple console override to display logs/errors within the iframe
+  // Builds iframe content from the shared ERB-rendered shell template.
   prepareIframeContent(code) {
-
     // Escape any </script> tags in the code to prevent terminating the script early
     const codeLiteral = JSON.stringify(code).replace(/<\/script>/g, '<\\/script>');
-    
-    // Get the CSP nonce from the document head
     const meta = document.querySelector("meta[name='csp-nonce']");
     const nonce = meta ? meta.content : "";
     const theme = currentAppletTheme();
     const htmlClass = theme === "dark" ? "dark" : "";
+    const template = document.getElementById("goa-applet-shell-template");
+    const shellTemplate = template?.content?.textContent;
+
+    if (!shellTemplate) {
+      console.error("Applet shell template not found.");
+      return this.prepareMissingShellContent(theme);
+    }
+
+    return shellTemplate
+      .replaceAll("\"__GOA_APPLET_THEME_JSON__\"", JSON.stringify(theme))
+      .replaceAll("__GOA_APPLET_HTML_CLASS__", htmlClass)
+      .replaceAll("__GOA_APPLET_CSP_NONCE__", this.escapeHtmlAttribute(nonce))
+      .replaceAll("\"__GOA_APPLET_CODE_JSON__\"", codeLiteral);
+  }
+
+  escapeHtmlAttribute(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  prepareMissingShellContent(theme) {
+    const dark = theme === "dark";
+    const background = dark ? "#1c1917" : "#ffffff";
+    const foreground = dark ? "#f5f5f4" : "#292524";
 
     return `
       <!DOCTYPE html>
-      <html class="${htmlClass}">
-      <head>
-        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" async></script>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&display=swap');
-          :root {
-            color-scheme: light;
-            --goa-applet-bg: #ffffff;
-            --goa-applet-fg: #292524;
-            --goa-applet-muted: #6b7280;
-            --goa-applet-console-object-bg: #f3f4f6;
-            --goa-applet-console-object-border: #e5e7eb;
-          }
-          :root.dark {
-            color-scheme: dark;
-            --goa-applet-bg: #1c1917;
-            --goa-applet-fg: #f5f5f4;
-            --goa-applet-muted: #a8a29e;
-            --goa-applet-console-object-bg: #292524;
-            --goa-applet-console-object-border: #57534e;
-          }
-          html, body { min-height: 100%; background: var(--goa-applet-bg); color: var(--goa-applet-fg); }
-          body { margin: 0; padding: 10px; font-family: "Inter", "Segoe UI", Optima, Futura, "Gill Sans MT", "Gill Sans", sans-serif; }
-          #sandbox { 
-            min-height: 350px;
-            max-height: 100%;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-          }
-          /* Console styles */
-          .console-log { 
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
-            margin: 4px 0;
-            font-size: 0.8em;
-            line-height: 1;
-            word-break: break-word;
-            white-space: pre-wrap;
-          }
-          .console-error { 
-            color: #dc2626; 
-            font-weight: 500;
-            background: rgba(220, 38, 38, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-          }
-          .console-warn { 
-            color: #d97706;
-            background: rgba(217, 119, 6, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-          }
-          .console-info { 
-            color: #2563eb;
-            background: rgba(37, 99, 235, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-          }
-          .console-debug { 
-            color: var(--goa-applet-muted);
-          }
-          .console-object { 
-            background: var(--goa-applet-console-object-bg);
-            padding: 8px;
-            border-radius: 4px;
-            white-space: pre-wrap;
-            margin: 4px 0;
-            border: 1px solid var(--goa-applet-console-object-border);
-          }
-        </style>
-        <style type="text/tailwindcss">      
-          @custom-variant dark (&:where(.dark, .dark *));
-          @theme { --font-sans: "InterVariable", sans-serif; --font-serif: "Merriweather", serif; }    
-        </style>
-        <script nonce="${nonce}">
-          (function() {
-            function applyTheme(theme) {
-              document.documentElement.classList.toggle("dark", theme === "dark");
+      <html class="${dark ? "dark" : ""}" data-goa-applet-shell-error="missing-template">
+        <head>
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <style>
+            html, body {
+              min-height: 100%;
+              margin: 0;
+              background: ${background};
+              color: ${foreground};
+              font-family: "Inter", "Segoe UI", sans-serif;
             }
-
-            function requestTheme() {
-              try {
-                window.parent.postMessage({ source: "goa-theme-request", v: 1 }, "*");
-              } catch (e) { /* no-op */ }
+            body {
+              display: grid;
+              place-items: center;
+              padding: 1rem;
             }
-
-            applyTheme("${theme}");
-            window.addEventListener("message", function(event) {
-              const data = event.data || {};
-              if (data.source === "goa-theme" && data.v === 1) applyTheme(data.theme);
-            });
-            requestTheme();
-          })();
-        </script>
-        <script type="importmap" nonce="${nonce}">
-          {
-            "imports": {
-              "react": "https://esm.sh/react",
-              "react/": "https://esm.sh/react/",
-              "react-dom/": "https://esm.sh/react-dom/",
-              "p5": "https://esm.sh/p5?standalone",  
-              "three": "https://esm.sh/three"
-            }
-          }
-        </script>
-        <script nonce="${nonce}">
-          (function() {
-            const createMemoryStorage = () => {
-              let store = {};
-              return {
-                getItem(key) { return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null; },
-                setItem(key, value) { store[key] = String(value); },
-                removeItem(key) { delete store[key]; },
-                clear() { store = {}; },
-                key(index) { return Object.keys(store)[index] || null; },
-                get length() { return Object.keys(store).length; }
-              };
-            };
-            try {
-              const testKey = "__storage_test__";
-              window.localStorage.setItem(testKey, "1");
-              window.localStorage.removeItem(testKey);
-            } catch (e) {
-              Object.defineProperty(window, "localStorage", { value: createMemoryStorage(), configurable: true });
-            }
-          })();
-        </script>
-        <script nonce="${nonce}">
-          // Results bridge: applets call window.GOA.report({...}) to send a result
-          // to the host, which authenticates the message by iframe source and
-          // routes it to the tutor. See applet_result_channel.js.
-          (function () {
-            function send(type, name, data, doSend) {
-              try {
-                window.parent.postMessage(
-                  { source: "goa-applet", v: 1, type: type, name: name || null, data: (data === undefined ? null : data), send: doSend === true },
-                  "*"
-                );
-              } catch (e) { /* no-op */ }
-            }
-            window.GOA = {
-              // report(data) buffers the result for the student to send; pass
-              // { send: true } to deliver it immediately as a turn.
-              report: function (data, opts) { send("result", null, data, !!(opts && opts.send)); }
-            };
-          })();
-        </script>
-        <script nonce="${nonce}">
-          // Override console
-          window.console = {
-            _format: function(args, className) {
-              const logElement = document.createElement('div');
-              logElement.className = 'console-log ' + (className || '');
-              
-              args.forEach(arg => {
-                if (arg instanceof Error) {
-                  const errorDiv = document.createElement('div');
-                  errorDiv.className = 'console-error';
-                  errorDiv.textContent = arg.toString();
-                  if (arg.stack) {
-                    const stackDiv = document.createElement('pre');
-                    stackDiv.className = 'console-debug';
-                    stackDiv.textContent = arg.stack;
-                    errorDiv.appendChild(stackDiv);
-                  }
-                  logElement.appendChild(errorDiv);
-                } else if (typeof arg === 'object') {
-                  try {
-                    const objDiv = document.createElement('div');
-                    objDiv.className = 'console-object';
-                    objDiv.textContent = JSON.stringify(arg, null, 2);
-                    logElement.appendChild(objDiv);
-                  } catch (e) {
-                    logElement.textContent += '[Circular Object]';
-                  }
-                } else {
-                  const span = document.createElement('span');
-                  span.textContent = String(arg) + ' ';
-                  logElement.appendChild(span);
-                }
-              });
-              
-              // Wait for sandbox to be available
-              const appendLog = () => {
-                const sandbox = document.getElementById('sandbox');
-                if (sandbox) {
-                  sandbox.appendChild(logElement);
-                } else {
-                  // If sandbox not available yet, retry in 10ms
-                  setTimeout(appendLog, 10);
-                }
-              };
-              appendLog();
-            },
-            log: function(...args) {
-              this._format(args);
-            },
-            error: function(...args) {
-              this._format(args, 'console-error');
-            },
-            warn: function(...args) {
-              this._format(args, 'console-warn');
-            },
-            info: function(...args) {
-              //this._format(args, 'console-info');
-            },
-            debug: function(...args) {
-              // Ignore debug logs.
-            }
-          };
-        </script>
-      </head>
-      <body>
-        <div id="sandbox"></div>
-        <script type="module" nonce="${nonce}">
-          const codeToExecute = ${codeLiteral};
-          const blob = new Blob([codeToExecute], { type: 'text/javascript' });
-          const moduleUrl = URL.createObjectURL(blob);
-
-          import(moduleUrl).catch(error => {
-            console.error(error);
-          }).finally(() => {
-            // Clean up the object URL to prevent memory leaks.
-            URL.revokeObjectURL(moduleUrl);
-          });
-        </script>
-      </body>
+          </style>
+        </head>
+        <body>Unable to load applet shell.</body>
       </html>
     `;
   }

@@ -1,0 +1,18 @@
+<% shell_html = capture do %>
+  <%= render(
+    "applets/iframe_shell_document",
+    title: "Generated Applet",
+    theme: "light",
+    html_class: "__GOA_APPLET_HTML_CLASS__",
+    initial_theme: "__GOA_APPLET_THEME_JSON__",
+    code: "__GOA_APPLET_CODE_JSON__",
+    script_nonce: "__GOA_APPLET_CSP_NONCE__",
+    sandbox_min_height: "350px",
+    sandbox_max_height: "100%",
+    include_result_bridge: true,
+    console_info_enabled: false,
+    include_preview_metadata: false,
+    tailwind_async: true
+  ) %>
+<% end %>
+<template id="goa-applet-shell-template" data-turbo-permanent><%= ERB::Util.html_escape_once(shell_html.to_s) %></template>

@@ -143,6 +143,8 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     assert_select "title", text: /Teacher Applet Preview/
     assert_select "link[rel='icon'][href*='logo_icon_negative']"
     assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1']"
+    assert_select "html[data-goa-applet-shell='v1']"
+    assert_select "div#sandbox"
   end
 
   test "run renders dark preview shell when requested by chalkboard" do
@@ -152,5 +154,7 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "html.dark"
+    assert_select "html[data-goa-applet-shell='v1']"
+    assert_select "div#sandbox"
   end
 end

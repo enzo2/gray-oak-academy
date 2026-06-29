@@ -58,8 +58,8 @@
       <nav class="flex justify-between items-center">
         <div class="pl-2 flex flex-row space-x-2 items-center" id="nav-left-items">
           <%= link_to root_path, class: "flex flex-row space-x-2" do %>
-            <%= image_tag "logo_icon.svg", size: "30", class: "bg-stone-100 dark:hidden" %>
-            <%= image_tag "logo_icon_negative.svg", size: "30", class: "hidden dark:block bg-stone-800" %>
+            <%= image_tag "logo_icon.svg", size: "30", alt: "", class: "bg-stone-100 dark:hidden" %>
+            <%= image_tag "logo_icon_negative.svg", size: "30", alt: "", class: "hidden dark:block bg-stone-800" %>
             <span class="text-xl font-bold font-serif hidden md:inline"><%= ENV["APP_NAME"] || "Gray Oak Academy" %></span>
           <% end %>
           <%= yield :header_buttons %>
@@ -118,6 +118,8 @@
 
     <%# Use content_for :body to add the main content %>
     <%= content_for?(:body) ? yield(:body) : yield %>
+
+    <%= render "applets/iframe_shell_template" if user_signed_in? %>
 
     <footer id="footer">
 

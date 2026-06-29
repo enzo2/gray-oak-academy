@@ -73,7 +73,7 @@ class AppletsController < ApplicationController
     # This action renders the applet in a standalone page, suitable for iframing.
     # It allows us to use standard CSP nonces for the scripts.
     @applet_theme = params[:theme].to_s == "dark" ? "dark" : "light"
-    render layout: "applet_preview"
+    render layout: false
   end
 
   private
