@@ -95,18 +95,19 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 ## Feature ideas:
 - auto-compaction for providers besides OpenAI
 - Address resource explosion (Resource archive & auto-organization)
-- Non-digital resource availability/planning
+- Non-digital resource availability/scheduling
+- Scheduled lesson planning
 - Additional agentic flows for curriculum planning 
+- Non-lesson-based, graph-based course authoring & traversal (directed vs undirected)
 - Improve student analytics
 - MCP support
 - Document uploads for curriculum building / local corpus search & linkage
 - Refactor LLM tools into virtual CLI-style tools?
 - Generative Python applets (pyodide iframe)
-- Non-lesson-based, graph-based course option (directed graph creation and traversal)
 - Hide more advanced settings/features under a Power User setting
-- Speed up audio input with ffmpeg to reduce cost
-- Avoiding live/realtime APIs thus far due to risk of forced conversation and lower intelligence. May be suitable for AFK lessons.
 - Hotwire Native app; Mobile push notifications
+- Speed up audio input with ffmpeg to reduce cost
+- Note: Avoiding live/realtime APIs thus far due to risk of forced conversation and lower intelligence. May be suitable for AFK lessons.
 
 ## Backstory
 
