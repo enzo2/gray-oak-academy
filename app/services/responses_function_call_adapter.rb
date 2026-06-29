@@ -2,6 +2,8 @@ require "json/repair"
 require "digest"
 
 class ResponsesFunctionCallAdapter
+  include ResponsesFunctionCalls
+
   EXA_TOOL_NAMES = %w[exa_websearch exa_answer].freeze
   EXA_WEBSEARCH_NUM_RESULTS = 10
   EXA_WEBSEARCH_HIGHLIGHT_MAX_CHARS = 2_000
@@ -31,7 +33,7 @@ class ResponsesFunctionCallAdapter
   end
 
   def function_calls(response_hash)
-    Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
+    select_valid_function_calls(response_hash, log_label: self.class.name)
   end
 
   def function_call_outputs(function_calls)

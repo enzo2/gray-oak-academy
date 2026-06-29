@@ -26,6 +26,29 @@ class ResponsesFunctionCallAdapterTest < ActiveSupport::TestCase
     assert_includes names, "exa_answer"
   end
 
+  test "function calls ignores malformed blank-name response artifacts" do
+    adapter = ResponsesFunctionCallAdapter.new(
+      current_user: users(:admin),
+      exa_enabled: true,
+      allow_app_tools: false
+    )
+
+    response_hash = {
+      "id" => "resp_openrouter",
+      "output" => [
+        { "type" => "function_call", "name" => "exa_websearch", "call_id" => "call_valid", "arguments" => { query: "refraction demo" }.to_json },
+        { "type" => "function_call", "name" => "", "call_id" => "chatcmpl-tool-empty", "arguments" => "{}" },
+        { "type" => "function_call", "name" => "exa_answer", "call_id" => "", "arguments" => "{}" },
+        { "type" => "message", "content" => [ { "type" => "output_text", "text" => "done" } ] }
+      ]
+    }
+
+    calls = adapter.function_calls(response_hash)
+
+    assert_equal [ "call_valid" ], calls.map { |call| call["call_id"] }
+    assert_equal [ "exa_websearch" ], calls.map { |call| call["name"] }
+  end
+
   test "executes exa function call and returns function_call_output" do
     captured = {}
     fake_exa = Object.new

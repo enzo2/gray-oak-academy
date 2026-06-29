@@ -1597,6 +1597,7 @@ class OpenaiResponsesService
       tool_calls: same_run ? Array(existing_for_run[:tool_calls]).dup : [],
       response_metrics: same_run ? (existing_for_run[:response_metrics] || {}).deep_dup : {},
       terminal_logged: same_run ? existing_for_run[:terminal_logged] : false,
+      response_id: same_run ? existing_for_run[:response_id] : nil,
       metadata_version: meta["metadata_version"].presence || existing_for_run[:metadata_version],
       phase: meta["phase"].presence || existing_for_run[:phase]
     }

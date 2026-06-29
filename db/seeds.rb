@@ -838,6 +838,7 @@ p.prompt = <<~PROMPT
   - Lesson content: {lesson_plan_content}
   - Existing suggested resources: {suggested_resources}
   - Already linked resources: {linked_resources}
+  - Specific teacher resource request: {resource_request}
 
   Available presentation capabilities:
   - Chalkboard can display: websites (including YouTube), PDFs, and applets.
@@ -1269,8 +1270,8 @@ AppSetting.first_or_create!(
   image_generation_two_pass: "0",
   user_daily_budget: "10.00",
   max_chat_cost: "5.00",
-  background_agent_model: "gpt-5.5",
-  background_agent_supported_api_id: openai.id,
+  background_agent_model: "z-ai/glm-5.2",
+  background_agent_supported_api_id: openrouter.id,
   background_agent_prefer_user_codex: "0",
   background_agent_max_tool_turns: "30",
   exa_research_model: "exa-research"

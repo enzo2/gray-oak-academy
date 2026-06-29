@@ -130,6 +130,7 @@ suggest_resources:
     Lesson content: {lesson_plan_content}
     Existing suggested resources: {suggested_resources}
     Linked resources: {linked_resources}
+    Additional teacher resource request: {resource_request}
     Resource rules:
     - Never return already-linked resources in final suggested_resources.
     - If a resource can be added and linked now, do that instead of leaving it in suggested_resources.

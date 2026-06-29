@@ -8,7 +8,7 @@ class ResponsesAgentLoopTest < ActiveSupport::TestCase
         "status" => "completed",
         "usage" => { "input_tokens" => 20 },
         "output" => [
-          { "type" => "reasoning", "format" => "unknown", "content" => "keep exactly", "custom" => "field" },
+          { "type" => "reasoning", "format" => "unknown", "signature" => "keep-exactly", "custom" => "field" },
           { "type" => "function_call", "id" => "fc_1", "call_id" => "call_1", "name" => "first", "arguments" => "{}" },
           { "type" => "function_call", "id" => "fc_2", "call_id" => "call_2", "name" => "second", "arguments" => "{}" }
         ]
@@ -104,6 +104,38 @@ class ResponsesAgentLoopTest < ActiveSupport::TestCase
     assert_equal "resp_done", final["id"]
     replay_types = calls.third.dig(:kwargs, :input).map { |item| item["type"] || item[:type] }
     refute_includes replay_types, "reasoning"
+  end
+
+  test "does not replay malformed OpenRouter function-call artifacts" do
+    responses = [
+      {
+        "id" => "resp_1",
+        "status" => "completed",
+        "usage" => { "input_tokens" => 20 },
+        "output" => [
+          { "type" => "function_call", "call_id" => "call_valid", "name" => "exa_search", "arguments" => "{}" },
+          { "type" => "function_call", "call_id" => "chatcmpl-tool-empty", "name" => "", "arguments" => "{}" }
+        ]
+      },
+      {
+        "id" => "resp_2",
+        "status" => "completed",
+        "output" => [ { "type" => "message", "content" => [ { "type" => "output_text", "text" => "done" } ] } ]
+      }
+    ]
+    client, calls = fake_client(responses)
+    loop = ResponsesAgentLoop.new(client: client)
+
+    loop.start(messages: [ { role: "user", content: "start" } ], metadata: { run_id: "run_openrouter" })
+    loop.continue_with_tool_outputs(
+      outputs: [ { type: "function_call_output", call_id: "call_valid", output: "ok" } ],
+      metadata: { run_id: "run_openrouter", phase: "tool_turn" }
+    )
+
+    replay = calls.second.dig(:kwargs, :input)
+    replayed_calls = replay.select { |item| item["type"] == "function_call" }
+    assert_equal [ "call_valid" ], replayed_calls.map { |item| item["call_id"] }
+    refute replayed_calls.any? { |item| item["name"].blank? }
   end
 
   test "stops a continuation at eighty percent of known context" do

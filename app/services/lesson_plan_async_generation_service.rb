@@ -33,7 +33,7 @@ class LessonPlanAsyncGenerationService
     end
   end
 
-  def enqueue_propose_resources
+  def enqueue_propose_resources(resource_guidance: nil)
     run_with_lock do
       return failure("Configure Background Agent Runs and Exa API before proposing resources.") unless resource_proposal_enabled?
       return failure("Generation is already in progress for this lesson plan.") if @lesson_plan.generation_in_progress?
@@ -41,7 +41,16 @@ class LessonPlanAsyncGenerationService
       return failure("Add or generate lesson plan content before proposing resources.") unless @lesson_plan.resource_proposal_available?
 
       @lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
-      ProposeResourcesJob.perform_later(lesson_plan_id: @lesson_plan.id, user_id: @current_user.id, source: @source)
+      @lesson_plan.update_resource_proposal_progress!(
+        message: "Queued resource proposal...",
+        detail: "Waiting for the background agent worker to start."
+      )
+      ProposeResourcesJob.perform_later(
+        lesson_plan_id: @lesson_plan.id,
+        user_id: @current_user.id,
+        source: @source,
+        resource_guidance: resource_guidance.to_s.strip.presence
+      )
       mark_cooldown!(action: :propose_resources)
 
       success(stage: "proposing_resources", message: "Queued resource proposal.")

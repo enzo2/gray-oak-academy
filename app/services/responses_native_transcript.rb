@@ -1,4 +1,13 @@
 class ResponsesNativeTranscript
+  include ResponsesFunctionCalls
+
+  # Keys whose presence marks a reasoning item as carrying the payload needed to
+  # replay it across a stateless tool boundary. OpenRouter's normalized Responses
+  # format surfaces non-encrypted reasoning as a `content` array of
+  # `reasoning_text` items (e.g. minimax), alongside provider-encrypted payloads
+  # (`encrypted_content`, `data`) and Anthropic-style `signature` tokens. Dropping
+  # `content` makes such reasoning look unreplayable and forces the agent loop into
+  # a wasteful reasoning-disabled restart on every tool turn.
   OPAQUE_REASONING_KEYS = %w[encrypted_content signature data content].freeze
 
   def initialize(initial_input_items:)
@@ -15,7 +24,7 @@ class ResponsesNativeTranscript
   end
 
   def append_response!(response_hash, omit_reasoning: false)
-    @latest_output_items = deep_dup(Array(response_hash["output"]))
+    @latest_output_items = replayable_output_items(response_hash)
     if omit_reasoning
       @latest_output_items.reject! { |item| item["type"].to_s.include?("reasoning") }
     end
@@ -24,7 +33,7 @@ class ResponsesNativeTranscript
   end
 
   def append_function_call_outputs!(outputs)
-    pending_calls = @latest_output_items.select { |item| item["type"].to_s == "function_call" }
+    pending_calls = @latest_output_items.select { |item| valid_function_call?(item) }
     pending_ids = pending_calls.map { |call| call["call_id"].to_s }
     raise OpenAiError, "No pending function calls are available for these tool outputs." if pending_ids.empty?
     raise OpenAiError, "A pending function call is missing call_id." if pending_ids.any?(&:blank?)
@@ -74,7 +83,23 @@ class ResponsesNativeTranscript
   private
 
   def function_calls(response_hash)
-    Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
+    Array(response_hash["output"]).select { |item| valid_function_call?(item) }
+  end
+
+  def replayable_output_items(response_hash)
+    output_items = deep_dup(Array(response_hash["output"]))
+    valid_items, dropped_items = output_items.partition do |item|
+      !function_call_item?(item) || valid_function_call?(item)
+    end
+
+    if dropped_items.present?
+      Rails.logger.warn(
+        "Dropping #{dropped_items.size} malformed Responses function_call item(s) before stateless replay " \
+        "response_id=#{response_hash['id'].to_s.presence || 'unknown'}"
+      )
+    end
+
+    valid_items
   end
 
   def reasoning_tokens(response_hash)

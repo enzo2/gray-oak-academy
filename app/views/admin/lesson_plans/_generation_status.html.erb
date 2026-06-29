@@ -13,9 +13,22 @@
 
 <% if scope == :resources %>
   <% if stage == "proposing_resources" %>
-    <p class="mt-2 text-sm text-moss-700 dark:text-moss-300">
-      Proposing and validating resources...
-    </p>
+    <% progress = lesson_plan.respond_to?(:resource_proposal_progress) ? lesson_plan.resource_proposal_progress : {} %>
+    <% progress_message = progress["message"].presence || "Proposing and validating resources..." %>
+    <% progress_detail = progress["detail"].presence %>
+    <% progress_turn = progress["turn"].to_i if progress["turn"].present? %>
+    <% progress_tool_calls = progress["total_tool_calls"].to_i if progress["total_tool_calls"].present? %>
+    <div class="mt-2 rounded-md border border-moss-200 bg-moss-50/60 px-3 py-2 text-sm text-moss-800 dark:border-moss-800 dark:bg-moss-950/30 dark:text-moss-200" aria-live="polite">
+      <div class="flex items-start gap-2">
+        <span class="mt-1 inline-block h-2 w-2 shrink-0 animate-pulse rounded-full bg-moss-600 dark:bg-moss-300"></span>
+        <div>
+          <p class="font-medium"><%= progress_message %></p>
+          <% if progress_detail.present? %>
+            <p class="mt-0.5 text-xs text-moss-700 dark:text-moss-300"><%= progress_detail %></p>
+          <% end %>
+        </div>
+      </div>
+    </div>
   <% end %>
 <% else %>
   <% if stage == "generating_content" %>

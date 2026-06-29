@@ -98,7 +98,7 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "propose resources forwards source and sets stage" do
+  test "propose resources forwards source guidance and sets stage" do
     with_memory_cache do
       @lesson_plan.update!(generation_stage: "completed")
       service = LessonPlanAsyncGenerationService.new(
@@ -111,7 +111,7 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
       AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
           ProposeResourcesJob.stub(:perform_later, ->(*_args, **kwargs) { captured_kwargs = kwargs }) do
-            result = service.enqueue_propose_resources
+            result = service.enqueue_propose_resources(resource_guidance: "Find a primary-source video.")
             assert_equal true, result[:ok]
             assert_equal "proposing_resources", result[:stage]
           end
@@ -119,6 +119,7 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
       end
 
       assert_equal "teacher_chat_tool", captured_kwargs[:source]
+      assert_equal "Find a primary-source video.", captured_kwargs[:resource_guidance]
       assert_equal "proposing_resources", @lesson_plan.reload.generation_stage
     end
   end

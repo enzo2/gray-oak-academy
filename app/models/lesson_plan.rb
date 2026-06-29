@@ -19,6 +19,7 @@ class LessonPlan < ApplicationRecord
   # "disabled" status also available in the enum column, but confusing since STT is always enabled
 
   GENERATION_STAGES = %w[idle generating_content proposing_resources completed failed].freeze
+  RESOURCE_PROPOSAL_PROGRESS_KEY = "resource_proposal_progress".freeze
 
   validates :generation_stage, inclusion: { in: GENERATION_STAGES }
 
@@ -57,7 +58,35 @@ class LessonPlan < ApplicationRecord
     generation_searches.any? || generation_sources.any?
   end
 
+  def resource_proposal_progress
+    progress = (generation_metadata || {})[RESOURCE_PROPOSAL_PROGRESS_KEY]
+    progress.is_a?(Hash) ? progress : {}
+  end
+
+  def resource_proposal_progress_message
+    resource_proposal_progress["message"].to_s.presence
+  end
+
+  def update_resource_proposal_progress!(message:, detail: nil, turn: nil, total_tool_calls: nil)
+    progress = {
+      "message" => message.to_s,
+      "detail" => detail.to_s.presence,
+      "turn" => turn,
+      "total_tool_calls" => total_tool_calls,
+      "updated_at" => Time.current.iso8601
+    }.compact
+    update_generation_metadata!(RESOURCE_PROPOSAL_PROGRESS_KEY => progress)
+  end
+
+  def clear_resource_proposal_progress!
+    update!(generation_metadata: (generation_metadata || {}).except(RESOURCE_PROPOSAL_PROGRESS_KEY))
+  end
+
   private
+
+  def update_generation_metadata!(payload)
+    update!(generation_metadata: (generation_metadata || {}).merge(payload))
+  end
 
   def no_pending_resources_when_published
     if resources.pending_approval.exists?

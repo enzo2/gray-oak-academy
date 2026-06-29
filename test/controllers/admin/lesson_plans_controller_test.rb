@@ -47,6 +47,27 @@ module Admin
       assert_select "button[type='submit'][data-action*='click->lesson-plan-steering#snapshotContent']", count: 0
     end
 
+    test "edit renders propose resources modal with default and specific request presets" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "completed")
+
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get edit_admin_course_lesson_lesson_plan_path(lesson.course, lesson)
+        end
+      end
+
+      assert_response :success
+      assert_select "#resource-proposal-controls #propose-resources-button", text: /Propose Resources/
+      assert_select "#resource-proposal-controls", text: /Default resource proposal/
+      assert_select "#resource-proposal-controls", text: /Specific request/
+      assert_select "#resource-proposal-controls [data-lesson-plan-steering-target='customGuidanceSection']"
+      assert_select "#resource-proposal-controls textarea[name='guidance']"
+      assert_select "#resource-proposal-controls form[data-controller='button-loading']"
+    end
+
     test "generate_content persists submitted outline before revising" do
       sign_in(users(:admin))
       lesson = lessons(:one)
@@ -544,7 +565,53 @@ module Admin
       assert_includes @response.body, "Enter lesson plan guidance when using the Other preset."
     end
 
-    test "propose_resources enqueues job when generation is completed and features are enabled" do
+    test "propose_resources enqueues default run when generation is completed and features are enabled" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "completed")
+
+      captured_kwargs = nil
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          ProposeResourcesJob.stub(:perform_later, ->(**kwargs) { captured_kwargs = kwargs }) do
+            post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+                 params: { preset: "default" },
+                 as: :turbo_stream
+          end
+        end
+      end
+
+      assert_response :success
+      assert_equal "true", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_equal "proposing_resources", lesson_plan.reload.generation_stage
+      assert_equal lesson_plan.id, captured_kwargs[:lesson_plan_id]
+      assert_nil captured_kwargs[:resource_guidance]
+    end
+
+    test "propose_resources enqueues specific request guidance" do
+      sign_in(users(:admin))
+      lesson = lessons(:one)
+      lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
+      lesson_plan.update!(generation_stage: "completed")
+
+      captured_kwargs = nil
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          ProposeResourcesJob.stub(:perform_later, ->(**kwargs) { captured_kwargs = kwargs }) do
+            post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+                 params: { preset: "other", guidance: "Prioritize an interactive applet." },
+                 as: :turbo_stream
+          end
+        end
+      end
+
+      assert_response :success
+      assert_equal "true", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_equal "Prioritize an interactive applet.", captured_kwargs[:resource_guidance]
+    end
+
+    test "propose_resources rejects blank specific request" do
       sign_in(users(:admin))
       lesson = lessons(:one)
       lesson_plan = lesson.lesson_plan || lesson.build_lesson_plan
@@ -552,14 +619,18 @@ module Admin
 
       AppSetting.stub(:background_agent_enabled?, true) do
         AppSetting.stub(:exa_enabled?, true) do
-          assert_enqueued_jobs 1, only: ProposeResourcesJob do
-            post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson), as: :turbo_stream
+          assert_enqueued_jobs 0, only: ProposeResourcesJob do
+            post propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+                 params: { preset: "other", guidance: "" },
+                 as: :turbo_stream
           end
         end
       end
 
       assert_response :success
-      assert_equal "proposing_resources", lesson_plan.reload.generation_stage
+      assert_equal "false", response.headers["X-Lesson-Plan-Generation-Queued"]
+      assert_equal "completed", lesson_plan.reload.generation_stage
+      assert_includes @response.body, "Enter a resource request"
     end
 
     test "cannot propose resources for another teacher lesson" do

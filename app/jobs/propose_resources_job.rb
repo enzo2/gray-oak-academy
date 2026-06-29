@@ -2,6 +2,7 @@ require "json/repair"
 
 class ProposeResourcesJob < ApplicationJob
   include BackgroundAgentJob
+  include ResponsesFunctionCalls
 
   queue_as :agent
   include Rails.application.routes.url_helpers
@@ -26,7 +27,7 @@ class ProposeResourcesJob < ApplicationJob
     additionalProperties: false
   }.freeze
 
-  def perform(lesson_plan_id:, user_id:, track_stage: true, raise_on_error: false, source: "propose_resources", skip_user_codex: false)
+  def perform(lesson_plan_id:, user_id:, track_stage: true, raise_on_error: false, source: "propose_resources", skip_user_codex: false, resource_guidance: nil)
     current_user = User.find(user_id)
     lesson_plan = LessonPlan.find(lesson_plan_id)
     authorize_teacher_access!(current_user, lesson_plan)
@@ -42,10 +43,18 @@ class ProposeResourcesJob < ApplicationJob
     stateless_loop = nil
     lesson_plan.update!(status: "draft") if lesson_plan.status_published?
 
-    set_generation_state(lesson_plan, "proposing_resources", nil) if track_stage
-    broadcast_refresh(current_user)
+    if track_stage
+      set_generation_state(lesson_plan, "proposing_resources", nil)
+      update_resource_progress(
+        lesson_plan,
+        current_user,
+        track_stage: track_stage,
+        message: "Starting resource proposal agent...",
+        detail: "Preparing lesson context and available tools."
+      )
+    end
 
-    prompt = build_prompt(lesson_plan, current_user)
+    prompt = build_prompt(lesson_plan, current_user, resource_guidance: resource_guidance)
     messages = [ { role: "user", content: prompt } ]
     Rails.logger.info(
       "ProposeResourcesJob start source=#{source} lesson_plan=#{lesson_plan.id} teacher_id=#{current_user.id} prompt_chars=#{prompt.to_s.length}"
@@ -71,6 +80,13 @@ class ProposeResourcesJob < ApplicationJob
       source: source,
       phase: "submitted"
     )
+    update_resource_progress(
+      lesson_plan,
+      current_user,
+      track_stage: track_stage,
+      message: "Submitted resource proposal task...",
+      detail: "Waiting for the agent to plan the first pass."
+    )
     response_hash = if stateless_loop
       stateless_loop.start(messages: messages, metadata: initial_metadata)
     else
@@ -80,11 +96,20 @@ class ProposeResourcesJob < ApplicationJob
     raise OpenAiError, "Background agent max tool turns is not configured. Set it in App Settings." unless max_tool_turns.present?
 
     loop do
-      function_calls = Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
+      function_calls = select_valid_function_calls(response_hash, log_label: self.class.name)
       if function_calls.blank?
         if pending_retryable_tool_errors.present? && !retry_prompt_sent
           retry_prompt_sent = true
           retry_prompt = build_tool_error_retry_prompt(pending_retryable_tool_errors)
+          update_resource_progress(
+            lesson_plan,
+            current_user,
+            track_stage: track_stage,
+            message: "Retrying resource checks...",
+            detail: "The agent is correcting #{pending_retryable_tool_errors.size} tool #{'error'.pluralize(pending_retryable_tool_errors.size)} before finalizing.",
+            turn: turns,
+            total_tool_calls: total_tool_calls
+          )
           retry_metadata = run_metadata(
             run_id: run_id,
             current_user: current_user,
@@ -106,6 +131,15 @@ class ProposeResourcesJob < ApplicationJob
           next
         end
 
+        update_resource_progress(
+          lesson_plan,
+          current_user,
+          track_stage: track_stage,
+          message: "Finalizing resource suggestions...",
+          detail: total_tool_calls.positive? ? "Reviewed #{total_tool_calls} tool #{'call'.pluralize(total_tool_calls)}." : nil,
+          turn: turns,
+          total_tool_calls: total_tool_calls
+        )
         break
       end
 
@@ -117,6 +151,15 @@ class ProposeResourcesJob < ApplicationJob
 
       total_tool_calls += function_calls.size
 
+      update_resource_progress(
+        lesson_plan,
+        current_user,
+        track_stage: track_stage,
+        message: "Running resource checks...",
+        detail: "Turn #{turns}: executing #{function_calls.size} tool #{'call'.pluralize(function_calls.size)}.",
+        turn: turns,
+        total_tool_calls: total_tool_calls
+      )
       outputs = function_calls.map { |fc| executor.execute(fc) }
       pending_retryable_tool_errors = extract_retryable_tool_errors(outputs)
       retry_prompt_sent = false if pending_retryable_tool_errors.blank?
@@ -140,6 +183,15 @@ class ProposeResourcesJob < ApplicationJob
         source: source,
         phase: "tool_turn"
       )
+      update_resource_progress(
+        lesson_plan,
+        current_user,
+        track_stage: track_stage,
+        message: "Reviewing resource check results...",
+        detail: "Completed #{total_tool_calls} tool #{'call'.pluralize(total_tool_calls)} across #{turns} #{'turn'.pluralize(turns)}.",
+        turn: turns,
+        total_tool_calls: total_tool_calls
+      )
       response_hash = if stateless_loop
         stateless_loop.continue_with_tool_outputs(outputs: outputs, metadata: tool_metadata)
       else
@@ -152,12 +204,30 @@ class ProposeResourcesJob < ApplicationJob
       end
     end
 
+    update_resource_progress(
+      lesson_plan,
+      current_user,
+      track_stage: track_stage,
+      message: "Validating proposed resources...",
+      detail: "Checking the final suggestion format before saving.",
+      turn: turns,
+      total_tool_calls: total_tool_calls
+    )
     parsed = parse_output(client.output_text(response_hash))
     validate_output(parsed)
     suggested_resources = Array(parsed["suggested_resources"]).map do |item|
       { item["type"] => item["description"] }
     end
 
+    update_resource_progress(
+      lesson_plan,
+      current_user,
+      track_stage: track_stage,
+      message: "Saving resource suggestions...",
+      detail: "Found #{suggested_resources.size} suggested #{'resource'.pluralize(suggested_resources.size)}.",
+      turn: turns,
+      total_tool_calls: total_tool_calls
+    )
     lesson_plan.update!(
       suggested_resources: suggested_resources
     )
@@ -166,7 +236,9 @@ class ProposeResourcesJob < ApplicationJob
       "suggested_resources=#{suggested_resources.size} reasoning_fallback=#{stateless_loop&.reasoning_fallback_used ? true : false}"
     )
     set_generation_state(lesson_plan, "completed", nil) if track_stage
+    lesson_plan.clear_resource_proposal_progress! if track_stage
     broadcast_refresh(current_user)
+    broadcast_controls(current_user, lesson_plan)
     true
   rescue ActiveRecord::RecordNotFound
     raise
@@ -192,12 +264,20 @@ class ProposeResourcesJob < ApplicationJob
         "ProposeResourcesJob Codex provider failed recoverably (#{e.class.name.demodulize}); " \
         "re-running on shared provider lesson_plan=#{lesson_plan&.id}"
       )
+      update_resource_progress(
+        lesson_plan,
+        current_user,
+        track_stage: track_stage,
+        message: "Codex route unavailable; retrying with shared fallback...",
+        detail: "The run will continue with the configured background-agent provider."
+      ) if lesson_plan.present? && current_user.present?
       ProposeResourcesJob.perform_later(
         lesson_plan_id: lesson_plan_id,
         user_id: user_id,
         track_stage: track_stage,
         source: source,
-        skip_user_codex: true
+        skip_user_codex: true,
+        resource_guidance: resource_guidance
       )
       return false
     end
@@ -246,6 +326,7 @@ class ProposeResourcesJob < ApplicationJob
     set_generation_state(lesson_plan, "failed", "Failed to propose resources: #{GenerationErrorPresenter.friendly(error)}") if track_stage && lesson_plan.present?
 
     broadcast_refresh(current_user) if current_user.present?
+    broadcast_controls(current_user, lesson_plan) if current_user.present? && lesson_plan.present?
   end
 
   def authorize_teacher_access!(current_user, lesson_plan)
@@ -345,9 +426,10 @@ class ProposeResourcesJob < ApplicationJob
     raise OpenAiError, "Invalid resource proposal schema: #{errors}"
   end
 
-  def build_prompt(lesson_plan, current_user)
+  def build_prompt(lesson_plan, current_user, resource_guidance: nil)
     lesson = lesson_plan.lesson
     course = lesson.course
+    resource_request = resource_guidance.to_s.strip.presence || "None."
 
     Prompt.get_prompt(category: "suggest_resources", user: current_user)
       .gsub("{title}", "#{lesson.position}. #{lesson.title}")
@@ -358,15 +440,46 @@ class ProposeResourcesJob < ApplicationJob
       .gsub("{lesson_plan_content}", lesson_plan.content.to_json)
       .gsub("{suggested_resources}", lesson_plan.suggested_resources.to_json)
       .gsub("{linked_resources}", lesson_plan.resources.format_collection)
+      .gsub("{resource_request}", resource_request)
   end
 
   def set_generation_state(lesson_plan, stage, error)
     lesson_plan.update!(generation_stage: stage, generation_error: error)
   end
 
+  def update_resource_progress(lesson_plan, current_user, track_stage:, message:, detail: nil, turn: nil, total_tool_calls: nil)
+    return unless track_stage
+
+    lesson_plan.update_resource_proposal_progress!(
+      message: message,
+      detail: detail,
+      turn: turn,
+      total_tool_calls: total_tool_calls
+    )
+    broadcast_refresh(current_user)
+  end
+
   def broadcast_refresh(current_user)
     channel = "teacher_#{current_user.id}-dashboard"
     Turbo::StreamsChannel.broadcast_refresh_to(channel)
+  end
+
+  def broadcast_controls(current_user, lesson_plan)
+    channel = "teacher_#{current_user.id}-dashboard"
+    lesson = lesson_plan.lesson
+
+    Turbo::StreamsChannel.broadcast_replace_to(
+      channel,
+      target: "lesson-plan-generation-controls",
+      partial: "admin/lesson_plans/generate_lesson_plan_button",
+      locals: { lesson: lesson, lesson_plan: lesson_plan, current_user: current_user }
+    )
+    Turbo::StreamsChannel.broadcast_replace_to(
+      channel,
+      target: "resource-proposal-controls",
+      partial: "admin/lesson_plans/propose_resources_button",
+      locals: { lesson: lesson, lesson_plan: lesson_plan, current_user: current_user }
+    )
   end
 
   def log_turn_diagnostics(lesson_plan:, teacher:, model:, response_id:, turn:, function_calls:, outputs:, total_tool_calls:, warning_notified:, source:)

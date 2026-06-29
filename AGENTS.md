@@ -26,6 +26,7 @@ rails test:system
 # Database operations
 rails db:migrate (always ask permission)
 rails db:seed              # Seeds default prompts, tools, and app settings
+rails db:seed:refresh_defaults # Replaces default prompts/tools from seeds.rb, preserving teacher prompts
 
 # Linting
 rubocop

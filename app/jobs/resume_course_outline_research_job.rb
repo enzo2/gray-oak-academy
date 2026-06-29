@@ -1,5 +1,6 @@
 class ResumeCourseOutlineResearchJob < ApplicationJob
   include BackgroundAgentJob
+  include ResponsesFunctionCalls
 
   queue_as :agent
 
@@ -58,7 +59,7 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     turns = 0
     failure_phase = "apply_with_tools"
     loop do
-      function_calls = Array(response_hash["output"]).select { |item| item["type"].to_s == "function_call" }
+      function_calls = select_valid_function_calls(response_hash, log_label: self.class.name)
       break if function_calls.blank?
 
       turns += 1

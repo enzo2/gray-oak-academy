@@ -2063,6 +2063,7 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
 
     assert_nil captured_request[:background]
     assert_nil captured_request[:metadata]
+    assert_nil captured_request.dig(:request_options, :timeout)
     assert_equal false, retrieve_called
     assert_equal(
       [ OpenaiClientDefaults.timeout_seconds, OpenaiResponsesService::AGENT_RUN_SYNC_TIMEOUT_SECONDS ].max,
@@ -2544,6 +2545,61 @@ class OpenaiResponsesServiceTest < ActiveSupport::TestCase
     assert_equal 1, failed_calls.first[:tool_calls].size
     assert_equal "call_1", failed_calls.first[:tool_calls].first[:call_id]
     assert_equal "lookup", failed_calls.first[:tool_calls].first[:name]
+  end
+
+  test "failed later agent turn preserves the last submitted response id" do
+    create_count = 0
+    fake_client = build_responses_client do |_params|
+      create_count += 1
+      raise OpenAI::Errors::APIConnectionError.new(message: "Connection error.") if create_count == 2
+
+      {
+        "id" => "resp_first_turn",
+        "status" => "completed",
+        "model" => @model,
+        "output" => [
+          { "type" => "function_call", "call_id" => "call_1", "name" => "lookup", "arguments" => "{}" }
+        ]
+      }
+    end
+
+    failed_calls = []
+    fake_run_log = Object.new
+    fake_run_log.define_singleton_method(:record_submitted) { |**_kwargs| true }
+    fake_run_log.define_singleton_method(:record_completed) { |**_kwargs| nil }
+    fake_run_log.define_singleton_method(:record_failed) { |**kwargs| failed_calls << kwargs }
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      AgentRunLogService.stub(:new, ->(**_kwargs) { fake_run_log }) do
+        service = OpenaiResponsesService.new(
+          current_user: @user,
+          access_token: @access_token,
+          base_uri: supported_apis(:xai).api_base_uri,
+          model: @model,
+          log_completion: false,
+          agent_run: true
+        )
+
+        service.complete(
+          [ { role: "user", content: "Run long task" } ],
+          background: true,
+          metadata: { run_id: "run_failed_continuation", run_type: "propose_resources" }
+        )
+
+        assert_raises(OpenAiError) do
+          service.complete(
+            nil,
+            input: [ { "type" => "function_call_output", "call_id" => "call_1", "output" => "{}" } ],
+            background: true,
+            metadata: { run_id: "run_failed_continuation", run_type: "propose_resources", phase: "tool_turn" }
+          )
+        end
+      end
+    end
+
+    assert_equal 1, failed_calls.size
+    assert_equal "run_failed_continuation", failed_calls.first[:run_id]
+    assert_equal "resp_first_turn", failed_calls.first[:response_id]
   end
 
   test "background calls with a conversation do not log agent runs" do

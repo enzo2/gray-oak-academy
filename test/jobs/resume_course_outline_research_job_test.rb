@@ -421,7 +421,7 @@ class ResumeCourseOutlineResearchJobTest < ActiveSupport::TestCase
       {
         "id" => "resp_stateless_apply_1", "status" => "completed", "usage" => { "input_tokens" => 20 },
         "output" => [
-          { "type" => "reasoning", "content" => "plan update", "format" => "unknown" },
+          { "type" => "reasoning", "content" => [ { "type" => "reasoning_text", "text" => "plan update" } ], "format" => "unknown" },
           {
             "type" => "function_call", "id" => "fc_apply", "name" => "apply_course_research_update", "call_id" => "call_apply",
             "arguments" => { summary: "Updated stateless summary", outline: [ { topic: "Inquiry", description: "Lab" } ] }.to_json

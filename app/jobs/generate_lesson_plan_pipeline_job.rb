@@ -28,6 +28,10 @@ class GenerateLessonPlanPipelineJob < ApplicationJob
     if propose_resources
       phase = :resources
       lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
+      lesson_plan.update_resource_proposal_progress!(
+        message: "Lesson content generated; starting resource proposal...",
+        detail: "Handing the completed lesson plan to the background agent."
+      )
       broadcast_refresh(current_user)
 
       ProposeResourcesJob.perform_now(

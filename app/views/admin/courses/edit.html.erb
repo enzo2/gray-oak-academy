@@ -13,7 +13,7 @@
     <div class="mb-6 border border-stone-300 dark:border-stone-700 rounded-md p-4">
       <h3 class="text-lg font-semibold mb-2">Generate Outline</h3>
       <p class="text-sm mb-3">
-        This course does not have an outline yet. You can generate one now from this page.
+        This course does not have an outline yet. You can generate one now.
       </p>
       <%= form_with url: generate_outline_admin_course_path(@course, source: "edit"), method: :post,
         data: { controller: "button-loading" },

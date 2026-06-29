@@ -3,15 +3,14 @@
   <% show_propose_resources_button = lesson_plan.resource_proposal_available? || lesson_plan.generation_stage == "proposing_resources" %>
 
   <% if show_propose_resources_button && resource_proposal_enabled %>
-    <%= form_with(
-      url: propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
-      method: :post,
-      data: {
-        turbo_confirm: "This may take longer than 5 minutes. Proceed with proposing and linking resources?",
-        controller: "button-loading"
-      }
-    ) do %>
-      <button type="submit" class="btn-success gap-2" <%= "disabled" if lesson_plan.generation_in_progress? %>>
+    <div data-controller="modal"
+         data-modal-wrapper-class-value="relative z-[70]"
+         data-modal-panel-class-value="relative transform overflow-hidden rounded-lg bg-white dark:bg-stone-900 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-stone-200 dark:border-stone-700">
+      <button type="button"
+              id="propose-resources-button"
+              class="btn-success gap-2"
+              data-action="modal#open"
+              <%= "disabled" if lesson_plan.generation_in_progress? %>>
         <% if lesson_plan.generation_stage == "proposing_resources" %>
           <sl-spinner></sl-spinner>
         <% else %>
@@ -19,7 +18,75 @@
         <% end %>
         Propose Resources
       </button>
-    <% end %>
+
+      <div data-modal-target="content" class="hidden p-5 sm:p-6">
+        <div data-controller="lesson-plan-steering"
+             data-action="turbo:submit-end->lesson-plan-steering#submitEnd">
+          <div class="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-semibold text-stone-900 dark:text-stone-100">Propose Resources</h3>
+              <p class="mt-1 text-sm text-dim">
+                This may take more than 5 minutes. The agent will search for, validate, and link pending resources for teacher review.
+              </p>
+            </div>
+            <button type="button"
+                    class="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                    data-action="modal#close"
+                    data-lesson-plan-steering-target="closeButton">
+              <sl-icon name="x-lg" class="text-lg"></sl-icon>
+            </button>
+          </div>
+
+          <%= form_with(
+            url: propose_resources_admin_course_lesson_lesson_plan_path(lesson.course, lesson),
+            method: :post,
+            data: { controller: "button-loading" },
+            class: "space-y-5"
+          ) do %>
+            <div>
+              <label class="form-label">Preset</label>
+              <div class="mt-2 space-y-3">
+                <% [
+                  [ "default", "Default resource proposal", "Let the agent decide which web resources, PDFs, videos, images, text excerpts, or applets would best support this lesson." ],
+                  [ "other", "Specific request", "Provide a request or constraint for this resource proposal run." ]
+                ].each do |value, label, description| %>
+                  <label class="flex items-start gap-3 rounded-lg border border-stone-200 p-3 dark:border-stone-700">
+                    <%= radio_button_tag :preset, value, value == "default",
+                          class: "radio-primary mt-1",
+                          data: { action: "change->lesson-plan-steering#presetChanged" } %>
+                    <span class="flex-1">
+                      <span class="block text-sm font-medium text-stone-800 dark:text-stone-100"><%= label %></span>
+                      <span class="block text-sm text-dim"><%= description %></span>
+                    </span>
+                  </label>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="hidden" data-lesson-plan-steering-target="customGuidanceSection">
+              <%= label_tag :guidance, "Resource request", class: "form-label" %>
+              <%= text_area_tag :guidance, nil,
+                    rows: 5,
+                    class: "input-primary w-full",
+                    placeholder: "Example: Find a primary-source video and avoid worksheets. Or: Prioritize an interactive applet.",
+                    data: { lesson_plan_steering_target: "customGuidanceInput" } %>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button type="button"
+                      class="btn-secondary"
+                      data-action="modal#close"
+                      data-lesson-plan-steering-target="closeButton">
+                Cancel
+              </button>
+              <button type="submit" class="btn-success">
+                Start Resource Proposal
+              </button>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
   <% end %>
 
   <%= render "admin/lesson_plans/generation_status", lesson_plan: lesson_plan, scope: :resources %>

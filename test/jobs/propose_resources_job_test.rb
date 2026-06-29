@@ -1,6 +1,29 @@
 require "test_helper"
 
 class ProposeResourcesJobTest < ActiveSupport::TestCase
+  test "build prompt includes resource guidance request" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+
+    prompt = ProposeResourcesJob.new.send(
+      :build_prompt,
+      lesson_plan,
+      teacher,
+      resource_guidance: "Find a primary-source video and avoid worksheets."
+    )
+
+    assert_includes prompt, "Additional teacher resource request: Find a primary-source video and avoid worksheets."
+  end
+
+  test "build prompt marks missing resource guidance as none" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+
+    prompt = ProposeResourcesJob.new.send(:build_prompt, lesson_plan, teacher)
+
+    assert_includes prompt, "Additional teacher resource request: None."
+  end
+
   test "propose resources updates suggested_resources from responses output" do
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
@@ -353,6 +376,47 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal "resp_2", failure_calls.first[:response_hash]["id"]
   end
 
+  test "propose resources failure replaces generation controls on the open edit page" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    replace_calls = []
+    fake_error = OpenAiError.new("upstream timed out")
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { raise fake_error }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_replace_to, ->(*_args, **kwargs) {
+            replace_calls << kwargs
+          }) do
+            result = ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id)
+            assert_equal false, result
+          end
+        end
+      end
+    end
+
+    lesson_plan.reload
+    assert_equal "failed", lesson_plan.generation_stage
+    assert_includes lesson_plan.generation_error, "upstream timed out"
+
+    targets = replace_calls.map { |kwargs| kwargs[:target] }
+    assert_includes targets, "lesson-plan-generation-controls"
+    assert_includes targets, "resource-proposal-controls"
+
+    proposal_call = replace_calls.find { |kwargs| kwargs[:target] == "resource-proposal-controls" }
+    assert_equal teacher, proposal_call.dig(:locals, :current_user)
+    proposal_html = ApplicationController.render(
+      partial: proposal_call[:partial],
+      locals: proposal_call[:locals]
+    )
+    assert_includes proposal_html, "resource-proposal-controls"
+    refute_includes proposal_html, "<sl-spinner"
+  end
+
   test "stateless provider replays native response items and tool outputs" do
     lesson_plan = lesson_plans(:one)
     teacher = users(:admin)
@@ -414,6 +478,73 @@ class ProposeResourcesJobTest < ActiveSupport::TestCase
     assert_equal responses.first["output"], replay[2, 2]
     assert_equal "function_call_output", replay.last[:type]
     assert_nil complete_calls.second.dig(:kwargs, :previous_response_id)
+  end
+
+  test "stateless provider ignores malformed blank-name function calls" do
+    lesson_plan = lesson_plans(:one)
+    teacher = users(:admin)
+    AppSetting.settings.update!(background_agent_model: "qwen/qwen3.6-35b-a3b-20260415")
+    responses = [
+      {
+        "id" => "resp_stateless_1",
+        "status" => "completed",
+        "usage" => { "input_tokens" => 20 },
+        "output" => [
+          { "type" => "function_call", "name" => "exa_search", "call_id" => "call_valid", "arguments" => { query: "trigeminal nerve" }.to_json },
+          { "type" => "function_call", "name" => "", "call_id" => "chatcmpl-tool-empty", "arguments" => "{}" }
+        ]
+      },
+      {
+        "id" => "resp_stateless_2",
+        "status" => "completed",
+        "usage" => { "input_tokens" => 40 },
+        "output" => [ { "type" => "message", "content" => [ { "type" => "output_text", "text" => '{"suggested_resources":[]}' } ] } ]
+      }
+    ]
+    complete_calls = []
+    executed_calls = []
+    fake_client = Object.new
+    fake_client.define_singleton_method(:stateful_supported?) { false }
+    fake_client.define_singleton_method(:model) { "qwen/qwen3.6-35b-a3b-20260415" }
+    fake_client.define_singleton_method(:base_uri) { SupportedApi::OPENROUTER_BASE_URI }
+    fake_client.define_singleton_method(:last_input_items) { @last_input_items.deep_dup }
+    fake_client.define_singleton_method(:complete) do |messages = nil, **kwargs|
+      complete_calls << { messages: messages, kwargs: kwargs }
+      @last_input_items = if messages.present?
+        [ { "role" => "developer", "content" => "system" }, { "role" => "user", "content" => messages.first[:content] } ]
+      else
+        kwargs.fetch(:input).deep_dup
+      end
+      { "id" => responses.fetch(complete_calls.size - 1)["id"] }
+    end
+    fake_client.define_singleton_method(:wait_for_response) do |response_id, **_kwargs|
+      responses.find { |response| response["id"] == response_id }
+    end
+    fake_client.define_singleton_method(:output_text) { |response_hash| response_hash["id"] == "resp_stateless_2" ? '{"suggested_resources":[]}' : "" }
+
+    fake_executor = Object.new
+    fake_executor.define_singleton_method(:tool_definitions) { [] }
+    fake_executor.define_singleton_method(:execute) do |call|
+      executed_calls << call
+      { type: "function_call_output", call_id: call["call_id"], output: '{"results":[]}' }
+    end
+    fake_executor.define_singleton_method(:cleanup_tempfiles) { true }
+
+    OpenaiResponsesService.stub(:for_agent_run, ->(**_kwargs) { fake_client }) do
+      ProposeResourcesToolExecutor.stub(:new, ->(**_kwargs) { fake_executor }) do
+        Turbo::StreamsChannel.stub(:broadcast_refresh_to, true) do
+          Turbo::StreamsChannel.stub(:broadcast_replace_to, true) do
+            assert ProposeResourcesJob.perform_now(lesson_plan_id: lesson_plan.id, user_id: teacher.id, source: "lesson_plan_button")
+          end
+        end
+      end
+    end
+
+    assert_equal [ "call_valid" ], executed_calls.map { |call| call["call_id"] }
+    replay = complete_calls.second.dig(:kwargs, :input)
+    replayed_calls = replay.select { |item| item["type"] == "function_call" }
+    assert_equal [ "call_valid" ], replayed_calls.map { |call| call["call_id"] }
+    refute replayed_calls.any? { |call| call["name"].blank? }
   end
 
   test "codex usage limit re-runs on the shared provider and stays in progress" do

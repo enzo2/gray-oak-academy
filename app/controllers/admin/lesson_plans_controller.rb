@@ -123,13 +123,22 @@ module Admin
     end
 
     def propose_resources
+      resource_guidance = normalize_resource_proposal_guidance
+      if resource_guidance[:error]
+        flash.now[:warning] = resource_guidance[:error]
+        set_generation_submit_header(queued: false)
+        render :propose_resources
+        return
+      end
+
       @lesson_plan.save! if @lesson_plan.new_record?
       result = LessonPlanAsyncGenerationService.new(
         lesson_plan: @lesson_plan,
         current_user: current_user,
         source: "lesson_plan_button"
-      ).enqueue_propose_resources
+      ).enqueue_propose_resources(resource_guidance: resource_guidance[:guidance])
       flash.now[:warning] = result[:message] unless result[:ok]
+      set_generation_submit_header(queued: result[:ok])
 
       respond_to do |format|
         format.turbo_stream
@@ -240,6 +249,22 @@ module Admin
       end
 
       { guidance: guidance }
+    end
+
+    def normalize_resource_proposal_guidance
+      preset = params[:preset].to_s.presence || "default"
+      custom_guidance = params[:guidance].to_s.strip
+
+      case preset
+      when "default"
+        { guidance: nil }
+      when "other"
+        return { error: "Enter a resource request when using the Specific request preset." } if custom_guidance.blank?
+
+        { guidance: custom_guidance }
+      else
+        { error: "Invalid resource proposal preset." }
+      end
     end
 
     def set_generation_submit_header(queued:)

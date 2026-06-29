@@ -59,4 +59,27 @@ class LessonPlanTest < ActiveSupport::TestCase
     assert lesson_plan.generation_in_progress?
     assert lesson_plan.initial_generation_completed?
   end
+
+  test "resource proposal progress preserves other generation metadata" do
+    lesson_plan = lesson_plans(:one)
+    lesson_plan.update!(generation_metadata: { "sources" => [ { "url" => "https://example.com" } ] })
+
+    lesson_plan.update_resource_proposal_progress!(
+      message: "Running resource checks...",
+      detail: "Turn 1",
+      turn: 1,
+      total_tool_calls: 3
+    )
+
+    lesson_plan.reload
+    assert_equal "Running resource checks...", lesson_plan.resource_proposal_progress_message
+    assert_equal 1, lesson_plan.resource_proposal_progress["turn"]
+    assert_equal [ { "url" => "https://example.com" } ], lesson_plan.generation_sources
+
+    lesson_plan.clear_resource_proposal_progress!
+
+    lesson_plan.reload
+    assert_empty lesson_plan.resource_proposal_progress
+    assert_equal [ { "url" => "https://example.com" } ], lesson_plan.generation_sources
+  end
 end
