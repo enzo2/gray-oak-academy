@@ -38,7 +38,7 @@ class LessonPlanAsyncGenerationService
       return failure("Configure Background Agent Runs and Exa API before proposing resources.") unless resource_proposal_enabled?
       return failure("Generation is already in progress for this lesson plan.") if @lesson_plan.generation_in_progress?
       return failure(cooldown_message(action: :propose_resources)) if cooldown_active?(action: :propose_resources)
-      return failure("Generate the lesson plan once before proposing resources.") unless @lesson_plan.initial_generation_completed?
+      return failure("Add or generate lesson plan content before proposing resources.") unless @lesson_plan.resource_proposal_available?
 
       @lesson_plan.update!(generation_stage: "proposing_resources", generation_error: nil)
       ProposeResourcesJob.perform_later(lesson_plan_id: @lesson_plan.id, user_id: @current_user.id, source: @source)

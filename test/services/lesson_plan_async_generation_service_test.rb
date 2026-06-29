@@ -149,6 +149,50 @@ class LessonPlanAsyncGenerationServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "propose resources accepts manually authored plan content" do
+    with_memory_cache do
+      @lesson_plan.update!(generation_stage: "idle", content: [ { "Activity" => "Compare fraction strips." } ])
+      service = LessonPlanAsyncGenerationService.new(
+        lesson_plan: @lesson_plan,
+        current_user: @teacher,
+        source: "lesson_plan_button"
+      )
+
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          assert_enqueued_jobs 1, only: ProposeResourcesJob do
+            result = service.enqueue_propose_resources
+            assert_equal true, result[:ok]
+            assert_equal "proposing_resources", result[:stage]
+          end
+        end
+      end
+
+      assert_equal "proposing_resources", @lesson_plan.reload.generation_stage
+    end
+  end
+
+  test "propose resources rejects empty idle plan content" do
+    with_memory_cache do
+      @lesson_plan.update!(generation_stage: "idle", content: [])
+      service = LessonPlanAsyncGenerationService.new(
+        lesson_plan: @lesson_plan,
+        current_user: @teacher,
+        source: "lesson_plan_button"
+      )
+
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          assert_enqueued_jobs 0, only: ProposeResourcesJob do
+            result = service.enqueue_propose_resources
+            assert_equal false, result[:ok]
+            assert_includes result[:message], "Add or generate lesson plan content"
+          end
+        end
+      end
+    end
+  end
+
   private
 
   def with_memory_cache

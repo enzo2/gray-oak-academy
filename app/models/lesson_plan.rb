@@ -38,7 +38,9 @@ class LessonPlan < ApplicationRecord
   end
 
   def resource_proposal_available?
-    %w[completed failed].include?(generation_stage)
+    return false if generation_in_progress?
+
+    content.present? || %w[completed failed].include?(generation_stage)
   end
 
   # Web searches the model ran while drafting (query strings).

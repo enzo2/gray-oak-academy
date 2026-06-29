@@ -179,6 +179,36 @@ module Admin
       assert_select "a", text: "Back to Lessons", count: 0
     end
 
+    test "quick lesson plan editor renders propose resources for manually authored content" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      quick_lesson = teacher.taught_courses.create!(
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "Understand common denominators using shared units.",
+        grade_level: "5"
+      )
+      lesson = quick_lesson.lessons.create!(
+        title: "Quick Fractions",
+        goals: "Understand common denominators using shared units.",
+        approx_duration_min: 20
+      )
+      lesson.create_lesson_plan!(
+        status: "draft",
+        content: [ { "Activity" => "Compare fraction strips and name common units." } ],
+        generation_stage: "idle"
+      )
+
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get edit_admin_course_lesson_lesson_plan_path(quick_lesson, lesson)
+        end
+      end
+
+      assert_response :success
+      assert_select "#resource-proposal-controls button", text: /Propose Resources/
+    end
+
     test "destroying a quick lesson plan redirects to quick lessons" do
       teacher = users(:admin)
       sign_in(teacher)
