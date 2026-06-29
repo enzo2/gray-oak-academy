@@ -51,6 +51,11 @@
                 <% end %>
               <% end %>
 
+              <%= link_to edit_admin_quick_lesson_path(quick_lesson), class: "btn-secondary text-sm inline-flex items-center gap-2" do %>
+                <sl-icon name="pencil-square"></sl-icon>
+                <span>Edit Details</span>
+              <% end %>
+
               <%= button_to archive_admin_quick_lesson_path(quick_lesson), method: :patch, class: "btn-secondary text-sm inline-flex items-center gap-2" do %>
                 <sl-icon name="archive"></sl-icon>
                 <span>Archive</span>

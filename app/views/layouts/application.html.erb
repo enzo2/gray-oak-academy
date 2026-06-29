@@ -40,6 +40,8 @@
 
   <%# Height is left to the main content, eg. max-h-[calc(100dvh-2.5rem)] %>
   <body class="bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
+    <%= render "applets/iframe_shell_template" if user_signed_in? %>
+
     <%# Permanent so Turbo morphs/visits (e.g. a Turbo Stream refresh broadcast
         landing just after a toast appears) preserve the rack instead of tearing
         down the controller and dismissing live toasts. %>
@@ -118,8 +120,6 @@
 
     <%# Use content_for :body to add the main content %>
     <%= content_for?(:body) ? yield(:body) : yield %>
-
-    <%= render "applets/iframe_shell_template" if user_signed_in? %>
 
     <footer id="footer">
 

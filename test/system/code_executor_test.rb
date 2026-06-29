@@ -35,6 +35,131 @@ class CodeExecutorTest < ApplicationSystemTestCase
     end
   end
 
+  test "applet shell template is available before initial executable code blocks" do
+    Message.create!(
+      conversation: @conversation,
+      role: :assistant,
+      content: <<~HTML
+        ```javascript {executable="true" renderTarget="chalkboard" autoRun="true"}
+        document.getElementById("sandbox").innerHTML = "<h2>Initial Applet Output</h2>";
+        ```
+      HTML
+    )
+
+    visit conversation_path(@conversation)
+
+    assert_selector "#goa-applet-shell-template", visible: :all
+    assert_selector "[data-controller~=\"code-executor\"]", visible: :all
+    shell_precedes_executable = evaluate_script(<<~JS)
+      document.getElementById("goa-applet-shell-template")
+        .compareDocumentPosition(document.querySelector('[data-controller~="code-executor"]')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    JS
+
+    assert_operator shell_precedes_executable, :>, 0
+
+    iframe = find("#chalkboard iframe", visible: true)
+    within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell=\"v1\"]", visible: :all, wait: 1
+      assert_selector "h2", text: "Initial Applet Output", wait: 10
+    end
+  end
+
+  test "turbo navigation to conversation with initial auto-run applet has shell template" do
+    destination = Conversation.create!(
+      user: @admin,
+      title: "Turbo Applet Destination",
+      task_system_prompt: "Test prompt"
+    )
+    Message.create!(
+      conversation: destination,
+      role: :assistant,
+      content: <<~HTML
+        ```javascript {executable="true" renderTarget="chalkboard" autoRun="true"}
+        document.getElementById("sandbox").innerHTML = "<h2>Turbo Navigation Applet Output</h2>";
+        ```
+      HTML
+    )
+
+    visit conversation_path(@conversation)
+    click_link "Turbo Applet Destination"
+
+    assert_current_path conversation_path(destination)
+    iframe = find("#chalkboard iframe", visible: true)
+    within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell=\"v1\"]", visible: :all, wait: 1
+      assert_selector "h2", text: "Turbo Navigation Applet Output", wait: 10
+    end
+  end
+
+  test "auto-run waits when applet shell template is temporarily unavailable" do
+    visit conversation_path(@conversation)
+
+    execute_script <<~JS
+      const shell = document.getElementById("goa-applet-shell-template");
+      shell.remove();
+      setTimeout(() => document.body.prepend(shell), 1000);
+    JS
+
+    message = Message.create!(
+      conversation: @conversation,
+      role: :assistant,
+      content: <<~HTML
+        ```javascript {executable="true" renderTarget="chalkboard" autoRun="true"}
+        document.getElementById("sandbox").innerHTML = "<h2>Delayed Shell Applet Output</h2>";
+        ```
+      HTML
+    )
+    execute_script <<~JS
+      window.__goaCompletedAssistantMessageIds ||= new Set();
+      window.__goaCompletedAssistantMessageIds.add("#{message.id}");
+    JS
+
+    perform_enqueued_jobs do
+      message.broadcast_created
+    end
+
+    iframe = find("#chalkboard iframe", visible: true, wait: 10)
+    within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell=\"v1\"]", visible: :all, wait: 1
+      assert_selector "h2", text: "Delayed Shell Applet Output", wait: 10
+    end
+  end
+
+  test "error shell fallback does not mark auto-run applet executed" do
+    visit conversation_path(@conversation)
+
+    execute_script <<~JS
+      window.__removedAppletShell = document.getElementById("goa-applet-shell-template");
+      window.__removedAppletShell.remove();
+    JS
+
+    message = Message.create!(
+      conversation: @conversation,
+      role: :assistant,
+      content: <<~HTML
+        ```javascript {executable="true" renderTarget="chalkboard" autoRun="true"}
+        document.getElementById("sandbox").innerHTML = "<h2>Recovered Applet Output</h2>";
+        ```
+      HTML
+    )
+    execute_script <<~JS
+      window.__goaCompletedAssistantMessageIds ||= new Set();
+      window.__goaCompletedAssistantMessageIds.add("#{message.id}");
+    JS
+
+    perform_enqueued_jobs do
+      message.broadcast_created
+    end
+
+    iframe = find("#chalkboard iframe", visible: true, wait: 10)
+    within_frame(iframe) do
+      assert_selector "html[data-goa-applet-shell-error=\"missing-template\"]", visible: :all, wait: 5
+    end
+
+    assert_empty evaluate_script("Array.from(window.__goaAutoRunAppletKeys || [])")
+  end
+
   test "executable javascript code block runs on chalkboard" do
     visit conversation_path(@conversation)
 

@@ -6,7 +6,7 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
     @conversation = conversations(:teacher_generic_conversation)
   end
 
-  test "script-src allows applet imports and blob modules" do
+  test "csp allows applet imports blob modules and esm network fetches" do
     sign_in @admin
 
     get conversation_path(@conversation)
@@ -17,6 +17,9 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
     script_sources = extract_csp_sources(policy, "script-src")
     assert_includes script_sources, "https://esm.sh"
     assert_includes script_sources, "blob:"
+
+    connect_sources = extract_csp_sources(policy, "connect-src")
+    assert_includes connect_sources, "https://esm.sh"
   end
 
   test "csp nonce remains stable across turbo navigation requests" do

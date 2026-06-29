@@ -1,0 +1,19 @@
+<div class="w-full max-w-5xl">
+  <%= link_to admin_quick_lessons_path, class: "inline-flex items-center gap-1 text-sm underline" do %>
+    <sl-icon name="arrow-left"></sl-icon>
+    <span>Back to Quick Lessons</span>
+  <% end %>
+
+  <h2 class="mt-3 text-2xl font-bold leading-tight">
+    Edit Quick Lesson:
+    <b class="block md:inline"><%= @quick_lesson.title %></b>
+  </h2>
+
+  <div class="mt-5">
+    <%= render "form",
+          quick_lesson: @quick_lesson,
+          lesson: @lesson,
+          students: @assignable_students,
+          submit_label: "Save Quick Lesson" %>
+  </div>
+</div>

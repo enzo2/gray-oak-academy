@@ -12,7 +12,7 @@ Rails.application.configure do
     policy.object_src  :none
     policy.script_src  :self, "https://cdn.jsdelivr.net", "https://esm.sh", :blob
     policy.style_src   :self, "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", :unsafe_inline
-    policy.connect_src :self, "https://cdn.jsdelivr.net", :data, "ws:", "wss:"
+    policy.connect_src :self, "https://cdn.jsdelivr.net", "https://esm.sh", :data, "ws:", "wss:"
     policy.frame_src   :self, :https
     policy.media_src   :self, :blob, :data
 

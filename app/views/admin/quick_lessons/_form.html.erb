@@ -1,4 +1,8 @@
-<%= form_with scope: :quick_lesson, url: admin_quick_lessons_path, method: :post, id: "quick-lesson-form" do |f| %>
+<% form_url ||= quick_lesson.persisted? ? admin_quick_lesson_path(quick_lesson) : admin_quick_lessons_path %>
+<% form_method ||= quick_lesson.persisted? ? :patch : :post %>
+<% submit_label ||= quick_lesson.persisted? ? "Save Quick Lesson" : "Create and Review Plan" %>
+
+<%= form_with scope: :quick_lesson, url: form_url, method: form_method, id: "quick-lesson-form" do |f| %>
   <% errors = quick_lesson.errors.full_messages + lesson.errors.full_messages %>
   <% if errors.any? %>
     <div class="mb-4 text-danger-950 dark:text-danger-300">
@@ -39,7 +43,7 @@
     <p class="block text-sm mb-2"><i>Optional. Assigned students can start after the lesson plan is published.</i></p>
     <% if students.any? %>
       <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <% selected_ids = Array(params.dig(:quick_lesson, :student_ids)).map(&:to_s) %>
+        <% selected_ids = params.key?(:quick_lesson) ? Array(params.dig(:quick_lesson, :student_ids)).map(&:to_s) : quick_lesson.student_ids.map(&:to_s) %>
         <% students.each do |student| %>
           <label class="flex items-center gap-2 rounded-sm border border-stone-300 px-3 py-2 text-sm dark:border-stone-700">
             <%= check_box_tag "quick_lesson[student_ids][]", student.id, selected_ids.include?(student.id.to_s), class: "checkbox-primary" %>
@@ -53,7 +57,7 @@
   </div>
 
   <div class="flex flex-row flex-wrap gap-4">
-    <%= f.submit "Create and Review Plan", class: "btn-primary" %>
+    <%= f.submit submit_label, class: "btn-primary" %>
     <%= link_to "Cancel", admin_quick_lessons_path, class: "btn-secondary" %>
   </div>
 <% end %>

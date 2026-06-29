@@ -1,6 +1,6 @@
 module Admin
   class QuickLessonsController < Admin::BaseController
-    before_action :set_quick_lesson, only: [ :archive, :unarchive, :destroy ]
+    before_action :set_quick_lesson, only: [ :edit, :update, :archive, :unarchive, :destroy ]
 
     def index
       @quick_lessons = current_user.taught_courses
@@ -14,6 +14,11 @@ module Admin
     def new
       @quick_lesson = current_user.taught_courses.build(kind: "quick_lesson")
       @lesson = @quick_lesson.lessons.build
+      set_assignable_students
+    end
+
+    def edit
+      @lesson = @quick_lesson.lessons.first_or_initialize
       set_assignable_students
     end
 
@@ -35,6 +40,27 @@ module Admin
                   status: :see_other
     rescue ActiveRecord::RecordInvalid
       render :new, status: :unprocessable_content
+    end
+
+    def update
+      set_assignable_students
+      @lesson = @quick_lesson.lessons.first_or_initialize
+      assigned_students = @assignable_students.where(id: selected_student_ids)
+
+      Course.transaction do
+        @quick_lesson.update!(quick_lesson_course_params)
+        @lesson.update!(quick_lesson_lesson_params)
+        @quick_lesson.enrollments.where.not(student: assigned_students).destroy_all
+        assigned_students.find_each do |student|
+          @quick_lesson.enrollments.find_or_create_by!(student: student)
+        end
+      end
+
+      redirect_to admin_quick_lessons_path,
+                  notice: "Quick lesson updated.",
+                  status: :see_other
+    rescue ActiveRecord::RecordInvalid
+      render :edit, status: :unprocessable_content
     end
 
     def archive

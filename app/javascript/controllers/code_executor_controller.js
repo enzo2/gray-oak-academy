@@ -36,6 +36,7 @@ export default class extends Controller {
     this.pendingAutoRun = false;
     this.pendingAutoRunRawCode = null;
     this.pendingAutoRunRenderTarget = null;
+    this.pendingShellTemplateTimer = null;
     this.messageId = this.resolveMessageId();
     this.boundHandleCompletionFinished ||= this.handleCompletionFinished.bind(this);
     this.boundHandleThemeChange ||= this.handleThemeChange.bind(this);
@@ -73,6 +74,7 @@ export default class extends Controller {
     document.removeEventListener("llm-completion-finished", this.boundHandleCompletionFinished);
     window.removeEventListener("goa:theme-change", this.boundHandleThemeChange);
     this.clearPendingAutoRunTimer();
+    this.clearPendingShellTemplateTimer();
     if (this._inlineResultDetach) {
       this._inlineResultDetach();
       this._inlineResultDetach = null;
@@ -192,7 +194,7 @@ export default class extends Controller {
       return;
     }
 
-    this.executeCode(rawCode, renderTarget, { manual: false, autoRun: true });
+    this.executeCodeWhenShellReady(rawCode, renderTarget, { manual: false, autoRun: true });
   }
 
   shouldDeferAutoRun() {
@@ -223,7 +225,32 @@ export default class extends Controller {
     const renderTarget = this.pendingAutoRunRenderTarget;
     this.pendingAutoRunRawCode = null;
     this.pendingAutoRunRenderTarget = null;
-    this.executeCode(code, renderTarget, { manual: false, autoRun: true });
+    this.executeCodeWhenShellReady(code, renderTarget, { manual: false, autoRun: true });
+  }
+
+  executeCodeWhenShellReady(rawCode, renderTarget, options = {}, attempt = 0) {
+    if (this.hasAppletShellTemplate()) {
+      this.executeCode(rawCode, renderTarget, options);
+      return;
+    }
+
+    if (attempt >= 40) {
+      this.executeCode(rawCode, renderTarget, options);
+      return;
+    }
+
+    this.clearPendingShellTemplateTimer();
+    this.pendingShellTemplateTimer = setTimeout(() => {
+      this.pendingShellTemplateTimer = null;
+      this.executeCodeWhenShellReady(rawCode, renderTarget, options, attempt + 1);
+    }, 50);
+  }
+
+  clearPendingShellTemplateTimer() {
+    if (this.pendingShellTemplateTimer) {
+      clearTimeout(this.pendingShellTemplateTimer);
+      this.pendingShellTemplateTimer = null;
+    }
   }
 
   handleCompletionFinished(event) {
@@ -273,7 +300,7 @@ export default class extends Controller {
       return;
     }
 
-    const iframeContent = this.prepareIframeContent(rawCode);
+    const iframeContent = this.prepareIframeContentResult(rawCode);
     const appletTitle = this.buildGeneratedAppletTitle();
     this.dispatchChalkboardAppletRegistration({
       event_type: "register_applet",
@@ -283,7 +310,7 @@ export default class extends Controller {
       title: appletTitle,
       launch_url: null,
       embed_src: null,
-      embed_srcdoc: iframeContent,
+      embed_srcdoc: iframeContent.html,
       shareable: false,
       share_url: null,
       focus: true,
@@ -292,7 +319,7 @@ export default class extends Controller {
       message_id: this.messageId
     });
 
-    if (autoRun) {
+    if (autoRun && iframeContent.shellFound) {
       this.markAutoRunExecuted(appletKey);
     }
   }
@@ -399,25 +426,38 @@ export default class extends Controller {
 
   // Builds iframe content from the shared ERB-rendered shell template.
   prepareIframeContent(code) {
+    return this.prepareIframeContentResult(code).html;
+  }
+
+  prepareIframeContentResult(code) {
     // Escape any </script> tags in the code to prevent terminating the script early
     const codeLiteral = JSON.stringify(code).replace(/<\/script>/g, '<\\/script>');
     const meta = document.querySelector("meta[name='csp-nonce']");
     const nonce = meta ? meta.content : "";
     const theme = currentAppletTheme();
     const htmlClass = theme === "dark" ? "dark" : "";
-    const template = document.getElementById("goa-applet-shell-template");
-    const shellTemplate = template?.content?.textContent;
+    const shellTemplate = this.appletShellTemplate();
 
     if (!shellTemplate) {
       console.error("Applet shell template not found.");
-      return this.prepareMissingShellContent(theme);
+      return { html: this.prepareMissingShellContent(theme), shellFound: false };
     }
 
-    return shellTemplate
+    const html = shellTemplate
       .replaceAll("\"__GOA_APPLET_THEME_JSON__\"", JSON.stringify(theme))
       .replaceAll("__GOA_APPLET_HTML_CLASS__", htmlClass)
       .replaceAll("__GOA_APPLET_CSP_NONCE__", this.escapeHtmlAttribute(nonce))
       .replaceAll("\"__GOA_APPLET_CODE_JSON__\"", codeLiteral);
+    return { html, shellFound: true };
+  }
+
+  hasAppletShellTemplate() {
+    return this.appletShellTemplate().length > 0;
+  }
+
+  appletShellTemplate() {
+    const template = document.getElementById("goa-applet-shell-template");
+    return template?.content?.textContent || "";
   }
 
   escapeHtmlAttribute(value) {

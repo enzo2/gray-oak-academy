@@ -47,6 +47,7 @@ module Admin
       assert_includes response.body, "Archived Quick Lessons"
       assert_includes response.body, "Archived Fractions"
       assert_includes response.body, "Delete"
+      assert_not_includes response.body, "Edit Details"
       assert_not_includes response.body, "A hidden summary that should not be shown on archived rows."
       assert_not_includes response.body, "Hidden goals that should not be shown on archived rows."
     end
@@ -106,6 +107,66 @@ module Admin
 
       assert_response :unprocessable_content
       assert_includes response.body, "prevented this quick lesson from being saved"
+    end
+
+    test "edit renders existing quick lesson details including duration" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      quick_lesson = teacher.taught_courses.create!(
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "A quick one-off lesson about common denominators.",
+        grade_level: "5"
+      )
+      lesson = quick_lesson.lessons.create!(
+        title: "Quick Fractions",
+        goals: "Understand common denominators using shared units.",
+        approx_duration_min: 20
+      )
+      quick_lesson.enrollments.create!(student: users(:student))
+
+      get edit_admin_quick_lesson_path(quick_lesson)
+
+      assert_response :success
+      assert_includes response.body, "Edit Quick Lesson"
+      assert_includes response.body, "Approximate Duration"
+      assert_includes response.body, "value=\"#{lesson.approx_duration_min}\""
+      assert_includes response.body, "checked=\"checked\""
+    end
+
+    test "update changes quick lesson metadata duration and assignments" do
+      teacher = users(:admin)
+      sign_in(teacher)
+      quick_lesson = teacher.taught_courses.create!(
+        kind: "quick_lesson",
+        title: "Quick Fractions",
+        summary: "A quick one-off lesson about common denominators.",
+        grade_level: "5"
+      )
+      lesson = quick_lesson.lessons.create!(
+        title: "Quick Fractions",
+        goals: "Understand common denominators using shared units.",
+        approx_duration_min: 20
+      )
+      quick_lesson.enrollments.create!(student: users(:student))
+
+      patch admin_quick_lesson_path(quick_lesson), params: {
+        quick_lesson: {
+          title: "Decimal Dash",
+          grade_level: "6",
+          goals: "Practice converting decimals and fractions with number-line reasoning.",
+          approx_duration_min: 35,
+          student_ids: []
+        }
+      }
+
+      assert_redirected_to admin_quick_lessons_path
+      assert_equal "Decimal Dash", quick_lesson.reload.title
+      assert_equal "6", quick_lesson.grade_level
+      assert_equal "Practice converting decimals and fractions with number-line reasoning.", quick_lesson.summary
+      assert_equal "Decimal Dash", lesson.reload.title
+      assert_equal 35, lesson.approx_duration_min
+      assert_empty quick_lesson.students
     end
 
     test "destroy removes archived quick lesson assignments before deleting" do
