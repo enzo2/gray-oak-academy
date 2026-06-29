@@ -22,5 +22,12 @@ class CourseOutlineResearchBroadcastsTest < ActiveSupport::TestCase
       locals: course_row_call.dig(:kwargs, :locals)
     )
     assert_includes html, course.title
+
+    progress_call = replace_calls.find do |call|
+      call.dig(:kwargs, :partial) == "admin/courses/outline_research_progress"
+    end
+
+    assert_equal "outline_research_progress_course_#{course.id}", progress_call.dig(:kwargs, :target)
+    assert_equal course, progress_call.dig(:kwargs, :locals, :course)
   end
 end

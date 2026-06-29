@@ -31,7 +31,6 @@ class AppSetting < ApplicationRecord
                  :background_agent_codex_model,
                  :background_agent_max_tool_turns,
                  :exa_api_key,
-                 :exa_research_model,
                  :course_outline_research_stub_enabled
 
   # Custom accessor to handle boolean casting and default value
@@ -51,10 +50,6 @@ class AppSetting < ApplicationRecord
     val = super
     return nil unless val.present?
     val.to_d
-  end
-
-  def exa_research_model
-    super.presence || ExaApiService::DEFAULT_RESEARCH_MODEL
   end
 
   def course_outline_research_stub_enabled

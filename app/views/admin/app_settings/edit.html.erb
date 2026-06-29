@@ -323,21 +323,14 @@ end %>
   </div>
 
   <h2 class="text-xl font-semibold mt-4 mb-2">
-    Exa Research
+    Exa Search
     <% if AppSetting.exa_enabled? %>
       <sl-icon name="check-circle-fill" class="ml-2 inline-block align-middle text-lg text-success-500"></sl-icon>
     <% end %>
   </h2>
   <p class="text-dim text-sm mb-2">
-    Exa search/contents and research APIs for higher-quality web grounding.
+    Exa search and contents APIs for higher-quality web grounding, including deep-reasoning search for course outline research.
   </p>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <%= f.label :exa_research_model, "Exa research model", class: "form-label" %>
-      <%= f.text_field :exa_research_model, class: "input-primary", placeholder: "exa-research" %>
-      <p class="text-xs text-dim mt-1">Use <code>exa-research</code> or <code>exa-research-pro</code>.</p>
-    </div>
-  </div>
 
   <div>
     <%= f.label :exa_api_key, "Exa API key", class: "form-label" %>
@@ -349,7 +342,7 @@ end %>
       <% elsif ENV["EXA_API_KEY"].present? %>
         <span class="text-success-600 dark:text-success-400">Using EXA_API_KEY from environment.</span>
       <% else %>
-        <span class="text-danger-600 dark:text-danger-400">Add an Exa key to enable Exa search/contents/research services.</span>
+        <span class="text-danger-600 dark:text-danger-400">Add an Exa key to enable Exa search and contents services.</span>
       <% end %>
     </p>
   </div>

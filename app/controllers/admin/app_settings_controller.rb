@@ -116,8 +116,7 @@ module Admin
         :background_agent_prefer_user_codex,
         :background_agent_codex_model,
         :background_agent_max_tool_turns,
-        :exa_api_key,
-        :exa_research_model
+        :exa_api_key
       ]
       permitted_attributes << :course_outline_research_stub_enabled if Rails.env.development?
 

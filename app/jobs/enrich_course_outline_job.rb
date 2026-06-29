@@ -57,6 +57,13 @@ class EnrichCourseOutlineJob < ApplicationJob
     failure_phase = "initialize"
 
     course.update!(outline_research_stage: "researching_outline", outline_research_error: nil)
+    update_outline_research_progress!(
+      course,
+      message: "Preparing outline research...",
+      detail: "Building the research brief from this course outline.",
+      step: 1,
+      total_steps: 4
+    )
     broadcast_editor_state(course, current_user)
     if CourseOutlineResearchStubService.enabled?
       run_stub_pipeline(
@@ -96,6 +103,13 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_stage: "generating_guidance_questions",
       outline_research_error: nil
     )
+    update_outline_research_progress!(
+      course,
+      message: "Research complete; writing guidance...",
+      detail: "#{Array(research_payload['source_anchors']).size} source anchors found. Generating the teacher report and questions.",
+      step: 3,
+      total_steps: 4
+    )
     broadcast_editor_state(course, current_user)
 
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
@@ -116,6 +130,13 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_error: nil,
       outline_research_run_id: run_id,
       outline_research_response_id: response_id
+    )
+    update_outline_research_progress!(
+      course,
+      message: "Research guidance is ready.",
+      detail: "Review the report, answer the teacher questions, and resume the apply phase when ready.",
+      step: 4,
+      total_steps: 4
     )
     emit_analytics_event(
       Events::CourseOutlineResearchGuidanceReady,
@@ -165,6 +186,17 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_stage: "failed",
       outline_research_error: "Failed to run outline research: #{error.message}"
     )
+    if course.present?
+      begin
+        update_outline_research_progress!(
+          course,
+          message: "Outline research failed.",
+          detail: error.message.to_s.truncate(180)
+        )
+      rescue StandardError => progress_error
+        Rails.logger.error("EnrichCourseOutlineJob failed to persist failure progress course=#{course.id}: #{progress_error.message}")
+      end
+    end
     emit_analytics_event(
       Events::CourseOutlineResearchPipelineFailed,
       course: course,
@@ -213,6 +245,13 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_stage: "generating_guidance_questions",
       outline_research_error: nil
     )
+    update_outline_research_progress!(
+      course,
+      message: "Research complete; writing guidance...",
+      detail: "#{Array(research_payload['source_anchors']).size} source anchors found. Generating the teacher report and questions.",
+      step: 3,
+      total_steps: 4
+    )
     broadcast_editor_state(course, current_user)
 
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
@@ -230,6 +269,13 @@ class EnrichCourseOutlineJob < ApplicationJob
       outline_research_error: nil,
       outline_research_run_id: run_id,
       outline_research_response_id: response_id
+    )
+    update_outline_research_progress!(
+      course,
+      message: "Research guidance is ready.",
+      detail: "Review the report, answer the teacher questions, and resume the apply phase when ready.",
+      step: 4,
+      total_steps: 4
     )
     emit_analytics_event(
       Events::CourseOutlineResearchGuidanceReady,
@@ -254,66 +300,47 @@ class EnrichCourseOutlineJob < ApplicationJob
       .gsub("{outline}", course.outline.to_json)
 
     exa = ExaApiService.new(current_user: current_user)
-    created = exa.create_research(instructions: prompt, output_schema: EXA_OUTPUT_SCHEMA)
-    research_id = created["id"].to_s.presence || created["researchId"].to_s.presence
     started_at = Time.current
-    poll_count = 0
-    last_broadcast_at = Time.at(0)
-
-    Rails.logger.info("EnrichCourseOutlineJob Exa research submitted course=#{course.id} research_id=#{research_id.presence || 'unknown'}")
+    Rails.logger.info("EnrichCourseOutlineJob Exa deep research started course=#{course.id}")
     persist_exa_research_progress!(
       course: course,
-      research_id: research_id,
-      poll_count: poll_count,
-      response: created
+      research_id: nil,
+      poll_count: 0,
+      response: { "status" => "running" }
+    )
+    update_outline_research_progress!(
+      course,
+      message: "Searching and synthesizing sources...",
+      detail: "Exa deep-reasoning search is gathering evidence for the outline.",
+      step: 2,
+      total_steps: 4
     )
     broadcast_editor_state(course, current_user)
 
-    response =
-      if research_id.present?
-        exa.wait_for_research(research_id: research_id, timeout_seconds: 900, poll_interval_seconds: 3) do |poll_response|
-          poll_count += 1
-          previous_status = course.outline_research_hash.dig("exa_research", "status").to_s
-          persist_exa_research_progress!(
-            course: course,
-            research_id: research_id,
-            poll_count: poll_count,
-            response: poll_response
-          )
-
-          status = poll_response["status"].to_s
-          status_changed = status.present? && status != previous_status
-          should_broadcast = status_changed || (Time.current - last_broadcast_at) >= 9
-          if should_broadcast
-            broadcast_editor_state(course, current_user)
-            last_broadcast_at = Time.current
-          end
-        end
-      else
-        created
-      end
-
+    response = exa.deep_research(query: prompt, output_schema: EXA_OUTPUT_SCHEMA)
+    research_id = response["id"].to_s.presence || response["requestId"].to_s.presence || response.dig("output", "id").to_s.presence
     status = response["status"].to_s.downcase
-    Rails.logger.info("EnrichCourseOutlineJob Exa research finished course=#{course.id} research_id=#{research_id.presence || response['id']} status=#{status.presence || 'unknown'} polls=#{poll_count}")
+    Rails.logger.info("EnrichCourseOutlineJob Exa deep research finished course=#{course.id} research_id=#{research_id.presence || 'unknown'} status=#{status.presence || 'completed'}")
     if status.present? && status != "completed"
       raise OpenAiError, "Exa outline research finished with status '#{status}'."
     end
 
     normalized = normalize_outline_research(extract_research_output(response))
     normalized.merge(
-      "research_id" => research_id || response["id"],
+      "research_id" => research_id,
       "generated_at" => Time.current.iso8601,
       "exa_research" => exa_research_meta(
-        research_id: research_id || response["id"],
+        research_id: research_id,
         started_at: started_at,
-        poll_count: poll_count,
-        response: response
+        poll_count: 0,
+        response: response.merge("status" => status.presence || "completed")
       )
     )
   end
 
   def extract_research_output(response)
-    payload = find_research_payload(response["output"])
+    payload = find_research_payload(response.dig("output", "content"))
+    payload ||= find_research_payload(response["output"])
     payload ||= find_research_payload(response)
     payload || {}
   end
@@ -507,15 +534,27 @@ class EnrichCourseOutlineJob < ApplicationJob
     course.update_columns(outline_research: existing, updated_at: Time.current)
   end
 
+  def update_outline_research_progress!(course, message:, detail: nil, step: nil, total_steps: nil)
+    course.update_outline_research_progress!(
+      message: message,
+      detail: detail,
+      step: step,
+      total_steps: total_steps
+    )
+  end
+
   def exa_research_meta(research_id:, started_at:, poll_count:, response:)
     status = response["status"].to_s
     {
       "research_id" => research_id.to_s,
       "status" => status,
+      "api" => "search",
+      "type" => ExaApiService::DEEP_RESEARCH_SEARCH_TYPE,
       "poll_count" => poll_count.to_i,
       "started_at" => (started_at.is_a?(String) ? started_at : started_at&.iso8601) || Time.current.iso8601,
       "last_checked_at" => Time.current.iso8601,
       "provider_updated_at" => response["updatedAt"].to_s.presence || response["updated_at"].to_s.presence,
+      "grounding" => response.dig("output", "grounding"),
       "message" => response["message"].to_s.presence || response.dig("error", "message").to_s.presence
     }.compact
   end

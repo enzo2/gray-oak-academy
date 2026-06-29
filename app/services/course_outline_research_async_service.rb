@@ -18,7 +18,14 @@ class CourseOutlineResearchAsyncService
       @course.update!(
         outline_research_stage: "researching_outline",
         outline_research_error: nil,
-        outline_research: {},
+        outline_research: {
+          Course::OUTLINE_RESEARCH_PROGRESS_KEY => outline_research_progress_payload(
+            message: "Queued outline research...",
+            detail: "The background agent will begin the research pass shortly.",
+            step: 1,
+            total_steps: 4
+          )
+        },
         outline_guidance_report_md: nil,
         outline_guidance_questions: [],
         outline_guidance_answers: {},
@@ -58,7 +65,15 @@ class CourseOutlineResearchAsyncService
 
       @course.update!(
         outline_research_stage: "applying_guidance_updates",
-        outline_research_error: nil
+        outline_research_error: nil,
+        outline_research: @course.outline_research_hash.merge(
+          Course::OUTLINE_RESEARCH_PROGRESS_KEY => outline_research_progress_payload(
+            message: "Queued course updates...",
+            detail: "The background agent will resume with your answers and apply changes shortly.",
+            step: 1,
+            total_steps: 3
+          )
+        )
       )
 
       ResumeCourseOutlineResearchJob.perform_later(
@@ -101,6 +116,16 @@ class CourseOutlineResearchAsyncService
 
   def failure(message)
     { ok: false, stage: @course.outline_research_stage, message: message }
+  end
+
+  def outline_research_progress_payload(message:, detail: nil, step: nil, total_steps: nil)
+    {
+      "message" => message.to_s,
+      "detail" => detail.to_s.presence,
+      "step" => step,
+      "total_steps" => total_steps,
+      "updated_at" => Time.current.iso8601
+    }.compact
   end
 
   def emit_analytics_event(event_class, stage:, run_id: "", question_count: 0, source_anchor_count: 0)

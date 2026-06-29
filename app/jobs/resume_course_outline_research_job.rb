@@ -22,6 +22,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       outline_research_error: nil,
       outline_research: clear_apply_completion_fields(course.outline_research_hash)
     )
+    update_outline_research_progress!(
+      course,
+      message: "Preparing to apply research guidance...",
+      detail: "Loading your answers and setting up course-editing tools.",
+      step: 1,
+      total_steps: 3
+    )
     broadcast_editor_state(course, current_user)
 
     run_id = course.outline_research_run_id.presence || SecureRandom.uuid
@@ -55,6 +62,14 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       stateless_loop: stateless_loop,
       teacher_id: current_user.id
     )
+    update_outline_research_progress!(
+      course,
+      message: "Agent is reviewing the research guidance...",
+      detail: "The background agent is deciding which course updates to apply.",
+      step: 2,
+      total_steps: 3
+    )
+    broadcast_editor_state(course, current_user)
 
     turns = 0
     failure_phase = "apply_with_tools"
@@ -68,6 +83,14 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       end
 
       outputs = function_calls.map { |function_call| executor.execute(function_call) }
+      update_outline_research_progress!(
+        course,
+        message: "Applying course updates...",
+        detail: "Completed tool turn #{turns} of up to #{max_tool_turns}.",
+        step: 2,
+        total_steps: 3
+      )
+      broadcast_editor_state(course, current_user)
       tool_metadata = run_metadata(
         run_id: run_id,
         source: source,
@@ -102,6 +125,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       ),
       outline_research_run_id: run_id,
       outline_research_response_id: response_hash["id"].to_s
+    )
+    update_outline_research_progress!(
+      course,
+      message: "Course updates complete.",
+      detail: "Review the applied summary below.",
+      step: 3,
+      total_steps: 3
     )
     Rails.logger.info(
       "ResumeCourseOutlineResearchJob completed course=#{course.id} run_id=#{run_id} turns=#{turns} " \
@@ -187,6 +217,17 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       outline_research_stage: "failed",
       outline_research_error: "Failed to apply outline research guidance: #{error.message}"
     )
+    if course.present?
+      begin
+        update_outline_research_progress!(
+          course,
+          message: "Applying research guidance failed.",
+          detail: error.message.to_s.truncate(180)
+        )
+      rescue StandardError => progress_error
+        Rails.logger.error("ResumeCourseOutlineResearchJob failed to persist failure progress course=#{course.id}: #{progress_error.message}")
+      end
+    end
     emit_analytics_event(
       Events::CourseOutlineResearchPipelineFailed,
       course: course,
@@ -250,6 +291,13 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
       ),
       outline_research_run_id: run_id,
       outline_research_response_id: response_id
+    )
+    update_outline_research_progress!(
+      course,
+      message: "Course updates complete.",
+      detail: "Review the applied summary below.",
+      step: 3,
+      total_steps: 3
     )
     emit_analytics_event(
       Events::CourseOutlineResearchApplyCompleted,
@@ -412,6 +460,15 @@ class ResumeCourseOutlineResearchJob < ApplicationJob
     if course.unanswered_research_question_ids.any?
       raise OpenAiError, "All research questions must be answered before resuming."
     end
+  end
+
+  def update_outline_research_progress!(course, message:, detail: nil, step: nil, total_steps: nil)
+    course.update_outline_research_progress!(
+      message: message,
+      detail: detail,
+      step: step,
+      total_steps: total_steps
+    )
   end
 
   def broadcast_editor_state(course, current_user)

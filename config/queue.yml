@@ -3,12 +3,18 @@ default: &default
     - polling_interval: 0.1
       batch_size: 50
   workers:
+    # These jobs are I/O-bound (waiting on Exa / the Responses API / network),
+    # not CPU-bound, so concurrency comes from threads (cheap, shared memory)
+    # rather than processes. The supervisor forks one process per worker pool
+    # (fork mode), each with its own DB pool; each running job checks out one
+    # primary-DB connection, so the pool in config/database.yml must cover this
+    # `threads` count plus a little headroom.
     - queues: [ default, mailers ]
-      threads: 3
+      threads: <%= ENV.fetch("JOB_THREADS", 5) %>
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>
       polling_interval: 0.05
     - queues: agent
-      threads: 1
+      threads: <%= ENV.fetch("AGENT_JOB_THREADS", 5) %>
       processes: <%= ENV.fetch("AGENT_JOB_CONCURRENCY", 1) %>
       polling_interval: 0.05
 

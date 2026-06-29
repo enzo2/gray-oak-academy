@@ -1273,8 +1273,7 @@ AppSetting.first_or_create!(
   background_agent_model: "z-ai/glm-5.2",
   background_agent_supported_api_id: openrouter.id,
   background_agent_prefer_user_codex: "0",
-  background_agent_max_tool_turns: "30",
-  exa_research_model: "exa-research"
+  background_agent_max_tool_turns: "30"
 )
 
 # ---- Seed OpenRouter image-capable LLM ----

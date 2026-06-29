@@ -110,6 +110,27 @@ class CourseTest < ActiveSupport::TestCase
     assert_equal [ "q2", "q3", "q4" ], @course.unanswered_research_question_ids
   end
 
+  test "outline research progress is stored inside outline research payload" do
+    @course.update!(
+      outline_research: {
+        "source_anchors" => [ { "id" => "anchor_1" } ]
+      }
+    )
+
+    @course.update_outline_research_progress!(
+      message: "Searching and synthesizing sources...",
+      detail: "Exa deep-reasoning search is gathering evidence.",
+      step: 2,
+      total_steps: 4
+    )
+
+    @course.reload
+    assert_equal "anchor_1", @course.outline_research.dig("source_anchors", 0, "id")
+    assert_equal "Searching and synthesizing sources...", @course.outline_research_progress_message
+    assert_equal 2, @course.outline_research_progress["step"]
+    assert_equal 4, @course.outline_research_progress["total_steps"]
+  end
+
   test "outline research report predicates reflect availability of review page" do
     @course.update!(
       outline_research_stage: "completed",

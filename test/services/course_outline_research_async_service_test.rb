@@ -50,7 +50,10 @@ class CourseOutlineResearchAsyncServiceTest < ActiveSupport::TestCase
 
     @course.reload
     assert_equal "researching_outline", @course.outline_research_stage
-    assert_equal({}, @course.outline_research)
+    assert_equal [ Course::OUTLINE_RESEARCH_PROGRESS_KEY ], @course.outline_research.keys
+    assert_equal "Queued outline research...", @course.outline_research_progress["message"]
+    assert_equal 1, @course.outline_research_progress["step"]
+    assert_equal 4, @course.outline_research_progress["total_steps"]
     assert_equal [], @course.outline_guidance_questions
     assert_equal({}, @course.outline_guidance_answers)
     assert_nil @course.outline_guidance_report_md

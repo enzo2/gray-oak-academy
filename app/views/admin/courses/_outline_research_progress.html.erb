@@ -1,0 +1,35 @@
+<% outline_research = course.outline_research_hash %>
+<% exa_status = outline_research.dig("exa_research", "status").to_s.downcase %>
+<% exa_running = course.outline_research_stage == "researching_outline" && %w[queued pending in_progress running processing].include?(exa_status) %>
+<% progress = course.outline_research_progress %>
+<% progress_message = progress["message"].presence %>
+<% progress_detail = progress["detail"].presence %>
+<% progress_step = progress["step"].to_i if progress["step"].present? %>
+<% progress_total_steps = progress["total_steps"].to_i if progress["total_steps"].present? %>
+
+<p class="text-sm mb-2">
+  <b>Status:</b> <%= course.outline_research_stage.humanize %><%= raw(" &mdash; running...") if exa_running %>
+</p>
+
+<% if course.outline_research_in_progress? || progress_message.present? %>
+  <div class="mb-3 rounded-md border border-moss-200 bg-moss-50/60 px-3 py-2 text-sm text-moss-800 dark:border-moss-800 dark:bg-moss-950/30 dark:text-moss-200" aria-live="polite">
+    <div class="flex items-start gap-2">
+      <% if course.outline_research_in_progress? %>
+        <span class="mt-1 inline-block h-2 w-2 shrink-0 animate-pulse rounded-full bg-moss-600 dark:bg-moss-300"></span>
+      <% else %>
+        <sl-icon name="check-circle" class="mt-0.5 shrink-0 text-base"></sl-icon>
+      <% end %>
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p class="font-medium"><%= progress_message || course.outline_research_stage.humanize %></p>
+          <% if progress_step.present? && progress_total_steps.present? && progress_total_steps.positive? %>
+            <p class="text-xs text-moss-700 dark:text-moss-300">Step <%= progress_step %> of <%= progress_total_steps %></p>
+          <% end %>
+        </div>
+        <% if progress_detail.present? %>
+          <p class="mt-0.5 text-xs text-moss-700 dark:text-moss-300"><%= progress_detail %></p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

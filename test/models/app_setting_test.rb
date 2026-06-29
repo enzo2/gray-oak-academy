@@ -376,11 +376,10 @@ class AppSettingTest < ActiveSupport::TestCase
     assert AppSetting.background_agent_enabled_for?(teacher)
   end
 
-  test "exa defaults are applied and key controls enabled state" do
-    @app.update!(exa_research_model: nil, exa_api_key: nil)
+  test "exa key controls enabled state" do
+    @app.update!(exa_api_key: nil)
     @app.reload
 
-    assert_equal "exa-research", @app.exa_research_model
     assert_not @app.exa_enabled?
 
     @app.update!(exa_api_key: "exa-test-key")
@@ -429,7 +428,7 @@ class AppSettingTest < ActiveSupport::TestCase
     end
 
     AppSetting.stub(:fetch_openrouter_embedding_models, -> { flunk("expected embedding model validation to be skipped") }) do
-      assert @app.update(exa_research_model: "exa-research-pro")
+      assert @app.update(exa_api_key: "exa-test-key")
     end
   end
 

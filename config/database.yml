@@ -17,7 +17,13 @@ default: &default
   encoding: unicode
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Solid Queue runs in fork mode: the supervisor forks a separate process per
+  # worker, each with its own pool. This single value is read per-process, so it
+  # must cover the largest single consumer's threads -- Puma (RAILS_MAX_THREADS)
+  # or a worker pool (see config/queue.yml) -- plus a little headroom. Keep it
+  # modest: every forked process can grow to this many server connections.
+  # Override with DB_POOL_SIZE if you raise thread counts further.
+  max_connections: <%= ENV.fetch("DB_POOL_SIZE") { ENV.fetch("RAILS_MAX_THREADS", 3).to_i + 5 } %>
   <% if ENV["DB_HOST"] %>
   host: <%= ENV["DB_HOST"] %>
   username: postgres

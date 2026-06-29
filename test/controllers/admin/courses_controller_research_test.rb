@@ -205,6 +205,37 @@ module Admin
       assert_select "form[action='#{start_outline_research_admin_course_path(course)}'] button[disabled]", text: /Research Outline/
     end
 
+    test "edit shows live outline research progress while run is in progress" do
+      teacher = users(:admin)
+      course = courses(:one)
+      sign_in(teacher)
+      course.update!(
+        outline: [ { "Topic" => "Details" } ],
+        outline_research_stage: "researching_outline",
+        outline_research: {
+          Course::OUTLINE_RESEARCH_PROGRESS_KEY => {
+            "message" => "Searching and synthesizing sources...",
+            "detail" => "Exa deep-reasoning search is gathering evidence.",
+            "step" => 2,
+            "total_steps" => 4
+          }
+        }
+      )
+
+      AppSetting.stub(:background_agent_enabled?, true) do
+        AppSetting.stub(:exa_enabled?, true) do
+          get edit_admin_course_path(course)
+        end
+      end
+
+      assert_response :success
+      assert_select "div#outline_research_progress_course_#{course.id}" do
+        assert_select "p", text: /Searching and synthesizing sources/
+        assert_select "p", text: /Step 2 of 4/
+        assert_select "sl-progress-bar", count: 0
+      end
+    end
+
     test "start_outline_research redirects to edit and calls async service" do
       teacher = users(:admin)
       course = courses(:one)

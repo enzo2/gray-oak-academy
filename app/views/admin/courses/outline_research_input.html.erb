@@ -19,6 +19,7 @@
 <% outline_complete_report_classes = "prose mt-3 max-w-none rounded border border-stone-300 bg-white/90 px-[0.85rem] py-3 text-sm dark:border-stone-700 dark:bg-stone-900/90 dark:prose-invert" %>
 <% outline_findings_classes = "rounded border border-stone-300 bg-stone-50/90 px-[0.95rem] py-[0.85rem] dark:border-stone-700 dark:bg-stone-900/90" %>
 <% finding_markdown_classes = "prose prose-sm prose-stone max-w-none dark:prose-invert prose-p:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-a:break-all [&>*:first-child]:mt-0 [&>*:last-child]:mb-0" %>
+<% guidance_report_classes = "prose prose-sm prose-stone max-w-none dark:prose-invert prose-headings:mb-2 prose-headings:mt-3 prose-h1:text-lg prose-h2:text-base prose-h3:text-sm prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0 prose-a:break-all [&>*:first-child]:mt-0 [&>*:last-child]:mb-0" %>
 <%# Tab navigation classes %>
 <% tab_nav_classes = "flex gap-0 border-b border-stone-300 dark:border-stone-600 mb-6" %>
 <% tab_button_classes = "group relative border-0 bg-transparent px-4 py-2.5 text-sm font-medium text-stone-500 transition-colors hover:text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss-500 dark:text-stone-400 dark:hover:text-stone-200 data-[state=active]:text-stone-900 dark:data-[state=active]:text-stone-100" %>
@@ -32,7 +33,7 @@
   <% if @course.outline_guidance_report_md.present? %>
     <div id="guidance-report" class="mt-2 mb-6 border border-stone-200 dark:border-stone-700 rounded p-4 bg-stone-50/60 dark:bg-stone-900/40">
       <h3 class="font-semibold mb-2">Guidance Report</h3>
-      <div class="prose dark:prose-invert max-w-none">
+      <div class="<%= guidance_report_classes %>">
         <%= markdown(@course.outline_guidance_report_md) %>
       </div>
     </div>
@@ -162,6 +163,9 @@
   <p class="text-sm mb-4">
     Stage: <b><%= @course.outline_research_stage.humanize %></b>
   </p>
+  <div id="<%= dom_id(@course, :outline_research_progress) %>">
+    <%= render "admin/courses/outline_research_progress", course: @course %>
+  </div>
 
   <% if @course.outline_research_stage == "failed" %>
     <div class="<%= outline_failed_classes %> mb-4">

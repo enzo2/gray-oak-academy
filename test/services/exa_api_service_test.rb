@@ -3,7 +3,7 @@ require "test_helper"
 class ExaApiServiceTest < ActiveSupport::TestCase
   setup do
     @app = AppSetting.first
-    @app.update!(exa_api_key: "exa-test-key", exa_research_model: "exa-research")
+    @app.update!(exa_api_key: "exa-test-key")
     @user = users(:admin)
   end
 
@@ -53,33 +53,37 @@ class ExaApiServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "responses_research posts to responses endpoint" do
+  test "deep_research posts deep reasoning search with structured output schema" do
     captured = {}
-    with_stubbed_http(captured: captured, response_code: "200", response_body: { id: "resp_1" }.to_json) do
+    schema = {
+      type: "object",
+      properties: {
+        source_anchors: { type: "array", items: { type: "object" } }
+      }
+    }
+    with_stubbed_http(
+      captured: captured,
+      response_code: "200",
+      response_body: { output: { content: { source_anchors: [] } } }.to_json
+    ) do
       service = ExaApiService.new
-      result = service.responses_research(input: "Summarize recent curriculum studies")
+      result = service.deep_research(
+        query: "Summarize recent curriculum studies",
+        output_schema: schema,
+        system_prompt: "Return curriculum research only.",
+        numResults: 8,
+        type: "keyword"
+      )
 
-      assert_equal "resp_1", result["id"]
-      assert_equal "/responses", captured[:request_path]
+      assert_equal [], result.dig("output", "content", "source_anchors")
+      assert_equal "/search", captured[:request_path]
       body = JSON.parse(captured[:request_body])
-      assert_equal "exa-research", body["model"]
-      assert_equal "Summarize recent curriculum studies", body["input"]
+      assert_equal "Summarize recent curriculum studies", body["query"]
+      assert_equal "deep-reasoning", body["type"]
+      assert_equal schema.deep_stringify_keys, body["outputSchema"]
+      assert_equal "Return curriculum research only.", body["systemPrompt"]
+      assert_equal 8, body["numResults"]
     end
-  end
-
-  test "wait_for_research polls until completion" do
-    service = ExaApiService.new
-    responses = [ { "status" => "running" }, { "status" => "completed", "output" => "done" } ]
-    logged = 0
-
-    service.stub(:get_research, ->(research_id:, stream: nil, events: nil, log_completion: true) { responses.shift }) do
-      service.stub(:log_completion_if_possible, ->(_response, model:) { logged += 1 }) do
-        result = service.wait_for_research(research_id: "res_1", timeout_seconds: 5, poll_interval_seconds: 0)
-        assert_equal "completed", result["status"]
-        assert_equal "done", result["output"]
-      end
-    end
-    assert_equal 1, logged
   end
 
   test "raises clear error on Exa API failure" do
@@ -93,37 +97,6 @@ class ExaApiServiceTest < ActiveSupport::TestCase
       assert_includes error.message, "Exa API request failed (401)"
       assert_includes error.message, "invalid key"
     end
-  end
-
-  test "retries transient status errors for idempotent GET requests and succeeds" do
-    responses = [
-      Struct.new(:code, :body).new("429", { error: { message: "rate limited" } }.to_json),
-      Struct.new(:code, :body).new("200", { status: "completed", id: "res_1" }.to_json)
-    ]
-    request_count = 0
-    captured_paths = []
-    http = Object.new
-    http.define_singleton_method(:use_ssl=) { |_value| }
-    http.define_singleton_method(:open_timeout=) { |_value| }
-    http.define_singleton_method(:read_timeout=) { |_value| }
-    http.define_singleton_method(:write_timeout=) { |_value| }
-    http.define_singleton_method(:request) do |request|
-      request_count += 1
-      captured_paths << request.path
-      responses.shift
-    end
-
-    original_new = Net::HTTP.method(:new)
-    Net::HTTP.define_singleton_method(:new) { |_host, _port| http }
-
-    service = ExaApiService.new
-    result = service.get_research(research_id: "res_1")
-
-    assert_equal "completed", result["status"]
-    assert_equal 2, request_count
-    assert_equal [ "/research/v1/res_1", "/research/v1/res_1" ], captured_paths
-  ensure
-    Net::HTTP.define_singleton_method(:new, &original_new.to_proc)
   end
 
   test "does not retry transient status errors for POST requests" do
@@ -171,7 +144,7 @@ class ExaApiServiceTest < ActiveSupport::TestCase
 
     service = ExaApiService.new
     error = assert_raises(OpenAiError) do
-      service.create_research(instructions: "Create curriculum research.")
+      service.deep_research(query: "Create curriculum research.", output_schema: { type: "object" })
     end
 
     assert_includes error.message, "timed out"
@@ -198,20 +171,19 @@ class ExaApiServiceTest < ActiveSupport::TestCase
       response_code: "200",
       response_body: {
         id: "resp_exa",
-        model: "exa-research",
         costDollars: { total: 0.25068875, reasoningTokens: 123 }
       }.to_json
     ) do
       service = ExaApiService.new(current_user: @user)
 
       assert_difference -> { Completion.count }, 1 do
-        service.responses_research(input: "Analyze top 5 reading interventions")
+        service.deep_research(query: "Analyze top 5 reading interventions", output_schema: { type: "object" })
       end
     end
 
     completion = Completion.order(:created_at).last
     assert_equal @user.id, completion.user_id
-    assert_equal "exa-research", completion.model
+    assert_equal "exa-search-deep-reasoning", completion.model
     assert_equal "https://api.exa.ai/", completion.api_provider
     assert_equal 123, completion.reasoning_tokens
     assert completion.total_cost.present?

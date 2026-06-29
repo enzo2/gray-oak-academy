@@ -21,6 +21,12 @@ class CourseOutlineResearchBroadcasts
       )
       Turbo::StreamsChannel.broadcast_replace_to(
         channel,
+        target: dom_id(course, :outline_research_progress),
+        partial: "admin/courses/outline_research_progress",
+        locals: { course: course }
+      )
+      Turbo::StreamsChannel.broadcast_replace_to(
+        channel,
         target: dom_id(course, :form),
         partial: "admin/courses/form",
         locals: { course: course }

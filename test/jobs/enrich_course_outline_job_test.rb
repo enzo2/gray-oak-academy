@@ -11,10 +11,9 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     ensure_prompt("analyze_course_outline_research", "Course: {title}\nResearch: {outline_research}")
 
     exa_response = {
-      "id" => "research_1",
-      "status" => "completed",
+      "id" => "search_1",
       "output" => {
-        "result" => {
+        "content" => {
           "sourceAnchors" => [
             {
               "title" => "Primary Source",
@@ -27,6 +26,9 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
           "coverageGaps" => [ "Local perspective" ],
           "factualNotes" => [ "Verify chronology in unit 2" ],
           "alternativeApproaches" => [ "Theme-first sequence" ]
+        },
+        "grounding" => {
+          "sources" => [ { "url" => "https://example.com/source" } ]
         }
       }
     }
@@ -45,15 +47,9 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
 
     captured_exa = {}
     fake_exa = Object.new
-    fake_exa.define_singleton_method(:create_research) do |instructions:, output_schema:|
-      captured_exa[:instructions] = instructions
+    fake_exa.define_singleton_method(:deep_research) do |query:, output_schema:|
+      captured_exa[:query] = query
       captured_exa[:output_schema] = output_schema
-      { "id" => "research_1" }
-    end
-    fake_exa.define_singleton_method(:wait_for_research) do |research_id:, timeout_seconds:, poll_interval_seconds:|
-      captured_exa[:research_id] = research_id
-      captured_exa[:timeout_seconds] = timeout_seconds
-      captured_exa[:poll_interval_seconds] = poll_interval_seconds
       exa_response
     end
 
@@ -125,8 +121,11 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal "https://example.com/source", course.outline_research.dig("source_anchors", 0, "url")
     assert_equal "Useful excerpt", course.outline_research.dig("source_anchors", 0, "excerpt")
     assert_equal [ "Key point" ], course.outline_research.dig("source_anchors", 0, "highlights")
-    assert_equal "research_1", course.outline_research.dig("exa_research", "research_id")
+    assert_equal "search_1", course.outline_research.dig("exa_research", "research_id")
     assert_equal "completed", course.outline_research.dig("exa_research", "status")
+    assert_equal "search", course.outline_research.dig("exa_research", "api")
+    assert_equal "deep-reasoning", course.outline_research.dig("exa_research", "type")
+    assert_equal [ { "url" => "https://example.com/source" } ], course.outline_research.dig("exa_research", "grounding", "sources")
     assert_equal "## Guidance\nTighten chronology and add local context.", course.outline_guidance_report_md
     assert_equal 5, course.outline_guidance_questions.size
     assert_equal "q1", course.outline_guidance_questions.first["id"]
@@ -134,11 +133,8 @@ class EnrichCourseOutlineJobTest < ActiveSupport::TestCase
     assert_equal course.outline_guidance_questions.size, course.outline_guidance_questions.map { |q| q["id"] }.uniq.size
     assert_equal "Yes, mandatory", course.outline_guidance_questions.first.dig("choices", "A")
     assert_equal "Custom policy", course.outline_guidance_questions.first.dig("choices", "OTHER")
-    assert_includes captured_exa[:instructions], "Title:"
+    assert_includes captured_exa[:query], "Title:"
     assert captured_exa[:output_schema][:properties].key?(:source_anchors)
-    assert_equal "research_1", captured_exa[:research_id]
-    assert_equal 900, captured_exa[:timeout_seconds]
-    assert_equal 3, captured_exa[:poll_interval_seconds]
     assert_equal true, captured_responses[:background]
     assert_equal "resp_guidance_1", captured_responses[:response_id]
     assert_equal teacher, captured_new_kwargs[:user]

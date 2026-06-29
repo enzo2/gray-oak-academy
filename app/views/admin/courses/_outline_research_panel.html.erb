@@ -43,8 +43,6 @@
   <% end %>
 
   <% outline_research = course.outline_research_hash %>
-  <% exa_status = outline_research.dig("exa_research", "status").to_s.downcase %>
-  <% exa_running = course.outline_research_stage == "researching_outline" && %w[queued pending in_progress running processing].include?(exa_status) %>
   <% apply_agent_summary_md = outline_research["apply_agent_summary_md"].to_s %>
   <% apply_completed_at_raw = outline_research["apply_completed_at"].to_s %>
   <% apply_completed_at = begin Time.zone.parse(apply_completed_at_raw) rescue nil end %>
@@ -63,9 +61,9 @@
                                 source_anchor_count.positive? ||
                                 question_count.positive? ||
                                 course.outline_research_input_open? %>
-  <p class="text-sm mb-2">
-    <b>Status:</b> <%= course.outline_research_stage.humanize %><%= raw(" &mdash; running...") if exa_running %>
-  </p>
+  <div id="<%= dom_id(course, :outline_research_progress) %>">
+    <%= render "admin/courses/outline_research_progress", course: course %>
+  </div>
   <% if course.outline_research_error.present? %>
     <p class="mb-2 text-sm text-danger-700 dark:text-danger-300">
       <b>Error:</b> <%= course.outline_research_error %>

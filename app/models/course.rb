@@ -1,5 +1,6 @@
 class Course < ApplicationRecord
   OUTLINE_GUIDANCE_ADDITIONAL_COMMENTS_KEY = "_additional_comments".freeze
+  OUTLINE_RESEARCH_PROGRESS_KEY = "outline_research_progress".freeze
   OUTLINE_RESEARCH_STAGES = %w[
     idle
     researching_outline
@@ -89,6 +90,26 @@ class Course < ApplicationRecord
 
   def outline_research_hash
     outline_research.is_a?(Hash) ? outline_research : {}
+  end
+
+  def outline_research_progress
+    progress = outline_research_hash[OUTLINE_RESEARCH_PROGRESS_KEY]
+    progress.is_a?(Hash) ? progress : {}
+  end
+
+  def outline_research_progress_message
+    outline_research_progress["message"].to_s.presence
+  end
+
+  def update_outline_research_progress!(message:, detail: nil, step: nil, total_steps: nil)
+    progress = {
+      "message" => message.to_s,
+      "detail" => detail.to_s.presence,
+      "step" => step,
+      "total_steps" => total_steps,
+      "updated_at" => Time.current.iso8601
+    }.compact
+    update!(outline_research: outline_research_hash.merge(OUTLINE_RESEARCH_PROGRESS_KEY => progress))
   end
 
   def outline_guidance_answers_hash

@@ -9,8 +9,7 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
 
     patch admin_app_setting_path, params: {
       app_setting: {
-        exa_api_key: AppSetting::MASKED_SECRET_VALUE,
-        exa_research_model: "exa-research"
+        exa_api_key: AppSetting::MASKED_SECRET_VALUE
       }
     }
 
@@ -26,8 +25,7 @@ class Admin::AppSettingsControllerTest < ActionDispatch::IntegrationTest
 
     patch admin_app_setting_path, params: {
       app_setting: {
-        exa_api_key: "",
-        exa_research_model: "exa-research"
+        exa_api_key: ""
       }
     }
 
