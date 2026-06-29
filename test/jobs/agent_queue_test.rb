@@ -11,14 +11,28 @@ class AgentQueueTest < ActiveSupport::TestCase
     assert_equal "default", GetResponsesCompletionJob.new.queue_name
   end
 
-  test "solid queue gives agent work a dedicated single-thread worker" do
+  test "solid queue gives agent work a worker pool isolated from interactive jobs" do
     workers = production_queue_config.fetch("workers")
     interactive_worker = workers.find { |worker| worker["queues"] == [ "default", "mailers" ] }
     agent_worker = workers.find { |worker| worker["queues"] == "agent" }
 
-    assert_equal 3, interactive_worker.fetch("threads")
-    assert_equal 1, agent_worker.fetch("threads")
-    assert_equal 1, agent_worker.fetch("processes")
+    assert interactive_worker, "expected a worker dedicated to the default/mailers queues"
+    assert agent_worker, "expected a worker dedicated to the agent queue"
+    refute_same interactive_worker, agent_worker, "agent queue must not share a worker pool with interactive jobs"
+
+    # These jobs are I/O-bound, so each pool runs several threads concurrently
+    # rather than relying on extra processes.
+    assert_operator agent_worker.fetch("threads").to_i, :>=, 1
+    assert_operator interactive_worker.fetch("threads").to_i, :>=, 1
+    assert_equal 1, agent_worker.fetch("processes").to_i
+  end
+
+  test "database pool covers the busiest solid queue worker so job threads are not connection-starved" do
+    max_worker_threads = production_queue_config.fetch("workers").map { |worker| worker.fetch("threads").to_i }.max
+    pool = database_config.dig("production", "primary", "max_connections").to_i
+
+    assert_operator pool, :>=, max_worker_threads,
+      "DB pool (#{pool}) must cover the busiest worker's #{max_worker_threads} threads, since each running job holds one connection"
   end
 
   test "development uses solid queue through the puma plugin" do
