@@ -107,6 +107,11 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     end
   end
 
+  def ignore_browser_console_logs_matching(*patterns)
+    @ignored_browser_console_log_patterns ||= []
+    @ignored_browser_console_log_patterns.concat(patterns)
+  end
+
   # Print browser console logs after each system test run to aid debugging.
   def teardown
     if @t_start
@@ -115,11 +120,16 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     super
     begin
       logs = console_logs
-      unless logs.nil? || logs.empty?
+      messages = Array(logs).filter_map do |entry|
+        msg = entry.respond_to?(:message) ? entry.message : entry.to_s
+        next if ignored_browser_console_log?(msg)
+
+        msg
+      end
+
+      unless messages.empty?
         puts "==== BROWSER CONSOLE LOGS ===="
-        logs.each do |entry|
-          # Selenium log entry may respond to .level, .message, .timestamp depending on driver
-          msg = entry.respond_to?(:message) ? entry.message : entry.to_s
+        messages.each do |msg|
           puts msg
         end
         puts "==== END BROWSER CONSOLE LOGS ===="
@@ -127,5 +137,11 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     rescue StandardError => e
       Rails.logger.debug "Failed to print browser logs in teardown: #{e.class}: #{e.message}"
     end
+  end
+
+  private
+
+  def ignored_browser_console_log?(message)
+    Array(@ignored_browser_console_log_patterns).any? { |pattern| pattern === message }
   end
 end

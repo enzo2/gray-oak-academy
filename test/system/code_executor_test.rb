@@ -127,6 +127,8 @@ class CodeExecutorTest < ApplicationSystemTestCase
   end
 
   test "error shell fallback does not mark auto-run applet executed" do
+    ignore_browser_console_logs_matching(/Applet shell template not found\./)
+
     visit conversation_path(@conversation)
 
     execute_script <<~JS
