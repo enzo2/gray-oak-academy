@@ -11,7 +11,7 @@ GIT
 
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 0ee2b066e7d94706583102a56cfa12d4d1fc1810
+  revision: 3214b30d084aaef48a77f8c53ca8c861b903a1ee
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -187,8 +187,6 @@ GEM
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
-    faraday-multipart (1.2.0)
-      multipart-post (~> 2.0)
     faraday-net_http (3.4.4)
       net-http (~> 0.5)
     faraday-retry (2.4.0)
@@ -250,7 +248,6 @@ GEM
       prism (~> 1.5)
     minitest-mock (5.27.0)
     msgpack (1.8.3)
-    multipart-post (2.4.1)
     neighbor (1.2.0)
       activerecord (>= 7.2)
     net-http (0.9.1)
@@ -277,11 +274,6 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-musl)
       racc (~> 1.4)
-    open_router (0.3.3)
-      activesupport (>= 6.0)
-      dotenv (>= 2)
-      faraday (>= 1)
-      faraday-multipart (>= 1)
     openai (0.68.0)
       base64
       cgi
@@ -474,7 +466,6 @@ DEPENDENCIES
   minitest (> 5)
   minitest-mock
   neighbor
-  open_router
   openai
   ostruct
   pg

@@ -3,18 +3,17 @@ source "https://rubygems.org"
 # use docker compose to import env files
 # gem "dotenv-rails", groups: [ :development, :test ]
 
-# Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", github: "rails/rails", branch: "main"
+gem "rails", github: "rails/rails", branch: "main" # edge Rails
 gem "propshaft"
 gem "pg" # Use postgresql as the database for Active Record
-# Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
-# gem "thruster", require: false
-gem "puma"# , "< 8" # Use the Puma web server [https://github.com/puma/puma]
 gem "bootsnap", require: false
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 # gem "async"
 
-# Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
+gem "puma"# , "< 8" # Use the Puma web server [https://github.com/puma/puma]
+# Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
+# gem "thruster", require: false
+# # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 # gem "kamal", require: false
 
 # Rails adapters
@@ -50,7 +49,6 @@ gem "commonmarker"
 
 # LLM API access/wrappers
 gem "openai"
-gem "open_router" # not used for LLM requests, just metadata
 
 # gem "ruby_llm"   # could add this but maybe not necessary, we already have openai_api_service. also, lacks TTS
 # https://github.com/rira100000000/ruby-gemini-api  a good ruby-openai style gem for gemini

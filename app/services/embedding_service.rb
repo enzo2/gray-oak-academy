@@ -30,8 +30,8 @@ class EmbeddingService
   private
 
   def create_client
-    open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
-    token = open_router&.api_access_token
+    openrouter = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
+    token = openrouter&.api_access_token
 
     OpenAI::Client.new(
       api_key: token,

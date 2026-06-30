@@ -154,8 +154,8 @@ class AppSetting < ApplicationRecord
     app_setting = self.first
     return false unless app_setting&.embedding_model.present?
 
-    open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
-    open_router&.api_access_token.present?
+    openrouter = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
+    openrouter&.api_access_token.present?
   end
 
   def exa_enabled?
@@ -396,8 +396,8 @@ class AppSetting < ApplicationRecord
     return unless embedding_model.present?
 
     # 1. Check for OpenRouter token
-    open_router = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
-    unless open_router&.api_access_token.present?
+    openrouter = SupportedApi.find_by(api_base_uri: "https://openrouter.ai/api/v1/")
+    unless openrouter&.api_access_token.present?
       errors.add(:embedding_model, "requires a key for OpenRouter to be configured in LLM API settings")
       return
     end
