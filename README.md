@@ -99,7 +99,10 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 - Scheduled lesson planning
 - Additional agentic flows for curriculum planning 
 - Non-lesson-based, graph-based course authoring & traversal (directed vs undirected)
+- Applet-based lessons
+- More artful / less utilitarian applets - three.js/webGPU, sprite sheets, etc.
 - Improve student analytics
+- Friendlier way to edit system prompts without endangering functionality
 - MCP support
 - Document uploads for curriculum building / local corpus search & linkage
 - Refactor LLM tools into virtual CLI-style tools?
@@ -107,7 +110,7 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 - Hide more advanced settings/features under a Power User setting
 - Hotwire Native app; Mobile push notifications
 - Speed up audio input with ffmpeg to reduce cost
-- Note: Avoiding live/realtime APIs thus far due to risk of forced conversation and lower intelligence. May be suitable for AFK lessons.
+- Note: Avoiding live/realtime APIs thus far due to risk of forced conversation and lower intelligence. May be suitable for AFK lessons. Consider full duplex models when out. 
 
 ## Backstory
 
