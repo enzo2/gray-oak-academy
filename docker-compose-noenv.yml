@@ -29,6 +29,8 @@ services:
     depends_on:
       - postgres
       - terrarium
+    volumes:
+      - active-storage:/rails/storage
 
   postgres:
     image: pgvector/pgvector:pg18-trixie
@@ -56,3 +58,4 @@ services:
 
 volumes:
   postgres-data-pg18:
+  active-storage:
