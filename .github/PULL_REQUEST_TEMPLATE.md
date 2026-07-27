@@ -42,5 +42,5 @@ under eighteen, and new co-authors must follow the process in CONTRIBUTING.md.
 -->
 
 - [ ] I, **[FULL LEGAL NAME]**, accept the [Gray Oak Academy Individual
-      Contributor License Agreement, Version 1.0](https://github.com/enzo2/gray-oak-academy/blob/main/CONTRIBUTOR_LICENSE_AGREEMENT.md)
+      Contributor License Agreement, Version 1.0](https://github.com/enzo2/gray-oak-academy/blob/218d0c10f913626d36d0c06ddefc6fd5d2c797e2/CONTRIBUTOR_LICENSE_AGREEMENT.md)
       and intend my typed legal name and checked box as my electronic signature.
