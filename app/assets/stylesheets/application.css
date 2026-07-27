@@ -33,6 +33,42 @@
   visibility: hidden;
 }
 
+/*
+ * The Journal's desktop timeline is based on its available content width, not
+ * the viewport. This keeps cards usable when the persistent admin sidebar is
+ * expanded or another layout constraint narrows the main panel.
+ */
+.journal-timeline-container {
+  container-type: inline-size;
+}
+
+@container (max-width: 56rem) {
+  .journal-timeline-line::before {
+    margin-left: 1.25rem !important;
+    translate: -1px 0 !important;
+    transform: translateX(-1px) !important;
+  }
+
+  .journal-entry {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+
+  .journal-entry-icon {
+    order: 0 !important;
+    translate: none !important;
+    transform: none !important;
+  }
+
+  .journal-entry-card {
+    width: calc(100% - 3.5rem) !important;
+  }
+
+  #journal_entries .journal-entry + .journal-entry {
+    margin-top: 0.5rem;
+  }
+}
+
 /* Color themes */
 :root {
 	--rouge-bg: #49483e;

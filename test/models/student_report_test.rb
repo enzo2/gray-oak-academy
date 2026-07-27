@@ -84,4 +84,82 @@ class StudentReportTest < ActiveSupport::TestCase
       )
     end
   end
+
+  test "teacher edits preserve origin and update structured report data" do
+    report = student_reports(:LessonReport1)
+
+    assert report.apply_teacher_edits(
+      {
+        "summary" => "Corrected summary",
+        "strengths" => "Explains the method clearly\n\nChecks the answer",
+        "areas_for_review" => ""
+      },
+      editor: @teacher
+    )
+
+    report.reload
+    assert_equal "Corrected summary", report.progress_data["summary"]
+    assert_equal [ "Explains the method clearly", "Checks the answer" ], report.progress_data["strengths"]
+    assert_equal [], report.progress_data["areas_for_review"]
+    assert_equal [ "Prefers hands-on learning experiences." ], report.progress_data["memories"]
+    assert report.author_type_ai_generated?
+    assert_equal @teacher, report.edited_by
+    assert_not_nil report.edited_at
+  end
+
+  test "teacher correction is used immediately in later lesson context" do
+    report = StudentReport.create!(
+      student: @student,
+      teacher: @teacher,
+      reportable: @lesson_progress,
+      progress_data: { "summary" => "Original summary" },
+      author_type: :ai_generated,
+      status: :completed
+    )
+
+    assert report.apply_teacher_edits({ "summary" => "Corrected continuity summary" }, editor: @teacher)
+
+    assert_includes @enrollment.lesson_history_for_prompt, "Corrected continuity summary"
+  end
+
+  test "teacher edit validates unusual structured fields without losing submitted text" do
+    report = student_reports(:LessonReport1)
+    report.update!(progress_data: report.progress_data.merge("evidence" => { "score" => 3 }))
+    original_data = report.progress_data.deep_dup
+
+    refute report.apply_teacher_edits({ "evidence" => "not valid json" }, editor: @teacher)
+
+    assert_includes report.errors[:evidence], "must contain valid JSON"
+    assert_equal "not valid json", report.editable_field_value("evidence")
+    assert_equal original_data, report.reload.progress_data
+    assert_nil report.edited_at
+  end
+
+  test "teacher edit preserves unusual JSON values submitted by the full form" do
+    report = student_reports(:LessonReport1)
+    report.update!(progress_data: report.progress_data.merge(
+      "evidence" => [ { "score" => 3, "verified" => false } ],
+      "mastered" => false,
+      "attempts" => 2
+    ))
+    fields = report.editable_fields.keys.index_with { |key| report.editable_field_value(key) }
+    fields["summary"] = "Corrected summary"
+
+    assert report.apply_teacher_edits(fields, editor: @teacher)
+
+    report.reload
+    assert_equal "Corrected summary", report.progress_data["summary"]
+    assert_equal [ { "score" => 3, "verified" => false } ], report.progress_data["evidence"]
+    assert_equal false, report.progress_data["mastered"]
+    assert_equal 2, report.progress_data["attempts"]
+  end
+
+  test "student cannot be recorded as a report editor" do
+    report = student_reports(:LessonReport1)
+
+    refute report.apply_teacher_edits({ "summary" => "Student edit" }, editor: @student)
+
+    assert_includes report.errors[:edited_by], "must be a teacher"
+    assert_equal "Did well", report.reload.progress_data["summary"]
+  end
 end

@@ -1,0 +1,15 @@
+<% if @student_report.errors.any? %>
+  <%= turbo_stream.replace dom_id(@student_report, :editable) do %>
+    <%= turbo_frame_tag dom_id(@student_report, :editable), class: "block" do %>
+      <%= render "form", student_report: @student_report, context: @context %>
+    <% end %>
+  <% end %>
+<% else %>
+  <%= turbo_stream.replace dom_id(@student_report, :editable) do %>
+    <%= render "student_reports/editable",
+               report: @student_report,
+               editable: true,
+               context: @context %>
+  <% end %>
+  <%= turbo_stream.update "flash_bar", partial: "shared/flash" %>
+<% end %>

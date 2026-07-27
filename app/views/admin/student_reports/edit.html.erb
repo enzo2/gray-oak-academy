@@ -1,0 +1,3 @@
+<%= turbo_frame_tag dom_id(@student_report, :editable), class: "block" do %>
+  <%= render "form", student_report: @student_report, context: @context %>
+<% end %>

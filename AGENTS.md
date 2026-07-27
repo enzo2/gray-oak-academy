@@ -41,87 +41,24 @@ bin/ci
 ```
 
 - The dev server uses https. When using any browser tool to view the site locally, use https://localhost:3000.
-
 - All tests require Postgres DB access (located in devcontainer stack). If the DB is not reachable, your terminal may have a network permissions restriction.
 
 ## Architecture
 
-### Tech Stack
-- Rails 8, Ruby 4, PostgreSQL with pgvector extension
-- Turbo/Stimulus (Hotwire) for frontend interactivity
-- Tailwind CSS 4 + Shoelace web components
-- Importmaps (no npm/node_modules)
-- Solid Queue, Solid Cable, Solid Cache for background jobs and real-time
-
-### Core Models
-
-**User Roles**: `student`, `admin` (teacher), `superuser`
-- Students belong to a teacher (`teacher_id` foreign key)
-- Teachers (`role_teacher?`) are admin or superuser
-- Orphaned students (no teacher) cannot use LLM features
-
-**Curriculum Structure**:
-- `Course` → has many `Lesson` (ordered via acts_as_list)
-- `Lesson` → has one `LessonPlan` (contains actual lesson content)
-- `Enrollment` → links students to courses
-- `LessonProgress` → tracks student progress through lessons
-
-**LLM Integration**:
-- `Conversation` → thread of `Message` objects
-- `Completion` → logs API calls with token usage and costs
-- `Llm` → model metadata (context length, capabilities)
-- `Tool` → LLM function calling specs (JSON schema validated)
-- `Prompt` → all system prompts are user-editable, retrieved by category
-
-**Student Progress**:
-- `Observation` → atomic academic observations (pending/approved/rejected)
-- `Memory` → persistent student facts with vector embeddings for RAG
-- `StudentReport` → generated reports per lesson/course
-- `StudentFeedback` → student ratings of lessons
-- "Journal" view - UI timeline of student's progress
-
-### Key Services
-
-- `OpenaiApiService` - LLM completions wrapper supporting any OpenAI Chat Completions—compatible API
-- `OpenaiResponsesService` - LLM wrapper for the OpenAI Responses API
-- Tool Services - Execute LLM tool calls
-- `SpeechService` - STT/TTS handling
-- `ImageGenerationService` - AI image generation (primarily gemini-3-pro-image)
-
 ### Prompt System
 
-All prompts are stored in the `Prompt` model with categories. The system prompt hierarchy:
-1. `base_system_prompt` - foundational principles
-2. `teaching_principles` - teaching style and ethics
-3. Task-specific prompt (e.g., `lesson_tutor_session`, `teacher_assistant`)
-4. `generative_guidelines` - appended when generative UI is enabled
+See `seeds.rb`. 
 
-Teachers can customize any prompt category. System falls back to default (teacher_id: nil) if no custom prompt exists.
-
-### Event/Notification System
-
-Uses Rails 8.1's `ActiveSupport::EventReporter` with publish-subscribe pattern:
-- Event types defined in `config/notifications.yml`
-- Events auto-generated in `app/models/events/` from YAML
-- `NotificationSubscriber` handles delivery (in-app + email)
-- Fire events with `Rails.event.notify(Events::EventName.new(...))`
+### Event and Notification System
 
 See `dev_info/EventReporter_guide.md` for adding new notification types.
 
 ### Frontend Patterns
 
 - Stimulus controllers in `app/javascript/controllers/`
-- Turbo Streams for real-time updates via Action Cable
-- Shoelace components imported individually via CDN in `config/importmap.rb`
-- KaTeX for math rendering
-
-### API Configuration
-
-LLM APIs are configured per-user in `Setting`:
-- `llm_api_base_uri` - OpenAI-compatible endpoint
-- `llm_model_name` - primary chat model
-- `thinking_model_name` - frontier model for curriculum & applet generation
-- OpenRouter has special support for cost tracking, context limits, image gen, LLM capability autopopulation
+- Turbo Stream for real-time updates
+- Components imported individually via CDN in `config/importmap.rb`
+- Color guide in `dev_info/color_palette.md`
 
 ## Key Principles
 
@@ -131,7 +68,7 @@ LLM APIs are configured per-user in `Setting`:
 
 ## Coding styles
 
-- Fat models, thin controllers - Business logic in models, controllers stay light
+- Fat models, thin controllers: business logic in models, controllers stay light
 - Avoid adding low-value tests that have no bearing on app functionality (e.g. precise UI verbiage), are unlikely to break in the future, or are one-off checks
 
 ## Alignment

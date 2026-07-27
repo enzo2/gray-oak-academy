@@ -46,6 +46,17 @@ class Admin::StudentsControllerTest < ActionDispatch::IntegrationTest
     assert_operator older_index, :<, newer_index
   end
 
+  test "journal stream renders inline edit controls for lesson reports" do
+    sign_in @teacher
+    report = student_reports(:LessonReport1)
+
+    get journal_admin_student_path(@student), as: :turbo_stream
+
+    assert_response :success
+    assert_select "turbo-frame#editable_student_report_#{report.id}"
+    assert_select "a[href='#{edit_admin_student_report_path(report, context: "journal")}']", text: /Edit/
+  end
+
   test "journal observations sub-tab sorts by weight high to low" do
     sign_in @teacher
 

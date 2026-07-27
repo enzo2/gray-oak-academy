@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_06_18_000100) do
+ActiveRecord::Schema[8.2].define(version: 2026_07_14_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -419,6 +419,9 @@ ActiveRecord::Schema[8.2].define(version: 2026_06_18_000100) do
     t.text "report"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "edited_by_id"
+    t.datetime "edited_at"
+    t.index ["edited_by_id"], name: "index_student_reports_on_edited_by_id"
     t.index ["reportable_type", "reportable_id"], name: "index_student_reports_on_reportable"
     t.index ["student_id"], name: "index_student_reports_on_student_id"
     t.index ["teacher_id"], name: "index_student_reports_on_teacher_id"
@@ -498,6 +501,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_06_18_000100) do
   add_foreign_key "settings", "users"
   add_foreign_key "student_feedbacks", "lesson_progresses"
   add_foreign_key "student_feedbacks", "users", column: "student_id"
+  add_foreign_key "student_reports", "users", column: "edited_by_id", on_delete: :nullify
   add_foreign_key "student_reports", "users", column: "student_id"
   add_foreign_key "student_reports", "users", column: "teacher_id"
   add_foreign_key "users", "users", column: "teacher_id"

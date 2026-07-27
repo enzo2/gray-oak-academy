@@ -1,33 +1,62 @@
-<div id="<%= dom_id(report) %>_card" 
-     data-controller="collapsible" 
-     data-collapsible-collapsed-class-value="max-h-48"
-     data-collapsible-check-overflow-value="true"
-     data-collapsible-more-text-value="Show More"
-     data-collapsible-less-text-value="Show Less">
-  <div class="flex items-center gap-2 mb-2">
+<% context = local_assigns.fetch(:context, "journal").to_s %>
+<% journal_context = context == "journal" %>
+<% editable = local_assigns.fetch(:editable, false) %>
+
+<div id="<%= dom_id(report) %>_card"
+     <% if journal_context %>
+       data-controller="collapsible"
+       data-collapsible-collapsed-class-value="max-h-48"
+       data-collapsible-check-overflow-value="true"
+       data-collapsible-more-text-value="Show More"
+       data-collapsible-less-text-value="Show Less"
+     <% end %>>
+  <div class="flex items-start justify-between gap-3 mb-2">
     <span class="badge text-xs">
-      <% if report.reportable_type == 'User' %>
+      <% if report.reportable_type == "User" %>
         Student Profile
-      <% elsif report.reportable_type == 'LessonProgress' %>
+      <% elsif report.reportable_type == "LessonProgress" %>
         Lesson Report: <%= report.reportable&.lesson&.title %>
-      <% elsif report.reportable_type == 'Enrollment' %>
+      <% elsif report.reportable_type == "Enrollment" %>
         Course Report: <%= report.reportable&.course&.title %>
       <% else %>
         Report
       <% end %>
     </span>
+
+    <% if editable %>
+      <%= link_to edit_admin_student_report_path(report, context: context),
+                  class: "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium text-moss-700 hover:bg-moss-50 hover:text-moss-900 dark:text-moss-300 dark:hover:bg-moss-950/40 dark:hover:text-moss-100",
+                  aria: { label: "Edit report" },
+                  title: "Edit report",
+                  data: { turbo_frame: dom_id(report, :editable) } do %>
+        <sl-icon name="pencil-square"></sl-icon>
+        <span>Edit</span>
+      <% end %>
+    <% end %>
   </div>
 
-  <div class="prose dark:prose-invert prose-sm leading-normal text-stone-800 dark:text-stone-300 max-h-48 overflow-hidden relative group" 
-       data-collapsible-target="panel">
+  <div class="mb-2 text-xs text-stone-500 dark:text-stone-400">
+    <%= report.author_type_ai_generated? ? "AI-generated" : "Teacher-written" %>
+    <% if report.edited_at.present? %>
+      · corrected by <%= report.edited_by&.name || "a teacher" %>
+      <%= time_ago_in_words(report.edited_at) %> ago
+    <% end %>
+  </div>
+
+  <div class="prose dark:prose-invert prose-sm leading-normal text-stone-800 dark:text-stone-300 <%= "max-h-48 overflow-hidden relative group" if journal_context %>"
+       <%= 'data-collapsible-target="panel"'.html_safe if journal_context %>>
     <%= markdown(report.to_markdown) %>
-    <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white dark:from-stone-900 to-transparent group-hover:hidden" 
-         data-collapsible-target="fade"></div>
+    <% if journal_context %>
+      <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white dark:from-stone-900 to-transparent group-hover:hidden"
+           data-collapsible-target="fade"></div>
+    <% end %>
   </div>
-  
-  <div class="mt-2 text-center">
-    <button class="hidden text-xs text-moss-700 hover:underline dark:text-moss-400" 
-            data-collapsible-target="button" 
-            data-action="collapsible#toggle">Show More</button>
-  </div>
+
+  <% if journal_context %>
+    <div class="mt-2 text-center">
+      <button class="hidden text-xs text-moss-700 hover:underline dark:text-moss-400"
+              data-collapsible-target="button"
+              data-action="collapsible#toggle">Show More</button>
+    </div>
+  <% end %>
 </div>

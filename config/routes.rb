@@ -72,6 +72,8 @@ Rails.application.routes.draw do
     get "dashboard", as: :root, to: "dashboard#dashboard"
     get "help", to: "help#index"
 
+    resources :student_reports, only: [ :show, :edit, :update ]
+
     resources :courses do
       post "generate_outline", on: :member
       post "start_outline_research", on: :member

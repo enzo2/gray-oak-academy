@@ -12,6 +12,53 @@ class EnrollmentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Back to Student Dashboard", response.body
   end
 
+  test "teacher sees inline edit controls for lesson reports" do
+    teacher = users(:admin)
+    report = create_lesson_report(lesson_progresses(:one))
+    sign_in teacher
+
+    get enrollment_path(enrollments(:one))
+
+    assert_response :success
+    assert_select "turbo-frame#editable_student_report_#{report.id}"
+    assert_select "a[href='#{edit_admin_student_report_path(report, context: "enrollment")}']", text: /Edit/
+  end
+
+  test "teacher sees inline edit controls for a completed course report" do
+    teacher = users(:admin)
+    student = users(:student)
+    enrollment = enrollments(:one)
+    create_lesson_report(lesson_progresses(:one))
+    create_lesson_report(lesson_progresses(:audio_only_progress))
+    course_report = StudentReport.create!(
+      student: student,
+      teacher: teacher,
+      reportable: enrollment,
+      progress_data: { "summary" => "Completed the course" },
+      author_type: :ai_generated,
+      status: :completed
+    )
+    sign_in teacher
+
+    get enrollment_path(enrollment)
+
+    assert_response :success
+    assert_select "h3", text: "Course report"
+    assert_select "turbo-frame#editable_student_report_#{course_report.id}"
+    assert_select "a[href='#{edit_admin_student_report_path(course_report, context: "enrollment")}']", text: /Edit/
+  end
+
+  test "student sees reports without edit controls" do
+    report = create_lesson_report(lesson_progresses(:one))
+    sign_in users(:student)
+
+    get enrollment_path(enrollments(:one))
+
+    assert_response :success
+    assert_select "turbo-frame#editable_student_report_#{report.id}"
+    assert_select "a[href^='#{edit_admin_student_report_path(report)}']", count: 0
+  end
+
   test "show responds to turbo stream" do
     sign_in users(:admin)
     enrollment = enrollments(:one)
@@ -66,5 +113,18 @@ class EnrollmentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match course.title, response.body
+  end
+
+  private
+
+  def create_lesson_report(lesson_progress)
+    StudentReport.create!(
+      student: lesson_progress.student,
+      teacher: lesson_progress.lesson.teacher,
+      reportable: lesson_progress,
+      progress_data: { "summary" => "Completed lesson" },
+      author_type: :ai_generated,
+      status: :completed
+    )
   end
 end

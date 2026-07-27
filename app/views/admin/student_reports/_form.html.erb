@@ -1,0 +1,54 @@
+<div class="rounded-lg border border-moss-300 bg-moss-50/50 p-4 shadow-sm dark:border-moss-700 dark:bg-moss-950/20">
+  <div class="mb-4">
+    <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">
+      Edit <%= student_report.reportable_type == "Enrollment" ? "course" : "lesson" %> report
+    </h3>
+    <p class="mt-1 text-sm text-stone-600 dark:text-stone-300">
+      Your corrections are used immediately in future tutoring and reports.
+    </p>
+    <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">
+      Existing memories and observations are not automatically regenerated.
+    </p>
+  </div>
+
+  <%= form_with model: [:admin, student_report], data: { turbo_stream: true }, class: "space-y-4" do |form| %>
+    <%= hidden_field_tag :context, context %>
+
+    <% if student_report.errors.any? %>
+      <div class="rounded border border-danger-300 bg-danger-50 p-3 text-sm text-danger-800 dark:border-danger-700 dark:bg-danger-950/30 dark:text-danger-200">
+        <p class="font-semibold">Please correct the following:</p>
+        <ul class="mt-1 list-disc pl-5">
+          <% student_report.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <% student_report.editable_fields.each do |key, _value| %>
+      <% field_kind = student_report.editable_field_kind(key) %>
+      <div>
+        <%= label_tag "student_report_report_fields_#{key}", key.humanize, class: "form-label mb-1" %>
+        <%= text_area_tag "student_report[report_fields][#{key}]",
+                          student_report.editable_field_value(key),
+                          id: "student_report_report_fields_#{key}",
+                          rows: field_kind == :text ? 4 : 3,
+                          class: "input-primary w-full text-sm font-normal #{'font-mono' if field_kind == :json}",
+                          required: key == "summary" %>
+        <% if field_kind == :list %>
+          <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">Enter one item per line.</p>
+        <% elsif field_kind == :json %>
+          <p class="mt-1 text-xs text-stone-500 dark:text-stone-400">This field contains structured data and must remain valid JSON.</p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="flex flex-wrap items-center justify-end gap-2 border-t border-stone-200 pt-3 dark:border-stone-700">
+      <%= link_to "Cancel",
+                  admin_student_report_path(student_report, context: context),
+                  class: "btn-secondary py-1.5 px-3 text-sm",
+                  data: { turbo_frame: dom_id(student_report, :editable) } %>
+      <%= form.submit "Save corrections", class: "btn-primary py-1.5 px-3 text-sm" %>
+    </div>
+  <% end %>
+</div>

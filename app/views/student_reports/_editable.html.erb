@@ -1,0 +1,7 @@
+<% context = local_assigns.fetch(:context, "journal").to_s %>
+<% editable = local_assigns.fetch(:editable, false) && report.teacher_editable? %>
+
+<%= turbo_frame_tag dom_id(report, :editable), class: "block" do %>
+  <%= render "student_reports/card",
+             report: report, editable: editable, context: context %>
+<% end %>

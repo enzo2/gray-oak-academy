@@ -47,7 +47,7 @@ class JournalService
       when "Observation"
         query = query.includes(:author)
       when "StudentReport"
-        query = query.includes(:teacher)
+        query = query.includes(:teacher, :edited_by)
       when "Memory"
         query = query.includes(:author)
       end
