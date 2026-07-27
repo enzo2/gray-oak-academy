@@ -119,7 +119,7 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 
 ## Maintenance & Support
 
-Gray Oak Academy is shared in the hope it's useful to other families. No support is provided, and self-hosting means you are responsible for your own deployment, security, and backups. Bug reports and high-quality PRs are welcome. If you find a security vulnerability, please email <lucas@grayoak.net> privately rather than opening a public issue. For commercial inquiries, see COMMERCIAL.md.
+Gray Oak Academy is shared in the hope it's useful to other families. No support is provided, and self-hosting means you are responsible for your own deployment, security, and backups. Bug reports and high-quality PRs are welcome; please read [CONTRIBUTING.md](CONTRIBUTING.md) and accept the [Contributor License Agreement](CONTRIBUTOR_LICENSE_AGREEMENT.md) before submitting a PR. If you find a security vulnerability, please email <lucas@grayoak.net> privately rather than opening a public issue. For commercial inquiries, see COMMERCIAL.md.
 
 ## License
 
