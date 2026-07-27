@@ -189,4 +189,14 @@ class Admin::ResourcesControllerTest < ActionDispatch::IntegrationTest
     post check_uri_admin_resource_path(@other_resource)
     assert_response :not_found
   end
+
+  test "applet resource preview uses the standard applet sandbox" do
+    applet = Applet.create!(title: "Sandboxed preview", code: "console.log('safe');", user: @teacher)
+    resource = Resource.create!(teacher: @teacher, category: "Applet", description: "Sandboxed preview", applet: applet)
+
+    get admin_resource_path(resource)
+
+    assert_response :success
+    assert_select "iframe[src='#{run_applet_path(applet)}'][sandbox='#{Applet::SANDBOX_ATTRIBUTE}']"
+  end
 end

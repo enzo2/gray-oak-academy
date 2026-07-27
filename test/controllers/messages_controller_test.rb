@@ -138,6 +138,34 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "proxy_image rejects URLs that resolve to a non-public address" do
+    sign_in(users(:student))
+    request = Object.new
+    request.define_singleton_method(:call) { raise SafeHttpHeadRequest::UnsafeAddressError, "blocked" }
+
+    SafeHttpHeadRequest.stub(:new, ->(*) { request }) do
+      get "/proxy/image", params: { url: "http://internal.example/image.png" }
+    end
+
+    assert_response :forbidden
+  end
+
+  test "proxy_image returns the validated image response metadata" do
+    sign_in(users(:student))
+    upstream_response = Net::HTTPOK.new("1.1", "200", "OK")
+    upstream_response["Content-Type"] = "image/png"
+    upstream_response["Content-Length"] = "1024"
+    request = Object.new
+    request.define_singleton_method(:call) { upstream_response }
+
+    SafeHttpHeadRequest.stub(:new, ->(*) { request }) do
+      get "/proxy/image", params: { url: "https://example.com/image.png" }
+    end
+
+    assert_response :success
+    assert_equal "image/png", response.media_type
+  end
+
   private
 
   def sign_in_student_with_teacher_provider!(base_uri:)

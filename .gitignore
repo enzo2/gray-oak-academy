@@ -52,9 +52,9 @@ kickbacks.vsix
 /config/*.key
 /config/credentials/*.key
 
-# Ignore encrypted credentials
-# You might want to include them in your own repository, since they are encrypted.
-# If so, comment these lines.
+# Ignore local encrypted credentials, but keep the encrypted production
+# credentials in source control. The production master key remains external.
 *.enc
 /config/*.enc
 /config/credentials/*.enc
+!/config/credentials/production.yml.enc

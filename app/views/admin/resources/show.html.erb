@@ -100,6 +100,7 @@
         <iframe
           src="<%= run_applet_path(@resource.applet) %>"
           title="Applet Preview"
+          sandbox="<%= Applet::SANDBOX_ATTRIBUTE %>"
           class="w-full min-h-[500px]"
           loading="lazy">
         </iframe>

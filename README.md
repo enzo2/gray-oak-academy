@@ -64,7 +64,8 @@ Gray Oak Academy is a teacher-directed, LLM-conducted learning platform, designe
 - *As an alternative without .env files, e.g. for a Portainer stack deployment, `docker-compose-noenv.yml` is provided.*
 - If proxying with SSL: in `config/environments/production.rb`, set `config.force_ssl = true` and `config.assume_ssl = true`, change the `default_url_options` protocols to `https`, and uncomment `config.hosts` with your domain to enable host authorization.
 - Build and run with docker: `docker compose up -d`. Visit http://localhost:3001.
-- For actual long-term use, retrieve the generated `/config/credentials/production.yml.enc` from the container's ephemeral filesystem and add it to your repository, so it will persist across restarts.
+- On the first production startup, Rails generates an encrypted credentials file containing `secret_key_base` and the Active Record encryption keys. Copy it out of the running container with `docker compose cp web:/rails/config/credentials/production.yml.enc config/credentials/production.yml.enc`, then commit `config/credentials/production.yml.enc` to your repository and rebuild the image. Later deployments will include the same encrypted credentials file automatically.
+- Keep `RAILS_MASTER_KEY` private and stable; it is the only secret needed to decrypt `production.yml.enc` and must never be committed. Losing it makes encrypted settings and existing encrypted database values unreadable.
 - Make sure to set strong, random `TEACHER_SIGNUP_CODE` and `STUDENT_SIGNUP_CODE` values — these codes are your registration gate.
 
 ### Choosing an API:

@@ -1,6 +1,10 @@
 class AppletsController < ApplicationController
   before_action :set_applet, only: [ :show, :destroy, :save_as_resource, :run ]
 
+  content_security_policy only: :run do |policy|
+    policy.sandbox(*Applet::SANDBOX_PERMISSIONS)
+  end
+
   # POST /applets, via code_executor_controller
   def create
     @applet = Applet.new(user: current_user)

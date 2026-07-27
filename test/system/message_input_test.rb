@@ -167,10 +167,18 @@ class MessageInputTest < ApplicationSystemTestCase
     base = URI.parse(page.current_url)
     local_url = "#{base.scheme}://#{base.host}:#{base.port}/test_images/sample.png"
     fill_sl_input_by_placeholder("Enter full image URL (https://...)", local_url)
-    submit_url_dialog
+    validated_response = Net::HTTPOK.new("1.1", "200", "OK")
+    validated_response["Content-Type"] = "image/png"
+    validated_response["Content-Length"] = "1024"
+    safe_request = Object.new
+    safe_request.define_singleton_method(:call) { validated_response }
 
-    # Wait for the preview to show the image (proxy HEAD check and FileReader are async)
-    assert_selector '#previewArea img[alt="Image 1"]', wait: 10
+    SafeHttpHeadRequest.stub(:new, ->(*) { safe_request }) do
+      submit_url_dialog
+
+      # Wait for the preview to show the image (proxy HEAD check and FileReader are async)
+      assert_selector '#previewArea img[alt="Image 1"]', wait: 10
+    end
     assert_no_selector "sl-dialog[data-new-message-target='urlDialog'][open]", wait: 5
     sleep 0.5 # Wait for dialog fade-out animation to complete
 

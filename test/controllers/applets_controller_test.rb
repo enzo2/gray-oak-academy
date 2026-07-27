@@ -145,6 +145,10 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1']"
     assert_select "html[data-goa-applet-shell='v1']"
     assert_select "div#sandbox"
+
+    sandbox_sources = csp_sources(response.headers["Content-Security-Policy"], "sandbox")
+    assert_equal Applet::SANDBOX_PERMISSIONS, sandbox_sources
+    assert_not_includes sandbox_sources, "allow-same-origin"
   end
 
   test "run renders dark preview shell when requested by chalkboard" do
@@ -156,5 +160,14 @@ class AppletsControllerTest < ActionDispatch::IntegrationTest
     assert_select "html.dark"
     assert_select "html[data-goa-applet-shell='v1']"
     assert_select "div#sandbox"
+  end
+
+  private
+
+  def csp_sources(policy, directive)
+    entry = policy.to_s.split(";").map(&:strip).find { |item| item.start_with?("#{directive} ") }
+    return [] unless entry
+
+    entry.delete_prefix(directive).split
   end
 end

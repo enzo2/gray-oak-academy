@@ -126,39 +126,7 @@ class MessagesController < ApplicationController
 
   # Proxy the image content-type check, since it can't be done in the Stimulus controller due to CORS
   def proxy_image
-    require "net/http"
-    require "uri"
-    url = params[:url]
-
-    # Validate URL
-    begin
-      uri = URI.parse(url)
-    rescue URI::InvalidURIError
-      return head :bad_request
-    end
-    unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
-      return head :forbidden
-    end
-
-    # Block internal network requests, unless in test environment
-    unless Rails.env.test?
-      ip = Addrinfo.ip(uri.host)
-      if ip.ipv4_private? || ip.ipv4_loopback? ||
-         IPAddr.new("fc00::/7").include?(ip.ip_address) || # ULA
-         IPAddr.new("::1").include?(ip.ip_address)         # IPv6 loopback
-        return head :forbidden
-      end
-    end
-
-    # Set up HTTP client with timeouts
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = (uri.scheme == "https")
-    http.open_timeout = 5  # seconds
-    http.read_timeout = 10 # seconds
-
-    request = Net::HTTP::Head.new(uri.request_uri)
-    response = http.request(request)
-    Rails.logger.debug "Proxying image: #{url}"
+    response = SafeHttpHeadRequest.new(params[:url]).call
     Rails.logger.debug "Response code: #{response.code}"
     Rails.logger.debug "Response content-type: #{response["Content-Type"]}"
 
@@ -173,6 +141,12 @@ class MessagesController < ApplicationController
     end
 
     render plain: "", status: response.code, content_type: response["Content-Type"]
+  rescue SafeHttpHeadRequest::UnsafeAddressError => e
+    Rails.logger.warn "Blocked image proxy request: #{e.message}"
+    head :forbidden
+  rescue SafeHttpHeadRequest::InvalidUrlError => e
+    Rails.logger.info "Invalid image proxy request: #{e.message}"
+    head :bad_request
   rescue StandardError => e
     Rails.logger.error "Image proxy error: #{e.message}"
     head :bad_request
