@@ -25,6 +25,26 @@ class SpeechServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "gpt-transcribe requests JSON response format" do
+    AppSetting.settings.update!(stt_model: "gpt-transcribe")
+    captured = {}
+    fake_client = build_speech_client do |params|
+      captured.merge!(params)
+      Struct.new(:text).new("Hello from GPT-Transcribe")
+    end
+
+    OpenAI::Client.stub(:new, ->(**_kwargs) { fake_client }) do
+      service = SpeechService.new(current_user: @user, conversation: @conversation)
+
+      Tempfile.create([ "audio", ".wav" ]) do |file|
+        assert_equal "Hello from GPT-Transcribe", service.transcribe(file)
+      end
+    end
+
+    assert_equal "gpt-transcribe", captured[:model]
+    assert_equal "json", captured[:response_format]
+  end
+
   test "transcribe sends a Pathname file part when given a Tempfile" do
     captured = {}
     fake_client = build_speech_client do |params|
