@@ -128,7 +128,7 @@ end %>
       <%= f.combobox "stt_model",
             "#{speech_models_admin_app_setting_path}?kind=stt&api_uri=#{selected_speech_provider_uri}",
             name_when_new: "app_setting[stt_model]",
-            placeholder: "gpt-4o-mini-transcribe",
+            placeholder: "gpt-transcribe",
             data: {
               action: "",
               stt_settings_target: "speechInput speechModelCombobox"

@@ -485,10 +485,11 @@ class SpeechService
   end
 
   def create_speech_transcription_response(upload_file:)
+    response_format = speech_transcription_response_format
     @client.audio.transcriptions.create(
       model: @stt_model,
       file: upload_file, # No need to transcode first, API should handle webm or mp4.
-      response_format: "text"
+      response_format: response_format
     )
   rescue TypeError, OpenAI::Errors::ConversionError => e
     Rails.logger.warn "Speech API transcription response parse failed in SDK (#{e.class}): #{e.message}. Falling back to raw response."
@@ -499,9 +500,13 @@ class SpeechService
       body: {
         model: @stt_model,
         file: upload_file,
-        response_format: "text"
+        response_format: response_format
       }
     )
+  end
+
+  def speech_transcription_response_format
+    @stt_model == "gpt-transcribe" ? "json" : "text"
   end
 
   def create_openrouter_transcription_response(audio_b64)

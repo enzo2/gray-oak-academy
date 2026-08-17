@@ -1262,7 +1262,7 @@ AppSetting.first_or_create!(
   singleton: true,
   provider_supported_api_id: openai.id,
   stt_method: "speech",
-  stt_model: "gpt-4o-mini-transcribe",
+  stt_model: "gpt-transcribe",
   tts_model: "gpt-4o-mini-tts",
   tts_voice: "verse",
   tts_instructions: "Speak in a calm and friendly tone.",
