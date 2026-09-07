@@ -20,7 +20,7 @@ gem "puma"# , "< 8" # Use the Puma web server [https://github.com/puma/puma]
 gem "solid_queue"
 gem "solid_cable", github: "rails/solid_cable", branch: "main"  # revert upon next release
 gem "solid_cache"
-gem "image_processing", "~> 2.0"
+gem "image_processing", "~> 2.1"
 gem "ruby-vips"
 gem "importmap-rails"
 gem "turbo-rails"
