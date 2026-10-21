@@ -35,8 +35,8 @@ pin "@shoelace-style/shoelace/copy-button", to: "https://cdn.jsdelivr.net/npm/@s
 # pin "@awesome.me/webawesome/button", to: "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/components/button/button.js"
 # pin "@awesome.me/webawesome/icon", to: "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist-cdn/components/icon/icon.js"
 
-pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.js"
-pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js"
+pin "katex", to: "https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/katex.js"
+pin "katex-auto-render", to: "https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/contrib/auto-render.min.js"
 
 pin "@floating-ui/dom", to: "https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm"
 

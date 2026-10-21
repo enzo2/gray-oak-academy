@@ -16,7 +16,7 @@
 
 
 /* Import Katex CSS for math rendering */
-@import url('https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.css');
+@import url('https://cdn.jsdelivr.net/npm/katex@0.18.11/dist/katex.css');
 
 /* Import Rouge CSS theme for syntax highlighting - included in markdown_views gem */
 /* if changing theme, also change --rouge-bg to match the theme's background color.
